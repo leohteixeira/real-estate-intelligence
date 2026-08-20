@@ -1,0 +1,32 @@
+{
+  "name": "@rei/infrastructure",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc --build",
+    "typecheck": "tsc --build --force",
+    "test": "vitest run --dir src --passWithNoTests"
+  },
+  "dependencies": {
+    "@rei/application": "workspace:*",
+    "@rei/domain": "workspace:*",
+    "pg": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/pg": "8.23.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
