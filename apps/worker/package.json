@@ -1,0 +1,35 @@
+{
+  "name": "@rei/worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "tsc --build --watch",
+    "start": "node -r ./dist/otel.js dist/main.js",
+    "typecheck": "tsc --build --force",
+    "test": "vitest run --dir src --passWithNoTests"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.1",
+    "@nestjs/config": "4.0.4",
+    "@nestjs/core": "11.2.1",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.221.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.221.0",
+    "@opentelemetry/instrumentation-http": "0.221.0",
+    "@opentelemetry/instrumentation-pg": "0.73.0",
+    "@opentelemetry/resources": "2.10.0",
+    "@opentelemetry/sdk-metrics": "2.10.0",
+    "@opentelemetry/sdk-node": "0.221.0",
+    "@opentelemetry/semantic-conventions": "1.43.0",
+    "@rei/application": "workspace:*",
+    "@rei/domain": "workspace:*",
+    "@rei/infrastructure": "workspace:*",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
