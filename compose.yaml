@@ -1,0 +1,105 @@
+name: real-estate-intelligence
+
+services:
+  # The image ships PostGIS and pgvector, but no extension is enabled by
+  # default: a migration that needs one runs its own CREATE EXTENSION.
+  postgres:
+    image: postgis/postgis:18-3.6-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-real_estate_intelligence}
+      POSTGRES_USER: ${POSTGRES_USER:-realestate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-realestate}
+    ports:
+      - '${POSTGRES_PORT:-5434}:5432'
+    volumes:
+      # PostgreSQL 18 expects a single mount at /var/lib/postgresql and
+      # places the cluster in a version-specific subdirectory; mounting
+      # /var/lib/postgresql/data makes the image refuse to start.
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-realestate}']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      API_PORT: 8200
+      DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: real-estate-intelligence-api
+    ports:
+      - '${API_PORT:-8200}:8200'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
+      WORKER_INTERVAL_MS: ${WORKER_INTERVAL_MS:-30000}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: real-estate-intelligence-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Deliberately without DATABASE_URL and without object storage credentials:
+  # Mastra reaches domain capabilities only through typed tools that call the
+  # API's versioned HTTP contract.
+  ai:
+    build:
+      context: .
+      dockerfile: docker/ai.Dockerfile
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      API_BASE_URL: http://api:8200
+    ports:
+      - '${AI_PORT:-4111}:4111'
+    depends_on:
+      - api
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    ports:
+      - '${WEB_PORT:-3200}:3200'
+    depends_on:
+      - api
+
+  # Optional services. The product specification requires them to stay opt-in:
+  #   docker compose --profile optional up -d
+  valkey:
+    image: valkey/valkey:9-alpine
+    profiles: [optional]
+    ports:
+      - '${VALKEY_PORT:-6380}:6379'
+    volumes:
+      - valkey-data:/data
+
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    profiles: [optional]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-realestate}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-realestate}
+    ports:
+      - '${MINIO_API_PORT:-9100}:9000'
+      - '${MINIO_CONSOLE_PORT:-9101}:9001'
+    volumes:
+      - minio-data:/data
+
+volumes:
+  postgres-data:
+  valkey-data:
+  minio-data:
