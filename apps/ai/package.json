@@ -1,0 +1,22 @@
+{
+  "name": "@rei/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "bundle": "mastra build",
+    "dev": "mastra dev --port ${AI_PORT:-4111}",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --dir src --passWithNoTests"
+  },
+  "dependencies": {
+    "@mastra/core": "1.60.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "mastra": "1.25.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
