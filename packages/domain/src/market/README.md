@@ -1,3 +1,4 @@
 # market
 
-Módulo previsto pela seção 3.3 da especificação de produto. Ainda sem código.
+Module planned by section 3.3 of the product specification. Currently holds the
+deterministic price per square meter rule; the rest of the module has no code yet.

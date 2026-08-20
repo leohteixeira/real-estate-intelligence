@@ -1,49 +1,51 @@
-# ADR 0002 — Framework HTTP, workers e a fronteira do Mastra
+# ADR 0002 — HTTP framework, workers and the Mastra boundary
 
-- **Status:** aceito
-- **Data:** 2026-08-20
+- **Status:** accepted
+- **Date:** 2026-08-20
 
-## Contexto
+## Context
 
-O CLAUDE.md do workspace fixa Node.js 24, NestJS 11 para API e worker, e um runtime Mastra
-separado. Também determina que o Mastra alcance capacidades de domínio apenas por tools tipadas ou
-application services, e que nunca receba acesso irrestrito ao banco ou à infraestrutura.
+The workspace CLAUDE.md pins Node.js 24, NestJS 11 for the API and the worker, and a separate
+Mastra runtime. It also mandates that Mastra reaches domain capabilities only through typed tools
+or application services, and that it never receives unrestricted access to the database or to
+infrastructure.
 
-## Decisão
+## Decision
 
-- A API é uma aplicação **NestJS 11.2.1** com `@nestjs/platform-express`, prefixo global
-  `api/v1` e `enableShutdownHooks()`. `/health` e `/ready` ficam fora do prefixo porque são
-  operacionais, não parte do contrato de produto.
-- O worker é um **application context standalone do Nest** (`NestFactory.createApplicationContext`):
-  sem servidor HTTP, mas com os mesmos módulos, providers e ciclo de vida da API.
-- O Mastra roda em `apps/ai`, como aplicação separada na porta 4111. Ele **não** depende de
-  `@rei/infrastructure`, não lê `DATABASE_URL` e não instancia pool de conexão — nem no código, nem
-  no `compose.yaml`.
-- Os packages compartilhados são `@rei/domain`, `@rei/application`, `@rei/contracts` e
-  `@rei/infrastructure`, ligados por TypeScript project references. A dependência é sempre para
-  dentro: `@rei/api` / `@rei/worker` → `@rei/application` → `@rei/domain`.
-- Nenhum tipo de driver cruza a fronteira: `@rei/infrastructure` expõe a classe opaca
-  `DatabaseConnection` em vez do `Pool` do `pg`.
-- **Sem fila nesta fase.** BullMQ e Valkey ficam para quando existir um job assíncrono real; o
-  serviço `valkey` está declarado no Compose sob o profile `optional` e não é consumido.
+- The API is a **NestJS 11.2.1** application with `@nestjs/platform-express`, the global prefix
+  `api/v1` and `enableShutdownHooks()`. `/health` and `/ready` stay outside the prefix because they
+  are operational, not part of the product contract.
+- The worker is a **Nest standalone application context**
+  (`NestFactory.createApplicationContext`): no HTTP server, but the same modules, providers and
+  lifecycle as the API.
+- Mastra runs in `apps/ai`, as a separate application on port 4111. It does **not** depend on
+  `@rei/infrastructure`, does not read `DATABASE_URL` and does not instantiate a connection pool —
+  neither in the code nor in `compose.yaml`.
+- The shared packages are `@rei/domain`, `@rei/application`, `@rei/contracts` and
+  `@rei/infrastructure`, wired through TypeScript project references. The dependency is always
+  inwards: `@rei/api` / `@rei/worker` → `@rei/application` → `@rei/domain`.
+- No driver type crosses the boundary: `@rei/infrastructure` exposes the opaque `DatabaseConnection`
+  class instead of the `pg` `Pool`.
+- **No queue in this phase.** BullMQ and Valkey are deferred until there is a real asynchronous job;
+  the `valkey` service is declared in Compose under the `optional` profile and is not consumed.
 
-### `mastra build` e a regra do npm
+### `mastra build` and the npm rule
 
-O CLAUDE.md proíbe `npm` nestes repositórios. O comando `mastra build` invoca `npm` internamente
-para gerar o `package-lock.json` do bundle de deploy. Por isso o script `build` de `@rei/ai` é
-apenas verificação de tipos, e a geração do bundle fica no script separado `bundle`, usado somente
-pelo `docker/ai.Dockerfile`. Assim `pnpm -r build` e a CI permanecem livres de `npm`.
+CLAUDE.md forbids `npm` in these repositories. The `mastra build` command invokes `npm` internally
+to generate the `package-lock.json` of the deployment bundle. That is why the `build` script of
+`@rei/ai` is type checking only, and bundle generation lives in the separate `bundle` script, used
+solely by `docker/ai.Dockerfile`. This keeps `pnpm -r build` and CI free of `npm`.
 
-## Consequências
+## Consequences
 
-Duas maneiras diferentes de compilar convivem no repositório: `nest build` para a API e
-`tsc --build` para o worker e para os packages. Em troca, cada aplicação usa a ferramenta que seu
-framework espera.
+Two different ways of compiling coexist in the repository: `nest build` for the API and
+`tsc --build` for the worker and the packages. In exchange, each application uses the tool its
+framework expects.
 
-A ausência de fila significa que o worker hoje é um laço com `setInterval`. Quando houver crawling
-de verdade, isso não basta.
+The absence of a queue means the worker is a `setInterval` loop today. Once there is real crawling,
+that will not be enough.
 
-## Gatilho de reavaliação
+## Reassessment trigger
 
-Adotar BullMQ sobre Valkey quando existir o primeiro job que precise de retry com backoff,
-dead-letter ou distribuição entre múltiplos workers.
+Adopt BullMQ on Valkey once there is a first job that needs retry with backoff, a dead-letter queue
+or distribution across multiple workers.

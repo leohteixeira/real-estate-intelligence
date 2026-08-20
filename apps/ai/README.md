@@ -1,19 +1,19 @@
 # @rei/ai
 
-Runtime do Mastra, executado como aplicação separada na porta 4111.
+Mastra runtime, executed as a separate application on port 4111.
 
-## Regra de fronteira
+## Boundary rule
 
-Esta aplicação **nunca** recebe acesso irrestrito ao banco ou à infraestrutura. Ela alcança as
-capacidades de domínio apenas através de:
+This application **never** receives unrestricted access to the database or to infrastructure. It
+reaches domain capabilities only through:
 
-- tools tipadas que chamam o contrato HTTP versionado da API (`/api/v1`); ou
-- application services explicitamente expostos a ela.
+- typed tools that call the versioned HTTP contract of the API (`/api/v1`); or
+- application services explicitly exposed to it.
 
-Concretamente, isso significa que `@rei/ai` **não** declara dependência de `@rei/infrastructure`,
-não lê `DATABASE_URL` e não instancia um pool de conexões.
+Concretely, that means `@rei/ai` declares **no** dependency on `@rei/infrastructure`, does not read
+`DATABASE_URL` and does not instantiate a connection pool.
 
-Exemplos de tools previstas pela especificação de produto:
+Examples of tools foreseen by the product specification:
 
 ```text
 findComparableProperties()
@@ -22,21 +22,21 @@ getRegionStatistics()
 searchListings()
 ```
 
-## Estado
+## State
 
-Nenhum agente e nenhuma tool registrados. Eles entram junto com os application services que cada um
-tem permissão de chamar.
+No agent and no tool registered. They land together with the application services each one is
+allowed to call.
 
-## Comandos
+## Commands
 
 ```bash
 pnpm --filter "@rei/ai" dev      # http://0.0.0.0:4111
 pnpm --filter "@rei/ai" build    # type check
-pnpm --filter "@rei/ai" bundle   # gera .mastra/output para deploy
+pnpm --filter "@rei/ai" bundle   # produces .mastra/output for deployment
 ```
 
-`build` é apenas verificação de tipos. O bundle de deploy fica no script separado `bundle` porque
-o `mastra build` invoca `npm` internamente para gerar o `package-lock.json` do diretório de saída,
-e o CLAUDE.md do workspace proíbe `npm` no fluxo padrão. Enquanto não houver agente nem tool
-registrados, o bundle não agrega nada ao `pnpm -r build`. A saída fica em `.mastra/`, que é
-ignorada pelo Git.
+`build` is type checking only. The deployment bundle lives in the separate `bundle` script because
+`mastra build` invokes `npm` internally to generate the `package-lock.json` of the output
+directory, and the workspace CLAUDE.md forbids `npm` in the standard flow. As long as no agent and
+no tool are registered, the bundle adds nothing to `pnpm -r build`. The output goes to `.mastra/`,
+which is ignored by Git.

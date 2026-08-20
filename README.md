@@ -1,66 +1,66 @@
 # Real Estate Intelligence
 
-Plataforma de coleta, normalização, acompanhamento e análise de dados públicos de imóveis. O
-objetivo não é um agregador de anúncios, e sim uma camada de inteligência de mercado que responde
-perguntas sobre preço por metro quadrado, valorização por região, quedas recentes de preço,
-anúncios parados e imóveis subvalorizados.
+Platform for collecting, normalizing, tracking and analyzing public real estate data. The goal is
+not a listing aggregator, but a market intelligence layer that answers questions about price per
+square meter, appreciation by region, recent price drops, stale listings and undervalued
+properties.
 
-A especificação de produto vive em `/workspace/docs/real_state_intelligence.md`.
+The product specification lives at `/workspace/docs/real_state_intelligence.md`.
 
-> Estado atual: **fundação**. A estrutura, o ferramental e os processos estão prontos; não existem
-> entidades, collectors, comparables nem endpoints de negócio.
+> Current state: **foundation**. Structure, tooling and processes are in place; there are no
+> entities, no collectors, no comparables and no business endpoints.
 
 ## Stack
 
-| Camada       | Escolha                                                    |
-| ------------ | ---------------------------------------------------------- |
-| API          | NestJS 11 sobre Express (porta 8200)                       |
-| Worker       | application context standalone do Nest                     |
-| IA           | Mastra 1.25 em aplicação separada (porta 4111), sem tools  |
-| Persistência | PostgreSQL 18 com PostGIS disponível, driver `pg`, sem ORM |
-| Migrations   | SQL versionado aplicado por `scripts/migrate.sh`           |
-| Web          | React 19 + Vite 8 + TypeScript 5.9.3 (porta 3200)          |
-| Telemetria   | OpenTelemetry Node 0.221, pré-carregado por `node -r`      |
-| Testes       | Vitest 4                                                   |
+| Layer       | Choice                                                      |
+| ----------- | ----------------------------------------------------------- |
+| API         | NestJS 11 on Express (port 8200)                            |
+| Worker      | Nest standalone application context                         |
+| AI          | Mastra 1.25 in a separate application (port 4111), no tools |
+| Persistence | PostgreSQL 18 with PostGIS available, `pg` driver, no ORM   |
+| Migrations  | versioned SQL applied by `scripts/migrate.sh`               |
+| Web         | React 19 + Vite 8 + TypeScript 5.9.3 (port 3200)            |
+| Telemetry   | OpenTelemetry Node 0.221, preloaded through `node -r`       |
+| Tests       | Vitest 4                                                    |
 
-As decisões estão registradas em [`specs/adrs/`](specs/adrs/).
+The decisions are recorded in [`specs/adrs/`](specs/adrs/).
 
 ## Layout
 
 ```text
 apps/
-├── web/       # frontend React
-├── api/       # NestJS: HTTP e orquestração de aplicação
-├── worker/    # crawling e jobs assíncronos
-└── ai/        # runtime Mastra, isolado
+├── web/       # React frontend
+├── api/       # NestJS: HTTP and application orchestration
+├── worker/    # crawling and asynchronous jobs
+└── ai/        # Mastra runtime, isolated
 packages/
-├── domain/          # modelo canônico e regras determinísticas
-├── application/     # casos de uso e portas
-├── contracts/       # tipos do contrato HTTP versionado
-└── infrastructure/  # adapters; SDKs de fornecedor só aqui
-migrations/    # SQL versionado
-specs/adrs/    # decisões de arquitetura
+├── domain/          # canonical model and deterministic rules
+├── application/     # use cases and ports
+├── contracts/       # types of the versioned HTTP contract
+└── infrastructure/  # adapters; vendor SDKs only here
+migrations/    # versioned SQL
+specs/adrs/    # architecture decisions
 ```
 
-A direção da dependência é sempre para dentro:
+The dependency direction is always inwards:
 `@rei/api` / `@rei/worker` → `@rei/application` → `@rei/domain`.
 
-`@rei/ai` **não** depende de `@rei/infrastructure`, não recebe `DATABASE_URL` e não instancia pool
-de conexão. Ele alcança o domínio apenas por tools tipadas que chamam `/api/v1`.
+`@rei/ai` does **not** depend on `@rei/infrastructure`, does not receive `DATABASE_URL` and does not
+instantiate a connection pool. It reaches the domain only through typed tools that call `/api/v1`.
 
-## Como começar
+## Getting started
 
 ```bash
-cp env.example .env          # ajuste se precisar
+cp env.example .env          # adjust if needed
 pnpm install --frozen-lockfile
-pnpm run build               # os packages precisam existir antes de rodar os apps
-lefthook install             # instala os git hooks
+pnpm run build               # the packages must exist before running the apps
+lefthook install             # installs the git hooks
 ```
 
-O arquivo de exemplo se chama `env.example`, sem ponto inicial, porque o `.claudeignore` da raiz do
-workspace exclui todo caminho `.env.*`.
+The example file is named `env.example`, without a leading dot, because the workspace root
+`.claudeignore` excludes every `.env.*` path.
 
-## Comandos
+## Commands
 
 ```bash
 pnpm run lint
@@ -74,37 +74,37 @@ pnpm --filter "@rei/web" dev      # http://0.0.0.0:3200
 pnpm --filter "@rei/ai" dev       # http://0.0.0.0:4111
 
 docker compose up -d                       # postgres, api, worker, ai, web
-docker compose --profile optional up -d    # + valkey e minio
+docker compose --profile optional up -d    # + valkey and minio
 DATABASE_URL=postgres://realestate:realestate@localhost:5434/real_estate_intelligence \
   ./scripts/migrate.sh
 ```
 
-A API e o worker são iniciados com `node -r ./dist/otel.js dist/main.js`. O preload é obrigatório:
-sem ele o processo sobe, mas sem instrumentação, porque `http`, `express` e `pg` já teriam sido
-carregados quando o SDK tentasse instrumentá-los.
+The API and the worker are started with `node -r ./dist/otel.js dist/main.js`. The preload is
+mandatory: without it the process still starts, but without instrumentation, because `http`,
+`express` and `pg` would already have been loaded by the time the SDK tried to instrument them.
 
 ## Endpoints
 
-| Método | Rota      | Descrição                                               |
-| ------ | --------- | ------------------------------------------------------- |
-| `GET`  | `/health` | Liveness. Não toca em dependência alguma.               |
-| `GET`  | `/ready`  | Readiness. Responde 503 quando o PostgreSQL não atende. |
-| —      | `/api/v1` | Superfície versionada do contrato, ainda vazia.         |
+| Method | Route     | Description                                            |
+| ------ | --------- | ------------------------------------------------------ |
+| `GET`  | `/health` | Liveness. Touches no dependency at all.                |
+| `GET`  | `/ready`  | Readiness. Answers 503 when PostgreSQL does not reply. |
+| —      | `/api/v1` | Versioned contract surface, still empty.               |
 
-## Portas
+## Ports
 
 Web 3200, API 8200, Mastra 4111, PostgreSQL 5434, Valkey 6380, MinIO 9100/9101.
 
-## Qualidade
+## Quality
 
-Os hooks do lefthook rodam gitleaks, prettier, markdownlint, hadolint e ESLint no `pre-commit`;
-validam Conventional Commits no `commit-msg`; e rodam a varredura de histórico do gitleaks mais
-lint, typecheck, testes e build no `pre-push`.
+The lefthook hooks run gitleaks, prettier, markdownlint, hadolint and ESLint on `pre-commit`; they
+validate Conventional Commits on `commit-msg`; and they run the gitleaks history scan plus lint,
+typecheck, tests and build on `pre-push`.
 
 ```bash
 lefthook run pre-commit --all-files
 gitleaks git --redact --no-banner
 ```
 
-Commits seguem Conventional Commits em inglês. Especificações e documentação voltada ao usuário
-podem ser escritas em português; código, identificadores e comentários permanecem em inglês.
+Everything in this repository is written in English: code, identifiers, comments, branch names,
+commit messages, specifications and documentation. Commits follow Conventional Commits.

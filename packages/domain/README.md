@@ -1,18 +1,18 @@
 # @rei/domain
 
-Modelo canônico e regras de negócio. Este package **não** depende de infraestrutura, de SDK de
-fornecedor nem de fonte de dados.
+Canonical model and business rules. This package does **not** depend on infrastructure, on a vendor
+SDK or on a data source.
 
-Uma pasta por módulo, seguindo a seção 3.3 da especificação de produto. As pastas estão vazias de
-propósito: a fase de fundação ainda não cria entidades.
+One folder per module, following section 3.3 of the product specification. The folders are empty on
+purpose: the foundation phase does not create entities yet.
 
-Regras que pertencem aqui quando a implementação começar:
+Rules that belong here once implementation starts:
 
-- `Property` e `Listing` são entidades diferentes; um imóvel pode ter vários anúncios ao longo do
-  tempo, em fontes diferentes.
-- Histórico é first-class: `ListingSnapshot` e `ListingEvent` preservam a evolução, não apenas o
-  estado atual.
-- Entity resolution é explicável: os critérios que uniram dois anúncios ficam registrados.
-- Asking price e transaction price nunca são confundidos.
-- Cálculos como preço por metro quadrado são determinísticos. Uma LLM pode explicar o resultado,
-  nunca produzi-lo — veja `src/market/price-per-square-meter.ts`.
+- `Property` and `Listing` are distinct entities; one property may have several listings over time,
+  from different sources.
+- History is first-class: `ListingSnapshot` and `ListingEvent` preserve the evolution, not just the
+  current state.
+- Entity resolution is explainable: the criteria that merged two listings are recorded.
+- Asking price and transaction price are never conflated.
+- Calculations such as price per square meter are deterministic. An LLM may explain the result,
+  never produce it — see `src/market/price-per-square-meter.ts`.

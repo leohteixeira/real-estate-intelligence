@@ -1,41 +1,40 @@
-# ADR 0003 — Driver PostgreSQL, ORM e migrations
+# ADR 0003 — PostgreSQL driver, ORM and migrations
 
-- **Status:** aceito
-- **Data:** 2026-08-20
+- **Status:** accepted
+- **Date:** 2026-08-20
 
-## Contexto
+## Context
 
-PostgreSQL é o banco primário. A especificação prevê PostGIS para consultas geoespaciais e
-`pgvector` para busca semântica, ambos como recursos futuros (V2), e exige cálculos determinísticos
-para preço/m², comparables e métricas de mercado.
+PostgreSQL is the primary database. The specification foresees PostGIS for geospatial queries and
+`pgvector` for semantic search, both as future (V2) capabilities, and requires deterministic
+calculations for price per m², comparables and market metrics.
 
-## Decisão
+## Decision
 
-- Acesso a dados via **driver `pg` (node-postgres) 8.23.0**, encapsulado na classe
-  `DatabaseConnection` de `@rei/infrastructure`. **Sem ORM**: nem Prisma, nem TypeORM, nem Drizzle,
-  nem Kysely.
-- Nenhum tipo do `pg` é reexportado. As aplicações recebem `DatabaseConnection`, não `Pool`.
-- Migrations são **arquivos SQL versionados** em `migrations/`, aplicados em ordem lexicográfica
-  por `scripts/migrate.sh`, que controla o que já rodou na tabela `schema_migrations`.
-- A imagem do Compose é `postgis/postgis:18-3.6-alpine`, que traz PostGIS disponível, mas
-  **nenhuma extensão é habilitada**: a migration que precisar de `postgis` ou `vector` executa o
-  `CREATE EXTENSION` correspondente e justifica a necessidade.
-- Erros de conexão passam por `redactConnectionError` antes de virarem log.
-- Timestamps em UTC (`timestamptz`); o par (fonte, identificador na fonte) recebe constraint de
-  unicidade, para que a ingestão seja idempotente.
+- Data access through the **`pg` (node-postgres) 8.23.0 driver**, wrapped in the
+  `DatabaseConnection` class of `@rei/infrastructure`. **No ORM**: no Prisma, no TypeORM, no
+  Drizzle, no Kysely.
+- No `pg` type is re-exported. The applications receive `DatabaseConnection`, not `Pool`.
+- Migrations are **versioned SQL files** in `migrations/`, applied in lexicographic order by
+  `scripts/migrate.sh`, which tracks what has already run in the `schema_migrations` table.
+- The Compose image is `postgis/postgis:18-3.6-alpine`, which makes PostGIS available, but **no
+  extension is enabled**: the migration that needs `postgis` or `vector` runs the corresponding
+  `CREATE EXTENSION` and justifies the need.
+- Connection errors go through `redactConnectionError` before being logged.
+- Timestamps in UTC (`timestamptz`); the pair (source, identifier at the source) carries a
+  uniqueness constraint, so that ingestion is idempotent.
 
-O ORM foi descartado principalmente pelo domínio: consultas geoespaciais, comparables e séries
-temporais de preço são exatamente o tipo de SQL que ORMs escondem atrás de abstrações difíceis de
-auditar. A especificação exige que esses cálculos sejam explicáveis.
+The ORM was rejected mainly because of the domain: geospatial queries, comparables and price time
+series are exactly the kind of SQL that ORMs hide behind abstractions that are hard to audit. The
+specification requires those calculations to be explainable.
 
-## Consequências
+## Consequences
 
-Mapeamento de linha para objeto escrito à mão, com mais código por consulta e sem migrations
-geradas automaticamente a partir de um schema declarativo. Em troca, o SQL que produz um preço
-médio por bairro fica visível e revisável.
+Row-to-object mapping written by hand, with more code per query and no migrations generated
+automatically from a declarative schema. In exchange, the SQL that produces an average price per
+neighborhood stays visible and reviewable.
 
-## Gatilho de reavaliação
+## Reassessment trigger
 
-Adotar um query builder tipado, como Kysely, quando o mapeamento manual passar de algo em torno de
-30 consultas ou começar a produzir defeitos recorrentes. Reavaliar Prisma apenas se ele passar a
-suportar PostGIS de forma nativa.
+Adopt a typed query builder such as Kysely once manual mapping passes roughly 30 queries or starts
+producing recurring defects. Reassess Prisma only if it gains native PostGIS support.

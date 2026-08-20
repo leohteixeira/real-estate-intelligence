@@ -1,7 +1,7 @@
 # @rei/application
 
-Casos de uso e **portas**. Depende apenas de `@rei/domain`.
+Use cases and **ports**. Depends on `@rei/domain` only.
 
-Portas são interfaces declaradas aqui e implementadas por adapters em `@rei/infrastructure`. A
-direção da dependência é sempre para dentro:
+Ports are interfaces declared here and implemented by adapters in `@rei/infrastructure`. The
+dependency direction is always inwards:
 `@rei/api` / `@rei/worker` → `@rei/application` → `@rei/domain`.

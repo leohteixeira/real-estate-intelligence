@@ -1,6 +1,6 @@
 # @rei/contracts
 
-Tipos do contrato HTTP versionado compartilhados entre a API e os consumidores.
+Types of the versioned HTTP contract, shared between the API and its consumers.
 
-Este package não contém regra de negócio nem acesso a dados: apenas as formas que atravessam a
-fronteira HTTP, mais a constante de versão do prefixo (`api/v1`).
+This package holds no business rule and no data access: only the shapes that cross the HTTP
+boundary, plus the version constant of the prefix (`api/v1`).

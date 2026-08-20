@@ -1,44 +1,43 @@
-# ADR 0005 — Observabilidade com OpenTelemetry
+# ADR 0005 — Observability with OpenTelemetry
 
-- **Status:** aceito
-- **Data:** 2026-08-20
+- **Status:** accepted
+- **Date:** 2026-08-20
 
-## Contexto
+## Context
 
-A especificação exige instrumentação com OpenTelemetry de requests, jobs, collectors, duração de
-crawling, erros de parsing, chamadas de LLM, tool calls, consumo de tokens e falhas de enrichment.
-O CLAUDE.md exige logs, métricas e traces correlacionáveis, sem registrar segredos.
+The specification requires OpenTelemetry instrumentation of requests, jobs, collectors, crawling
+duration, parsing errors, LLM calls, tool calls, token consumption and enrichment failures.
+CLAUDE.md requires correlatable logs, metrics and traces, without recording secrets.
 
-## Decisão
+## Decision
 
-- `@opentelemetry/sdk-node` 0.221.0 com um conjunto **explícito** de instrumentações, em vez de
-  `@opentelemetry/auto-instrumentations-node`: `instrumentation-http` e `instrumentation-pg` nos
-  dois processos, mais `instrumentation-express` apenas na API. O pacote automático traz dezenas de
-  instrumentações que este projeto não usa.
-- O bootstrap fica em `src/otel.ts` de cada aplicação e é **pré-carregado** pelo script de start
-  (`node -r ./dist/otel.js dist/main.js`). Isso não é detalhe de estilo: chamar o SDK de dentro do
-  `main.ts` seria tarde demais, porque `http`, `express` e `pg` já teriam sido carregados e não
-  poderiam mais ser instrumentados.
-- Exportação OTLP ativada **somente** quando `OTEL_EXPORTER_OTLP_ENDPOINT` está definido, para que
-  o processo funcione sem um collector local.
-- `OTEL_SERVICE_NAME` identifica cada processo; o valor padrão é o nome da aplicação.
-- Logging com o **Logger nativo do NestJS**. Sem pino e sem winston: o logger da plataforma atende
-  e evita mais uma dependência.
-- Connection strings, credenciais de fonte e chaves de provider nunca entram em log, span ou
-  métrica. `@rei/infrastructure` redige credenciais antes de propagar qualquer erro do driver.
+- `@opentelemetry/sdk-node` 0.221.0 with an **explicit** set of instrumentations, instead of
+  `@opentelemetry/auto-instrumentations-node`: `instrumentation-http` and `instrumentation-pg` in
+  both processes, plus `instrumentation-express` in the API only. The automatic package brings
+  dozens of instrumentations this project does not use.
+- The bootstrap lives in each application's `src/otel.ts` and is **preloaded** by the start script
+  (`node -r ./dist/otel.js dist/main.js`). This is not a style detail: calling the SDK from inside
+  `main.ts` would be too late, because `http`, `express` and `pg` would already have been loaded
+  and could no longer be instrumented.
+- OTLP export enabled **only** when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, so that the process runs
+  without a local collector.
+- `OTEL_SERVICE_NAME` identifies each process; the default value is the application name.
+- Logging with the **native NestJS Logger**. No pino and no winston: the platform logger is enough
+  and avoids one more dependency.
+- Connection strings, source credentials and provider keys never reach a log, a span or a metric.
+  `@rei/infrastructure` redacts credentials before propagating any driver error.
 
-O runtime do Mastra ainda não é instrumentado, porque não há agente nem tool registrados.
+The Mastra runtime is not instrumented yet, because no agent and no tool are registered.
 
-## Consequências
+## Consequences
 
-O script de start passa a depender do preload; rodar `node dist/main.js` diretamente sobe o
-processo sem telemetria. Isso está documentado no README e é o que o `compose.yaml` executa.
+The start script now depends on the preload; running `node dist/main.js` directly brings the
+process up without telemetry. That is documented in the README and is what `compose.yaml` executes.
 
-A correlação entre log e trace ainda não é automática: quando existirem handlers de negócio, o
-`trace_id` precisará ser injetado no contexto do logger.
+Correlation between log and trace is not automatic yet: once business handlers exist, the
+`trace_id` will have to be injected into the logger context.
 
-## Gatilho de reavaliação
+## Reassessment trigger
 
-Instrumentar o Mastra junto com o primeiro agente ou tool, cobrindo chamadas de modelo, tool calls
-e consumo de tokens. Adicionar injeção de `trace_id` no logger junto com o primeiro endpoint de
-negócio.
+Instrument Mastra together with the first agent or tool, covering model calls, tool calls and token
+consumption. Add `trace_id` injection into the logger together with the first business endpoint.

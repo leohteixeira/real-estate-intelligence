@@ -1,9 +1,9 @@
 # @rei/infrastructure
 
-Adapters: PostgreSQL, object storage, fontes de anúncios, geocoding e model providers.
+Adapters: PostgreSQL, object storage, listing sources, geocoding and model providers.
 
-SDKs de fornecedor são permitidos **apenas** aqui. Nenhum tipo de vendor é reexportado para
-`@rei/application` ou `@rei/domain`.
+Vendor SDKs are allowed **only** here. No vendor type is re-exported to `@rei/application` or
+`@rei/domain`.
 
-Erros de conexão passam por `redactConnectionError` antes de virarem log: o driver `pg` inclui a
-connection string em algumas falhas, e ela carrega credenciais.
+Connection errors go through `redactConnectionError` before being logged: the `pg` driver includes
+the connection string in some failures, and it carries credentials.

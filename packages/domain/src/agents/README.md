@@ -1,3 +1,3 @@
 # agents
 
-Módulo previsto pela seção 3.3 da especificação de produto. Ainda sem código.
+Module planned by section 3.3 of the product specification. No code yet.
