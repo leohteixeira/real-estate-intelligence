@@ -1,6 +1,6 @@
 # ADR 0002 — HTTP framework, workers and the Mastra boundary
 
-- **Status:** accepted
+- **Status:** superseded by ADR 0007
 - **Date:** 2026-08-20
 
 ## Context
