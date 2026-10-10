@@ -5,6 +5,8 @@ export interface WorkerConfig {
   readonly intervalMs: number;
   readonly relayIntervalMs: number;
   readonly relayBatchSize: number;
+  readonly claimLeaseMs: number;
+  readonly reconnectIntervalMs: number;
   readonly operationTimeoutMs: number;
   readonly shutdownTimeoutMs: number;
 }
@@ -12,6 +14,8 @@ export interface WorkerConfig {
 const DEFAULT_INTERVAL_MS = 30_000;
 const DEFAULT_RELAY_INTERVAL_MS = 1_000;
 const DEFAULT_RELAY_BATCH_SIZE = 25;
+const DEFAULT_CLAIM_LEASE_MS = 130_000;
+const DEFAULT_RECONNECT_INTERVAL_MS = 1_000;
 const DEFAULT_OPERATION_TIMEOUT_MS = 5_000;
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
 
@@ -62,23 +66,48 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     operationTimeoutMs,
   );
 
+  const relayIntervalMs = positiveInteger(
+    env,
+    'OUTBOX_RELAY_INTERVAL_MS',
+    DEFAULT_RELAY_INTERVAL_MS,
+    100,
+  );
+  const relayBatchSize = positiveInteger(
+    env,
+    'OUTBOX_RELAY_BATCH_SIZE',
+    DEFAULT_RELAY_BATCH_SIZE,
+    1,
+    100,
+  );
+  const claimLeaseMs = positiveInteger(
+    env,
+    'OUTBOX_CLAIM_LEASE_MS',
+    DEFAULT_CLAIM_LEASE_MS,
+    100,
+    86_400_000,
+  );
+  const minimumClaimLeaseMs = relayBatchSize * operationTimeoutMs + relayIntervalMs;
+  if (claimLeaseMs < minimumClaimLeaseMs) {
+    throw new Error(
+      `OUTBOX_CLAIM_LEASE_MS must be at least ${minimumClaimLeaseMs} for the configured batch.`,
+    );
+  }
+  const reconnectIntervalMs = positiveInteger(
+    env,
+    'RABBITMQ_RECONNECT_INTERVAL_MS',
+    DEFAULT_RECONNECT_INTERVAL_MS,
+    100,
+    shutdownTimeoutMs,
+  );
+
   return {
     databaseUrl,
     rabbitMqUrl,
     intervalMs,
-    relayIntervalMs: positiveInteger(
-      env,
-      'OUTBOX_RELAY_INTERVAL_MS',
-      DEFAULT_RELAY_INTERVAL_MS,
-      100,
-    ),
-    relayBatchSize: positiveInteger(
-      env,
-      'OUTBOX_RELAY_BATCH_SIZE',
-      DEFAULT_RELAY_BATCH_SIZE,
-      1,
-      100,
-    ),
+    relayIntervalMs,
+    relayBatchSize,
+    claimLeaseMs,
+    reconnectIntervalMs,
     operationTimeoutMs,
     shutdownTimeoutMs,
   };

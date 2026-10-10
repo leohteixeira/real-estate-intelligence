@@ -10,6 +10,7 @@ import { shutdownTelemetry } from './otel';
 import { WorkerModule } from './worker.module';
 import { HeartbeatJob } from './heartbeat.job';
 import { OutboxRelayJob } from './shared/outbox-relay.job';
+import { BrokerConnectionSupervisor } from './shared/broker-connection-supervisor';
 import { clearWorkerReadiness, markWorkerReady } from './worker-readiness';
 import { shutdownWorker, WorkerShutdownTimeoutError } from './worker-shutdown';
 
@@ -27,7 +28,9 @@ async function bootstrap(): Promise<void> {
   const relay = context.get(OutboxRelayJob);
   const auditConsumer = context.get(AuditTraceConsumer);
   const broker = context.get(RabbitMqEventBroker);
+  const brokerSupervisor = context.get(BrokerConnectionSupervisor);
   await auditConsumer.start();
+  brokerSupervisor.start();
   relay.start();
   heartbeat.start();
 
@@ -38,6 +41,7 @@ async function bootstrap(): Promise<void> {
       await shutdownWorker(
         {
           clearReadiness: () => clearWorkerReadiness(),
+          stopBrokerSupervisor: () => brokerSupervisor.stop(),
           stopRelay: () => relay.stop(),
           stopHeartbeat: () => heartbeat.stop(),
           closeBroker: () => broker.close(),

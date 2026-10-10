@@ -14,6 +14,8 @@ export interface OutboxRow<
   TPayload extends object = EventPayload,
 > extends DomainEventEnvelope<TType, TPayload> {
   readonly publishedAt: string | null;
+  readonly claimId: UuidV7;
+  readonly claimExpiresAt: string;
 }
 
 /** Appends events using the same transaction that persisted the aggregate. */
@@ -22,8 +24,9 @@ export interface OutboxAppendPort {
 }
 
 export interface OutboxRelayPort {
-  claimPending(limit: number): Promise<readonly OutboxRow[]>;
-  markPublished(eventId: UuidV7): Promise<void>;
+  claimPending(limit: number, leaseDurationMs: number): Promise<readonly OutboxRow[]>;
+  markPublished(eventId: UuidV7, claimId: UuidV7): Promise<void>;
+  releaseClaim(eventId: UuidV7, claimId: UuidV7): Promise<void>;
 }
 
 export const OUTBOX_APPEND_PORT = Symbol.for('rei.OutboxAppendPort');

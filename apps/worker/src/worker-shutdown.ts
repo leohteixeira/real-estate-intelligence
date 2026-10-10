@@ -1,5 +1,6 @@
 export interface WorkerShutdownSteps {
   readonly clearReadiness: () => Promise<void>;
+  readonly stopBrokerSupervisor: () => Promise<void>;
   readonly stopRelay: () => Promise<void>;
   readonly stopHeartbeat: () => void;
   readonly closeBroker: () => Promise<void>;
@@ -16,6 +17,7 @@ export class WorkerShutdownTimeoutError extends Error {
 
 async function runOrderedShutdown(steps: WorkerShutdownSteps): Promise<void> {
   await steps.clearReadiness();
+  await steps.stopBrokerSupervisor();
   await steps.stopRelay();
   steps.stopHeartbeat();
   await steps.closeBroker();

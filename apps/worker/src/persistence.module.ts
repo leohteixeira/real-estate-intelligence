@@ -1,10 +1,18 @@
 import { Global, Inject, Logger, Module, type OnApplicationShutdown } from '@nestjs/common';
-import { AUDIT_EVENT_LOG, DATABASE_AVAILABILITY_PROBE, OUTBOX_RELAY_PORT } from '@rei/application';
+import {
+  AUDIT_EVENT_LOG,
+  DATABASE_AVAILABILITY_PROBE,
+  INBOX,
+  OUTBOX_RELAY_PORT,
+  TRANSACTION_RUNNER,
+} from '@rei/application';
 import {
   DatabaseConnection,
   PostgresAuditEventLog,
   PostgresAvailabilityProbe,
+  PostgresInbox,
   PostgresOutbox,
+  PostgresTransactionRunner,
 } from '@rei/infrastructure';
 
 import { readConfig } from './config';
@@ -35,6 +43,17 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
         new PostgresOutbox(connection),
     },
     {
+      provide: TRANSACTION_RUNNER,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection): PostgresTransactionRunner =>
+        new PostgresTransactionRunner(connection),
+    },
+    {
+      provide: INBOX,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection): PostgresInbox => new PostgresInbox(connection),
+    },
+    {
       provide: AUDIT_EVENT_LOG,
       inject: [DATABASE_CONNECTION],
       useFactory: (connection: DatabaseConnection): PostgresAuditEventLog =>
@@ -50,7 +69,14 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       },
     },
   ],
-  exports: [DATABASE_CONNECTION, DATABASE_AVAILABILITY_PROBE, OUTBOX_RELAY_PORT, AUDIT_EVENT_LOG],
+  exports: [
+    DATABASE_CONNECTION,
+    DATABASE_AVAILABILITY_PROBE,
+    TRANSACTION_RUNNER,
+    OUTBOX_RELAY_PORT,
+    INBOX,
+    AUDIT_EVENT_LOG,
+  ],
 })
 export class PersistenceModule implements OnApplicationShutdown {
   // The provider is registered under a symbol token, so the module class has

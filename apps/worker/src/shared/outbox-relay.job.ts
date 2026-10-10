@@ -49,16 +49,36 @@ export class OutboxRelayJob {
   }
 
   private async poll(signal: AbortSignal): Promise<void> {
-    const { relayBatchSize, operationTimeoutMs } = readConfig(process.env);
-    const events = await this.outbox.claimPending(relayBatchSize);
-    for (const event of events) {
+    const { claimLeaseMs, relayBatchSize, operationTimeoutMs } = readConfig(process.env);
+    const events = await this.outbox.claimPending(relayBatchSize, claimLeaseMs);
+    const outcomes = await Promise.allSettled(
+      events.map((event) => this.publishClaim(event, signal, operationTimeoutMs)),
+    );
+    const failures = outcomes.filter((outcome) => outcome.status === 'rejected');
+    if (failures.length > 0) {
+      throw new AggregateError(
+        failures.map(({ reason }) => reason),
+        `${failures.length} outbox claim(s) failed.`,
+      );
+    }
+  }
+
+  private async publishClaim(
+    event: Awaited<ReturnType<OutboxRelayPort['claimPending']>>[number],
+    signal: AbortSignal,
+    operationTimeoutMs: number,
+  ): Promise<void> {
+    try {
       signal.throwIfAborted();
       await this.publisher.publish(
         event,
         AbortSignal.any([signal, AbortSignal.timeout(operationTimeoutMs)]),
       );
-      await this.outbox.markPublished(event.eventId);
+    } catch (error) {
+      await this.outbox.releaseClaim(event.eventId, event.claimId);
+      throw error;
     }
+    await this.outbox.markPublished(event.eventId, event.claimId);
   }
 
   public async stop(): Promise<void> {
