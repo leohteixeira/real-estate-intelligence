@@ -1,6 +1,9 @@
 import {
+  advanceCollectionRun,
+  createRunningCollectionRun,
   createSourceRegistration,
   type CollectedListing,
+  type CollectionRunState,
   type Sha256Hash,
   type TraceContext,
   type UuidV7,
@@ -74,6 +77,7 @@ const LISTING: CollectedListing = {
 function result(overrides: Partial<CollectionExecutionResult> = {}): CollectionExecutionResult {
   return {
     operationKey: 'operation-1',
+    sourceId: 'synthetic-data',
     runId: IDS[0],
     snapshotId: IDS[1],
     parsedEventId: IDS[2],
@@ -85,14 +89,43 @@ function result(overrides: Partial<CollectionExecutionResult> = {}): CollectionE
   };
 }
 
-function fixture(options: { replay?: CollectionExecutionResult; enabled?: boolean } = {}) {
+function completedRun(sourceId = 'synthetic-data', observedCount = 1): CollectionRunState {
+  return advanceCollectionRun(
+    createRunningCollectionRun({
+      operationKey: 'operation-1',
+      runId: IDS[0],
+      sourceId,
+      startedAt: '2026-10-10T11:59:58.000Z',
+    }),
+    {
+      expectedOrdinal: 0,
+      expectedCursor: null,
+      nextCursor: null,
+      checkpointedAt: '2026-10-10T12:00:00.000Z',
+      observedDelta: observedCount,
+      exhausted: true,
+      completedAt: '2026-10-10T12:00:00.000Z',
+      manifestHash: MANIFEST_HASH,
+      completedEventId: IDS[3],
+    },
+  );
+}
+
+function fixture(
+  options: {
+    replay?: CollectionExecutionResult;
+    run?: CollectionRunState | null;
+    enabled?: boolean;
+    document?: RawListingDocument;
+  } = {},
+) {
   const calls: string[] = [];
   const transaction = {} as Transaction;
   const events: EventEnvelope[][] = [];
   const source: ListingSource = {
-    fetch: vi.fn(async () => {
+    fetchPage: vi.fn(async () => {
       calls.push('fetch');
-      return DOCUMENT;
+      return { documents: [options.document ?? DOCUMENT], nextCursor: null, exhausted: true };
     }),
     parse: vi.fn(async () => {
       calls.push('parse');
@@ -135,6 +168,17 @@ function fixture(options: { replay?: CollectionExecutionResult; enabled?: boolea
   };
   const runs: CollectionRunRepository = {
     findByOperationKey: vi.fn(async () => options.replay ?? null),
+    loadRunByOperationKey: vi.fn(async () =>
+      options.run === undefined
+        ? options.replay
+          ? completedRun(options.replay.sourceId)
+          : null
+        : options.run,
+    ),
+    startOrLoad: vi.fn(),
+    listObservations: vi.fn(),
+    lockRunForPage: vi.fn(),
+    commitPage: vi.fn(),
     persistCompleted: vi.fn(async (_transaction, input) => {
       calls.push('persist');
       persistedInput = input;
@@ -205,7 +249,8 @@ describe('CollectSourceOnce', () => {
       context.service.execute('synthetic-data', 'operation-1', TRACE, signal),
     ).resolves.toEqual(result());
 
-    expect(context.runs.findByOperationKey).toHaveBeenCalledWith('operation-1', signal);
+    expect(context.runs.loadRunByOperationKey).toHaveBeenCalledWith('operation-1', signal);
+    expect(context.runs.findByOperationKey).not.toHaveBeenCalled();
     expect(context.sources.findById).toHaveBeenCalledWith('synthetic-data', signal);
     expect(context.transactions.runInTransaction).toHaveBeenCalledWith(
       expect.any(Function),
@@ -246,8 +291,61 @@ describe('CollectSourceOnce', () => {
       context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
     ).resolves.toEqual({ ...existing, replayed: true });
 
-    expect(context.source.fetch).not.toHaveBeenCalled();
+    expect(context.source.fetchPage).not.toHaveBeenCalled();
     expect(context.snapshots.store).not.toHaveBeenCalled();
+    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      'running cross-source',
+      createRunningCollectionRun({
+        operationKey: 'operation-1',
+        runId: IDS[0],
+        sourceId: 'synthetic-portal-aurora',
+        startedAt: '2026-10-10T11:59:58.000Z',
+      }),
+    ],
+    ['completed cross-source', completedRun('synthetic-portal-aurora')],
+    ['completed multi-observation', completedRun('synthetic-data', 2)],
+    [
+      'running same-source',
+      createRunningCollectionRun({
+        operationKey: 'operation-1',
+        runId: IDS[0],
+        sourceId: 'synthetic-data',
+        startedAt: '2026-10-10T11:59:58.000Z',
+      }),
+    ],
+  ])('rejects an existing %s operation before source or storage work', async (_name, run) => {
+    const context = fixture({ run });
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).rejects.toMatchObject({ kind: 'rejected', operation: 'collection.run.resume' });
+
+    expect(context.runs.findByOperationKey).not.toHaveBeenCalled();
+    expect(context.sources.findById).not.toHaveBeenCalled();
+    expect(context.source.fetchPage).not.toHaveBeenCalled();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsafe source listing identity before storage, parsing, or persistence', async () => {
+    const context = fixture({
+      document: { ...DOCUMENT, sourceListingId: 'unsafe identity' },
+    });
+
+    await expect(
+      context.service.execute(
+        'synthetic-data',
+        'operation-invalid',
+        null,
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ kind: 'rejected', operation: 'collection.source.fetch' });
+
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+    expect(context.source.parse).not.toHaveBeenCalled();
     expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
   });
 
@@ -257,7 +355,7 @@ describe('CollectSourceOnce', () => {
     await expect(
       context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
     ).rejects.toMatchObject({ kind: 'forbidden', operation: 'collection.source.fetch' });
-    expect(context.source.fetch).not.toHaveBeenCalled();
+    expect(context.source.fetchPage).not.toHaveBeenCalled();
     expect(context.snapshots.store).not.toHaveBeenCalled();
   });
 
@@ -285,6 +383,20 @@ describe('CollectSourceOnce', () => {
     expect(context.outbox.append).not.toHaveBeenCalled();
   });
 
+  it('rejects a concurrent persistence winner bound to another source without appending events', async () => {
+    const context = fixture();
+    vi.mocked(context.runs.persistCompleted).mockResolvedValue({
+      created: false,
+      result: result({ sourceId: 'synthetic-portal-aurora' }),
+    });
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).rejects.toMatchObject({ kind: 'rejected', operation: 'collection.run.resume' });
+
+    expect(context.outbox.append).not.toHaveBeenCalled();
+  });
+
   it('reuses the immutable object identity for a different operation key', async () => {
     const context = fixture();
 
@@ -294,7 +406,6 @@ describe('CollectSourceOnce', () => {
       null,
       new AbortController().signal,
     );
-    vi.mocked(context.runs.findByOperationKey).mockResolvedValue(null);
     vi.mocked(context.runs.persistCompleted).mockImplementation(async (_transaction, input) => ({
       created: true,
       result: result({
@@ -331,5 +442,6 @@ describe('CollectSourceOnce', () => {
       context.service.execute('synthetic-data', 'operation-1', null, controller.signal),
     ).rejects.toThrow('command cancelled');
     expect(context.runs.findByOperationKey).not.toHaveBeenCalled();
+    expect(context.runs.loadRunByOperationKey).not.toHaveBeenCalled();
   });
 });

@@ -8,7 +8,11 @@ import {
 } from '@aws-sdk/client-s3';
 import type { RawListingDocument, Transaction } from '@rei/application';
 import { ExternalFailure } from '@rei/application';
-import { createSourceRegistration, type CollectedListing } from '@rei/domain';
+import {
+  StaleCollectionCheckpointError,
+  createSourceRegistration,
+  type CollectedListing,
+} from '@rei/domain';
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -52,8 +56,14 @@ const LISTING: CollectedListing = {
 describe('SyntheticListingSource', () => {
   it('returns cloned exact bytes and parses only the privacy-reviewed listing shape', async () => {
     const source = new SyntheticListingSource();
-    const document = await source.fetch(SYNTHETIC_LISTING_SOURCE_ID, new AbortController().signal);
+    const page = await source.fetchPage(
+      SYNTHETIC_LISTING_SOURCE_ID,
+      null,
+      new AbortController().signal,
+    );
+    const document = page.documents[0]!;
 
+    expect(page).toMatchObject({ nextCursor: null, exhausted: true });
     expect(document.bytes).toEqual(SYNTHETIC_LISTING_BYTES);
     expect(document.bytes).not.toBe(SYNTHETIC_LISTING_BYTES);
     await expect(source.parse(document, new AbortController().signal)).resolves.toMatchObject({
@@ -65,7 +75,7 @@ describe('SyntheticListingSource', () => {
   it('refuses unknown sources and invalid source bytes with closed failures', async () => {
     const source = new SyntheticListingSource();
     await expect(
-      source.fetch('unknown-source', new AbortController().signal),
+      source.fetchPage('unknown-source', null, new AbortController().signal),
     ).rejects.toMatchObject({ kind: 'forbidden' });
     await expect(
       source.parse(
@@ -80,7 +90,7 @@ describe('SyntheticListingSource', () => {
     const controller = new AbortController();
     controller.abort();
     await expect(
-      source.fetch(SYNTHETIC_LISTING_SOURCE_ID, controller.signal),
+      source.fetchPage(SYNTHETIC_LISTING_SOURCE_ID, null, controller.signal),
     ).rejects.toMatchObject({ kind: 'cancelled' });
     await expect(source.parse(DOCUMENT, controller.signal)).rejects.toMatchObject({
       kind: 'cancelled',
@@ -92,7 +102,12 @@ describe('in-memory collection adapters', () => {
   it('clones source and object bytes and deduplicates content-addressed objects', async () => {
     const source = new InMemoryListingSource(DOCUMENT, LISTING);
     const store = new InMemoryRawSnapshotStore();
-    const fetched = await source.fetch('synthetic-data', new AbortController().signal);
+    const fetchedPage = await source.fetchPage(
+      'synthetic-data',
+      null,
+      new AbortController().signal,
+    );
+    const fetched = fetchedPage.documents[0]!;
     const parsed = await source.parse(fetched, new AbortController().signal);
     const first = await store.store(
       {
@@ -167,6 +182,146 @@ describe('in-memory collection adapters', () => {
     expect(first.created).toBe(true);
     expect(replay).toEqual({ created: false, result: first.result });
     expect(await repository.findByOperationKey('operation-1')).toEqual(first.result);
+    await expect(repository.loadRunByOperationKey('operation-1')).resolves.toEqual({
+      operationKey: input.operationKey,
+      runId: input.runId,
+      sourceId: 'synthetic-data',
+      status: 'completed',
+      startedAt: input.startedAt,
+      checkpoint: {
+        ordinal: 1,
+        cursor: null,
+        checkpointedAt: input.completedAt,
+      },
+      counts: { observed: 1, parsed: 1, suppressed: 0, failed: 0 },
+      completedAt: input.completedAt,
+      manifestHash: input.manifestHash,
+      completedEventId: input.completedEventId,
+    });
+    await expect(repository.listObservations({} as Transaction, input.runId)).resolves.toEqual([
+      expect.objectContaining({
+        snapshotId: input.snapshotId,
+        parsedEventId: input.parsedEventId,
+        sourceListingId: input.sourceListingId,
+      }),
+    ]);
+    await expect(
+      repository.persistCompleted({} as Transaction, {
+        ...input,
+        sourceId: 'synthetic-portal-aurora',
+      }),
+    ).rejects.toThrow('different source');
+  });
+
+  it('models resumable checkpoint commits, stale contenders, and identity conflicts', async () => {
+    const repository = new InMemoryCollectionRunRepository();
+    const transaction = {} as Transaction;
+    const runInput = {
+      operationKey: 'operation-resumable',
+      runId: '0199c8f2-2394-7ba0-8f9e-286378779220',
+      sourceId: 'synthetic-portal-aurora',
+      startedAt: '2026-10-10T00:00:00.000Z',
+    } as const;
+    const firstObservation = {
+      snapshotId: '0199c8f2-2394-7ba0-8f9e-286378779221',
+      parsedEventId: '0199c8f2-2394-7ba0-8f9e-286378779222',
+      sourceListingId: 'AUR-BV-001',
+      sourceUrl: 'https://aurora.synthetic.invalid/listings/AUR-BV-001',
+      observedAt: '2026-10-10T00:00:00.000Z',
+      contentHash: `sha256:${'1'.repeat(64)}`,
+      objectKey: `synthetic/sha256/${'1'.repeat(64)}.json`,
+      byteLength: 10,
+      mediaType: 'application/json',
+    } as const;
+
+    await expect(repository.loadRunByOperationKey(runInput.operationKey)).resolves.toBeNull();
+    const started = await repository.startOrLoad(transaction, runInput);
+    await expect(
+      repository.startOrLoad(transaction, { ...runInput, sourceId: 'ignored-by-idempotency' }),
+    ).resolves.toBe(started);
+    await expect(repository.lockRunForPage(transaction, started.runId, 0, null)).resolves.toBe(
+      started,
+    );
+    await expect(repository.lockRunForPage(transaction, started.runId, 1, null)).rejects.toThrow(
+      StaleCollectionCheckpointError,
+    );
+    await expect(
+      repository.lockRunForPage(transaction, '0199c8f2-2394-7ba0-8f9e-286378779299', 0, null),
+    ).rejects.toThrow('not found');
+
+    const first = await repository.commitPage(transaction, {
+      runId: started.runId,
+      expectedOrdinal: 0,
+      expectedCursor: null,
+      nextCursor: 'fixture:2026-10:1',
+      checkpointedAt: '2026-10-10T00:00:01.000Z',
+      observations: [firstObservation],
+      exhausted: false,
+      completedAt: null,
+      manifestHash: null,
+      completedEventId: null,
+    });
+    expect(first).toMatchObject({ committed: true, run: { checkpoint: { ordinal: 1 } } });
+    await expect(repository.listObservations(transaction, started.runId)).resolves.toEqual([
+      expect.objectContaining({ sourceListingId: 'AUR-BV-001' }),
+    ]);
+
+    await expect(
+      repository.commitPage(transaction, {
+        runId: started.runId,
+        expectedOrdinal: 0,
+        expectedCursor: null,
+        nextCursor: null,
+        checkpointedAt: '2026-10-10T00:00:02.000Z',
+        observations: [],
+        exhausted: true,
+        completedAt: '2026-10-10T00:00:02.000Z',
+        manifestHash: `sha256:${'2'.repeat(64)}`,
+        completedEventId: '0199c8f2-2394-7ba0-8f9e-286378779223',
+      }),
+    ).resolves.toMatchObject({ committed: false, run: { checkpoint: { ordinal: 1 } } });
+
+    await expect(
+      repository.commitPage(transaction, {
+        runId: started.runId,
+        expectedOrdinal: 1,
+        expectedCursor: 'fixture:2026-10:1',
+        nextCursor: null,
+        checkpointedAt: '2026-10-10T00:00:02.000Z',
+        observations: [firstObservation],
+        exhausted: true,
+        completedAt: '2026-10-10T00:00:02.000Z',
+        manifestHash: `sha256:${'2'.repeat(64)}`,
+        completedEventId: '0199c8f2-2394-7ba0-8f9e-286378779223',
+      }),
+    ).rejects.toThrow('identity conflicts');
+
+    await expect(
+      repository.commitPage(transaction, {
+        runId: started.runId,
+        expectedOrdinal: 1,
+        expectedCursor: 'fixture:2026-10:1',
+        nextCursor: 'fixture:2026-10:2',
+        checkpointedAt: '2026-10-10T00:00:02.000Z',
+        observations: [],
+        exhausted: true,
+        completedAt: '2026-10-10T00:00:02.000Z',
+        manifestHash: `sha256:${'2'.repeat(64)}`,
+        completedEventId: '0199c8f2-2394-7ba0-8f9e-286378779223',
+      }),
+    ).resolves.toMatchObject({ committed: true, run: { status: 'completed' } });
+
+    await expect(repository.findByOperationKey(runInput.operationKey)).resolves.toEqual({
+      operationKey: runInput.operationKey,
+      sourceId: runInput.sourceId,
+      runId: runInput.runId,
+      snapshotId: firstObservation.snapshotId,
+      parsedEventId: firstObservation.parsedEventId,
+      completedEventId: '0199c8f2-2394-7ba0-8f9e-286378779223',
+      contentHash: firstObservation.contentHash,
+      objectKey: firstObservation.objectKey,
+      replayed: false,
+    });
   });
 });
 

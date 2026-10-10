@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createSourceRegistration,
   decideSourceEnablement,
+  OWNED_SYNTHETIC_SOURCE_IDS,
   toEnabledSourceView,
   type SourceRegistrationInput,
 } from './source-registration.js';
@@ -36,7 +37,13 @@ function remote(overrides: Partial<SourceRegistrationInput> = {}) {
 }
 
 describe('source registration', () => {
-  it('allows only the exact repository-owned fixture to use the synthetic exception', () => {
+  it('allows only the exact four repository-owned fixtures to use the synthetic exception', () => {
+    expect(OWNED_SYNTHETIC_SOURCE_IDS).toEqual([
+      'synthetic-data',
+      'synthetic-portal-aurora',
+      'synthetic-portal-brisa',
+      'synthetic-portal-cobalto',
+    ]);
     const source = createSourceRegistration({
       sourceId: 'synthetic-data',
       displayLabel: 'Labelled synthetic fixture',

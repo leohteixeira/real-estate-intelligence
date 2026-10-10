@@ -470,7 +470,15 @@ async function main() {
          FROM collection.source_register
         ORDER BY source_id`,
     );
-    const seedSnapshot = seed.map((source) => [
+    const runtimeFixtureIds = [
+      'synthetic-portal-aurora',
+      'synthetic-portal-brisa',
+      'synthetic-portal-cobalto',
+    ];
+    assert(seed.length === 16, `Expected 16 registered sources, received ${seed.length}.`);
+    const reviewedSeed = seed.filter((source) => !runtimeFixtureIds.includes(source.source_id));
+    assert(reviewedSeed.length === 13, 'The thirteen-source reviewed candidate audit changed.');
+    const seedSnapshot = reviewedSeed.map((source) => [
       source.source_id,
       source.source_category,
       source.enabled,
@@ -491,7 +499,7 @@ async function main() {
       JSON.stringify(seedSnapshot) === JSON.stringify(expectedSeed),
       `Source register seed does not match the reviewed snapshot: ${JSON.stringify(seedSnapshot)}`,
     );
-    const seedDetails = seed.map((source) => [
+    const seedDetails = reviewedSeed.map((source) => [
       source.source_id,
       source.source_label,
       source.permission_evidence,
@@ -506,8 +514,21 @@ async function main() {
       seed
         .filter((source) => source.enabled)
         .map((source) => source.source_id)
-        .join(',') === 'synthetic-data',
+        .join(',') ===
+        'synthetic-data,synthetic-portal-aurora,synthetic-portal-brisa,synthetic-portal-cobalto',
       'A real reviewed candidate was enabled by the seed.',
+    );
+    assert(
+      seed
+        .filter((source) => runtimeFixtureIds.includes(source.source_id))
+        .every(
+          (source) =>
+            source.enabled &&
+            source.source_category === 'synthetic-listing' &&
+            source.review_outcome === 'not-required' &&
+            source.access_method === 'repository-fixture',
+        ),
+      'A runtime fixture alias does not satisfy the closed owned-fixture policy.',
     );
 
     await connection.query(
@@ -684,7 +705,13 @@ async function main() {
     const body = await response.json();
     assert(
       JSON.stringify(body.sources.map((source) => source.sourceId)) ===
-        JSON.stringify(['eligible-fixture', 'synthetic-data']),
+        JSON.stringify([
+          'eligible-fixture',
+          'synthetic-data',
+          'synthetic-portal-aurora',
+          'synthetic-portal-brisa',
+          'synthetic-portal-cobalto',
+        ]),
       `Enabled-source API returned an unexpected set: ${JSON.stringify(body)}`,
     );
     assert(

@@ -24,6 +24,7 @@ vi.mock('@rei/infrastructure', async (importOriginal) => {
 
 const RESULT = {
   operationKey: 'operation-1',
+  sourceId: 'synthetic-data',
   runId: '0199c8f2-2394-7ba0-8f9e-286378779210',
   snapshotId: '0199c8f2-2394-7ba0-8f9e-286378779211',
   parsedEventId: '0199c8f2-2394-7ba0-8f9e-286378779212',

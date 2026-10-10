@@ -79,6 +79,7 @@ describe('PostgresCollectionFacade', () => {
       observedSourceListingIds: ['SYN-SP-0001', 'SYN-SP-0002'],
       manifestHash,
     });
+    expect(query.mock.calls[0]?.[0]).toContain("run.status = 'completed'");
     await expect(facade.getRun('0199c8f2-2394-7ba0-8f9e-286378779299')).resolves.toBeNull();
   });
 

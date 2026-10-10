@@ -1,4 +1,5 @@
 import type { Transaction } from '@rei/application';
+import { StaleCollectionCheckpointError } from '@rei/domain';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -29,12 +30,52 @@ const input = {
 
 const resultRow = {
   operation_key: input.operationKey,
+  source_id: input.sourceId,
   run_id: input.runId,
   snapshot_id: input.snapshotId,
   parsed_event_id: input.parsedEventId,
   completed_event_id: input.completedEventId,
   content_hash: input.contentHash,
   object_key: input.objectKey,
+};
+
+const runningRow = {
+  operation_key: input.operationKey,
+  run_id: input.runId,
+  source_id: 'synthetic-portal-aurora',
+  status: 'running',
+  started_at: new Date(input.startedAt),
+  completed_at: null,
+  observed_count: 1,
+  parsed_count: 1,
+  suppressed_count: 0,
+  failed_count: 0,
+  manifest_hash: null,
+  completed_event_id: null,
+  checkpoint_ordinal: 1,
+  checkpoint_cursor: 'fixture:2026-10:1',
+  checkpointed_at: new Date('2026-10-10T11:59:59.500Z'),
+};
+
+const completedRow = {
+  ...runningRow,
+  status: 'completed',
+  completed_at: new Date(input.completedAt),
+  observed_count: 2,
+  parsed_count: 2,
+  manifest_hash: input.manifestHash,
+  completed_event_id: input.completedEventId,
+  checkpoint_ordinal: 2,
+  checkpoint_cursor: 'fixture:2026-10:2',
+  checkpointed_at: new Date(input.completedAt),
+};
+
+const oneShotCompletedRow = {
+  ...completedRow,
+  source_id: input.sourceId,
+  observed_count: 1,
+  parsed_count: 1,
+  checkpoint_ordinal: 1,
 };
 
 function connectionDouble(client: DatabaseClient, identity = {}) {
@@ -45,6 +86,32 @@ function connectionDouble(client: DatabaseClient, identity = {}) {
 }
 
 describe('PostgresCollectionRunRepository', () => {
+  it('strictly hydrates a running checkpoint by operation key', async () => {
+    const queryAbortable = vi.fn(async () => [runningRow]);
+    const signal = new AbortController().signal;
+    const repository = new PostgresCollectionRunRepository({
+      queryAbortable,
+    } as unknown as DatabaseConnection);
+
+    await expect(repository.loadRunByOperationKey(input.operationKey, signal)).resolves.toEqual({
+      operationKey: input.operationKey,
+      runId: input.runId,
+      sourceId: 'synthetic-portal-aurora',
+      status: 'running',
+      startedAt: input.startedAt,
+      completedAt: null,
+      counts: { observed: 1, parsed: 1, suppressed: 0, failed: 0 },
+      checkpoint: {
+        ordinal: 1,
+        cursor: 'fixture:2026-10:1',
+        checkpointedAt: '2026-10-10T11:59:59.500Z',
+      },
+      manifestHash: null,
+      completedEventId: null,
+    });
+    expect(queryAbortable).toHaveBeenCalledWith(expect.any(String), [input.operationKey], signal);
+  });
+
   it('maps operation replay queries strictly', async () => {
     const queryAbortable = vi.fn(
       async (
@@ -62,6 +129,7 @@ describe('PostgresCollectionRunRepository', () => {
 
     await expect(repository.findByOperationKey('operation-1', signal)).resolves.toMatchObject({
       operationKey: 'operation-1',
+      sourceId: input.sourceId,
       runId: input.runId,
       contentHash: input.contentHash,
     });
@@ -118,15 +186,21 @@ describe('PostgresCollectionRunRepository', () => {
       input.startedAt,
       input.completedAt,
       input.manifestHash,
-      input.parsedEventId,
       input.completedEventId,
     ]);
+    const observationInsert = query.mock.calls.find(([statement]) =>
+      statement.includes('INSERT INTO collection.snapshot_observation'),
+    );
+    expect(observationInsert?.[1]).toContain(input.parsedEventId);
     expect(input.manifestHash).not.toBe(input.contentHash);
   });
 
   it('returns the winning transaction result when operation-key insertion loses a race', async () => {
     const query = vi.fn(async (statement: string) => {
       if (statement.includes('INSERT INTO collection.collection_run')) return [];
+      if (statement.includes('checkpoint_ordinal')) {
+        return [oneShotCompletedRow];
+      }
       if (statement.includes('FROM collection.collection_run')) return [resultRow];
       return [];
     });
@@ -143,6 +217,51 @@ describe('PostgresCollectionRunRepository', () => {
         String(statement).includes('INSERT INTO collection.snapshot_observation'),
       ),
     ).toBe(false);
+  });
+
+  it('rejects a concurrent one-shot persist when the operation key belongs to another source', async () => {
+    const query = vi.fn(async (statement: string) => {
+      if (statement === 'BEGIN' || statement === 'ROLLBACK') return [];
+      if (statement.includes('INSERT INTO collection.collection_run')) return [];
+      if (statement.includes('checkpoint_ordinal')) {
+        return [{ ...oneShotCompletedRow, source_id: 'synthetic-portal-aurora' }];
+      }
+      throw new Error(`Unexpected SQL after the source conflict: ${statement}`);
+    });
+    const client = { query, release: vi.fn() } as unknown as DatabaseClient;
+    const connection = connectionDouble(client);
+    const runner = new PostgresTransactionRunner(connection);
+    const repository = new PostgresCollectionRunRepository(connection);
+
+    await expect(
+      runner.runInTransaction((transaction) => repository.persistCompleted(transaction, input)),
+    ).rejects.toThrow('different source');
+    expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
+    expect(
+      query.mock.calls.some(([statement]) =>
+        String(statement).includes('JOIN collection.snapshot_observation'),
+      ),
+    ).toBe(false);
+  });
+
+  it('rejects a concurrent one-shot persist when the same-source operation is still running', async () => {
+    const query = vi.fn(async (statement: string) => {
+      if (statement === 'BEGIN' || statement === 'ROLLBACK') return [];
+      if (statement.includes('INSERT INTO collection.collection_run')) return [];
+      if (statement.includes('checkpoint_ordinal')) {
+        return [{ ...runningRow, source_id: input.sourceId }];
+      }
+      throw new Error(`Unexpected SQL after the running conflict: ${statement}`);
+    });
+    const client = { query, release: vi.fn() } as unknown as DatabaseClient;
+    const connection = connectionDouble(client);
+    const runner = new PostgresTransactionRunner(connection);
+    const repository = new PostgresCollectionRunRepository(connection);
+
+    await expect(
+      runner.runInTransaction((transaction) => repository.persistCompleted(transaction, input)),
+    ).rejects.toThrow('not a one-shot completed result');
+    expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
   });
 
   it('rejects mismatched metadata and lets the transaction runner roll everything back', async () => {
@@ -173,5 +292,85 @@ describe('PostgresCollectionRunRepository', () => {
       ),
     ).rejects.toThrow('different raw object metadata');
     expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
+  });
+
+  it('rejects a stale expected checkpoint under the page lock', async () => {
+    const query = vi.fn(async (statement: string) => {
+      if (statement.includes('FOR UPDATE')) return [runningRow];
+      return [];
+    });
+    const client = { query, release: vi.fn() } as unknown as DatabaseClient;
+    const connection = connectionDouble(client);
+    const runner = new PostgresTransactionRunner(connection);
+    const repository = new PostgresCollectionRunRepository(connection);
+
+    await expect(
+      runner.runInTransaction((transaction) =>
+        repository.lockRunForPage(transaction, input.runId, 0, null),
+      ),
+    ).rejects.toThrow(StaleCollectionCheckpointError);
+    expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
+  });
+
+  it('persists a terminal page and uses explicit PostgreSQL types for nullable CASE parameters', async () => {
+    const query = vi.fn(async (statement: string) => {
+      if (statement.includes('FROM collection.raw_object')) {
+        return [
+          {
+            object_key: input.objectKey,
+            byte_length: input.byteLength,
+            media_type: input.mediaType,
+            synthetic: true,
+          },
+        ];
+      }
+      if (statement.includes('UPDATE collection.collection_run')) return [completedRow];
+      return [];
+    });
+    const client = { query, release: vi.fn() } as unknown as DatabaseClient;
+    const connection = connectionDouble(client);
+    const runner = new PostgresTransactionRunner(connection);
+    const repository = new PostgresCollectionRunRepository(connection);
+
+    await expect(
+      runner.runInTransaction((transaction) =>
+        repository.commitPage(transaction, {
+          runId: input.runId,
+          expectedOrdinal: 1,
+          expectedCursor: 'fixture:2026-10:1',
+          nextCursor: 'fixture:2026-10:2',
+          checkpointedAt: input.completedAt,
+          observations: [
+            {
+              snapshotId: input.snapshotId,
+              parsedEventId: input.parsedEventId,
+              sourceListingId: input.sourceListingId,
+              sourceUrl: input.sourceUrl,
+              observedAt: input.observedAt,
+              contentHash: input.contentHash,
+              objectKey: input.objectKey,
+              byteLength: input.byteLength,
+              mediaType: input.mediaType,
+            },
+          ],
+          exhausted: true,
+          completedAt: input.completedAt,
+          manifestHash: input.manifestHash,
+          completedEventId: input.completedEventId,
+        }),
+      ),
+    ).resolves.toMatchObject({
+      committed: true,
+      run: { status: 'completed', checkpoint: { ordinal: 2 } },
+    });
+
+    const update = query.mock.calls.find(([statement]) =>
+      statement.includes('UPDATE collection.collection_run'),
+    )?.[0];
+    expect(update).toContain('$7::boolean');
+    expect(update).toContain('$8::timestamptz');
+    expect(update).toContain('$9::text');
+    expect(update).toContain('$10::uuid');
+    expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
   });
 });

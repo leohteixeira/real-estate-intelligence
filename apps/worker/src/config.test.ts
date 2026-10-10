@@ -134,6 +134,7 @@ describe('readCollectionCommandConfig', () => {
       readCollectionCommandConfig({ ...STORAGE_ENV, OBJECT_STORE_ENDPOINT: 'http://minio:9000/' }),
     ).toEqual({
       deadlineMs: 30_000,
+      syntheticPageDelayMs: 0,
       objectStoreEndpoint: 'http://minio:9000',
       objectStoreRegion: 'us-east-1',
       objectStoreBucket: 'real-estate-snapshots',
@@ -147,6 +148,7 @@ describe('readCollectionCommandConfig', () => {
     ['OBJECT_STORE_BUCKET', 'Bad_Bucket'],
     ['OBJECT_STORE_ACCESS_KEY_ID', ''],
     ['COLLECTION_DEADLINE_MS', '99'],
+    ['SYNTHETIC_PAGE_DELAY_MS', '30001'],
   ])('rejects invalid %s', (name, value) => {
     expect(() => readCollectionCommandConfig({ ...STORAGE_ENV, [name]: value })).toThrow(name);
   });
