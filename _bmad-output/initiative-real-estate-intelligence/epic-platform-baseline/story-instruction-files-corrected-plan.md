@@ -3,7 +3,7 @@ title: 'Instruction files corrected'
 type: 'chore'
 ticket: '11'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'f47aaaedfc726451aaf5e542fe77ec29c15c2791'
 route: 'oneshot'
 route_source: 'auto'
