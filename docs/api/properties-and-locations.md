@@ -1,13 +1,14 @@
 # Properties and locations API reference
 
-The seven read endpoints below are a versioned, synthetic contract surface. They run through the
-production Nest modules and public application facades, but do not query persisted property data,
-start collection, publish events, resolve entities or calculate market figures. The fixture is the
-unchanged collection replay: five prepared properties, nine listing identities and thirteen monthly
-observations from October 2025 through October 2026. Supplementary permission, expiry and missing-value
+The seven read endpoints below are a versioned, synthetic contract surface. Property and listing
+detail query persisted initial owned-synthetic observations first, then use prepared fallback for
+existing fixture IDs. Search, places, counts and reductions remain prepared; no read starts
+collection, publishes events, resolves entities or calculates market figures. The prepared fixture
+is the unchanged collection replay: five prepared properties, nine listing identities and thirteen
+monthly observations from October 2025 through October 2026. Supplementary permission, expiry and missing-value
 examples are separate from that population.
 
-Every success response has the same `metadata` object:
+Prepared success responses have this `metadata` object:
 
 ```json
 {
@@ -16,6 +17,38 @@ Every success response has the same `metadata` object:
   "asOf": "2026-10-01T12:00:00.000Z"
 }
 ```
+
+Persisted detail keeps `dataMode: "synthetic-stub"`, uses
+`fixtureVersion: "persisted-initial-synthetic-v1"`, and anchors `asOf` to its initial original
+observation time. It is an unresolved single-listing baseline, not a physical-property match.
+
+## Persisted initial detail
+
+The worker's durable `properties.parsed-listing` subscription consumes strict parsed v1/v2 events.
+Collection verifies the complete canonical publication, original provenance and current synthetic
+collection authority within the transaction; missing legacy publication evidence is not fabricated.
+An original v1 creates one immutable Property with a distinct Listing ID and one revision-1
+`properties.listing.created` outbox event. Inbox, fact, entity and outgoing event commit together.
+Durable fact and source-identity uniqueness prevent duplicate creation even after inbox expiry.
+
+Another v1 for the source identity is `pending-history`; a v2 correction is `pending-correction`,
+including when it arrives before v1. These facts retain correction identity and chronology but do
+not change the initial HTTP view or create fake price/description history. Detail reports one
+collection, one creation, no sale, no comparison, no production match score and explicitly
+illustrative uncalibrated evidence. Amounts are exact BRL cents; price per square meter is calculated
+and rounded by the backend from the original canonical area. If that derived value rounds to zero
+or exceeds the positive safe-integer contract, both Property and Listing return `null` for the
+metric while preserving the exact original asking-price cents.
+
+Current source text-display permission is checked independently on every persisted property and
+listing request. Denied text omits current text, versions and excerpts while preserving provenance;
+a failed permission lookup returns a sanitized failure, never a permissive response. Only masked,
+allowlisted canonical facts are stored; contact, unit/complement and photograph data are excluded.
+
+Reference geography is fixture-only: exact known portal streets may resolve a prepared fictional
+block. `SYN-SP-0001` on Avenida Exemplo resolves Bela Vista neighborhood, not the differently named
+prepared block. Unknown city, state, neighborhood or street is refused; there is no geocoding or
+label-based matching. Persisted records do not enter prepared search, place counts or reductions.
 
 ## Endpoints
 

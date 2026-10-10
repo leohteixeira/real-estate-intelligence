@@ -17,8 +17,10 @@ Both are version 1, accepted as an engineering baseline by the agent on the owne
 2026-10-10, under D-019. Real processing remains disabled pending their source-specific gates.
 
 > Current state: **synthetic contract foundation**. Collection plumbing and deterministic synthetic
-> replay exist, and properties/locations expose read-only stub endpoints. Real-source processing,
-> persisted property ingestion, production matching, market figures and comparables are not enabled.
+> replay exist. Verified owned-synthetic parsed events now persist an initial single-listing Property
+> and Listing, served through the detail routes. Search, places, counts and reductions remain prepared
+> fixtures. Real-source processing, production matching, full history, market figures and comparables
+> are not enabled.
 
 ## Stack
 
@@ -62,7 +64,8 @@ The dependency direction is always inwards:
 
 A modular monolith: the logical boundaries are fixed now, and a separate deploy or database for a
 module is a later, operational choice. ADRs 0011 to 0013 describe the target; collection owns the
-existing ingestion foundation and properties/locations provide synthetic read contracts.
+existing ingestion foundation and canonical publication evidence. Properties owns immutable initial
+aggregates and incoming facts; locations supplies only known-fixture address references.
 
 | Context       | Class      | Owns                                                         |
 | ------------- | ---------- | ------------------------------------------------------------ |
@@ -110,6 +113,7 @@ pnpm run test
 pnpm run build
 pnpm run test:coverage
 pnpm run test:integration:properties   # isolated compiled-API synthetic read journey (after build)
+pnpm run test:integration:properties-ingestion # isolated collect → broker → persisted HTTP journey
 
 pnpm --filter "@rei/api" dev      # http://0.0.0.0:8200
 pnpm --filter "@rei/worker" dev
@@ -138,7 +142,12 @@ mandatory: without it the process still starts, but without instrumentation, bec
 The [properties and locations API reference](docs/api/properties-and-locations.md) documents all
 seven GET families, query validation, paging, event contracts, stable fixture IDs, description
 permissions, expiry and the explicit synthetic-only limitations. Responses are tagged
-`synthetic-stub`; no property read starts collection or writes the outbox.
+`synthetic-stub`; no property read starts collection or writes the outbox. Detail is persisted-first
+with prepared fallback. Initial detail is stable across duplicate delivery and worker restart;
+verified later observations and parser corrections are stored as pending facts, not applied history.
+Descriptions require the source's current display permission on every persisted read, failing closed
+when denied or unavailable. Ingestion is restricted to registered owned synthetic sources and exact
+known fixture addresses; it is not production normalization or entity resolution.
 
 ## Ports
 

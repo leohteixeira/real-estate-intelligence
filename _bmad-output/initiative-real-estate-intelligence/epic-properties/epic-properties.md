@@ -90,9 +90,25 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   event publication and match events belong to later stories; the existing framework-neutral
   validators/facades and Vitest override conflicting modular-monolith skill defaults as in D-012
   (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-022 makes entry 2 a persisted synthetic tracer: collection-owned transaction-scoped
+  evidence verifies every v1 observation and v2 correction. Inbox, immutable incoming fact, first
+  Property/Listing and only ListingCreated outbox commit atomically. Stable source identity remains
+  unique after inbox expiry; later observations/corrections are explicitly pending for entry 5,
+  including corrections arriving first. Resolve known fixture addresses through locations, using
+  the known neighborhood rather than a mismatched fictional street block. Detail GETs prefer
+  persistence with prepared fallback; search/counts/reductions stay stubbed. Preserve synthetic
+  metadata and unmeasured evidence, and check current text permissions on reads. No real source,
+  grouping algorithm or production action is authorized (agent, on the owner's behalf, 2026-10-10).
 - Decision: D-021 completes the unpublished stub contracts with all six place levels and explicitly
   fictional blocks, signed property-price change percentages, property-level reductions, prepared
   probability/reasons and structured feature/type agreement. Reassignment events allow surviving
   property IDs and include dated active listing facts that validate conserved prices and both sets
   of minima without foreign reads. Production resolution, matching and calibration stay deferred
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-023 adds collection-owned canonical parsed-event publication evidence, written
+  atomically by both collection paths and reparse with their state/outbox. The collection facade
+  checks exact received values and emission time as well as original provenance and current source
+  authority. Evidence is update-immutable, privacy-allowlisted and subject to later suppression;
+  missing legacy evidence fails closed rather than being invented. Properties never reads foreign
+  tables or depends on outbox retention. Re-run affected collection/reparse journeys
   (agent, on the owner's behalf, 2026-10-10).

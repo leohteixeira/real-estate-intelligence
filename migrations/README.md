@@ -45,3 +45,18 @@ NNNN_<context>_<description>.sql
   database time, `SKIP LOCKED`, independent transactions and active cancellation on shutdown.
 - `platform.idempotency_key` is only the bounded storage foundation. Reservation and replay rules
   are defined by the first public command that uses it.
+
+## Initial property ingestion
+
+`1001_properties_create_initial_properties.sql` owns the initial single-listing aggregate in the
+`properties` schema. Property and Listing IDs are distinct UUIDv7 values. The durable source/listing
+identity is unique, independent of expiring inbox markers. Immutable canonical incoming facts retain
+their original provenance; a separate disposition stores `initial`, `pending-history` or
+`pending-correction`. Later verified facts are not yet projected into history. Money is constrained
+to safe-integer BRL cents. No foreign key or query crosses into Collection or Locations.
+
+`4008_collection_add_parsed_event_evidence.sql` stores Collection-owned strict canonical parsed
+publication evidence, written atomically with initial/paged collection or reparse state and outbox.
+It verifies event time and values without depending on retained outbox rows or inventing legacy
+evidence. Update triggers protect original evidence; deletion remains possible for the later
+ADR 0015 suppression capability. Properties verifies it only through the Collection facade.
