@@ -12,6 +12,8 @@ describe('readConfig', () => {
       intervalMs: 30_000,
       relayIntervalMs: 1_000,
       relayBatchSize: 25,
+      claimLeaseMs: 130_000,
+      reconnectIntervalMs: 1_000,
       operationTimeoutMs: 5_000,
       shutdownTimeoutMs: 15_000,
     });
@@ -52,5 +54,27 @@ describe('readConfig', () => {
         SHUTDOWN_TIMEOUT_MS: '1000',
       } as NodeJS.ProcessEnv),
     ).toThrow('SHUTDOWN_TIMEOUT_MS');
+  });
+
+  it('requires the claim lease to cover the worst-case sequential batch and poll margin', () => {
+    expect(() =>
+      readConfig({
+        ...BASE_ENV,
+        OUTBOX_RELAY_BATCH_SIZE: '2',
+        OUTBOX_RELAY_INTERVAL_MS: '1000',
+        WORKER_OPERATION_TIMEOUT_MS: '5000',
+        OUTBOX_CLAIM_LEASE_MS: '10999',
+      } as NodeJS.ProcessEnv),
+    ).toThrow('OUTBOX_CLAIM_LEASE_MS must be at least 11000');
+  });
+
+  it('bounds the reconnect cadence by the shutdown deadline', () => {
+    expect(() =>
+      readConfig({
+        ...BASE_ENV,
+        RABBITMQ_RECONNECT_INTERVAL_MS: '16000',
+        SHUTDOWN_TIMEOUT_MS: '15000',
+      } as NodeJS.ProcessEnv),
+    ).toThrow('RABBITMQ_RECONNECT_INTERVAL_MS');
   });
 });

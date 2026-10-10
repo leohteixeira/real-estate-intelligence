@@ -13,6 +13,8 @@ const event: OutboxRow = {
   traceContext: null,
   payload: {},
   publishedAt: null,
+  claimId: '0199c8f2-2394-7ba0-8f9e-286378779221' as UuidV7,
+  claimExpiresAt: '2026-10-10T12:32:00.000Z',
 };
 
 describe('OutboxRelayJob', () => {
@@ -32,6 +34,7 @@ describe('OutboxRelayJob', () => {
     const outbox: OutboxRelayPort = {
       claimPending: vi.fn().mockResolvedValue([event]),
       markPublished: vi.fn(),
+      releaseClaim: vi.fn(),
     };
     const publisher: EventPublisher = { publish: vi.fn().mockResolvedValue(undefined) };
     const job = new OutboxRelayJob(outbox, publisher);
@@ -40,7 +43,7 @@ describe('OutboxRelayJob', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(publisher.publish).toHaveBeenCalledOnce();
-    expect(outbox.markPublished).toHaveBeenCalledWith(event.eventId);
+    expect(outbox.markPublished).toHaveBeenCalledWith(event.eventId, event.claimId);
     await job.stop();
   });
 
@@ -48,6 +51,7 @@ describe('OutboxRelayJob', () => {
     const outbox: OutboxRelayPort = {
       claimPending: vi.fn().mockResolvedValue([event]),
       markPublished: vi.fn(),
+      releaseClaim: vi.fn(),
     };
     const publisher: EventPublisher = {
       publish: vi.fn().mockRejectedValue(new Error('broker unavailable')),
@@ -58,6 +62,35 @@ describe('OutboxRelayJob', () => {
     await vi.advanceTimersByTimeAsync(0);
 
     expect(outbox.markPublished).not.toHaveBeenCalled();
+    expect(outbox.releaseClaim).toHaveBeenCalledWith(event.eventId, event.claimId);
+    await job.stop();
+  });
+
+  it('processes each aggregate head independently when another publication fails', async () => {
+    const second = {
+      ...event,
+      eventId: '0199c8f2-2394-7ba0-8f9e-286378779222' as UuidV7,
+      aggregateId: '0199c8f2-2394-7ba0-9f9e-286378779223' as UuidV7,
+      claimId: '0199c8f2-2394-7ba0-8f9e-286378779224' as UuidV7,
+    };
+    const outbox: OutboxRelayPort = {
+      claimPending: vi.fn().mockResolvedValue([event, second]),
+      markPublished: vi.fn(),
+      releaseClaim: vi.fn(),
+    };
+    const publisher: EventPublisher = {
+      publish: vi
+        .fn()
+        .mockRejectedValueOnce(new Error('first aggregate unavailable'))
+        .mockResolvedValueOnce(undefined),
+    };
+    const job = new OutboxRelayJob(outbox, publisher);
+
+    job.start();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(outbox.releaseClaim).toHaveBeenCalledWith(event.eventId, event.claimId);
+    expect(outbox.markPublished).toHaveBeenCalledWith(second.eventId, second.claimId);
     await job.stop();
   });
 });

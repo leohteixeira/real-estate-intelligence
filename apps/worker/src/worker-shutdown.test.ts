@@ -9,6 +9,7 @@ import {
 function shutdownSteps(overrides: Partial<WorkerShutdownSteps> = {}): WorkerShutdownSteps {
   return {
     clearReadiness: vi.fn().mockResolvedValue(undefined),
+    stopBrokerSupervisor: vi.fn().mockResolvedValue(undefined),
     stopRelay: vi.fn().mockResolvedValue(undefined),
     stopHeartbeat: vi.fn(),
     closeBroker: vi.fn().mockResolvedValue(undefined),
@@ -30,6 +31,7 @@ describe('shutdownWorker', () => {
     };
     const steps = shutdownSteps({
       clearReadiness: step('readiness'),
+      stopBrokerSupervisor: step('supervisor'),
       stopRelay: step('relay'),
       stopHeartbeat: () => calls.push('heartbeat'),
       closeBroker: step('broker'),
@@ -39,7 +41,15 @@ describe('shutdownWorker', () => {
 
     await shutdownWorker(steps, 1_000);
 
-    expect(calls).toEqual(['readiness', 'relay', 'heartbeat', 'broker', 'context', 'telemetry']);
+    expect(calls).toEqual([
+      'readiness',
+      'supervisor',
+      'relay',
+      'heartbeat',
+      'broker',
+      'context',
+      'telemetry',
+    ]);
   });
 
   it('rejects when the overall shutdown deadline expires', async () => {
