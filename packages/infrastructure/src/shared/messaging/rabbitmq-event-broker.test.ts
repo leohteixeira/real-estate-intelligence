@@ -147,6 +147,55 @@ describe('RabbitMqEventBroker', () => {
     await broker.close();
   });
 
+  it('does not wait for a hanging connection and disposes it if it resolves after close', async () => {
+    const generation = generationDouble();
+    let resolveConnection: ((connection: typeof generation.connection) => void) | undefined;
+    const connector = vi.fn(
+      async () =>
+        new Promise<typeof generation.connection>((resolve) => {
+          resolveConnection = resolve;
+        }),
+    );
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 10_000 },
+      connector,
+    );
+
+    const starting = broker.start();
+    const startResult = expect(starting).rejects.toThrow('RabbitMQ broker is closing.');
+    await expect(broker.close()).resolves.toBeUndefined();
+    await startResult;
+
+    resolveConnection!(generation.connection);
+    await vi.waitFor(() => expect(generation.connection.close).toHaveBeenCalledOnce());
+    expect(generation.connection.createConfirmChannel).not.toHaveBeenCalled();
+  });
+
+  it('disposes a channel that resolves after its cancelled connection establishment', async () => {
+    const generation = generationDouble();
+    let resolveChannel: ((channel: typeof generation.channel) => void) | undefined;
+    generation.connection.createConfirmChannel.mockImplementation(
+      async () =>
+        new Promise<typeof generation.channel>((resolve) => {
+          resolveChannel = resolve;
+        }),
+    );
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 10_000 },
+      async () => generation.connection,
+    );
+
+    const starting = broker.start();
+    await vi.waitFor(() => expect(generation.connection.createConfirmChannel).toHaveBeenCalled());
+    const startResult = expect(starting).rejects.toThrow('RabbitMQ broker is closing.');
+    await expect(broker.close()).resolves.toBeUndefined();
+    await startResult;
+    expect(generation.connection.close).toHaveBeenCalledOnce();
+
+    resolveChannel!(generation.channel);
+    await vi.waitFor(() => expect(generation.channel.close).toHaveBeenCalledOnce());
+  });
+
   it('publishes persistent messages and waits for a confirm even under write backpressure', async () => {
     const { broker, channel } = brokerDouble(false);
 
@@ -159,6 +208,33 @@ describe('RabbitMqEventBroker', () => {
       expect.objectContaining({ persistent: true, messageId: event.eventId }),
     );
     expect(channel.waitForConfirms).toHaveBeenCalledOnce();
+    await broker.close();
+  });
+
+  it('preserves the baseline audit route when started without an audit subscription', async () => {
+    const generation = generationDouble();
+    let legacyRouteBound = true;
+    generation.channel.unbindQueue.mockImplementation(async () => {
+      legacyRouteBound = false;
+      return {};
+    });
+    generation.channel.publish.mockImplementation(() => {
+      expect(legacyRouteBound).toBe(true);
+      return true;
+    });
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
+      async () => generation.connection,
+    );
+
+    await broker.publish(event, new AbortController().signal);
+
+    expect(generation.channel.assertQueue).not.toHaveBeenCalledWith(
+      'audit.trace-requested.audit',
+      expect.anything(),
+    );
+    expect(generation.channel.unbindQueue).not.toHaveBeenCalled();
+    expect(generation.channel.publish).toHaveBeenCalledOnce();
     await broker.close();
   });
 
