@@ -21,3 +21,18 @@ export {
   SYNTHETIC_LISTING_SOURCE_ID,
   SyntheticListingSource,
 } from './synthetic-listing-source.js';
+export {
+  SYNTHETIC_SAO_PAULO_DATASET,
+  SYNTHETIC_SAO_PAULO_DATASET_VERSION,
+} from './synthetic-sao-paulo.dataset.js';
+export type {
+  SyntheticSaoPauloDataset,
+  SyntheticSaoPauloListing,
+  SyntheticSaoPauloPlace,
+  SyntheticSaoPauloPortal,
+  SyntheticSaoPauloProperty,
+  SyntheticSaoPauloRun,
+  SyntheticSaoPauloRunObservation,
+} from './synthetic-sao-paulo.dataset.js';
+export { buildSyntheticSaoPauloReplay } from './synthetic-sao-paulo.replay.js';
+export type { SyntheticSaoPauloReplayEvent } from './synthetic-sao-paulo.replay.js';

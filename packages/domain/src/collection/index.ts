@@ -32,3 +32,11 @@ export type {
 } from './collection.events.js';
 export { isSha256Hash, parseSha256Hash } from './sha256-hash.js';
 export type { Sha256Hash } from './sha256-hash.js';
+export {
+  SYNTHETIC_SAO_PAULO_LISTING_REFERENCES,
+  SYNTHETIC_SAO_PAULO_MATCH_LABELS,
+} from './synthetic-sao-paulo.match-labels.js';
+export type {
+  SyntheticSaoPauloListingReference,
+  SyntheticSaoPauloMatchLabel,
+} from './synthetic-sao-paulo.match-labels.js';
