@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Filtros</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei stack" style="width: 390px; height: 1177px; background: var(--enamel-800)">
+
+<div class="shell" style="padding-bottom: 12px">
+<div class="shell__bar">
+<p class="brand">Filtros</p>
+<a class="iconbtn" href="Search.dc.html" aria-label="Fechar filtros"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></a>
+</div>
+</div>
+
+<form class="sheet stack" style="flex: 1; padding: 4px 16px 0; gap: 20px">
+<div class="sheet__grab" aria-hidden="true"></div>
+
+<div class="field">
+<label for="place">Lugar</label>
+<select id="place"><option>Pinheiros, Zona Oeste, São Paulo</option><option>Zona Oeste, São Paulo</option><option>São Paulo</option></select>
+<p class="hint">Os filtros valem dentro deste lugar. Troque o lugar para ampliar a busca.</p>
+</div>
+
+<fieldset class="field" style="border: 0; padding: 0; margin: 0">
+<legend style="padding-bottom: 6px">Tipo de imóvel</legend>
+<div class="wrap">
+<button type="button" class="chip" aria-pressed="true">Apartamento</button>
+<button type="button" class="chip" aria-pressed="false">Casa</button>
+<button type="button" class="chip" aria-pressed="false">Studio</button>
+<button type="button" class="chip" aria-pressed="false">Comercial</button>
+<button type="button" class="chip" aria-pressed="false">Terreno</button>
+</div>
+</fieldset>
+
+<fieldset class="field" style="border: 0; padding: 0; margin: 0">
+<legend style="padding-bottom: 6px">Preço pedido (R$)</legend>
+<div class="pair">
+<div class="field"><label for="pmin" class="muted" style="font-weight: 500">Mínimo</label><input id="pmin" type="text" inputmode="numeric" value="600.000"></div>
+<div class="field"><label for="pmax" class="muted" style="font-weight: 500">Máximo</label><input id="pmax" type="text" inputmode="numeric" value="1.000.000"></div>
+</div>
+</fieldset>
+
+<fieldset class="field" style="border: 0; padding: 0; margin: 0">
+<legend style="padding-bottom: 6px">Preço pedido por m² (R$)</legend>
+<div class="pair">
+<div class="field"><label for="mmin" class="muted" style="font-weight: 500">Mínimo</label><input id="mmin" type="text" inputmode="numeric" placeholder="Qualquer"></div>
+<div class="field"><label for="mmax" class="muted" style="font-weight: 500">Máximo</label><input id="mmax" type="text" inputmode="numeric" value="13.000"></div>
+</div>
+</fieldset>
+
+<fieldset class="field" style="border: 0; padding: 0; margin: 0">
+<legend style="padding-bottom: 6px">Área (m²)</legend>
+<div class="pair">
+<div class="field"><label for="amin" class="muted" style="font-weight: 500">Mínimo</label><input id="amin" type="text" inputmode="numeric" value="60"></div>
+<div class="field"><label for="amax" class="muted" style="font-weight: 500">Máximo</label><input id="amax" type="text" inputmode="numeric" placeholder="Qualquer"></div>
+</div>
+</fieldset>
+
+<div class="field">
+<span id="bed" style="font-size: var(--text-sm); font-weight: 600">Quartos</span>
+<div class="seg" role="group" aria-labelledby="bed" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))"><button type="button" aria-pressed="false">Qualquer</button><button type="button" aria-pressed="false">1+</button><button type="button" aria-pressed="true">2+</button><button type="button" aria-pressed="false">3+</button><button type="button" aria-pressed="false">4+</button></div>
+</div>
+
+<div class="pair">
+<div class="field"><label for="bath">Banheiros</label><select id="bath"><option>Qualquer</option><option>1+</option><option>2+</option><option>3+</option></select></div>
+<div class="field"><label for="park">Vagas de garagem</label><select id="park"><option>Qualquer</option><option>1+</option><option>2+</option></select></div>
+</div>
+
+<div class="field">
+<label for="dom">Tempo de anúncio</label>
+<select id="dom"><option>Qualquer</option><option>Até 30 dias</option><option>31 a 90 dias</option><option>Mais de 90 dias</option><option>Mais de 180 dias</option></select>
+</div>
+
+<fieldset class="field" style="border: 0; padding: 0; margin: 0">
+<legend style="padding-bottom: 6px">Histórico do anúncio</legend>
+<div class="wrap">
+<button type="button" class="chip" aria-pressed="false">Preço reduzido</button>
+<button type="button" class="chip" aria-pressed="false">Voltou ao mercado</button>
+<button type="button" class="chip" aria-pressed="false">Mais de um anúncio</button>
+</div>
+</fieldset>
+
+<div class="spread" style="margin-top: auto; align-items: center; padding: 14px 0 18px; border-top: 1px solid var(--line)">
+<button type="button" class="btn btn--quiet" style="padding-inline: 4px">Limpar tudo</button>
+<a class="btn btn--primary" href="Search.dc.html">Mostrar 212 imóveis</a>
+</div>
+</form>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1177}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

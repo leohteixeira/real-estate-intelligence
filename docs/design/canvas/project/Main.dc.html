@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Visão do lugar</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei stack" style="width: 390px; height: 1706px">
+
+<header class="shell">
+<div class="shell__bar">
+<a class="brand" href="Main.dc.html">Real Estate Intelligence</a>
+<div class="line">
+<a class="iconbtn" href="Alerts.dc.html" aria-label="Alertas, 3 novos"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg></a>
+<div class="lang" role="group" aria-label="Idioma"><button type="button" aria-pressed="false">EN</button><button type="button" aria-pressed="true">PT</button></div>
+</div>
+</div>
+<nav aria-label="Hierarquia do lugar"><ol class="crumbs"><li><a href="Market.dc.html">Brasil</a></li><li><a href="Market.dc.html">São Paulo</a></li><li><a href="Market.dc.html">Zona Oeste</a></li></ol></nav>
+<div class="plate">
+<div class="plate__in">
+<p class="plate__over"><span>São Paulo · SP</span><span>Bairro</span></p>
+<h1 class="plate__name">Pinheiros</h1>
+<p class="plate__strip"><span>Zona Oeste</span><span>1.037 imóveis · 1.284 anúncios</span></p>
+</div>
+</div>
+</header>
+
+<form class="ask pad" style="padding-top: 16px">
+<label for="q">Pergunte sobre Pinheiros</label>
+<div class="ask__box"><input id="q" type="text" placeholder="Preço por m² de 68 m² a R$ 785.000"><button type="button">Perguntar</button></div>
+<p class="prov"><span>O backend calcula todos os números. O modelo apenas direciona e explica.</span></p>
+</form>
+
+<section class="band" style="margin-top: 20px" aria-label="Números principais">
+<div class="fig">
+<p class="fig__label">Mediana do preço pedido por m² <span class="tag">Pedido</span></p>
+<p class="fig__value">R$ 12.480 <small>/m²</small></p>
+<p class="small"><strong class="up">+3,1%</strong> em 6 meses · mediana de São Paulo R$ 11.900</p>
+<p class="prov" style="padding-top: 6px"><span>1.284 anúncios ativos</span><span>2 fontes</span><span>Calculado em 9 out. 2026, 06:00</span><a href="Listing.dc.html">Como é calculado</a></p>
+</div>
+<div class="figs">
+<div class="fig fig--s"><p class="fig__label">Tempo mediano de anúncio</p><p class="fig__value">74 <small>dias</small></p></div>
+<div class="fig fig--s"><p class="fig__label">Reduções de preço, 30 dias</p><p class="fig__value">96 <small>anúncios</small></p></div>
+<div class="fig fig--s"><p class="fig__label">Anúncios por imóvel</p><p class="fig__value">1,24</p></div>
+<div class="fig fig--s"><p class="fig__label">Preços de venda registrados <span class="tag tag--sale">Venda</span></p><p class="fig__value" style="font-size: 1.125rem; line-height: 1.75rem; color: var(--ink-2)">Nenhum disponível</p></div>
+</div>
+</section>
+<p class="pad prov" style="padding-top: 10px"><span class="tag tag--synthetic">Dados sintéticos</span><span>Todos os números desta tela vêm de um conjunto de dados fictício.</span></p>
+
+<div class="pad">
+<div class="sec"><h2>Preço pedido por m², 12 meses</h2><a href="Market.dc.html">Tendências</a></div>
+<svg viewBox="0 0 358 164" role="img" aria-label="A mediana do preço pedido por metro quadrado em Pinheiros subiu de R$ 11.960 em novembro de 2025 para R$ 12.480 em outubro de 2026, acima da mediana de São Paulo, de R$ 11.900." style="display: block; width: 100%; height: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px">
+<g stroke="#d5dbe6" stroke-width="1"><path d="M34 29.5H350M34 62H350M34 94.5H350M34 127H350"></path></g>
+<g font-family="Barlow, sans-serif" font-size="10" fill="#3d4a66"><text x="4" y="33">12,5k</text><text x="4" y="65.5">12,3k</text><text x="4" y="98">12,1k</text><text x="4" y="130.5">11,9k</text><text x="34" y="156">nov.</text><text x="112" y="156">fev.</text><text x="198" y="156">mai.</text><text x="284" y="156">ago.</text><text x="332" y="156">out.</text></g>
+<path d="M34 127H350" stroke="#3d4a66" stroke-width="1.5" stroke-dasharray="4 4" fill="none"></path>
+<polyline points="34,114 62.7,109.1 91.5,104.3 120.2,97.8 148.9,94.5 177.6,90.4 206.4,78.3 235.1,66.9 263.8,57.1 292.5,45.8 321.3,36 350,29.5" fill="none" stroke="#1a4fb3" stroke-width="2.5" stroke-linejoin="round"></polyline>
+<circle cx="350" cy="29.5" r="4.5" fill="#1a4fb3" stroke="#fff" stroke-width="2"></circle>
+<text x="232" y="121" font-family="Barlow, sans-serif" font-size="10" fill="#3d4a66">Mediana de São Paulo</text>
+</svg>
+</div>
+
+<div class="pad">
+<div class="sec"><h2>No mapa</h2><a href="Map.dc.html">Abrir mapa</a></div>
+<a class="map" href="Map.dc.html" style="display: block; height: 190px" aria-label="Abrir o mapa de Pinheiros"><img src="./map-neighborhood.svg" alt=""><span class="map__cap">Esquemático · provedor de mapa não definido</span></a>
+</div>
+
+<div class="pad"><div class="sec"><h2>Maiores reduções de preço</h2><a href="Search.dc.html">Todos os 1.037</a></div></div>
+<ul class="rows" style="border-top: 1px solid var(--line)">
+<li><a class="prow" href="Property.dc.html"><span class="prow__t">Apartamento · 2 quartos · 68 m²</span><span class="prow__p">R$ 785.000</span><span class="prow__s">Rua dos Pinheiros, 1200–1298</span><span class="prow__r">R$ 11.544/m²</span><span class="prow__m"><strong class="down">−7,6% desde janeiro</strong><span>3 anúncios</span><span>280 dias anunciado</span></span></a></li>
+<li><a class="prow" href="Property.dc.html"><span class="prow__t">Apartamento · 3 quartos · 104 m²</span><span class="prow__p">R$ 1.290.000</span><span class="prow__s">Rua Teodoro Sampaio, 800–898</span><span class="prow__r">R$ 12.404/m²</span><span class="prow__m"><strong class="down">−5,1% em 30 dias</strong><span>1 anúncio</span><span>96 dias anunciado</span></span></a></li>
+<li><a class="prow" href="Property.dc.html"><span class="prow__t">Casa · 3 quartos · 150 m²</span><span class="prow__p">R$ 1.650.000</span><span class="prow__s">Rua Mateus Grou, 300–398</span><span class="prow__r">R$ 11.000/m²</span><span class="prow__m"><strong class="down">−4,3% em 30 dias</strong><span>2 anúncios</span><span>143 dias anunciado</span></span></a></li>
+</ul>
+
+<nav class="tabbar" aria-label="Principal">
+<a href="Main.dc.html" aria-current="page"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg></span>Lugares</a>
+<a href="Search.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg></span>Buscar</a>
+<a href="Ask.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"></path><path d="M12 16.6v.1"></path></svg></span>Perguntar</a>
+<a href="Market.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg></span>Mercado</a>
+<a href="Operations.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>Mais</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1706}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

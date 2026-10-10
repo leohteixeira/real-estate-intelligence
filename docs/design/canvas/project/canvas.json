@@ -1,0 +1,310 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-09T21:30:00Z"
+ },
+ "title": "Real Estate Intelligence — Design System & Screens",
+ "launch": {
+  "view": "canvas",
+  "page": "mobile"
+ },
+ "pages": [
+  {
+   "id": "mobile",
+   "name": "Mobile"
+  },
+  {
+   "id": "desktop",
+   "name": "Desktop"
+  },
+  {
+   "id": "system",
+   "name": "Design system"
+  },
+  {
+   "id": "landing",
+   "name": "Landing"
+  }
+ ],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 1706,
+   "title": "Place overview",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Search.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 1249,
+   "title": "Search results",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Filters.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 1177,
+   "title": "Filters",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Property.dc.html": {
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 1842,
+   "title": "Property",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Listing.dc.html": {
+   "x": 1880,
+   "y": 0,
+   "w": 390,
+   "h": 1782,
+   "title": "Listing and provenance",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Comparables.dc.html": {
+   "x": 2350,
+   "y": 0,
+   "w": 390,
+   "h": 1626,
+   "title": "Comparables",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Market.dc.html": {
+   "x": 2820,
+   "y": 0,
+   "w": 390,
+   "h": 1999,
+   "title": "Market",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Map.dc.html": {
+   "x": 3290,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Map",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Ask.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 390,
+   "h": 2034,
+   "title": "Ask: completed run",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "AskConfirm.dc.html": {
+   "x": 470,
+   "y": 2400,
+   "w": 390,
+   "h": 1443,
+   "title": "Ask: awaiting confirmation",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Alerts.dc.html": {
+   "x": 940,
+   "y": 2400,
+   "w": 390,
+   "h": 1301,
+   "title": "Alerts",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Operations.dc.html": {
+   "x": 1410,
+   "y": 2400,
+   "w": 390,
+   "h": 1928,
+   "title": "Operations",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "Review.dc.html": {
+   "x": 1880,
+   "y": 2400,
+   "w": 390,
+   "h": 1298,
+   "title": "Entity resolution review",
+   "page": "mobile",
+   "is_interactive": true
+  },
+  "States.dc.html": {
+   "x": 2820,
+   "y": 2400,
+   "w": 1280,
+   "h": 1127,
+   "title": "System states",
+   "page": "mobile"
+  },
+  "DesktopPlace.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 1366,
+   "title": "Place overview",
+   "page": "desktop",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "DesktopProperty.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 1440,
+   "h": 1207,
+   "title": "Property",
+   "page": "desktop",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "DesktopMarket.dc.html": {
+   "x": 3040,
+   "y": 0,
+   "w": 1440,
+   "h": 1155,
+   "title": "Market",
+   "page": "desktop",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "DesktopAsk.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1440,
+   "h": 1142,
+   "title": "Ask",
+   "page": "desktop",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "DesktopOperations.dc.html": {
+   "x": 6080,
+   "y": 0,
+   "w": 1440,
+   "h": 1311,
+   "title": "Operations",
+   "page": "desktop",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "Foundations.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1280,
+   "h": 1390,
+   "title": "Foundations",
+   "page": "system"
+  },
+  "Components.dc.html": {
+   "x": 1360,
+   "y": 0,
+   "w": 1280,
+   "h": 1882,
+   "title": "Components",
+   "page": "system"
+  },
+  "LandingDesktop.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 6537,
+   "title": "Landing page",
+   "page": "landing",
+   "expand": "fill",
+   "is_interactive": true
+  },
+  "LandingMobile.dc.html": {
+   "x": 1520,
+   "y": 0,
+   "w": 390,
+   "h": 7357,
+   "title": "Landing page, phone",
+   "page": "landing",
+   "is_interactive": true
+  },
+  "PlaceEN.dc.html": {
+   "x": 2350,
+   "y": 2400,
+   "w": 390,
+   "h": 1706,
+   "title": "Place overview (English)",
+   "page": "mobile",
+   "is_interactive": true
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "Search.dc.html",
+  "Filters.dc.html",
+  "Property.dc.html",
+  "Listing.dc.html",
+  "Comparables.dc.html",
+  "Market.dc.html",
+  "Map.dc.html",
+  "Ask.dc.html",
+  "AskConfirm.dc.html",
+  "Alerts.dc.html",
+  "Operations.dc.html",
+  "Review.dc.html",
+  "PlaceEN.dc.html",
+  "States.dc.html",
+  "DesktopPlace.dc.html",
+  "DesktopProperty.dc.html",
+  "DesktopMarket.dc.html",
+  "DesktopAsk.dc.html",
+  "DesktopOperations.dc.html",
+  "Foundations.dc.html",
+  "Components.dc.html"
+ ],
+ "notes": {
+  "t-understand": {
+   "x": 0,
+   "y": -300,
+   "text": "Understand a place",
+   "kind": "title1",
+   "maxW": 3680,
+   "page": "mobile"
+  },
+  "t-ask": {
+   "x": 0,
+   "y": 2100,
+   "text": "Ask, watch and operate",
+   "kind": "title1",
+   "maxW": 4100,
+   "page": "mobile"
+  },
+  "t-desktop": {
+   "x": 0,
+   "y": -300,
+   "text": "Desktop",
+   "kind": "title1",
+   "maxW": 7520,
+   "page": "desktop"
+  },
+  "t-system": {
+   "x": 0,
+   "y": -300,
+   "text": "Placa design system",
+   "kind": "title1",
+   "maxW": 2640,
+   "page": "system"
+  }
+ },
+ "designSystems": []
+}

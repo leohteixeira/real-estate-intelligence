@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Components</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei" style="width: 1280px; height: 1882px; background: var(--surface); padding: 16px 48px 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px; align-content: start">
+
+<section>
+<div class="sec"><h2>Buttons</h2></div>
+<div class="wrap" style="align-items: center">
+<button type="button" class="btn btn--primary">Mostrar 212 imóveis</button>
+<button type="button" class="btn">Criar alerta</button>
+<button type="button" class="btn btn--quiet">Limpar tudo</button>
+<button type="button" class="btn" disabled>Perguntar</button>
+</div>
+<div style="padding-top: 28px"><button type="button" class="btn btn--danger">Cancelar esta execução</button></div>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">One primary per view. A destructive action is outlined and stands alone, at least 24 px from any other control.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Fields</h2></div>
+<div class="pair">
+<div class="field"><label for="c-a">Área mínima (m²)</label><input id="c-a" type="text" inputmode="numeric" value="60"><p class="hint">Metros quadrados inteiros</p></div>
+<div class="field"><label for="c-b">Preço máximo por m² (R$)</label><input id="c-b" type="text" inputmode="numeric" value="900" aria-invalid="true" aria-describedby="c-b-e"><p class="err" id="c-b-e">Abaixo do menor valor em Pinheiros, R$ 9.870. Informe 9.870 ou mais.</p></div>
+<div class="field"><label for="c-c">Tempo de anúncio</label><select id="c-c"><option>Mais de 90 dias</option></select></div>
+<div class="field"><label for="c-d">Lugar</label><input id="c-d" type="text" placeholder="Bairro, zona ou cidade"></div>
+</div>
+</section>
+
+<section>
+<div class="sec"><h2>Chips and segmented control</h2></div>
+<div class="wrap">
+<button type="button" class="chip" aria-pressed="true">Apartamento</button>
+<button type="button" class="chip" aria-pressed="true">2+ quartos</button>
+<button type="button" class="chip" aria-pressed="false">Casa</button>
+<button type="button" class="chip" aria-pressed="false">Preço reduzido</button>
+</div>
+<div class="wrap" style="padding-top: 14px">
+<div class="seg" role="group" aria-label="Período"><button type="button" aria-pressed="false">30 dias</button><button type="button" aria-pressed="true">6 meses</button><button type="button" aria-pressed="false">12 meses</button></div>
+<div class="seg" role="group" aria-label="Visualização"><button type="button" aria-pressed="true">Lista</button><button type="button" aria-pressed="false">Mapa</button></div>
+</div>
+</section>
+
+<section>
+<div class="sec"><h2>Ask field</h2></div>
+<form class="ask">
+<label for="c-q">Pergunte sobre Pinheiros</label>
+<div class="ask__box"><input id="c-q" type="text" placeholder="Preço por m² de 68 m² a R$ 785.000"><button type="button">Perguntar</button></div>
+<p class="prov"><span>O backend calcula todos os números. O modelo apenas direciona e explica.</span></p>
+</form>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">A labelled form field with a submit button. Answers appear as run records, not as chat bubbles.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Figure with provenance</h2></div>
+<div class="panel">
+<div class="fig">
+<p class="fig__label">Mediana do preço pedido por m² <span class="tag">Pedido</span></p>
+<p class="fig__value">R$ 12.480 <small>/m²</small></p>
+<p class="small"><strong class="up">+3,1%</strong> em 6 meses</p>
+<p class="prov" style="padding-top: 6px"><span>1.284 anúncios ativos</span><span>2 fontes</span><span>Calculado em 9 out. 2026, 06:00</span><a href="#method">Como é calculado</a></p>
+</div>
+<div class="fig fig--s" style="border-top: 1px solid var(--line)" id="method">
+<p class="fig__label">Preço de venda <span class="tag tag--sale">Venda</span></p>
+<p style="font-weight: 600">Nenhuma venda registrada</p>
+</div>
+</div>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">Label, value, movement, then the provenance line: how many, from where, when. A figure never appears without it.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Status</h2></div>
+<div class="wrap">
+<span class="st">Na fila</span><span class="st st--running">Em execução</span><span class="st st--wait">Aguardando você</span><span class="st st--ok">Concluída</span><span class="st st--fail">Falhou</span><span class="st">Cancelada</span><span class="st">Expirada</span><span class="st st--off">Indisponível</span>
+</div>
+<div class="stack" style="gap: 8px; padding-top: 16px">
+<div class="note"><div><strong>Explicação, escrita por um modelo</strong>O modelo leu os números acima. Ele não os calculou.</div></div>
+<div class="note note--warn"><div><strong>Modo degradado</strong>Um classificador baseado em regras está decidindo, sujeito ao mesmo limiar de 0,85.</div></div>
+<div class="note note--danger"><div><strong>Fonte B: 14% das páginas não puderam ser interpretadas</strong>212 anúncios mantiveram os valores anteriores.</div></div>
+</div>
+</section>
+
+<section>
+<div class="sec"><h2>Property row</h2></div>
+<ul class="rows panel">
+<li><a class="prow" href="#row"><span class="prow__t line"><i class="here"></i>Apartamento · 2 quartos · 68 m²</span><span class="prow__p">R$ 785.000</span><span class="prow__s">Rua dos Pinheiros, 1200–1298</span><span class="prow__r">R$ 11.544/m²</span><span class="prow__m"><strong class="down">7,5% abaixo da mediana</strong><span>3 anúncios</span><span>280 dias anunciado</span></span></a></li>
+<li style="border-bottom: 0"><a class="prow" href="#row" id="row"><span class="prow__t">Apartamento · 2 quartos · 72 m²</span><span class="prow__p">R$ 910.000</span><span class="prow__s">Rua Cônego Eugênio Leite, 500–598</span><span class="prow__r">R$ 12.639/m²</span><span class="prow__m"><strong class="up">1,3% acima da mediana</strong><span>1 anúncio</span><span>22 dias anunciado</span></span></a></li>
+</ul>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">A row is a property, not a listing, and carries no photograph. The yellow square marks the row selected on the map.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Table</h2></div>
+<div class="panel tblwrap">
+<table class="tbl">
+<thead><tr><th scope="col">Bairro</th><th scope="col" class="r">R$/m²</th><th scope="col" class="r" aria-sort="descending"><button type="button">6 meses <svg class="i i--s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button></th><th scope="col" class="r">Dias</th></tr></thead>
+<tbody>
+<tr><td><a href="#row">Vila Madalena</a></td><td class="r"><span class="num">13.120</span></td><td class="r up">+4,0%</td><td class="r">61</td></tr>
+<tr aria-selected="true"><td><span class="line"><i class="here"></i><a href="#row">Pinheiros</a></span></td><td class="r"><span class="num">12.480</span></td><td class="r up">+3,1%</td><td class="r">74</td></tr>
+<tr><td><a href="#row">Butantã</a></td><td class="r"><span class="num">8.640</span></td><td class="r down">−0,8%</td><td class="r">92</td></tr>
+</tbody>
+</table>
+</div>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">Columns never move. A state change restyles the row in place. On a phone a wide table scrolls inside its own box.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Listing lifelines</h2></div>
+<div class="life">
+<span>Fonte A</span>
+<div class="life__track" role="img" aria-label="Fonte A: listed since 2 January 2026, with three price changes."><i class="life__bar" style="left: 17.2%; width: 77%"></i><i class="life__tick" style="left: 34.7%"></i><i class="life__tick" style="left: 53.3%"></i><i class="life__tick" style="left: 76.1%"></i></div>
+<span>Fonte C</span>
+<div class="life__track" role="img" aria-label="Fonte C: listed, removed for three months, then reappeared."><i class="life__bar" style="left: 22.2%; width: 27.8%"></i><i class="life__bar life__bar--off" style="left: 50%; width: 25.8%"></i><i class="life__bar" style="left: 75.8%; width: 18.4%"></i></div>
+<span></span>
+<div class="life__axis"><span>nov</span><span>jan</span><span>mar</span><span>mai</span><span>jul</span><span>set</span></div>
+</div>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">One bar per listing of the same property. Length is time on market, to scale. Tick: price change. Dashed: removed from the source.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Confidence gate</h2></div>
+<div class="spread"><span class="small muted">Probabilidade de ser isso o que você quis dizer</span><span class="num" style="font-size: 1.375rem; line-height: 1">0,71</span></div>
+<div class="gate" role="img" aria-label="Probability 0.71, below the 0.85 gate"><i class="gate__mark" style="left: 71%"></i><i class="gate__thr"><span>limiar 0,85</span></i></div>
+<div class="spread" style="padding-top: 8px"><span class="small muted">Probabilidade</span><span class="num" style="font-size: 1.375rem; line-height: 1">0,97</span></div>
+<div class="gate" role="img" aria-label="Probability 0.97, above the 0.85 gate"><i class="gate__mark" style="left: 97%"></i><i class="gate__thr"><span>limiar 0,85</span></i></div>
+<p class="small muted" style="max-width: 58ch">Below the gate the run pauses and asks. The number is always printed beside the bar.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Evidence and run slots</h2></div>
+<div class="ev">
+<span>Coordenadas semelhantes</span><span class="bar"><i style="width: 97%"></i></span><span style="text-align: right">0,97</span>
+<span>Descrição semelhante</span><span class="bar"><i style="width: 84%"></i></span><span style="text-align: right">0,84</span>
+<span>Imagens em comum</span><span class="bar"><i style="width: 72%"></i></span><span style="text-align: right">0,72</span>
+</div>
+<p class="small line" style="padding-top: 16px">Vagas de execução <span class="slots" role="img" aria-label="2 of 3 slots in use"><i class="on"></i><i class="on"></i><i></i></span> 2 de 3 em uso</p>
+<p class="small muted" style="padding-top: 10px; max-width: 58ch">A finite capacity is drawn as counted slots, so the limit is visible before it is reached.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Run steps</h2></div>
+<ol class="steps small">
+<li><div><h3>Intenção proposta: preço por metro quadrado</h3><p class="muted">Classificador baseado em regras, degradado. Probabilidade 0,71.</p></div></li>
+<li class="wait"><div><h3>Pausada para sua confirmação</h3><p class="muted">Confirmar retoma esta execução sem classificar novamente.</p></div></li>
+<li class="todo"><div><h3 class="muted">Ferramenta chamada</h3></div></li>
+</ol>
+</section>
+
+<section style="grid-column: 1 / -1">
+<div class="sec"><h2>Navigation</h2></div>
+<div style="display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start">
+<div style="flex: 0 0 390px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden">
+<nav class="tabbar" aria-label="Primary, phone" style="border-top: 0">
+<a href="#nav" aria-current="page"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg></span>Lugares</a>
+<a href="#nav"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg></span>Buscar</a>
+<a href="#nav"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"></path><path d="M12 16.6v.1"></path></svg></span>Perguntar</a>
+<a href="#nav"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg></span>Mercado</a>
+<a href="#nav"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>Mais</a>
+</nav>
+</div>
+<nav class="rail" aria-label="Primary, desktop" id="nav" style="flex: 0 0 232px; border-radius: 6px; padding-block: 12px">
+<a class="nav" href="#nav" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg>Lugares</a>
+<a class="nav" href="#nav"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg>Mercado</a>
+</nav>
+<div class="shell" style="flex: 1 1 320px; border-radius: 6px">
+<div class="line" style="justify-content: space-between"><nav aria-label="Hierarquia de lugares"><ol class="crumbs"><li><a href="#nav">Brasil</a></li><li><a href="#nav">São Paulo</a></li><li><a href="#nav">Zona Oeste</a></li></ol></nav><div class="lang" role="group" aria-label="Idioma"><button type="button" aria-pressed="false">EN</button><button type="button" aria-pressed="true">PT</button></div></div>
+<p class="small" style="color: var(--enamel-200); max-width: 52ch">Five tabs on a phone, a rail on a desktop. The crumbs climb the place hierarchy; the language switch sits in the shell on every screen.</p>
+</div>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1882}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

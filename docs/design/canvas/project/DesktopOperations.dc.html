@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Operações, desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei app">
+
+<nav class="rail" aria-label="Principal">
+<a class="brand" href="DesktopPlace.dc.html">Real Estate<br>Intelligence</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg>Lugares</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>Buscar</a>
+<a class="nav" href="DesktopMarket.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg>Mercado</a>
+<a class="nav" href="DesktopAsk.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"></path><path d="M12 16.6v.1"></path></svg>Perguntar</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>Alertas · 3 novos</a>
+<h2>Operações</h2>
+<a class="nav" href="DesktopOperations.dc.html" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>Fontes e execuções</a>
+<a class="nav" href="#review"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>Fila de revisão · 7</a>
+<div class="rail__foot">
+<div class="lang" role="group" aria-label="Idioma" style="align-self: flex-start"><button type="button" aria-pressed="false">EN</button><button type="button" aria-pressed="true">PT</button></div>
+<p>Dados sintéticos de demonstração</p>
+</div>
+</nav>
+
+<div class="main">
+<header class="main__head">
+<div class="plate plate--city plate--block" style="flex: 0 1 420px">
+<div class="plate__in">
+<p class="plate__over"><span>Operações de</span><span>2 fontes</span></p>
+<h1 class="plate__name">São Paulo</h1>
+<p class="plate__strip"><span>Última coleta completa 05:40</span><span>1 fonte degradada</span></p>
+</div>
+</div>
+</header>
+
+<div class="main__body">
+
+<div class="note note--danger"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4.5M12 17.4v.1"></path></svg><div style="flex: 1"><strong>Fonte B: 14% das páginas falharam na análise</strong>212 anúncios mantiveram os valores anteriores. Os snapshots brutos estão armazenados, então podem ser analisados de novo sem nova coleta.</div><button type="button" class="btn">Reprocessar 212 snapshots</button></div>
+
+<section class="panel" aria-label="Pipeline hoje">
+<div class="figs figs--4" style="border-top: 0">
+<div class="fig fig--s" style="border-bottom: 0"><p class="fig__label">Snapshots brutos armazenados hoje</p><p class="fig__value">14.914</p></div>
+<div class="fig fig--s" style="border-bottom: 0"><p class="fig__label">Analisados</p><p class="fig__value">14.702</p></div>
+<div class="fig fig--s" style="border-bottom: 0"><p class="fig__label">Eventos registrados</p><p class="fig__value">311</p></div>
+<div class="fig fig--s" style="border-bottom: 0"><p class="fig__label">Correspondências aguardando revisão</p><p class="fig__value">7</p></div>
+</div>
+</section>
+
+<section class="panel">
+<div class="sec"><h2>Fontes</h2></div>
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr><th scope="col">Fonte</th><th scope="col">Status</th><th scope="col" class="r">Anúncios</th><th scope="col">Última execução</th><th scope="col" class="r">Erros</th><th scope="col">Limite de taxa</th><th scope="col">Política de acesso</th><th scope="col">Termos revisados</th></tr></thead>
+<tbody>
+<tr><td><strong>Fonte A</strong></td><td><span class="st st--ok">Saudável</span></td><td class="r">13.402</td><td>Hoje, 05:12</td><td class="r">0</td><td>1 requisição por segundo</td><td>Robots respeitado</td><td>2 set. 2026</td></tr>
+<tr><td><strong>Fonte B</strong></td><td><span class="st st--fail">Degradada</span></td><td class="r">11.458</td><td>Hoje, 05:40</td><td class="r">212</td><td>1 requisição a cada 2 segundos</td><td>Robots respeitado</td><td>2 set. 2026</td></tr>
+<tr><td><strong>Conjunto de dados fictício</strong></td><td><span class="st">Estática</span></td><td class="r">Sintéticos</td><td>Sem coleta</td><td class="r"></td><td></td><td>Arquivo local</td><td></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="panel">
+<div class="sec"><h2>Execuções de coleta</h2><a href="#runs">Todas as execuções</a></div>
+<div class="tblwrap" id="runs">
+<table class="tbl">
+<thead><tr><th scope="col">Execução</th><th scope="col">Fonte</th><th scope="col">Status</th><th scope="col">Progresso</th><th scope="col" class="r">Coletados</th><th scope="col" class="r">Alterados</th><th scope="col" class="r">Erros</th><th scope="col">Quando</th><th scope="col"><span class="sr">Ações</span></th></tr></thead>
+<tbody>
+<tr><td><strong>1844</strong></td><td>Fonte B</td><td><span class="st st--running">Em execução</span></td><td style="min-width: 160px"><span class="ev" style="grid-template-columns: minmax(0, 1fr) auto"><span class="bar"><i style="width: 32%"></i></span><span class="small">38 de 120</span></span></td><td class="r">478</td><td class="r">12</td><td class="r">0</td><td>Iniciada às 14:02</td><td class="r"><button type="button" class="btn btn--danger" style="min-height: 36px">Parar</button></td></tr>
+<tr><td><strong>1843</strong></td><td>Fonte B</td><td><span class="st st--fail">Concluída com erros</span></td><td class="small muted">Completa</td><td class="r">1.512</td><td class="r">84</td><td class="r">212</td><td>05:14 a 05:40</td><td class="r"><button type="button" class="btn" style="min-height: 36px">Ver erros</button></td></tr>
+<tr><td><strong>1842</strong></td><td>Fonte A</td><td><span class="st st--ok">Concluída</span></td><td class="small muted">Completa</td><td class="r">13.402</td><td class="r">96</td><td class="r">0</td><td>05:02 a 05:12</td><td></td></tr>
+<tr><td><strong>1839</strong></td><td>Fonte A</td><td><span class="st st--wait">Tentando de novo</span></td><td class="small muted">Limite de taxa atingido. Tentativa 3 de 5, próxima em 4 min</td><td class="r">2.104</td><td class="r">9</td><td class="r">0</td><td>Ontem, 17:00</td><td></td></tr>
+<tr><td><strong>1845</strong></td><td>Fonte A</td><td><span class="st">Na fila</span></td><td class="small muted">Agendada</td><td class="r"></td><td class="r"></td><td class="r"></td><td>Hoje, 17:00</td><td></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+<section class="panel" id="review" style="flex: 2 1 560px; min-width: 0">
+<div class="sec"><h2>Fila de revisão</h2><span class="small muted">7 correspondências incertas, mantidas separadas até a decisão</span></div>
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr><th scope="col">Quadra</th><th scope="col">Anúncios</th><th scope="col" class="r" aria-sort="descending"><button type="button">Probabilidade <svg class="i i--s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button></th><th scope="col">Evidência mais fraca</th><th scope="col"><span class="sr">Ações</span></th></tr></thead>
+<tbody>
+<tr><td>Rua Cônego Eugênio Leite, 500–598</td><td>Fonte A, Fonte B</td><td class="r"><span class="num">0,68</span></td><td>Imagens, 2 de 9 em comum</td><td class="r"><button type="button" class="btn" style="min-height: 36px">Revisar</button></td></tr>
+<tr><td>Rua Mateus Grou, 300–398</td><td>Fonte A, Fonte B</td><td class="r"><span class="num">0,64</span></td><td>Área, 150 e 162 m²</td><td class="r"><button type="button" class="btn" style="min-height: 36px">Revisar</button></td></tr>
+<tr><td>Rua Lisboa, 200–298</td><td>Fonte B, Fonte B</td><td class="r"><span class="num">0,57</span></td><td>Descrição</td><td class="r"><button type="button" class="btn" style="min-height: 36px">Revisar</button></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="panel" style="flex: 1 1 340px; min-width: 0">
+<div class="sec"><h2>Provedores de IA</h2></div>
+<ul class="rows small" style="border-top: 1px solid var(--line)">
+<li class="spread" style="padding: 10px 16px; align-items: center"><span><strong>Classificador de intenção</strong><span class="muted" style="display: block">Disjuntor aberto desde 13:51. Fallback por regras em uso.</span></span><span class="st st--wait">Degradado</span></li>
+<li class="spread" style="padding: 10px 16px; align-items: center"><span><strong>Modelo principal</strong><span class="muted" style="display: block">Retenção zero de dados verificada</span></span><span class="st st--ok">Saudável</span></li>
+<li class="spread" style="padding: 10px 16px; align-items: center; border-bottom: 0"><span><strong>Modelo secundário</strong><span class="muted" style="display: block">Não chamado hoje</span></span><span class="st">Em espera</span></li>
+</ul>
+</section>
+</div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1311}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
