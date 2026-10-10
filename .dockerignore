@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+**/dist
+**/node_modules
+_bmad
+.impeccable-v2

@@ -25,4 +25,4 @@ ENV NODE_ENV=production
 COPY --from=build /out ./
 
 USER node
-CMD ["node", "dist/main.js"]
+CMD ["node", "-r", "./dist/otel.js", "dist/main.js"]

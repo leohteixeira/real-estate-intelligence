@@ -20,6 +20,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['integration/**/*.mjs'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     // The web application is the only browser target.
     files: ['apps/web/**/*.{ts,tsx}'],
     languageOptions: {

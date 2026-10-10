@@ -16,3 +16,5 @@ export type TransactionWork<TResult> = (transaction: Transaction) => Promise<TRe
 export interface TransactionRunner {
   runInTransaction<TResult>(work: TransactionWork<TResult>): Promise<TResult>;
 }
+
+export const TRANSACTION_RUNNER = Symbol.for('rei.TransactionRunner');

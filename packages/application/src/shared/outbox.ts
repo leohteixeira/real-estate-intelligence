@@ -1,4 +1,4 @@
-import type { DomainEventEnvelope, EventPayload } from '@rei/domain';
+import type { DomainEventEnvelope, EventPayload, UuidV7 } from '@rei/domain';
 
 import type { Transaction } from './transaction.js';
 
@@ -20,3 +20,11 @@ export interface OutboxRow<
 export interface OutboxAppendPort {
   append(transaction: Transaction, events: readonly EventEnvelope[]): Promise<void>;
 }
+
+export interface OutboxRelayPort {
+  claimPending(limit: number): Promise<readonly OutboxRow[]>;
+  markPublished(eventId: UuidV7): Promise<void>;
+}
+
+export const OUTBOX_APPEND_PORT = Symbol.for('rei.OutboxAppendPort');
+export const OUTBOX_RELAY_PORT = Symbol.for('rei.OutboxRelayPort');

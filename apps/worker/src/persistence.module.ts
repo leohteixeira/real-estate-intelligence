@@ -1,6 +1,11 @@
 import { Global, Inject, Logger, Module, type OnApplicationShutdown } from '@nestjs/common';
-import { DATABASE_AVAILABILITY_PROBE } from '@rei/application';
-import { DatabaseConnection, PostgresAvailabilityProbe } from '@rei/infrastructure';
+import { AUDIT_EVENT_LOG, DATABASE_AVAILABILITY_PROBE, OUTBOX_RELAY_PORT } from '@rei/application';
+import {
+  DatabaseConnection,
+  PostgresAuditEventLog,
+  PostgresAvailabilityProbe,
+  PostgresOutbox,
+} from '@rei/infrastructure';
 
 import { readConfig } from './config';
 
@@ -13,11 +18,27 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       provide: DATABASE_CONNECTION,
       useFactory: (): DatabaseConnection => {
         const logger = new Logger('DatabaseConnection');
-        return new DatabaseConnection(readConfig(process.env).databaseUrl, (error) =>
-          // Raised on an idle connection, typically when the server restarts.
-          logger.warn(error.message),
+        const config = readConfig(process.env);
+        return new DatabaseConnection(
+          config.databaseUrl,
+          (error) =>
+            // Raised on an idle connection, typically when the server restarts.
+            logger.warn(error.message),
+          config.operationTimeoutMs,
         );
       },
+    },
+    {
+      provide: OUTBOX_RELAY_PORT,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection): PostgresOutbox =>
+        new PostgresOutbox(connection),
+    },
+    {
+      provide: AUDIT_EVENT_LOG,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection): PostgresAuditEventLog =>
+        new PostgresAuditEventLog(connection),
     },
     {
       provide: DATABASE_AVAILABILITY_PROBE,
@@ -29,7 +50,7 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       },
     },
   ],
-  exports: [DATABASE_CONNECTION, DATABASE_AVAILABILITY_PROBE],
+  exports: [DATABASE_CONNECTION, DATABASE_AVAILABILITY_PROBE, OUTBOX_RELAY_PORT, AUDIT_EVENT_LOG],
 })
 export class PersistenceModule implements OnApplicationShutdown {
   // The provider is registered under a symbol token, so the module class has

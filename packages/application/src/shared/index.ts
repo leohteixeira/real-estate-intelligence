@@ -1,6 +1,14 @@
+export { CLOCK } from './clock.js';
 export type { Clock } from './clock.js';
 export type { DatabaseAvailabilityProbe } from './database-availability-probe.js';
 export { DATABASE_AVAILABILITY_PROBE } from './database-availability-probe.js';
-export type { EventEnvelope, OutboxAppendPort, OutboxRow } from './outbox.js';
-export { Transaction } from './transaction.js';
+export { EVENT_PUBLISHER } from './event-publisher.js';
+export type { EventPublisher } from './event-publisher.js';
+export { EVENT_SUBSCRIBER } from './event-subscriber.js';
+export type { EventHandler, EventSubscriber } from './event-subscriber.js';
+export { OUTBOX_APPEND_PORT, OUTBOX_RELAY_PORT } from './outbox.js';
+export type { EventEnvelope, OutboxAppendPort, OutboxRelayPort, OutboxRow } from './outbox.js';
+export { Transaction, TRANSACTION_RUNNER } from './transaction.js';
 export type { TransactionRunner, TransactionWork } from './transaction.js';
+export { UUID_V7_GENERATOR } from './uuid-v7-generator.js';
+export type { UuidV7Generator } from './uuid-v7-generator.js';

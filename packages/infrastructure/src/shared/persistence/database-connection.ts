@@ -2,6 +2,15 @@ import { Pool } from 'pg';
 
 import { redactConnectionError } from './redact.js';
 
+/** Infrastructure-only SQL surface that keeps the pg client type out of declarations. */
+export interface DatabaseClient {
+  query<TRow extends object>(
+    statement: string,
+    parameters?: readonly unknown[],
+  ): Promise<readonly TRow[]>;
+  release(): void;
+}
+
 /**
  * Owns the PostgreSQL connection pool.
  *
@@ -11,6 +20,7 @@ import { redactConnectionError } from './redact.js';
  */
 export class DatabaseConnection {
   readonly #pool: Pool;
+  readonly #identity = Object.freeze({ connection: Symbol('postgres-connection') });
 
   /**
    * @param onIdleClientError receives errors raised on idle connections, which
@@ -19,12 +29,15 @@ export class DatabaseConnection {
   public constructor(
     connectionString: string,
     onIdleClientError: (error: Error) => void = () => {},
+    queryTimeoutMs = 5_000,
   ) {
     this.#pool = new Pool({
       connectionString,
       // A readiness probe must fail fast rather than queue behind a dead server.
       connectionTimeoutMillis: 2_000,
       idleTimeoutMillis: 30_000,
+      query_timeout: queryTimeoutMs,
+      statement_timeout: queryTimeoutMs,
       max: 10,
     });
 
@@ -49,6 +62,30 @@ export class DatabaseConnection {
     } catch (error) {
       throw redactConnectionError(error);
     }
+  }
+
+  /** Leases a client for infrastructure transaction adapters. Never expose it outside this package. */
+  public async leaseClient(): Promise<DatabaseClient> {
+    try {
+      const client = await this.#pool.connect();
+      return {
+        query: async <TRow extends object>(
+          statement: string,
+          parameters: readonly unknown[] = [],
+        ): Promise<readonly TRow[]> => {
+          const result = await client.query<TRow>(statement, [...parameters]);
+          return result.rows;
+        },
+        release: () => client.release(),
+      };
+    } catch (error) {
+      throw redactConnectionError(error);
+    }
+  }
+
+  /** Opaque identity used to reject scopes created by another connection. */
+  public transactionIdentity(): object {
+    return this.#identity;
   }
 
   /** Releases every connection. */
