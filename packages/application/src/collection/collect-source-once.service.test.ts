@@ -1,0 +1,310 @@
+import type { CollectedListing, Sha256Hash, TraceContext, UuidV7 } from '@rei/domain';
+import { describe, expect, it, vi } from 'vitest';
+
+import type {
+  Clock,
+  EventEnvelope,
+  OutboxAppendPort,
+  Transaction,
+  TransactionRunner,
+  UuidV7Generator,
+} from '../shared/index.js';
+import { ExternalFailure } from '../shared/index.js';
+import { CollectSourceOnce } from './collect-source-once.service.js';
+import type {
+  CollectionExecutionResult,
+  CollectionRunRepository,
+  PersistCompletedCollectionInput,
+} from './collection-run.repository.js';
+import type { ListingSource, RawListingDocument } from './listing-source.port.js';
+import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
+
+const IDS = [
+  '0199c8f2-2394-7ba0-8f9e-286378779210',
+  '0199c8f2-2394-7ba0-8f9e-286378779211',
+  '0199c8f2-2394-7ba0-8f9e-286378779212',
+  '0199c8f2-2394-7ba0-8f9e-286378779213',
+  '0199c8f2-2394-7ba0-8f9e-286378779214',
+  '0199c8f2-2394-7ba0-8f9e-286378779215',
+  '0199c8f2-2394-7ba0-8f9e-286378779216',
+  '0199c8f2-2394-7ba0-8f9e-286378779217',
+] as const satisfies readonly UuidV7[];
+const HASH = `sha256:${'1'.repeat(64)}` as Sha256Hash;
+const MANIFEST_HASH =
+  'sha256:6e2051774fff4949c7cd982e1fe1b64207f46ab57ae9ed6eb4111ea690f76305' as Sha256Hash;
+const TRACE: TraceContext = {
+  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+};
+const DOCUMENT: RawListingDocument = {
+  sourceId: 'synthetic-data',
+  sourceListingId: 'SYN-SP-0001',
+  sourceUrl: 'https://synthetic.invalid/listings/SYN-SP-0001',
+  observedAt: '2026-10-10T11:59:59.000Z',
+  mediaType: 'application/json',
+  bytes: new TextEncoder().encode('{"fixture":true}'),
+};
+const LISTING: CollectedListing = {
+  propertyType: 'apartment',
+  askingPriceMinorUnits: 78_500_000,
+  currency: 'BRL',
+  areaSquareMeters: 82.5,
+  bedrooms: 2,
+  bathrooms: 2,
+  parkingSpaces: 1,
+  features: ['balcony'],
+  location: {
+    city: 'São Paulo',
+    stateCode: 'SP',
+    neighborhood: 'Bela Vista',
+    street: 'Avenida Exemplo',
+  },
+  listedAt: '2026-10-09T15:30:00.000Z',
+  advertiser: { type: 'agency', agencyName: 'Synthetic Realty Ltda.' },
+  maskedDescription: 'Synthetic listing with contact details removed.',
+  imageFingerprints: ['fixture-fingerprint:v1:synthetic-001'],
+};
+
+function result(overrides: Partial<CollectionExecutionResult> = {}): CollectionExecutionResult {
+  return {
+    operationKey: 'operation-1',
+    runId: IDS[0],
+    snapshotId: IDS[1],
+    parsedEventId: IDS[2],
+    completedEventId: IDS[3],
+    contentHash: HASH,
+    objectKey: `synthetic/sha256/${'1'.repeat(64)}.json`,
+    replayed: false,
+    ...overrides,
+  };
+}
+
+function fixture(options: { replay?: CollectionExecutionResult; enabled?: boolean } = {}) {
+  const calls: string[] = [];
+  const transaction = {} as Transaction;
+  const events: EventEnvelope[][] = [];
+  const source: ListingSource = {
+    fetch: vi.fn(async () => {
+      calls.push('fetch');
+      return DOCUMENT;
+    }),
+    parse: vi.fn(async () => {
+      calls.push('parse');
+      return LISTING;
+    }),
+  };
+  const snapshots: RawSnapshotStore = {
+    store: vi.fn(async (input) => {
+      calls.push('store');
+      return {
+        contentHash: HASH,
+        objectKey: `synthetic/sha256/${'1'.repeat(64)}.json`,
+        byteLength: input.bytes.byteLength,
+        mediaType: input.mediaType,
+      };
+    }),
+  };
+  let persistedInput: PersistCompletedCollectionInput | undefined;
+  const runs: CollectionRunRepository = {
+    findByOperationKey: vi.fn(async () => options.replay ?? null),
+    findSource: vi.fn(async () => ({
+      sourceId: 'synthetic-data',
+      enabled: options.enabled ?? true,
+      collectionAllowed: options.enabled ?? true,
+      synthetic: true,
+    })),
+    persistCompleted: vi.fn(async (_transaction, input) => {
+      calls.push('persist');
+      persistedInput = input;
+      return {
+        created: true,
+        result: result({
+          operationKey: input.operationKey,
+          runId: input.runId,
+          snapshotId: input.snapshotId,
+          parsedEventId: input.parsedEventId,
+          completedEventId: input.completedEventId,
+        }),
+      };
+    }),
+  };
+  const transactions: TransactionRunner = {
+    runInTransaction: vi.fn(async (work) => {
+      calls.push('transaction');
+      return work(transaction);
+    }),
+  };
+  let identifierIndex = 0;
+  const identifiers: UuidV7Generator = {
+    generate: vi.fn(async () => IDS[identifierIndex++]!),
+  };
+  const clock: Clock = {
+    now: vi
+      .fn()
+      .mockReturnValueOnce('2026-10-10T11:59:58.000Z')
+      .mockReturnValue('2026-10-10T12:00:00.000Z'),
+  };
+  const outbox: OutboxAppendPort = {
+    append: vi.fn(async (_transaction, appended) => {
+      calls.push('outbox');
+      events.push([...appended]);
+    }),
+  };
+  const service = new CollectSourceOnce(
+    source,
+    snapshots,
+    runs,
+    transactions,
+    identifiers,
+    clock,
+    outbox,
+  );
+  return {
+    service,
+    calls,
+    source,
+    snapshots,
+    runs,
+    transactions,
+    outbox,
+    events,
+    persistedInput: () => persistedInput,
+  };
+}
+
+describe('CollectSourceOnce', () => {
+  it('stores exact bytes before parsing and atomically appends parsed and completed events', async () => {
+    const context = fixture();
+    const signal = new AbortController().signal;
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', TRACE, signal),
+    ).resolves.toEqual(result());
+
+    expect(context.runs.findByOperationKey).toHaveBeenCalledWith('operation-1', signal);
+    expect(context.runs.findSource).toHaveBeenCalledWith('synthetic-data', signal);
+    expect(context.transactions.runInTransaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      signal,
+    );
+    expect(context.calls).toEqual(['fetch', 'store', 'parse', 'transaction', 'persist', 'outbox']);
+    expect(context.snapshots.store).toHaveBeenCalledWith(
+      expect.objectContaining({ bytes: DOCUMENT.bytes, synthetic: true }),
+      expect.any(AbortSignal),
+    );
+    expect(context.events[0]?.map((event) => event.type)).toEqual([
+      'collection.snapshot.parsed',
+      'collection.run.completed',
+    ]);
+    expect(
+      context.events[0]?.every((event) => event.traceContext?.traceparent === TRACE.traceparent),
+    ).toBe(true);
+    expect(
+      context.events[0]?.find((event) => event.type === 'collection.snapshot.parsed'),
+    ).toMatchObject({ payload: { snapshot: { contentHash: HASH } } });
+    expect(
+      context.events[0]?.find((event) => event.type === 'collection.run.completed'),
+    ).toMatchObject({ payload: { manifestHash: MANIFEST_HASH } });
+    expect(context.persistedInput()).toMatchObject({
+      operationKey: 'operation-1',
+      contentHash: HASH,
+      manifestHash: MANIFEST_HASH,
+      sourceListingId: DOCUMENT.sourceListingId,
+    });
+    expect(context.persistedInput()?.manifestHash).not.toBe(context.persistedInput()?.contentHash);
+  });
+
+  it('returns an existing result for an explicit operation-key replay without touching a source', async () => {
+    const existing = result();
+    const context = fixture({ replay: existing });
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).resolves.toEqual({ ...existing, replayed: true });
+
+    expect(context.source.fetch).not.toHaveBeenCalled();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses a disabled or unknown source before fetching or creating an artifact', async () => {
+    const context = fixture({ enabled: false });
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).rejects.toMatchObject({ kind: 'forbidden', operation: 'collection.source.fetch' });
+    expect(context.source.fetch).not.toHaveBeenCalled();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+  });
+
+  it('does not parse or open a transaction when raw storage fails', async () => {
+    const context = fixture();
+    vi.mocked(context.snapshots.store).mockRejectedValue(
+      new ExternalFailure({ kind: 'transient', operation: 'raw-snapshot.store' }),
+    );
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).rejects.toMatchObject({ kind: 'transient', operation: 'raw-snapshot.store' });
+    expect(context.source.parse).not.toHaveBeenCalled();
+    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+  });
+
+  it('propagates a database failure after storage without publishing outside the transaction', async () => {
+    const context = fixture();
+    vi.mocked(context.runs.persistCompleted).mockRejectedValue(new Error('database unavailable'));
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).rejects.toThrow('database unavailable');
+    expect(context.snapshots.store).toHaveBeenCalledOnce();
+    expect(context.outbox.append).not.toHaveBeenCalled();
+  });
+
+  it('reuses the immutable object identity for a different operation key', async () => {
+    const context = fixture();
+
+    await context.service.execute(
+      'synthetic-data',
+      'operation-1',
+      null,
+      new AbortController().signal,
+    );
+    vi.mocked(context.runs.findByOperationKey).mockResolvedValue(null);
+    vi.mocked(context.runs.persistCompleted).mockImplementation(async (_transaction, input) => ({
+      created: true,
+      result: result({
+        operationKey: input.operationKey,
+        runId: input.runId,
+        snapshotId: input.snapshotId,
+        parsedEventId: input.parsedEventId,
+        completedEventId: input.completedEventId,
+      }),
+    }));
+    await context.service.execute(
+      'synthetic-data',
+      'operation-2',
+      null,
+      new AbortController().signal,
+    );
+
+    expect(context.snapshots.store).toHaveBeenCalledTimes(2);
+    await expect(vi.mocked(context.snapshots.store).mock.results[0]?.value).resolves.toMatchObject({
+      contentHash: HASH,
+    });
+    await expect(vi.mocked(context.snapshots.store).mock.results[1]?.value).resolves.toMatchObject({
+      contentHash: HASH,
+    });
+    expect(context.runs.persistCompleted).toHaveBeenCalledTimes(2);
+  });
+
+  it('propagates cancellation before source work starts', async () => {
+    const context = fixture();
+    const controller = new AbortController();
+    controller.abort(new Error('command cancelled'));
+
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, controller.signal),
+    ).rejects.toThrow('command cancelled');
+    expect(context.runs.findByOperationKey).not.toHaveBeenCalled();
+  });
+});

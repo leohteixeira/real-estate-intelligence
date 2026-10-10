@@ -76,6 +76,48 @@ describe('PostgreSQL persistence adapters', () => {
     expect(release).toHaveBeenCalledOnce();
   });
 
+  it('destroys the leased client and never commits when aborted during pending work', async () => {
+    const query = vi.fn().mockResolvedValue([]);
+    const release = vi.fn();
+    const runner = new PostgresTransactionRunner(
+      connectionDouble({ query, release } as unknown as DatabaseClient),
+    );
+    const controller = new AbortController();
+    let workStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      workStarted = resolve;
+    });
+
+    const operation = runner.runInTransaction(async () => {
+      workStarted();
+      return new Promise<string>(() => {});
+    }, controller.signal);
+    await started;
+    controller.abort(new Error('collection deadline reached'));
+
+    await expect(operation).rejects.toThrow('collection deadline reached');
+    expect(query.mock.calls.map(([statement]) => statement)).toEqual(['BEGIN']);
+    expect(release).toHaveBeenCalledWith(true);
+  });
+
+  it('checks cancellation after work and before issuing COMMIT', async () => {
+    const query = vi.fn().mockResolvedValue([]);
+    const release = vi.fn();
+    const runner = new PostgresTransactionRunner(
+      connectionDouble({ query, release } as unknown as DatabaseClient),
+    );
+    const controller = new AbortController();
+
+    await expect(
+      runner.runInTransaction(async () => {
+        controller.abort(new Error('cancel before commit'));
+        return 'not committed';
+      }, controller.signal),
+    ).rejects.toThrow('cancel before commit');
+    expect(query.mock.calls.map(([statement]) => statement)).toEqual(['BEGIN']);
+    expect(release).toHaveBeenCalledWith(true);
+  });
+
   it('rejects a transaction scope owned by another connection', async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });
     const client = { query, release: vi.fn() } as unknown as DatabaseClient;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readConfig } from './config';
+import { readCollectionCommandConfig, readConfig } from './config';
 
 const DATABASE_URL = 'postgres://app:app@localhost:5434/app';
 const RABBITMQ_URL = 'amqp://app:app@localhost:5672/app';
@@ -117,5 +117,37 @@ describe('readConfig', () => {
     expect(() => readConfig({ ...BASE_ENV, WORKER_INTERVAL_MS: '2500000000' })).toThrow(
       'WORKER_INTERVAL_MS',
     );
+  });
+});
+
+describe('readCollectionCommandConfig', () => {
+  const STORAGE_ENV = {
+    OBJECT_STORE_ENDPOINT: 'http://localhost:9100',
+    OBJECT_STORE_REGION: 'us-east-1',
+    OBJECT_STORE_BUCKET: 'real-estate-snapshots',
+    OBJECT_STORE_ACCESS_KEY_ID: 'fixture-access-key',
+    OBJECT_STORE_SECRET_ACCESS_KEY: 'fixture-secret-key',
+  } as NodeJS.ProcessEnv;
+
+  it('validates and normalizes command-only object storage settings', () => {
+    expect(
+      readCollectionCommandConfig({ ...STORAGE_ENV, OBJECT_STORE_ENDPOINT: 'http://minio:9000/' }),
+    ).toEqual({
+      deadlineMs: 30_000,
+      objectStoreEndpoint: 'http://minio:9000',
+      objectStoreRegion: 'us-east-1',
+      objectStoreBucket: 'real-estate-snapshots',
+      objectStoreAccessKeyId: 'fixture-access-key',
+      objectStoreSecretAccessKey: 'fixture-secret-key',
+    });
+  });
+
+  it.each([
+    ['OBJECT_STORE_ENDPOINT', 'minio:9000'],
+    ['OBJECT_STORE_BUCKET', 'Bad_Bucket'],
+    ['OBJECT_STORE_ACCESS_KEY_ID', ''],
+    ['COLLECTION_DEADLINE_MS', '99'],
+  ])('rejects invalid %s', (name, value) => {
+    expect(() => readCollectionCommandConfig({ ...STORAGE_ENV, [name]: value })).toThrow(name);
   });
 });
