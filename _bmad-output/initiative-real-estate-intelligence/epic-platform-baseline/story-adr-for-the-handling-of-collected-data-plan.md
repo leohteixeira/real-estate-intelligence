@@ -3,7 +3,7 @@ title: 'ADR for the handling of collected data'
 type: 'chore'
 ticket: '10'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '9ac8da47633295dfcb5ba788d7d3da68bd29ead6'
 route: 'full'
 route_source: 'auto'
