@@ -7,12 +7,14 @@ only inside `repos/real-estate-intelligence`.
 
 Foundation. The four apps, the four packages, configuration, telemetry, the database connection,
 health endpoints and one deterministic domain rule (`pricePerSquareMeter`) exist. There are no
-entities, no collectors, no comparables, no Mastra tools and no business endpoints.
+entities, no collectors, no comparables, no AI tools and no business endpoints.
 
 ## Architecture rules
 
 - The dependency direction is always inwards:
   `@rei/api` / `@rei/worker` → `@rei/application` → `@rei/domain`.
+- The API, worker and AI applications use NestJS 12. The separate AI application uses LangChain
+  and LangGraph and stays on port 4111.
 - `@rei/domain` depends on nothing. `@rei/application` depends on `@rei/domain` only.
 - Vendor SDKs live **only** in `@rei/infrastructure`. No vendor type is re-exported: the
   applications receive `DatabaseConnection`, never the `pg` `Pool`.
@@ -62,13 +64,13 @@ entities, no collectors, no comparables, no Mastra tools and no business endpoin
   `vector` are available in the image, but no extension is enabled by default.
 - A single ESLint configuration at the root covers every workspace. Do not create a per-package
   `eslint.config.js`.
+- BMad product specifications live under `_bmad-output/`; `specs/adrs/` holds normative ADRs.
 - Tests run with Vitest, always with `--dir src`: without it the runner picks up the compiled tests
   in `dist/`.
 - The API and the worker start with `node -r ./dist/otel.js dist/main.js`. Do not remove the
   preload.
 - Never log a connection string, source credential or provider key.
-- `npm` is forbidden. `mastra build` invokes `npm` internally, which is why it stays in the
-  separate `bundle` script, used only by the Dockerfile and never in `pnpm -r build`.
+- `npm` is forbidden. Use pnpm for every repository install, script and build.
 
 ## Language
 
