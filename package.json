@@ -16,6 +16,7 @@
     "test:coverage": "bash scripts/test-coverage.sh",
     "test:integration": "node integration/audit-tracer.integration.mjs",
     "test:integration:collection": "node integration/synthetic-collection.integration.mjs",
+    "test:integration:properties": "node integration/properties-contracts.integration.mjs",
     "test:integration:snapshot-lifecycle": "node integration/snapshot-lifecycle.integration.mjs",
     "test:integration:snapshot-reparse": "node integration/snapshot-reparse.integration.mjs",
     "test:integration:resumable-collection": "node integration/resumable-collection.integration.mjs",
