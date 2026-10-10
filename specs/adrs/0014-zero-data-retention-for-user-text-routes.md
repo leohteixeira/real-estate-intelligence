@@ -1,6 +1,6 @@
 # ADR 0014 — Zero Data Retention for user-text model routes
 
-- **Status:** Accepted
+- **Status:** accepted
 - **Date:** 2026-10-10
 - **Extends:** ADR 0009
 - **Accepted by:** the agent on the owner's behalf, 2026-10-10
@@ -54,8 +54,9 @@ fallback.
 
 - Adapter contract tests must prove that a verified route sends the provider-specific control and
   that every absent or invalid evidence state prevents transmission.
-- Fallback tests must prove that an ineligible route is never attempted and that no eligible route
-  produces the typed policy failure.
+- Fallback tests must prove that an ineligible external route is never attempted, that an ineligible
+  Jev route degrades to the deterministic heuristic and that a call with neither an eligible route
+  nor a permitted local fallback produces the typed policy failure.
 - Traces and metrics may record the route, evidence identifier, verification age and sanitized
   failure class. They never record user text, prompts, responses, keys or credentials.
 

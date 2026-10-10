@@ -12,7 +12,7 @@ review: 'quick'
 review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'specs/adrs/0009-ai-provider-resilience-policies.md'
   - '_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md'
@@ -67,6 +67,20 @@ removed.
     fallback — scoped explicit failure to calls without a non-transmitting fallback and explicitly
     preserved Jev degradation to the deterministic heuristic.
 
+### 2026-10-10 — Follow-up review pass
+
+- verdicts: 4 findings — high 0, medium 4, low 0, false 0, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` The fallback-test rule still required a policy failure whenever no eligible
+    external route remained — scoped it to calls without a permitted local fallback and separately
+    required the Jev heuristic case.
+  - `[medium]` `[patch]` The capability map omitted ADR 0014 from CAP-10 and CAP-15 — added the ADR
+    to both governing-decision entries.
+  - `[medium]` `[patch]` The rendered architecture HTML still omitted ADR 0014 and listed its
+    decision as owed — updated its status text and accepted-ADR table and removed the stale gap.
+  - `[medium]` `[patch]` ADR 0014 used a status value outside ADR 0001's permitted lowercase set —
+    changed `Accepted` to `accepted` to match the normative convention and every existing ADR.
+
 ## Verification
 
 **Commands:**
@@ -78,7 +92,8 @@ pnpm exec prettier --check \
   _bmad-output/initiative-real-estate-intelligence/epic-platform-baseline/epic-platform-baseline.md \
   _bmad-output/initiative-real-estate-intelligence/epic-platform-baseline/story-adr-for-zero-data-retention-on-every-route-plan.md \
   _bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/spec-real-estate-intelligence.md \
-  _bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md
+  _bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md \
+  docs/architecture/architecture.html
 pnpm exec markdownlint-cli2 --no-globs \
   :specs/README.md \
   :specs/adrs/0014-zero-data-retention-for-user-text-routes.md \
@@ -109,7 +124,9 @@ heuristic and fails closed without weaker external fallback.
 - `_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/spec-real-estate-intelligence.md`
   — includes ADR 0014 in the canonical preservation-validated companion set.
 - `_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md` —
-  registers ADR 0014 and removes the fulfilled pending decision.
+  registers ADR 0014, removes the fulfilled pending decision and maps it to CAP-10 and CAP-15.
+- `docs/architecture/architecture.html` — synchronizes the rendered accepted-ADR register and
+  removes the fulfilled ZDR gap.
 - `_bmad-output/initiative-real-estate-intelligence/epic-platform-baseline/epic-platform-baseline.md`
   — records the agent's owner-delegated decision in the epic Notes.
 - `_bmad-output/initiative-real-estate-intelligence/epic-platform-baseline/story-adr-for-zero-data-retention-on-every-route-plan.md`
@@ -117,22 +134,24 @@ heuristic and fails closed without weaker external fallback.
 
 ### Review findings
 
-- Patches applied: two medium entries covering three findings. One entry propagated ADR 0014 into
-  both canonical contract registries; the other removed ambiguity between fail-closed generative
-  calls and ADR 0008's non-transmitting Jev heuristic.
+- First-pass patches: two medium entries covering three findings. One entry propagated ADR 0014
+  into both canonical contract registries; the other removed ambiguity between fail-closed
+  generative calls and ADR 0008's non-transmitting Jev heuristic.
+- Follow-up patches: three medium entries covering four findings. They aligned the fallback-test
+  rule, mapped ADR 0014 to CAP-10 and CAP-15, synchronized the rendered architecture, and normalized
+  the ADR status to ADR 0001's permitted value.
 - Deferred: none.
 - Rejected: none.
-- Patched counts by entry verdict: high 0, medium 2, low 0.
+- Follow-up patched counts by entry verdict: high 0, medium 3, low 0.
 
 ### Follow-up review recommendation
 
-`true`. Two medium entries were patched on the first pass. A follow-up should confirm that all
-canonical references preserve ADR 0014 and that the revised fallback language is consistent with
-ADRs 0008 and 0009.
+`false`. The follow-up pass patched no high entries, so the work has converged under the workflow's
+follow-up rule.
 
 ### Verification performed
 
-- Prettier check passed for all six changed Markdown files.
+- Prettier check passed for all six changed Markdown files and the rendered architecture HTML.
 - Markdownlint passed for all six changed Markdown files with zero errors.
 - `pnpm run lint` passed.
 - `pnpm run typecheck` passed for all eight workspace projects in scope.
@@ -143,5 +162,4 @@ ADRs 0008 and 0009.
 ### Residual risks
 
 The web build retains its pre-existing Vite warning for the 536.96 kB `CityScene` chunk. It does not
-affect this documentation-only story. The review recommendation above remains open until the
-follow-up pass confirms the two patched medium entries.
+affect this documentation-only story. No review risk remains open after the follow-up pass.

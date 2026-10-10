@@ -650,11 +650,11 @@ Module names are the bounded contexts of ADR 0011.
 | CAP-6          | Search query in `properties`; `/api/v1`                                              | ADR 0003                                                     |
 | CAP-7, CAP-8   | `properties`; `/api/v1`                                                              | Conceptual model; asking-price rule; listing-text permission |
 | CAP-9          | `market`                                                                             | Deterministic rules                                          |
-| CAP-10         | Graph in `apps/ai`; typed tool over `/api/v1`; `pricePerSquareMeter`                 | ADR 0007, ADR 0008                                           |
+| CAP-10         | Graph in `apps/ai`; typed tool over `/api/v1`; `pricePerSquareMeter`                 | ADR 0007, ADR 0008, ADR 0014                                 |
 | CAP-11, CAP-12 | Decision port and adapters in `apps/ai`                                              | ADR 0008                                                     |
 | CAP-13         | `ask`; `apps/api` persistence, outbox, `apps/worker` delivery, RabbitMQ              | ADR 0010, ADR 0012                                           |
 | CAP-14         | `ask`: run endpoints and SSE in `apps/api`; headless web client                      | ADR 0010                                                     |
-| CAP-15         | Resilience policies around the adapters in `apps/ai`                                 | ADR 0009; Zero Data Retention on every route                 |
+| CAP-15         | Resilience policies around the adapters in `apps/ai`                                 | ADR 0009, ADR 0014                                           |
 | CAP-16         | `ask` in `apps/api`                                                                  | ADR 0010; demo quota                                         |
 | CAP-17         | Datasets and tests beside the adapters                                               | ADR 0004, ADR 0008                                           |
 | CAP-18         | OpenTelemetry bootstrap of each process                                              | ADR 0005, ADR 0010                                           |

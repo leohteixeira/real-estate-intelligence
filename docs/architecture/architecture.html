@@ -860,7 +860,7 @@
           <div class="callout warn">
             <strong>Status.</strong> The repository is in its foundation phase: four applications,
             four packages, one deterministic rule. This document draws the target that ADRs 0011 to
-            0013 set; it is a reading of the spec and the ADRs, and an accepted ADR wins wherever
+            0014 set; it is a reading of the spec and the ADRs, and an accepted ADR wins wherever
             the two disagree.
           </div>
         </section>
@@ -8603,6 +8603,11 @@
                   <td>The anti-corruption layer and resilience for every external system</td>
                   <td><span class="badge ok">accepted</span></td>
                 </tr>
+                <tr>
+                  <td>0014</td>
+                  <td>Zero Data Retention for every user-text model route</td>
+                  <td><span class="badge ok">accepted</span></td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -8613,13 +8618,6 @@
               <div class="gap-body">
                 <strong>Privacy at rest.</strong> The field allowlist, image fingerprints, sanitized
                 and encrypted snapshots, the 30-day expiry and the suppression list.
-              </div>
-            </div>
-            <div class="gap">
-              <div class="gap-id">ADR owed</div>
-              <div class="gap-body">
-                <strong>Zero Data Retention on every route</strong>, with the primary model through
-                the gateway until the direct route proves the same.
               </div>
             </div>
             <div class="gap">
