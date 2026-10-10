@@ -15,10 +15,14 @@ hierarchy.
 | Alerts      | Bell in the shell | Rail                    | Inbox and rules                                  |
 | Operations  | Tab 5, "More"     | Rail group "Operations" | Sources, collection runs, review queue           |
 
-The language switch sits in the shell on every screen.
+The language switch sits in the shell on every screen; in V2 the theme switch sits beside it.
 
 Places, Search, Ask and Market are public. Alerts and Operations are protected: they appear only for
-an authenticated, authorized user and stay out of the navigation until authentication runs.
+an authenticated, authorized user and stay out of the navigation until authentication runs, which
+is the first increment after the MVP.
+
+The privacy notice is public: a "Privacy" link sits in the footer of the landing page and of the
+shell. It is a text page without an artboard, built from the existing components.
 
 ## Screen inventory
 
@@ -92,3 +96,5 @@ Run states shown to the user map to the public states in ADR 0010: `queued`, `ru
 4. A row is a property; its listings are grouped inside it.
 5. Text written by a model is labelled as such and sits beside the figure it explains.
 6. A property is located to its street block and number range, never to a unit.
+
+The privacy notice sits outside the place hierarchy and is the one exception to rule 1.

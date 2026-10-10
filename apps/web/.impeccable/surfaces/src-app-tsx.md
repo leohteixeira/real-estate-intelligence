@@ -16,8 +16,8 @@ related_targets: []
 - **Constraints:** bilingual (pt-BR authored and default, English second), BRL, synthetic data
   only, no photography, `/api/v1` contract only.
 - **Anti-goals:** listing portal, AI chatbot, generic SaaS dashboard, trading terminal.
-- **Unresolved:** when authentication lands (alerts, operations and review wait for it), how the V2
-  dark theme is selected, the privacy notice screen.
+- **Unresolved:** who designs the sign-in entry, the signed-in state of the shell and the V2 theme
+  switch. None has an artboard.
 
 ## Direction contract
 

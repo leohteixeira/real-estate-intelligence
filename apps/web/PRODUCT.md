@@ -79,7 +79,12 @@ route and explain; they never produce a number.
 - Alerts, operations and the entity-resolution review require an authenticated, authorized user.
   They are built ready for that boundary and stay unexposed until authentication runs; there is no
   interim access mechanism.
-- Undecided: when authentication lands (Keycloak is reserved for V3).
+- Decided by the product owner on 2026-10-10: authentication, delegated to Keycloak, is the first
+  increment after the MVP and ahead of V2. Operations and the review open with it; alerts follow
+  when they are built.
+- Decided on the same date: image evidence compares fingerprints and no photograph is stored or
+  shown; the description of a real listing is shown only where its source allows; the privacy
+  notice is a public text page linked from the footer of the landing page and of the shell.
 
 ## Brand Commitments
 
@@ -110,5 +115,6 @@ route and explain; they never produce a number.
 
 The interface meets WCAG 2.2 level AA, decided by the product owner on 2026-10-09 as an acceptance
 criterion of every screen and state. The tokens of `DESIGN.md` have not been checked against AA
-contrast yet. The MVP ships the light theme only; a dark theme follows in V2. Brazilian Portuguese
-is the primary locale and English is fully supported.
+contrast yet. The MVP ships the light theme only; a dark theme arrives in V2 and follows the system
+preference until the user picks one with a switch in the shell. Brazilian Portuguese is the primary
+locale and English is fully supported.

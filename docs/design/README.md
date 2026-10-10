@@ -48,9 +48,20 @@ excluded from Prettier because the artboard format is whitespace-sensitive.
 
 ## Open decisions
 
-- When authentication lands. Alerts, operations and the review queue wait for it.
-- How the V2 dark theme is selected: system preference, a switch, or both.
-- The privacy notice has no artboard and no place in the navigation.
+- Who designs the sign-in entry, the signed-in state of the shell and the V2 theme switch. None has
+  an artboard.
+
+Decided by the product owner on 2026-10-10:
+
+- Authentication, delegated to Keycloak, is the first increment after the MVP and ahead of V2.
+  Operations and the review queue open with it; alerts follow when they are built.
+- The V2 dark theme follows the system preference until the user picks one with a switch in the
+  shell, beside the language switch. The choice is remembered in the browser.
+- The privacy notice is a public text page, linked as "Privacy" from the footer of the landing page
+  and of the application shell. It gets no artboard and is built from the existing components.
+- Image evidence compares fingerprints. No photograph is stored or shown.
+- The description of a real listing is shown, and its versions compared, only where its source
+  allows. Elsewhere the screen states that it changed and when, and links to the source.
 
 Decided by the product owner on 2026-10-09:
 

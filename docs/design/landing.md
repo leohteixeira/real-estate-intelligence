@@ -71,3 +71,4 @@ The surface brief and direction contract are in
   browser before publishing.
 - No public demo exists yet, so `VITE_DEMO_URL` is empty.
 - Barlow and Barlow Condensed load from Google Fonts. Self-host them before the page ships.
+- The footer is one line of text. It gains the link to the privacy notice before the page ships.
