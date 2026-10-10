@@ -22,6 +22,7 @@
 | 0014 | Verified Zero Data Retention for every user-text model route, with fail-closed enforcement      | CAP-10, CAP-15                     |
 | 0015 | Closed collected-data allowlist, source permissions, snapshot lifecycle and suppression         | CAP-2, CAP-3, CAP-4, CAP-8, CAP-28 |
 | 0016 | TypeScript 6.0.3 toolchain; retains the frontend and repository-tooling choices of ADR 0006     | Every TypeScript workspace         |
+| 0017 | Application-managed dead letters and bounded outbox/inbox retention                             | ADR 0012 delivery operations       |
 
 ADR 0002 is superseded by ADR 0007, and ADR 0006 is superseded by ADR 0016. ADR 0001 sets the
 record itself: an accepted ADR is never edited, only superseded.

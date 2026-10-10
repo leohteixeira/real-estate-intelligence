@@ -39,5 +39,9 @@ NNNN_<context>_<description>.sql
   current claim identifier may mark a row published or release it.
 - `platform.inbox` records a stable logical consumer name with an event identifier in the same
   transaction as the consumer effect.
+- Published outbox rows are retained for seven days and consumed inbox markers for thirty days.
+  The worker removes one deterministic batch of at most 1,000 rows per store every five minutes;
+  an inbox marker remains while the matching outbox event is still unpublished. Maintenance uses
+  database time, `SKIP LOCKED`, independent transactions and active cancellation on shutdown.
 - `platform.idempotency_key` is only the bounded storage foundation. Reservation and replay rules
   are defined by the first public command that uses it.

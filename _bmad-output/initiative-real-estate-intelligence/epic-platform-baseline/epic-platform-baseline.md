@@ -104,6 +104,10 @@ for it here.
   survives erasure and prevents recollection (ADR 0015) (agent, on the owner's behalf, 2026-10-10).
 - Assumption: the thin `audit` context lives here because `collection`, `properties` and `ask` all
   feed it and none depends on another for it.
+- Decision: classic consumer queues use application-confirmed retry and dead-letter transfers with
+  five normal delivery attempts. Published outbox rows are retained seven days, inbox markers
+  thirty days, and a bounded instrumented pruning cycle runs every five minutes (ADR 0017)
+  (owner, 2026-10-10).
 - Decision: entry 3 is the tracer bullet. Entry 11 precedes every code story because the spec and
   ADR 0007 require the instruction files corrected first; entries 1 and 2 precede the tracer because
   it runs on NestJS 12 and uses the ports of the kernel (2026-10-10).
