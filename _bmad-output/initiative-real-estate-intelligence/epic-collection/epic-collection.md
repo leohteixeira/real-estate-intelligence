@@ -67,6 +67,23 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 
 ## Notes
 
+- Implementation: entry 8 now has the bounded three-argument owner `snapshot:reparse` command,
+  strict v2 correction/outbox, immutable durable operation replay/order, original fingerprint
+  capture and independent legacy recovery, plus read/commit/deferred-commit expiry guards.
+  Strict v1 semantics remain unchanged; intentional-empty originals use a correction-only
+  owned-synthetic parser. No new configuration settings or external source enablement were added.
+  Final lint/typecheck/build, 832 unit tests across eight workspaces, unchanged coverage gates,
+  the actual CLI/storage/DB/broker/audit campaign and all six existing collection compatibility
+  campaigns passed; source-register cleanup's five additional tests also passed. Scoped format,
+  Markdown, syntax, whitespace and redacted secret checks passed. The plan records exact commands,
+  coverage and the distinction between actual CLI and injected changed-parser/privacy fixtures.
+  The parent independently repeated all gates, all seven campaigns and 111 focused cases; the
+  context-free Quick review reported no findings (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-018 defines one explicit snapshot, parser-revision label and operation key per
+  operator reparse. Publish only the v2 correction with original observation provenance, durable
+  idempotency and original fingerprints; preserve strict v1 reads and never emit completion or
+  fetch a source/image. Legacy fingerprints come from hash-authenticated canonical bytes, not
+  prunable outbox rows or the changed parser (agent, on the owner's behalf, 2026-10-10).
 - Decision: D-017 and the accepted ADR 0019 amendment require incremental single-candidate
   durable selection before each deletion attempt, preserving the total cycle batch bound and
   preventing a slow first object from starving unattempted peers after deadline cancellation
