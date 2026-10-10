@@ -10,6 +10,12 @@ The product specification lives under
 the decisions under [`specs/adrs/`](specs/adrs/) and the architecture document, with its diagrams,
 at [`docs/architecture/architecture.html`](docs/architecture/architecture.html).
 
+The CAP-28 privacy records are the
+[record of processing operations](docs/privacy/record-of-processing-operations.md) and the
+[legitimate-interest assessment](docs/privacy/legitimate-interest-assessment.md).
+Both are version 1, accepted as an engineering baseline by the agent on the owner's behalf,
+2026-10-10, under D-019. Real processing remains disabled pending their source-specific gates.
+
 > Current state: **foundation**. Structure, tooling and processes are in place; there are no
 > entities, no collectors, no comparables and no business endpoints.
 

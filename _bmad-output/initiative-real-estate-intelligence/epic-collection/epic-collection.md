@@ -67,6 +67,17 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 
 ## Notes
 
+- Decision: D-019 accepts version 1 of the
+  [record of processing operations](../../../docs/privacy/record-of-processing-operations.md) and
+  [legitimate-interest assessment](../../../docs/privacy/legitimate-interest-assessment.md) as an
+  engineering baseline under CAP-28 (agent, on the owner's behalf, 2026-10-10). Real processing
+  remains disabled; acceptance grants no source permission, legal approval, anonymization claim
+  or production evidence. The owner must supply public identity/contact, recipient/transfer and
+  non-snapshot retention evidence, and proof of pending pre-collection controls before activation.
+- Acceptance: both privacy records are version 1, accepted as an engineering baseline by the
+  agent on the owner's behalf, 2026-10-10, under D-019. Their conditional design covers synthetic
+  local evidence, transient/indirect-identification risks, fixed snapshot expiry, future images,
+  suppression/rights, delivery/telemetry and backups; separate stories retain their obligations.
 - Implementation: entry 8 now has the bounded three-argument owner `snapshot:reparse` command,
   strict v2 correction/outbox, immutable durable operation replay/order, original fingerprint
   capture and independent legacy recovery, plus read/commit/deferred-commit expiry guards.
