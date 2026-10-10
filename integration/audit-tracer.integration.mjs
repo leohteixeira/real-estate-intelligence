@@ -32,6 +32,9 @@ const rabbitVhost = 'real-estate-intelligence';
 const legacyAuditQueue = 'audit.trace-requested.audit';
 const stableAuditQueue = 'audit.event-log';
 const auditDeadLetterQueue = `${stableAuditQueue}.dead-letter`;
+const requestTraceId = '4bf92f3577b34da6a3ce929d0e0e4736';
+const requestTraceparent = `00-${requestTraceId}-00f067aa0ba902b7-01`;
+const requestTracestate = 'integration=opaque';
 
 function composeArgs(...args) {
   return composeProjectName
@@ -64,6 +67,10 @@ async function waitFor(description, probe, timeoutMs = 60_000, pollIntervalMs = 
 async function postTrace() {
   const response = await fetch(`${apiUrl}/api/v1/audit/traces`, {
     method: 'POST',
+    headers: {
+      traceparent: requestTraceparent,
+      tracestate: requestTracestate,
+    },
     signal: AbortSignal.timeout(5_000),
   });
   assert(response.status === 202, `Expected HTTP 202, received ${response.status}.`);
@@ -219,7 +226,7 @@ async function waitForAuditEvent(connection, eventId) {
   });
 }
 
-async function createTraceEvent(connection) {
+async function createTraceEvent(connection, traceContext = null) {
   const transactions = new PostgresTransactionRunner(connection);
   const identifiers = new PostgresUuidV7Generator(connection);
   let event;
@@ -228,10 +235,79 @@ async function createTraceEvent(connection) {
       eventId: await identifiers.generate(transaction),
       aggregateId: await identifiers.generate(transaction),
       occurredAt: new Date().toISOString(),
+      traceContext,
     });
   });
   assert(event, 'Tracer fixture was not created.');
   return event;
+}
+
+async function publishConfirmedWithHeaders(event, headers) {
+  const connection = await amqp.connect(rabbitMqUrl);
+  try {
+    const channel = await connection.createConfirmChannel();
+    await channel.assertExchange('rei.events', 'topic', { durable: true });
+    channel.publish('rei.events', event.type, Buffer.from(JSON.stringify(event)), {
+      persistent: true,
+      contentType: 'application/json',
+      messageId: event.eventId,
+      type: event.type,
+      headers,
+    });
+    await channel.waitForConfirms();
+    await channel.close();
+  } finally {
+    await connection.close();
+  }
+}
+
+async function proveInvalidTraceCarriers(connection) {
+  await purgeQueue(auditDeadLetterQueue);
+  const malformed = await createTraceEvent(connection);
+  const mismatched = await createTraceEvent(connection, {
+    traceparent: requestTraceparent,
+    tracestate: requestTracestate,
+  });
+
+  await publishConfirmedWithHeaders(malformed, { traceparent: 'secret malformed carrier' });
+  await publishConfirmedWithHeaders(mismatched, {
+    traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-00f067aa0ba902b7-01',
+  });
+  await waitFor('invalid trace carriers to be dead-lettered', async () => {
+    const state = await queueState(auditDeadLetterQueue);
+    return state.messages_ready === 2 && state.messages_unacknowledged === 0;
+  });
+
+  for (const event of [malformed, mismatched]) {
+    const inboxRows = await connection.query(
+      `SELECT count(*)::integer AS count
+         FROM platform.inbox
+        WHERE consumer_name = $1 AND event_id = $2`,
+      [stableAuditQueue, event.eventId],
+    );
+    const auditRows = await connection.query(
+      'SELECT count(*)::integer AS count FROM audit.event_log WHERE event_id = $1',
+      [event.eventId],
+    );
+    assert(inboxRows[0]?.count === 0, 'An invalid trace carrier reached the inbox boundary.');
+    assert(auditRows[0]?.count === 0, 'An invalid trace carrier invoked the audit handler.');
+  }
+
+  const messages = await peekQueue(auditDeadLetterQueue);
+  assert(messages.length === 2, 'Invalid trace carrier dead letters were not retained.');
+  assert(
+    messages.every(
+      ({ properties }) => properties?.headers?.['x-rei-dead-letter-reason'] === 'invalid-envelope',
+    ),
+    'Invalid trace carriers did not use the sanitized envelope path.',
+  );
+  assert(
+    !JSON.stringify(messages.map(({ properties }) => properties?.headers)).includes(
+      'secret malformed carrier',
+    ),
+    'A malformed raw trace header reached the dead-letter carrier.',
+  );
+  await purgeQueue(auditDeadLetterQueue);
 }
 
 async function createTraceEventWithCommittedAuditEffect(connection) {
@@ -305,7 +381,7 @@ async function proveRequestRollback(connection) {
         },
       },
     );
-    await service.execute();
+    await service.execute(null);
   } catch (error) {
     assert(
       error instanceof Error && error.message === 'forced rollback',
@@ -1123,9 +1199,20 @@ try {
     delivered.audit.occurred_at.getTime() === delivered.outbox.occurred_at.getTime(),
     'Audit occurrence time differs.',
   );
+  assert(delivered.outbox.trace_context !== null, 'The request trace context was not stored.');
   assert(
-    delivered.outbox.trace_context === null && delivered.audit.trace_context === null,
-    'Trace slot is not null.',
+    JSON.stringify(delivered.audit.trace_context) ===
+      JSON.stringify(delivered.outbox.trace_context),
+    'The audit effect changed the durable trace context.',
+  );
+  assert(
+    delivered.outbox.trace_context.traceparent.startsWith(`00-${requestTraceId}-`) &&
+      delivered.outbox.trace_context.traceparent.endsWith('-01'),
+    'The request trace identity or sampling flag changed.',
+  );
+  assert(
+    delivered.outbox.trace_context.tracestate === requestTracestate,
+    'The request tracestate changed.',
   );
   assert(
     JSON.stringify(delivered.outbox.payload) === '{}' &&
@@ -1136,6 +1223,7 @@ try {
   await proveRequestRollback(connection);
   await proveConsumerRollback(connection);
   await proveDuplicateSuppression(connection, delivered);
+  await proveInvalidTraceCarriers(connection);
   await proveLegacyQueueUpgrade(connection);
   await proveBrokerRestartRecovery(connection);
   await proveBrokerOutageLeavesOutboxRecoverable(connection);

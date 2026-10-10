@@ -13,6 +13,11 @@ const event: EventEnvelope = {
   traceContext: null,
   payload: {},
 };
+const traceContext = {
+  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+  tracestate: 'vendor=opaque',
+} as const;
+const tracedEvent: EventEnvelope = { ...event, traceContext };
 const subscription: EventSubscription = {
   consumerName: 'audit.event-log',
   eventTypes: ['audit.trace.requested'],
@@ -168,12 +173,18 @@ function brokerDouble(
   return { broker, ...generation };
 }
 
-function message(attempt?: number) {
+function message(
+  attempt?: number,
+  deliveredEvent: EventEnvelope = event,
+  traceHeaders: Readonly<Record<string, unknown>> = {},
+) {
+  const headers = {
+    ...traceHeaders,
+    ...(attempt === undefined ? {} : { 'x-rei-delivery-attempt': attempt }),
+  };
   return {
-    content: Buffer.from(JSON.stringify(event)),
-    ...(attempt === undefined
-      ? {}
-      : { properties: { headers: { 'x-rei-delivery-attempt': attempt } } }),
+    content: Buffer.from(JSON.stringify(deliveredEvent)),
+    ...(Object.keys(headers).length === 0 ? {} : { properties: { headers } }),
   };
 }
 
@@ -184,6 +195,14 @@ describe('parseAuditTraceRequestedMessage', () => {
     expect(parsed.type).toBe('audit.trace.requested');
     expect(parsed.traceContext).toBeNull();
     expect(parsed.payload).toEqual({});
+  });
+
+  it('accepts a traced tracer envelope without changing its durable context', () => {
+    expect(parseAuditTraceRequestedMessage(Buffer.from(JSON.stringify(tracedEvent)))).toMatchObject(
+      {
+        traceContext,
+      },
+    );
   });
 
   it.each([
@@ -800,6 +819,73 @@ describe('RabbitMqEventBroker', () => {
     expect(handler).toHaveBeenCalledOnce();
     await broker.close();
   });
+
+  it('retains validated trace headers across a handler retry', async () => {
+    const { broker, channel, delivery } = brokerDouble();
+    const handler = vi.fn().mockRejectedValue(new Error('audit unavailable'));
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+
+    delivery()!(message(undefined, tracedEvent, traceContext));
+    await vi.waitFor(() => expect(channel.ack).toHaveBeenCalledOnce());
+
+    expect(channel.publish).toHaveBeenCalledWith(
+      '',
+      'audit.event-log',
+      expect.any(Buffer),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          traceparent: traceContext.traceparent,
+          tracestate: traceContext.tracestate,
+          'x-rei-delivery-attempt': 2,
+        }),
+      }),
+    );
+    await broker.close();
+  });
+
+  it.each([
+    {
+      name: 'malformed',
+      body: tracedEvent,
+      headers: { traceparent: 'secret malformed carrier' },
+    },
+    {
+      name: 'mismatched',
+      body: tracedEvent,
+      headers: {
+        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-00f067aa0ba902b7-01',
+      },
+    },
+  ])(
+    'dead-letters a $name trace carrier without invoking the handler',
+    async ({ body, headers }) => {
+      const { broker, channel, delivery } = brokerDouble();
+      const handler = vi.fn();
+      await broker.subscribe(subscription, handler);
+      await broker.start();
+
+      delivery()!(message(undefined, body, headers));
+      await vi.waitFor(() => expect(channel.ack).toHaveBeenCalledOnce());
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(channel.publish).toHaveBeenCalledWith(
+        '',
+        'audit.event-log.dead-letter',
+        expect.any(Buffer),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'x-rei-dead-letter-reason': 'invalid-envelope',
+          }),
+        }),
+      );
+      const transferOptions = channel.publish.mock.calls.at(-1)?.[3] as {
+        headers?: Record<string, unknown>;
+      };
+      expect(JSON.stringify(transferOptions)).not.toContain('secret malformed carrier');
+      await broker.close();
+    },
+  );
 
   it('performs exactly five normal handler attempts and preserves terminal attempt metadata', async () => {
     const { broker, channel, delivery } = brokerDouble();

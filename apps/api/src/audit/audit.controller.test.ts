@@ -41,5 +41,6 @@ describe('AuditController', () => {
       eventId: '0199c8f2-2394-7ba0-8f9e-286378779219',
     });
     expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledWith(null);
   });
 });

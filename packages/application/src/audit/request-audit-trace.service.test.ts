@@ -28,7 +28,13 @@ describe('RequestAuditTrace', () => {
       { append },
     );
 
-    await expect(service.execute()).resolves.toBe('0199c8f2-2394-7ba0-8f9e-286378779219');
+    const traceContext = {
+      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00',
+      tracestate: 'vendor=opaque',
+    };
+    await expect(service.execute(traceContext)).resolves.toBe(
+      '0199c8f2-2394-7ba0-8f9e-286378779219',
+    );
     expect(generate).toHaveBeenNthCalledWith(1, transaction);
     expect(generate).toHaveBeenNthCalledWith(2, transaction);
     expect(append).toHaveBeenCalledOnce();
@@ -39,7 +45,7 @@ describe('RequestAuditTrace', () => {
         eventId: '0199c8f2-2394-7ba0-8f9e-286378779219',
         aggregateId: '0199c8f2-2394-7ba0-9f9e-286378779220',
         type: 'audit.trace.requested',
-        traceContext: null,
+        traceContext,
         payload: {},
       }),
     ]);
@@ -71,7 +77,7 @@ describe('RequestAuditTrace', () => {
       { append: async () => Promise.reject(new Error('append failed')) },
     );
 
-    await expect(service.execute()).rejects.toThrow('append failed');
+    await expect(service.execute(null)).rejects.toThrow('append failed');
     expect(rollback).toHaveBeenCalledOnce();
   });
 });
