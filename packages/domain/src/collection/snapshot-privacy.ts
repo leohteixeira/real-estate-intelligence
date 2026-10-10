@@ -41,30 +41,35 @@ export function sanitizeSnapshotListing(
     )
   )
     throw new TypeError('Unsupported canonical image fingerprint.');
-  return parseCollectedListing({
-    propertyType: listing.propertyType,
-    askingPriceMinorUnits: listing.askingPriceMinorUnits,
-    currency: listing.currency,
-    areaSquareMeters: listing.areaSquareMeters,
-    bedrooms: listing.bedrooms,
-    bathrooms: listing.bathrooms,
-    parkingSpaces: listing.parkingSpaces,
-    features: [...new Set(listing.features.map((item) => maskSnapshotText(item, knownNames)))],
-    location: {
-      city: maskSnapshotText(location.city, knownNames),
-      stateCode: location.stateCode,
-      neighborhood: maskSnapshotText(location.neighborhood, knownNames),
-      street: maskSnapshotText(location.street, knownNames),
+  return parseCollectedListing(
+    {
+      propertyType: listing.propertyType,
+      askingPriceMinorUnits: listing.askingPriceMinorUnits,
+      currency: listing.currency,
+      areaSquareMeters: listing.areaSquareMeters,
+      bedrooms: listing.bedrooms,
+      bathrooms: listing.bathrooms,
+      parkingSpaces: listing.parkingSpaces,
+      features: [...new Set(listing.features.map((item) => maskSnapshotText(item, knownNames)))],
+      location: {
+        city: maskSnapshotText(location.city, knownNames),
+        stateCode: location.stateCode,
+        neighborhood: maskSnapshotText(location.neighborhood, knownNames),
+        street: maskSnapshotText(location.street, knownNames),
+      },
+      listedAt: listing.listedAt,
+      advertiser: {
+        type: advertiser.type,
+        agencyName:
+          advertiser.type === 'private'
+            ? null
+            : maskSnapshotText(advertiser.agencyName, knownNames),
+      },
+      maskedDescription: maskSnapshotText(listing.maskedDescription, knownNames),
+      imageFingerprints: listing.imageFingerprints,
     },
-    listedAt: listing.listedAt,
-    advertiser: {
-      type: advertiser.type,
-      agencyName:
-        advertiser.type === 'private' ? null : maskSnapshotText(advertiser.agencyName, knownNames),
-    },
-    maskedDescription: maskSnapshotText(listing.maskedDescription, knownNames),
-    imageFingerprints: listing.imageFingerprints,
-  });
+    true,
+  );
 }
 
 export function assertSnapshotIdentifier(value: string, names: readonly string[] = []): void {

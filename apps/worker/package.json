@@ -8,6 +8,7 @@
     "start": "node -r ./dist/otel.js dist/main.js",
     "collect:synthetic": "node -r ./dist/otel.js dist/collection/collect-synthetic.js",
     "collect:resumable": "node -r ./dist/otel.js dist/collection/collect-resumable.js",
+    "snapshot:reparse": "node -r ./dist/otel.js dist/collection/reparse-snapshot.js",
     "source:enable": "node -r ./dist/otel.js dist/collection/enable-source.js",
     "typecheck": "tsc --build --force",
     "test": "vitest run --dir src --passWithNoTests"

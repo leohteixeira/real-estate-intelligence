@@ -315,6 +315,7 @@ export class CollectSourceRun {
                 outcome: item.listing === null ? 'failed' : 'parsed',
                 changed,
                 failureReason: item.failureReason,
+                imageFingerprints: item.listing?.imageFingerprints ?? null,
               });
               if (item.listing !== null && parsedEventId !== null)
                 parsedEvents.push(

@@ -6,6 +6,15 @@ export type {
   CollectionSourcePermissions,
 } from './collection.facade.js';
 export { CollectSourceOnce } from './collect-source-once.service.js';
+export { ReparseSnapshot } from './reparse-snapshot.service.js';
+export { SNAPSHOT_REPARSE_REPOSITORY } from './snapshot-reparse.repository.js';
+export type {
+  SnapshotReparseRepository,
+  SnapshotReparseIdentity,
+  SnapshotReparseResult,
+  SnapshotReparseOperation,
+  ReparseObservation,
+} from './snapshot-reparse.repository.js';
 export { CollectSourceRun } from './collect-source-run.service.js';
 export type { CollectSourceRunResult } from './collect-source-run.service.js';
 export {

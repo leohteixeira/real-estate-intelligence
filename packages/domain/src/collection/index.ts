@@ -10,6 +10,10 @@ export {
   CollectionRunCompleted,
   CollectionRunRequested,
   CollectionSnapshotParsed,
+  CollectionSnapshotCorrected,
+  parseCollectionSnapshotCorrected,
+  parseImageFingerprints,
+  parseReparseLabel,
   collectionRunOperationKey,
   parseCollectionEvent,
   parseCollectionListingSuppressed,
@@ -40,6 +44,7 @@ export type {
   CollectionRunProvenance,
   CollectionSnapshotParsedInput,
   CollectionSnapshotParsedPayload,
+  CollectionSnapshotCorrectedPayload,
   CollectionSnapshotProvenance,
   CollectionSourceProvenance,
 } from './collection.events.js';

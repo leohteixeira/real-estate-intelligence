@@ -182,6 +182,8 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
       outcome: 'parsed' as const,
       changed: false,
       failureReason: null,
+      imageFingerprints:
+        input.imageFingerprints == null ? null : Object.freeze([...input.imageFingerprints]),
     });
     this.#operationRuns.set(input.operationKey, run.runId);
     this.#runs.set(run.runId, run);

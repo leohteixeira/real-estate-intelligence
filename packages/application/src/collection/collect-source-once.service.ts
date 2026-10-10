@@ -170,6 +170,7 @@ export class CollectSourceOnce {
         byteLength: stored.byteLength,
         mediaType: stored.mediaType,
         manifestHash,
+        imageFingerprints: listing.imageFingerprints,
       };
 
       const persisted = await this.runs.persistCompleted(transaction, persistence);

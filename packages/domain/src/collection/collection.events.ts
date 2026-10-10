@@ -237,8 +237,9 @@ function stringArray(value: unknown, field: string): readonly string[] {
   return result;
 }
 
-function fingerprints(value: unknown, field: string): readonly string[] {
-  if (!Array.isArray(value) || value.length === 0 || value.length > 100) {
+export function parseImageFingerprints(value: unknown, allowEmpty = true): readonly string[] {
+  const field = 'payload.listing.imageFingerprints';
+  if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.length > 100) {
     return fail(`${field} must contain between 1 and 100 fingerprints.`, field);
   }
   const result = value.map((item, index) => stringValue(item, `${field}[${index}]`, 1_000));
@@ -326,7 +327,10 @@ function parseAdvertiser(value: unknown): CollectedListingAdvertiser {
   };
 }
 
-export function parseCollectedListing(value: unknown): CollectedListing {
+export function parseCollectedListing(
+  value: unknown,
+  allowEmptyFingerprints = false,
+): CollectedListing {
   const parsed = exactRecord(
     value,
     [
@@ -389,11 +393,14 @@ export function parseCollectedListing(value: unknown): CollectedListing {
     ),
     advertiser: parseAdvertiser(parsed.advertiser),
     maskedDescription: maskedDescription(parsed.maskedDescription),
-    imageFingerprints: fingerprints(parsed.imageFingerprints, 'payload.listing.imageFingerprints'),
+    imageFingerprints: parseImageFingerprints(parsed.imageFingerprints, allowEmptyFingerprints),
   };
 }
 
-function parseSnapshotPayload(value: unknown): CollectionSnapshotParsedPayload {
+function parseSnapshotPayload(
+  value: unknown,
+  allowEmptyFingerprints = false,
+): CollectionSnapshotParsedPayload {
   const parsed = exactRecord(value, ['run', 'snapshot', 'source', 'listing'], 'payload');
   const run = exactRecord(parsed.run, ['runId'], 'payload.run');
   const snapshot = exactRecord(parsed.snapshot, ['snapshotId', 'contentHash'], 'payload.snapshot');
@@ -420,7 +427,7 @@ function parseSnapshotPayload(value: unknown): CollectionSnapshotParsedPayload {
         'payload.source.observedAt',
       ),
     },
-    listing: parseCollectedListing(parsed.listing),
+    listing: parseCollectedListing(parsed.listing, allowEmptyFingerprints),
   };
 }
 
@@ -483,6 +490,7 @@ function parseSuppressedPayload(value: unknown): CollectionListingSuppressedPayl
 function envelope(
   value: unknown,
   expectedType: string,
+  expectedVersion = COLLECTION_EVENT_VERSION as number,
 ): {
   readonly eventId: string;
   readonly aggregateId: string;
@@ -496,8 +504,7 @@ function envelope(
     'event',
   );
   if (parsed.type !== expectedType) return fail('Event type is not supported.', 'type');
-  if (parsed.version !== COLLECTION_EVENT_VERSION)
-    return fail('Event version is not supported.', 'version');
+  if (parsed.version !== expectedVersion) return fail('Event version is not supported.', 'version');
   return {
     eventId: stringValue(parsed.eventId, 'eventId'),
     aggregateId: stringValue(parsed.aggregateId, 'aggregateId'),
@@ -526,6 +533,98 @@ export class CollectionSnapshotParsed extends DomainEvent<
       payload,
     });
   }
+}
+
+export type CollectionSnapshotCorrectedPayload = CollectionSnapshotParsedPayload &
+  Readonly<{
+    correction: Readonly<{
+      kind: 'parser-correction';
+      operationKey: string;
+      parserRevision: string;
+      originalParsedEventId: UuidV7;
+      order: number;
+    }>;
+  }>;
+
+export function parseReparseLabel(value: unknown, field: string): string {
+  const parsed = stringValue(value, field, 200);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/.test(parsed))
+    return fail(`${field} must be a safe artifact identifier.`, field);
+  return parsed;
+}
+
+function parseCorrectionPayload(value: unknown): CollectionSnapshotCorrectedPayload {
+  const parsed = exactRecord(
+    value,
+    ['run', 'snapshot', 'source', 'listing', 'correction'],
+    'payload',
+  );
+  const correction = exactRecord(
+    parsed.correction,
+    ['kind', 'operationKey', 'parserRevision', 'originalParsedEventId', 'order'],
+    'payload.correction',
+  );
+  if (correction.kind !== 'parser-correction')
+    fail('Unsupported correction marker.', 'payload.correction.kind');
+  const original = parseSnapshotPayload(
+    { run: parsed.run, snapshot: parsed.snapshot, source: parsed.source, listing: parsed.listing },
+    true,
+  );
+  return {
+    ...original,
+    correction: {
+      kind: 'parser-correction',
+      operationKey: parseReparseLabel(correction.operationKey, 'payload.correction.operationKey'),
+      parserRevision: parseReparseLabel(
+        correction.parserRevision,
+        'payload.correction.parserRevision',
+      ),
+      originalParsedEventId: parseUuidV7(
+        stringValue(correction.originalParsedEventId, 'payload.correction.originalParsedEventId'),
+      ),
+      order: boundedNumber(
+        correction.order,
+        'payload.correction.order',
+        1,
+        Number.MAX_SAFE_INTEGER,
+        true,
+      ),
+    },
+  };
+}
+
+/** A parser correction references an existing observation and never creates market history. */
+export class CollectionSnapshotCorrected extends DomainEvent<
+  typeof COLLECTION_SNAPSHOT_PARSED_TYPE,
+  CollectionSnapshotCorrectedPayload
+> {
+  public constructor(
+    input: CollectionEventInput<
+      typeof COLLECTION_SNAPSHOT_PARSED_TYPE,
+      CollectionSnapshotCorrectedPayload
+    >,
+  ) {
+    const payload = parseCorrectionPayload(input.payload);
+    if (parseUuidV7(input.aggregateId) !== payload.snapshot.snapshotId)
+      fail('Correction aggregate must identify the original snapshot.', 'aggregateId');
+    if (parseUuidV7(input.eventId) === payload.correction.originalParsedEventId)
+      fail('Correction must have a new event identity.', 'eventId');
+    super({
+      ...input,
+      type: COLLECTION_SNAPSHOT_PARSED_TYPE,
+      version: 2,
+      traceContext: input.traceContext ?? null,
+      payload,
+    });
+  }
+}
+
+export function parseCollectionSnapshotCorrected(value: unknown): CollectionSnapshotCorrected {
+  const parsed = envelope(value, COLLECTION_SNAPSHOT_PARSED_TYPE, 2);
+  return new CollectionSnapshotCorrected({
+    ...parsed,
+    payload: parseCorrectionPayload(parsed.payload),
+  });
 }
 
 export class CollectionRunCompleted extends DomainEvent<
@@ -576,6 +675,7 @@ export class CollectionListingSuppressed extends DomainEvent<
 
 export type CollectionEvent =
   | CollectionSnapshotParsed
+  | CollectionSnapshotCorrected
   | CollectionRunRequested
   | CollectionRunCompleted
   | CollectionListingSuppressed;
@@ -611,7 +711,9 @@ export function parseCollectionEvent(value: unknown): CollectionEvent {
   const parsed = record(value, 'event');
   switch (parsed.type) {
     case COLLECTION_SNAPSHOT_PARSED_TYPE:
-      return parseCollectionSnapshotParsed(value);
+      return parsed.version === 2
+        ? parseCollectionSnapshotCorrected(value)
+        : parseCollectionSnapshotParsed(value);
     case COLLECTION_RUN_COMPLETED_TYPE:
       return parseCollectionRunCompleted(value);
     case COLLECTION_RUN_REQUESTED_TYPE:

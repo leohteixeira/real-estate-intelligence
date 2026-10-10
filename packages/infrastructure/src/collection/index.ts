@@ -14,6 +14,8 @@ export {
   InMemorySourceRegisterRepository,
 } from './in-memory-collection.adapters.js';
 export { PostgresCollectionRunRepository } from './postgres-collection-run.repository.js';
+export { PostgresSnapshotReparseRepository } from './postgres-snapshot-reparse.repository.js';
+export { InMemorySnapshotReparseRepository } from './in-memory-snapshot-reparse.repository.js';
 export { PostgresCollectionScheduleRepository } from './postgres-collection-schedule.repository.js';
 export { PostgresCollectionFacade } from './postgres-collection.facade.js';
 export { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';

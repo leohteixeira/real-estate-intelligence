@@ -463,8 +463,8 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         await client.query(
           `INSERT INTO collection.snapshot_observation
              (snapshot_id, run_id, content_hash, source_listing_id, source_url, observed_at,
-              parsed_event_id, outcome, changed, failure_reason, object_key)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+              parsed_event_id, outcome, changed, failure_reason, object_key, image_fingerprints)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::jsonb)`,
           [
             observation.snapshotId,
             input.runId,
@@ -477,6 +477,9 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
             observation.changed,
             observation.failureReason,
             observation.objectKey,
+            observation.imageFingerprints == null
+              ? null
+              : JSON.stringify(observation.imageFingerprints),
           ],
         );
       }
@@ -599,8 +602,8 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       await client.query(
         `INSERT INTO collection.snapshot_observation
            (snapshot_id, run_id, content_hash, source_listing_id, source_url, observed_at,
-            parsed_event_id, outcome, changed, object_key)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'parsed', false, $8)`,
+            parsed_event_id, outcome, changed, object_key, image_fingerprints)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'parsed', false, $8, $9::jsonb)`,
         [
           input.snapshotId,
           input.runId,
@@ -610,6 +613,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
           input.observedAt,
           input.parsedEventId,
           input.objectKey,
+          input.imageFingerprints == null ? null : JSON.stringify(input.imageFingerprints),
         ],
       );
       return {

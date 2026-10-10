@@ -18,6 +18,7 @@ export interface CollectionExecutionResult {
 }
 
 export interface PersistCompletedCollectionInput {
+  readonly imageFingerprints?: readonly string[] | null;
   readonly operationKey: string;
   readonly runId: UuidV7;
   readonly snapshotId: UuidV7;
@@ -49,6 +50,7 @@ export interface StartCollectionRunInput {
 }
 
 export interface PersistedCollectionObservation {
+  readonly imageFingerprints?: readonly string[] | null;
   readonly snapshotId: UuidV7;
   readonly parsedEventId: UuidV7 | null;
   readonly sourceListingId: string;
