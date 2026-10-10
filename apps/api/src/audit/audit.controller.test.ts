@@ -1,9 +1,9 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { RequestAuditTrace } from '@rei/application';
-import { API_PREFIX } from '@rei/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { configureApi } from '../configure-api';
 import { AuditController } from './audit.controller';
 
 describe('AuditController', () => {
@@ -19,7 +19,7 @@ describe('AuditController', () => {
     }).compile();
 
     app = module.createNestApplication();
-    app.setGlobalPrefix(API_PREFIX);
+    configureApi(app);
     await app.listen(0, '127.0.0.1');
     const address = app.getHttpServer().address();
     if (!address || typeof address === 'string') {

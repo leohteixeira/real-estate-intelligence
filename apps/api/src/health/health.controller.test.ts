@@ -3,6 +3,8 @@ import { DATABASE_AVAILABILITY_PROBE, type DatabaseAvailabilityProbe } from '@re
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { configureApi } from '../configure-api';
+import { REQUEST_ID_HEADER } from '../http/request-id';
 import { HealthController } from './health.controller';
 
 describe('HealthController', () => {
@@ -21,6 +23,7 @@ describe('HealthController', () => {
     }).compile();
 
     app = module.createNestApplication();
+    configureApi(app);
     await app.listen(0, '127.0.0.1');
 
     const address = app.getHttpServer().address();
@@ -38,6 +41,7 @@ describe('HealthController', () => {
     const response = await fetch(`${baseUrl}/health`);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get(REQUEST_ID_HEADER)).toMatch(UUID_PATTERN);
     await expect(response.json()).resolves.toEqual({ status: 'healthy' });
     expect(probe.isAvailable).not.toHaveBeenCalled();
   });
@@ -46,6 +50,7 @@ describe('HealthController', () => {
     const response = await fetch(`${baseUrl}/ready`);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get(REQUEST_ID_HEADER)).toMatch(UUID_PATTERN);
     await expect(response.json()).resolves.toEqual({ status: 'ready', database: 'available' });
   });
 
@@ -55,9 +60,12 @@ describe('HealthController', () => {
     const response = await fetch(`${baseUrl}/ready`);
 
     expect(response.status).toBe(503);
+    expect(response.headers.get(REQUEST_ID_HEADER)).toMatch(UUID_PATTERN);
     await expect(response.json()).resolves.toEqual({
       status: 'not-ready',
       database: 'unavailable',
     });
   });
 });
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
