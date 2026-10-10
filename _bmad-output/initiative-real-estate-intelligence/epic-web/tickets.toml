@@ -1,0 +1,177 @@
+# The planned stories of this epic, in build order. `id` names an entry for good; the order of the tables is the order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "ADR for routing and data fetching in the web application"
+description = "Records as an ADR the router and the data-fetching approach of `apps/web`, which ADR 0006 left out of the foundation phase (CAP-19). The record also names the internationalization and component-test approach."
+verify = "The ADR is accepted by the owner under `specs/adrs/`."
+covers = ["CAP-19"]
+after = []
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 2
+type = "story"
+title = "Place overview with one figure from the contract"
+description = "Proves the path: the Placa shell with the place plate and the median asking price per m² of a neighborhood read from `/api/v1`, at 390 px and from 960 px up, in both locales (CAP-19)."
+verify = "Opening a neighborhood on the Compose stack shows its plate and its median with the provenance line in Portuguese and in English."
+covers = ["CAP-19"]
+after = [1, "1.7", "4.1"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Shell, navigation and conventions"
+description = "Completes the shell: tab bar and rail, crumbs, language switch, footer, self-hosted Barlow fonts and locale formatting of numbers and dates, and sets the route table, the locale catalogue per screen and the API client that every screen entry extends (CAP-19)."
+verify = "Places, Search and Ask are reachable on both widths, Alerts and Operations are absent, and no request leaves for a font host."
+covers = ["CAP-19"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 15
+type = "story"
+title = "Shared components and the accessibility harness"
+description = "Builds the components more than one screen uses, with the styles of `components.css`: the property row and the figure with its provenance; adds the automated accessibility harness and the contrast check of the tokens that every screen entry runs (CAP-19, CAP-20)."
+verify = "The component tests pass, and the harness and the contrast check pass on the shell and on each shared component."
+covers = ["CAP-19", "CAP-20"]
+after = [3]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 4
+type = "story"
+title = "System states"
+description = "Builds loading, no results, could not load and stale figures as shared states every screen uses (CAP-19)."
+verify = "Each state renders from a forced condition on both widths and both locales."
+covers = ["CAP-19"]
+after = [15]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Place overview complete"
+description = "Completes the Place overview: every figure with its provenance, the parent median, the plate counts, the neighbours, the twelve-month series, the schematic map and the largest reductions (CAP-19)."
+verify = "The screen shows every element of its section of `ux.md` from the stub endpoints."
+covers = ["CAP-19"]
+after = [4, "3.1", "4.1"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Search results and filters"
+description = "Builds the result list with property rows, the applied filters, ordering and the result median, and the Filters screen (CAP-19)."
+verify = "Each filter and ordering of `ux.md` changes the list, and a filter that removes the last result names itself."
+covers = ["CAP-19"]
+after = [4, "3.1"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Property screen"
+description = "Builds the Property screen: asking price, the absence of a sale price, price history, listing lifelines and match evidence (CAP-19)."
+verify = "The fixture property with three listings shows every element of its section of `ux.md`. The comparables table and the compare and alert actions are excepted."
+covers = ["CAP-19"]
+after = [4, "3.1"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Listing and provenance screen"
+description = "Builds the Listing screen: source, run, snapshot or hash, values with dates and events, with the description shown only where the response carries it (CAP-19)."
+verify = "A listing whose response holds no text shows that the description changed and links to the source."
+covers = ["CAP-19"]
+after = [4, "3.1"]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 9
+type = "story"
+title = "Ask: a completed run"
+description = "Builds the completed-run screen following the stream of the run contract with its own stream reader; sharing it with the headless client is left to the refactor sweep (CAP-19)."
+verify = "A run on the stub stream is followed to its completed state with its result, sources and explanation."
+covers = ["CAP-19"]
+after = [4, "5.1"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 16
+type = "story"
+title = "Ask: confirmation and the run states"
+description = "Builds the awaiting-confirmation screen with edited inputs and every other run state of `ux.md`, from the fixture the stub serves per state (CAP-19)."
+verify = "A run on the stub stream pauses for confirmation and resumes to its terminal state, and each run state renders from its fixture."
+covers = ["CAP-19"]
+after = [9]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 10
+type = "story"
+title = "Privacy notice"
+description = "Builds the public privacy notice in both locales from the must-show list of `ux.md`, with sources from the collection facade, controller and contact from configuration, and its link in the shell footer (CAP-28)."
+verify = "The notice is reachable from every public screen and lists each source with its licence."
+covers = ["CAP-28"]
+after = [3, "2.4", "2.11"]
+hitl = true
+risk = "medium"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Accessibility at WCAG 2.2 level AA"
+description = "Checks every MVP screen and state against WCAG 2.2 level AA with an automated check and a keyboard walk, fixes what fails and verifies the tokens of `DESIGN.md` for contrast (CAP-19)."
+verify = "The automated check passes on every MVP screen and the recorded keyboard walk finds no blocker."
+covers = ["CAP-19"]
+after = [5, 6, 7, 8, 9, 16, 10]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 13
+type = "story"
+title = "The success signals walked in production"
+description = "Points the application at the deployed endpoints and walks the first and second success signals of the spec (CAP-19)."
+verify = "On the public address a visitor opens a neighborhood, a property with three listings resolved into one and follows a run to its end. The visitor reads the median with its count, sources and computation time, and the run pauses for confirmation."
+covers = ["CAP-19"]
+after = [5, 6, 7, 8, 9, 16, 12, "1.12", "3.13", "4.9", "5.15"]
+hitl = true
+risk = "medium"
+
+[[entry]]
+id = 11
+type = "story"
+title = "Landing page ready to ship"
+description = "Links the privacy notice from the landing footer, sets the demo address and the repository visibility and records the review of the WebGL scene in a real browser (CAP-20)."
+verify = "The published landing page offers the demo link, and the recorded review covers lighting, motion and performance."
+covers = ["CAP-20"]
+after = [3, 10, 13]
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 14
+type = "story"
+title = "Refactor sweep"
+description = "Cleans up what the plans and reviews of this epic deferred; its scope is set when it starts."
+verify = "The full check passes and every deferred finding is closed or turned into a ticket."
+covers = []
+after = [1, 2, 3, 15, 4, 5, 6, 7, 8, 9, 16, 10, 12, 13, 11]
+hitl = false
+risk = "low"

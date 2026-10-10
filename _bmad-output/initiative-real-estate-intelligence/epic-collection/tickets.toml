@@ -1,0 +1,156 @@
+# The planned stories of this epic, in build order. `id` names an entry for good; the order of the tables is the order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Collection contracts and a stub publisher"
+description = "Defines the event contracts `collection.snapshot.parsed`, `collection.run.completed` and `collection.listing.suppressed`, the facade for source permissions, run and snapshot hash, and a stub that publishes parsed fixtures so the next epics open at once (CAP-1). The parsed payload carries the fingerprint field and an allowlisted, masked real-shaped fixture, and the contract of the enabled sources with their licence is defined for the privacy notice."
+verify = "A consumer in a test receives the three events from the stub with payloads that validate against their contracts."
+covers = ["CAP-1"]
+after = ["1.4", "1.6", "1.7"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 2
+type = "story"
+title = "Synthetic source collected end to end"
+description = "Proves the pipeline: one register entry for the synthetic source, one collection run through the `ListingSource` port, the raw snapshot kept through `RawSnapshotStore` and the parsed event written to the outbox (CAP-1, CAP-2)."
+verify = "Running the collection command on the Compose stack leaves one run record, snapshots in the object store and parsed events in the audit log."
+covers = ["CAP-1", "CAP-2"]
+after = [1]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Synthetic São Paulo dataset"
+description = "Builds the labelled synthetic dataset: neighborhoods with their zones, properties advertised by several listings with known matches, one property with three listings, price and description history over several runs, removals and reappearances, and fingerprints (CAP-1). The history spans at least twelve months of dated events, and the match labels are exported as a fixture file that the tests of `properties` read."
+verify = "The consistency tests confirm every labelled match, the three-listing property and a zone per neighborhood, and two replays of the run sequence emit identical parsed events."
+covers = ["CAP-1"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 4
+type = "story"
+title = "Source register and the review gate"
+description = "Holds per source its access policy, review date, rate and the image and listing-text permissions, refuses to enable a source without an allowing review and adds the operator command that enables one (CAP-1). The register is seeded from `listing-sources.md`, and the enabled sources with their licence are served over `/api/v1`."
+verify = "Enabling a fixture source without a review is refused and one with a review appears as enabled through the facade."
+covers = ["CAP-1"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Idempotent, resumable collection runs"
+description = "Makes a run idempotent on the source identifier, checkpointed and resumable after a crash (CAP-1)."
+verify = "Killing the worker mid-run and restarting it finishes the run without a duplicate observation, shown by an integration test."
+covers = ["CAP-1"]
+after = [2]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 14
+type = "story"
+title = "Scheduled runs and the run record"
+description = "Schedules runs, bounds their concurrency, stops them gracefully, records what each run collected, changed and failed, emits `collection.run.completed` and instruments the run with OpenTelemetry (CAP-1)."
+verify = "A scheduled run on the Compose stack ends with a run record whose counts match the fixture, and a stop signal mid-run leaves it resumable at its checkpoint."
+covers = ["CAP-1"]
+after = [5]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Rate limits, backoff and blocks at the source"
+description = "Wraps the source adapters and the snapshot store in the resilience policy of ADR 0013: the rate from the register, backoff on rate limiting, and a login wall, CAPTCHA or block that opens the circuit, pauses the run at its checkpoint and disables the source (CAP-1)."
+verify = "With a fake source and a fake clock a `429` is retried within the rate, and a block disables the source without one further request."
+covers = ["CAP-1"]
+after = [4, 5, "1.5"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Sanitized, encrypted snapshots with expiry"
+description = "Sanitizes a payload of a real source before it is stored, encrypts it at rest, keys it by content hash and deletes it 30 days after collection leaving the hash, while synthetic snapshots are kept (CAP-2). The parser applies the field allowlist and masks personal data before the parsed event is published (ADR 0012)."
+verify = "The fixture with a contact name, phone, e-mail and CPF is stored without them, and advancing the clock 30 days leaves only its hash."
+covers = ["CAP-2"]
+after = [2, "1.10"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Reparse from stored snapshots"
+description = "Adds the operator command that parses stored snapshots again and republishes `collection.snapshot.parsed` without contacting the source (CAP-2). A re-parsed observation is marked as such and reattaches the stored fingerprints, since the images are gone, so a consumer corrects values without inventing history."
+verify = "After a parser change the command republishes the events while the fake source records zero requests."
+covers = ["CAP-2"]
+after = [7]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 9
+type = "story"
+title = "Image fingerprints at collection"
+description = "Fetches photographs only where the register allows it, computes a deterministic perceptual fingerprint of each in memory, discards the image, counts the requests against the source rate and carries the fingerprints in the parsed event (CAP-4)."
+verify = "A fixture source that allows images yields one fingerprint per photograph fetched with no image stored, and one that does not yields none."
+covers = ["CAP-4"]
+after = [3, 4, 6, 7, 8]
+hitl = false
+risk = "medium"
+unknown = "Which perceptual algorithm and similarity measure, and how many photographs of a listing are fetched."
+
+[[entry]]
+id = 10
+type = "story"
+title = "Removal request and suppression list"
+description = "Adds the operator command that deletes the snapshots and fingerprints of a listing, adds it to the suppression list collection consults, publishes `collection.listing.suppressed` and leaves an audit entry (CAP-28)."
+verify = "After the command a later run over a fixture that contains the listing does not restore it and the event is in the audit log."
+covers = ["CAP-28"]
+after = [5, 7, 9]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 11
+type = "story"
+title = "Record of processing and legitimate-interest assessment"
+description = "Writes the record of processing operations and the legitimate-interest assessment the spec requires before the first real collection, for the owner to review as controller (CAP-28)."
+verify = "Both documents are in the repository and accepted by the owner."
+covers = ["CAP-28"]
+after = ["1.10"]
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Scheduled collection in production"
+description = "Seeds the synthetic dataset on the deployed stack and runs the scheduled collection there (CAP-1)."
+verify = "The run record of a scheduled production run shows what it collected, and its trace is in the trace backend."
+covers = ["CAP-1"]
+after = [3, 5, 6, 7, 14, "1.12"]
+hitl = true
+risk = "medium"
+
+[[entry]]
+id = 13
+type = "story"
+title = "Refactor sweep"
+description = "Cleans up what the plans and reviews of this epic deferred; its scope is set when it starts."
+verify = "The full check passes and every deferred finding is closed or turned into a ticket."
+covers = []
+after = [1, 2, 3, 4, 5, 14, 6, 7, 8, 9, 10, 11, 12]
+hitl = false
+risk = "low"

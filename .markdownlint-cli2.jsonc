@@ -3,6 +3,8 @@
     "default": true,
     // Product documentation in this portfolio uses 100-column soft wrapping.
     "MD013": { "line_length": 100, "code_blocks": false, "tables": false },
+    // BMad tickets carry `title:` in their front matter and repeat it as the heading.
+    "MD025": { "front_matter_title": "" },
     // Duplicate headings are legitimate inside ADR sections.
     "MD024": { "siblings_only": true },
     "MD033": false,

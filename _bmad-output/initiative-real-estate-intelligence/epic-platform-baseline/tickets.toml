@@ -1,0 +1,156 @@
+# The planned stories of this epic, in build order. `id` names an entry for good; the order of the tables is the order.
+
+[[entry]]
+id = 9
+type = "story"
+title = "ADR for Zero Data Retention on every route"
+description = "Records as an ADR extending ADR 0009 that every route receiving user text requires verified Zero Data Retention, fails closed and that the primary model goes through the gateway until the direct route proves it (B10)."
+verify = "The ADR is accepted by the owner under `specs/adrs/` and listed in `specs/README.md`."
+covers = ["B10"]
+after = []
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 10
+type = "story"
+title = "ADR for the handling of collected data"
+description = "Records as an ADR the field allowlist, image fingerprints, sanitized and encrypted snapshots, the 30-day expiry, the suppression list and the two permissions of the source register (B10)."
+verify = "The ADR is accepted by the owner under `specs/adrs/` and listed in `specs/README.md`."
+covers = ["B10"]
+after = [9]
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 11
+type = "story"
+title = "Instruction files corrected"
+description = "Updates `/workspace/CLAUDE.md` and the repository `AGENTS.md` and `CLAUDE.md` to NestJS 12 and LangGraph, product specifications under `_bmad-output/` and RabbitMQ on 5672 and 15672 in the workspace port table (B11)."
+verify = "No instruction file names NestJS 11, Mastra or a product specification under `specs/`, and the port table lists RabbitMQ."
+covers = ["B11"]
+after = []
+hitl = true
+risk = "low"
+
+[[entry]]
+id = 1
+type = "story"
+title = "Upgrade to NestJS 12 and replace Mastra with a LangGraph service skeleton"
+description = "Moves API and worker to NestJS 12 and turns `apps/ai` into a NestJS service holding an empty LangGraph graph and its health endpoint, removing Mastra, its bundle script and its `npm` call, with no change of behaviour (B1)."
+verify = "`docker compose up` serves the health endpoints of the four applications, the full check passes and `pnpm why mastra` finds nothing."
+covers = ["B1"]
+after = [11]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 2
+type = "story"
+title = "Shared kernel of the four packages"
+description = "Adds `shared/` to each package with `Money`, `Provenance`, the domain-event base, UUID v7 identifiers and the clock, transaction and outbox ports, and moves `ports/` and `persistence/` under it (B2). It fixes the trace-context field of the event envelope and of the outbox row, which entry 8 later fills."
+verify = "The unit tests of the kernel pass and no file outside `shared/` holds the moved code."
+covers = ["B2"]
+after = [1]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Event tracer from a request to the audit log"
+description = "Proves every layer connects: Compose gains RabbitMQ and MinIO, the `platform` schema gains the outbox, a request appends an event in its transaction, the relay in the worker publishes it and a consumer of the thin `audit` context writes it down (B3, B7, B9). The environment example file and the CI services follow, and the entry assigns each context its migration number block."
+verify = "After one call to a demonstration endpoint on the Compose stack a row with the same event identifier is in the audit log, shown by an integration test against real PostgreSQL and RabbitMQ."
+covers = ["B3", "B7", "B9"]
+after = [1, 2]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 4
+type = "story"
+title = "Idempotent consumers and delivery guarantees"
+description = "Completes the delivery side of ADR 0012 around the tracer: the inbox, explicit acknowledgement after commit, publisher confirms, order per aggregate, one queue per consumer, the idempotency-key table and the in-memory `EventPublisher` (B3)."
+verify = "The integration test shows a redelivered event skipped, a broker restart losing nothing and events of one aggregate consumed in order."
+covers = ["B3"]
+after = [3]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 14
+type = "story"
+title = "Dead-lettering and pruning"
+description = "Adds the dead-letter queue after bounded deliveries and the pruning of published outbox rows and consumed inbox rows (B3)."
+verify = "The integration test shows a poisoned message dead-lettered after its bounded deliveries and old rows pruned."
+covers = []
+after = [4]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Resilience composition around external adapters"
+description = "Provides the composition of ADR 0013 through `@nestjs/resilience` as named configuration objects, the closed failure set every adapter maps to, a fake adapter and policy telemetry per dependency (B4). It also wraps `EventPublisher` (ADR 0012)."
+verify = "The policy tests pass with a fake clock: capped backoff with jitter, retry budget, breaker opening and half-opening, per-attempt timeout and a named fallback."
+covers = ["B4"]
+after = [2, 3]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Context boundaries enforced"
+description = "Adds import zones for the nine contexts to the root ESLint configuration, one empty Nest module per context wired in API and worker, the migration naming of ADR 0011 with a number block per epic and the corrected `migrations/README.md` (B5). It moves `pricePerSquareMeter` into the `market` context, exported through its `index.ts`."
+verify = "A fixture file importing another context past its `index.ts` fails `pnpm run lint`, and both applications start with the nine modules."
+covers = ["B5"]
+after = [3]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Conventions of the versioned contract"
+description = "Defines in `@rei/contracts` the error shape with its request identifier, pagination, provenance and money shapes and one barrel per context, and applies them to the existing health contract (B6)."
+verify = "The contract tests pass and the API answers an unknown route with the error shape and a request identifier."
+covers = ["B6"]
+after = [2]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Trace context through the outbox and the broker"
+description = "Carries the OpenTelemetry trace context in the event envelope, the outbox row and the message so a consumer continues the trace of the request, with no payload or credential in a span (B8)."
+verify = "One trace shows the request, the outbox append, the publish and the consumer in the test exporter."
+covers = ["B8"]
+after = [4]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Deployment on the VPS with readiness"
+description = "Deploys the Compose stack to the owner's VPS behind the existing domain and TLS, with CI building the images, `/ready` reporting PostgreSQL and the broker, and traces exported to a backend the owner chooses (B12). The CI image build is the part of B7 this entry delivers; RabbitMQ is a dedicated vhost of the shared instance of the VPS (`architecture.md`, Durability)."
+verify = "The public address answers `/ready` with every dependency up after a deployment started from a commit on the default branch. One trace in the chosen backend shows the request, the outbox row, the publish and the consumer."
+covers = ["B12", "B7"]
+after = [4, 7, 8, 14]
+hitl = true
+risk = "medium"
+unknown = "Which trace backend runs in production."
+
+[[entry]]
+id = 13
+type = "story"
+title = "Refactor sweep"
+description = "Cleans up what the plans and reviews of this epic deferred; its scope is set when it starts."
+verify = "The full check passes and every deferred finding is closed or turned into a ticket."
+covers = []
+after = [9, 10, 11, 1, 2, 3, 4, 14, 5, 6, 7, 8, 12]
+hitl = false
+risk = "low"

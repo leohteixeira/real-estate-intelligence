@@ -1,0 +1,190 @@
+# The planned stories of this epic, in build order. `id` names an entry for good; the order of the tables is the order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Run contracts and a stub stream"
+description = "Defines the `/api/v1` shapes of runs, threads and the versioned SSE events, with a stub that streams a fixture run to its terminal event so the Ask screens open at once (CAP-14). The contracts already carry the capability, the quota rejection, the full thread and the edited inputs, and the stub serves one fixture per run state."
+verify = "A client follows the stub stream through the public states to an explicit terminal event."
+covers = ["CAP-14"]
+after = ["1.6", "1.7"]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 17
+type = "story"
+title = "The worker reaches the AI service through RunExecutor"
+description = "Adds the `RunExecutor` port with its HTTP adapter and in-memory fake, the internal token between worker and AI service and the endpoint of `apps/ai` that executes a run, with the settings both need (CAP-13)."
+verify = "An integration test has the worker execute a run on the AI service and a call without the internal token refused."
+covers = ["CAP-13"]
+after = [1, "1.1", "1.4"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 2
+type = "story"
+title = "A price-per-square-meter run end to end"
+description = "Proves every layer connects: a run is stored `queued` with its `ask.run.requested` event, the worker calls the AI service through `RunExecutor`, a graph with a fixed decision calls the typed tool over `/api/v1` and the run reaches `completed` on the stream (CAP-10, CAP-13, CAP-14)."
+verify = "On the Compose stack a run created with structured inputs 785000 and 68 ends in a terminal event carrying R$ 11,544.12/m²."
+covers = ["CAP-10", "CAP-13", "CAP-14"]
+after = [17]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Price and area extracted and validated by code"
+description = "Replaces the tracer's fixed inputs with extraction and validation of price and area by code in Portuguese and English, and allowlists the tool entry 2 introduced (CAP-10). The capability is served by the `market` context, which owns the rule."
+verify = "Requests in both languages yield the same validated inputs and invalid ones a typed refusal."
+covers = ["CAP-10"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Threads, runs and checkpoints on PostgreSQL"
+description = "Persists threads, runs, run events and graph checkpoints in the `ask` schema through the typed saver contract the AI service calls, so a paused or interrupted run resumes on the same thread (CAP-13). It owns the 30-day, eight-turn retention of checkpoints and the reserved principal identifier (ADR 0010)."
+verify = "Restarting the API, the worker or the AI service mid-run loses no state and the run completes."
+covers = ["CAP-13"]
+after = [2]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 4
+type = "story"
+title = "Typed decision with the confidence gate"
+description = "Routes each request through `IntentDecider` over the closed taxonomy, with Jev through the gateway and the deterministic heuristic as its degraded fallback, records the decision and holds a run below 0.85 in `awaiting_confirmation` until an explicit confirmation resumes it without a second decision (CAP-11)."
+verify = "With fake deciders a decision at 0.85 proceeds, one below waits with nothing computed, confirmation resumes the proposed intent and an unavailable model yields a degraded decision under the same gate."
+covers = ["CAP-11"]
+after = [2, 3, 6, "1.9"]
+hitl = false
+risk = "high"
+unknown = "What refusing the proposed intent does to a paused run, and whether an awaiting run expires."
+
+[[entry]]
+id = 5
+type = "story"
+title = "Recognized intents without a capability"
+description = "Ends a run decided as `listing_search`, `property_history`, `region_statistics`, `comparables` or `unsupported` with a typed result naming the intent and holding no model-generated answer (CAP-12)."
+verify = "Each of the five decisions ends in its typed, unavailable result."
+covers = ["CAP-12"]
+after = [4]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Ordered, bounded and idempotent delivery"
+description = "Makes a run idempotent on its key and step, serializes the runs of a thread while other threads proceed, holds at most three pending per thread, expires a queued run after two minutes and dead-letters a failing one (CAP-13)."
+verify = "A redelivered command creates neither a second run nor a second tool effect, and a fourth pending run and a stale queued run are refused or expired."
+covers = ["CAP-13"]
+after = [6]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Public run endpoints and resumable stream"
+description = "Serves create with an idempotency key, inspect, confirm and cancel, and an SSE stream replayed from `Last-Event-ID` out of stored run events, always ending in an explicit terminal event (CAP-14)."
+verify = "A client that disconnects mid-run and reconnects receives every missed event once and then the terminal event."
+covers = ["CAP-14"]
+after = [4, 6, 7]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 10
+type = "story"
+title = "Explanation written by the model"
+description = "Adds the generative step behind `LanguageModel`, primary then secondary through the gateway, which explains only what a tool returned in that run within the plan's limits of turns, characters and tokens, labelled as model-written (CAP-10)."
+verify = "With a fake model the explanation of a completed run states only the tool result, and a model that asserts another number is rejected."
+covers = ["CAP-10"]
+after = [3, "1.9"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 11
+type = "story"
+title = "Provider failures bounded and private"
+description = "Applies the central policies of ADR 0009 to the decision and generative adapters, failing closed on a route without verified Zero Data Retention and never falling back to a less private one (CAP-15). It also applies the policies of ADR 0013 to `RunExecutor`, the checkpoint saver and the tools."
+verify = "The failure matrix of `architecture.md` passes offline with fake clocks and fake HTTP servers."
+covers = ["CAP-15"]
+after = [4, 10, "1.5", "1.9"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Thread capability and demo quotas"
+description = "Protects history, confirmation, cancellation and the stream of a thread with its opaque capability, and rejects before acceptance the 21st question of a visitor in a calendar day of America/Sao_Paulo and any run beyond the global daily cap, stating when the quota reopens (CAP-16)."
+verify = "Requests without the capability are refused, and the 21st question and a run past the cap are rejected with the reopening time."
+covers = ["CAP-16"]
+after = [8]
+hitl = false
+risk = "medium"
+unknown = "The value of the global daily cap of runs. How an anonymous visitor is identified."
+
+[[entry]]
+id = 9
+type = "story"
+title = "Headless web client"
+description = "Adds under `apps/web/src/headless/` a client without visual design that creates a run, follows it, confirms and cancels, proving the HTTP and SSE contract (CAP-14)."
+verify = "The client's test drives a run through confirmation to `completed` against the Compose stack."
+covers = ["CAP-14"]
+after = [8, 12]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 13
+type = "story"
+title = "Evaluation pack and live probe"
+description = "Ships the versioned datasets and offline evaluations of the decision and the explanation with fakes, and a live probe that runs only when enabled with `AI_GATEWAY_API_KEY`, reporting accuracy, latency and cost without storing the key or text (CAP-17)."
+verify = "`pnpm test` runs the pack offline, and the probe runs only with its explicit switch."
+covers = ["CAP-17"]
+after = [4, 10]
+hitl = true
+risk = "medium"
+
+[[entry]]
+id = 14
+type = "story"
+title = "One trace per run"
+description = "Links the request, the publish and consume, the run, each graph node, the decision, the tool call and the generative call in one trace with the attributes of `architecture.md` and no prompt, response, key or connection string (CAP-18)."
+verify = "The trace of a test run holds every span with its attributes and a scan finds no forbidden content."
+covers = ["CAP-18"]
+after = [8, 10, 11, "1.8"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 15
+type = "story"
+title = "Runs in production"
+description = "Runs the increment on the deployed stack with the gateway key held by the AI service only (CAP-10, CAP-15)."
+verify = "A question on the public address completes with the rule's value, and the AI service container holds no database, broker or storage credential."
+covers = ["CAP-10", "CAP-15"]
+after = [5, 7, 9, 11, 12, 13, 14, "1.12"]
+hitl = true
+risk = "high"
+
+[[entry]]
+id = 16
+type = "story"
+title = "Refactor sweep"
+description = "Cleans up what the plans and reviews of this epic deferred; its scope is set when it starts."
+verify = "The full check passes and every deferred finding is closed or turned into a ticket."
+covers = []
+after = [1, 17, 2, 3, 6, 4, 5, 7, 8, 10, 11, 12, 9, 13, 14, 15]
+hitl = false
+risk = "low"

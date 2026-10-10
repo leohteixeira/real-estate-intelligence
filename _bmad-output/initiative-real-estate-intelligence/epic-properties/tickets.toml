@@ -1,0 +1,156 @@
+# The planned stories of this epic, in build order. `id` names an entry for good; the order of the tables is the order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Properties contracts and stub endpoints"
+description = "Defines the `/api/v1` shapes of search, property, listing and largest reductions, the `properties.listing.*` and `properties.property.*` event contracts and the `locations` facade, with stub endpoints serving fixtures so the web and market epics open at once (CAP-6, CAP-7, CAP-8). The contracts include the places served for the plate, the crumbs and the place picker."
+verify = "The stub endpoints answer with fixtures that validate against the contracts."
+covers = ["CAP-6", "CAP-7", "CAP-8"]
+after = ["1.4", "1.6", "1.7"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 2
+type = "story"
+title = "One parsed listing becomes a property"
+description = "Proves the path: a `collection.snapshot.parsed` event is consumed idempotently, creates a `Property` and a `Listing` on a place and is served by the property endpoint (CAP-3, CAP-7)."
+verify = "Publishing one parsed fixture on the Compose stack makes the property endpoint return it with its provenance."
+covers = ["CAP-3", "CAP-7"]
+after = [1, "2.1"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Place hierarchy of São Paulo"
+description = "Builds the `locations` context: country, state, city, zone, neighborhood and street block with number range, coordinates where available, resolution of a published address to a place and the facade other contexts query (CAP-3). The hierarchy is seeded with the neighborhood-to-zone mapping, and places are served over `/api/v1` for the plate, the crumbs and the place picker. It also seeds the registered adjacency between neighborhoods and exposes it through the facade."
+verify = "Fixture addresses resolve to their street block and zone, and no stored location holds a unit or complement."
+covers = ["CAP-3"]
+after = [2]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 4
+type = "story"
+title = "Normalization with the field allowlist"
+description = "Normalizes type, asking price, area, rooms, parking and features into canonical form with provenance per value, storing only allowlisted fields and a description with phone numbers, e-mail addresses, CPF numbers and links masked (CAP-3). Location is resolved through the `locations` facade."
+verify = "The real-shaped fixture yields a listing with no name, contact or photograph and a masked description, each value carrying source, URL and collection time."
+covers = ["CAP-3"]
+after = [2, 3]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Listing events and history"
+description = "Records every change as an event that never overwrites the earlier value, deriving removal and reappearance from `collection.run.completed`, and publishes them through the outbox (CAP-5). A re-parsed observation corrects stored values without creating an event."
+verify = "Replaying the fixture yields `ListingCreated`, `ListingPriceChanged`, `ListingDescriptionChanged`, `ListingRemoved` and `ListingReappeared` in order with dates and previous values."
+covers = ["CAP-5"]
+after = [4]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Explainable entity resolution"
+description = "Decides by rules which listings are one property, storing the probability and the evidence per reason (coordinates, area, bedrooms, description, fingerprints) and merging at 0.90, queueing for review from 0.50 and keeping separate below, from versioned configuration (CAP-4). It emits `properties.property.asking-price-changed`, `properties.property.merged`, `properties.property.split` and `properties.match.queued-for-review`."
+verify = "The fixture listings of one property resolve to one `Property` with several listings, and each threshold band behaves as specified."
+covers = ["CAP-4"]
+after = [3, 4, 5, "2.9"]
+hitl = false
+risk = "high"
+unknown = "The weight of each match reason and how description similarity is measured without a model."
+
+[[entry]]
+id = 7
+type = "story"
+title = "Thresholds calibrated on the labelled dataset"
+description = "Measures entity resolution against the labelled matches of the synthetic dataset and fixes the versioned configuration from the result (CAP-4). The labels come from the fixture file exported by the synthetic dataset. The thresholds 0.90 and 0.50 stay fixed: calibration tunes the weights only and reports whether a threshold should move."
+verify = "The calibration test reports precision and recall on the labelled dataset and fails if they fall below the recorded values."
+covers = ["CAP-4"]
+after = [6, "2.3"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Search with filters and orderings"
+description = "Serves search over the properties of a place with every filter and ordering of `ux.md`, each row a property with its listings grouped, the result reporting its count and its own median asking price per m² (CAP-6)."
+verify = "Each filter and ordering narrows or orders the fixture dataset as expected, including furthest below the result median."
+covers = ["CAP-6"]
+after = [3, 4, 5, 6]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 9
+type = "story"
+title = "Property detail"
+description = "Serves the asking price as the lowest among active listings with its provenance, the statement that no sale is recorded, each price change with date and percentage, time on market with removals, agreement per attribute and the match evidence (CAP-7)."
+verify = "The fixture property with three listings returns every element of CAP-7."
+covers = ["CAP-7"]
+after = [5, 6]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 10
+type = "story"
+title = "Listing provenance and the listing-text rule"
+description = "Serves a listing with source, URL, first-seen and last-collected times, run, snapshot or its hash, the date since each value holds and its events, returning description text and version comparison only where the source register allows it (CAP-8)."
+verify = "A listing of an allowing source returns its text and versions; one of another source returns only that the description changed and when."
+covers = ["CAP-8"]
+after = [5, "2.4"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 11
+type = "story"
+title = "Largest reductions of a place"
+description = "Serves the properties of a place with the largest asking-price reductions, for the Place overview (CAP-5)."
+verify = "The endpoint returns the fixture reductions in order with their previous values."
+covers = ["CAP-5"]
+after = [5, 3]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Erasure of a suppressed listing"
+description = "Consumes `collection.listing.suppressed`, deletes the listing with its history and evidence, publishes the change and leaves a property without listings out of every result (CAP-28)."
+verify = "After the event the listing is absent from search, property and listing responses and a later parsed event for it is ignored."
+covers = ["CAP-28"]
+after = [5, 6, 8, 9, 10, "2.10"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 13
+type = "story"
+title = "Properties in production"
+description = "Runs the context on the deployed stack over the collected synthetic dataset (CAP-6, CAP-7, CAP-8)."
+verify = "The production endpoints return the property with three listings resolved into one, with its evidence and history."
+covers = ["CAP-6", "CAP-7", "CAP-8"]
+after = [7, 8, 9, 10, 11, 12, "2.12"]
+hitl = true
+risk = "medium"
+
+[[entry]]
+id = 14
+type = "story"
+title = "Refactor sweep"
+description = "Cleans up what the plans and reviews of this epic deferred; its scope is set when it starts."
+verify = "The full check passes and every deferred finding is closed or turned into a ticket."
+covers = []
+after = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+hitl = false
+risk = "low"

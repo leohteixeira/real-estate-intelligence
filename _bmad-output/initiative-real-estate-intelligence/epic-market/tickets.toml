@@ -1,0 +1,113 @@
+# The planned stories of this epic, in build order. `id` names an entry for good; the order of the tables is the order.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Market contracts and stub endpoints"
+description = "Defines the `/api/v1` shapes of place figures, the neighbours table and the monthly series, with stub endpoints serving fixtures so the web epic opens at once (CAP-9)."
+verify = "The stub endpoints answer with fixtures that validate against the contracts."
+covers = ["CAP-9"]
+after = ["1.6", "1.7"]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 2
+type = "story"
+title = "Median asking price of one neighborhood from events"
+description = "Proves the path: listing events are consumed idempotently into price facts owned by `market`, and the median asking price per m² of a neighborhood is served with its count, sources and computation time (CAP-9). The rule of the median is written beside its code as the documented rule its tests cite."
+verify = "Publishing fixture listing events on the Compose stack makes the place endpoint return the documented median."
+covers = ["CAP-9"]
+after = [1, "3.1", "1.4"]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 3
+type = "story"
+title = "Complete price facts"
+description = "Keeps one fact per property at the lowest asking price among its active listings through every listing and property event, merges and removals included (CAP-9)."
+verify = "After the full event fixture each property counts once at its asking price and a merged property is not counted twice."
+covers = ["CAP-9"]
+after = [2]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 4
+type = "story"
+title = "Remaining place figures"
+description = "Adds the movement of the median, the median time on market, the price reductions in 30 days, the listings per property and whether a sale price is recorded (CAP-9). Each rule is written beside its code as the documented rule its tests cite."
+verify = "Each figure equals its documented rule applied to the fixture dataset."
+covers = ["CAP-9"]
+after = [3]
+hitl = false
+risk = "medium"
+unknown = "The window over which the movement of the median is measured."
+
+[[entry]]
+id = 6
+type = "story"
+title = "Parent median, plate counts and neighbours"
+description = "Serves the median of the parent place, the counts the place plate shows and the table of neighbouring places, through the `locations` facade (CAP-9). Neighbours are the registered adjacency that `locations` serves."
+verify = "The fixture neighborhood returns its zone median, its counts and its neighbours with their figures."
+covers = ["CAP-9"]
+after = [4, "3.3"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Twelve-month series of the median"
+description = "Serves the monthly median asking price per m² of a place over twelve months, as the Place overview draws it (CAP-9). It needs twelve months of dated events, which the synthetic dataset supplies."
+verify = "The series of the fixture neighborhood equals the documented rule month by month."
+covers = ["CAP-9"]
+after = [3]
+hitl = false
+risk = "medium"
+unknown = "Whether the series is recomputed from price facts or stored as monthly snapshots."
+
+[[entry]]
+id = 5
+type = "story"
+title = "Provenance and staleness of figures"
+description = "Gives every figure its record count, sources and computation time and states the age of a stale one (CAP-9). A figure is stale when it was computed before the last completed collection of its sources, which `market` learns from `collection.run.completed`."
+verify = "A figure computed before the last collection states its age, and every response carries the three provenance fields."
+covers = ["CAP-9"]
+after = [4, 6, 7, "2.1"]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Erasure of the facts of a suppressed listing"
+description = "Consumes `collection.listing.suppressed` and deletes the facts of that listing, the series included, so figures no longer count it; `properties.listing.removed` only closes its time on market (CAP-28)."
+verify = "After the event the figures of the place equal the rule applied without that listing."
+covers = ["CAP-28"]
+after = [3, 7, "2.1"]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 9
+type = "story"
+title = "Market in production"
+description = "Runs the context on the deployed stack from the events of the collected synthetic dataset (CAP-9)."
+verify = "The production endpoint of a neighborhood returns its figures with count, sources and computation time. The same holds for its neighbours and its twelve-month series."
+covers = ["CAP-9"]
+after = [4, 5, 6, 7, 8, "3.13"]
+hitl = true
+risk = "medium"
+
+[[entry]]
+id = 10
+type = "story"
+title = "Refactor sweep"
+description = "Cleans up what the plans and reviews of this epic deferred; its scope is set when it starts."
+verify = "The full check passes and every deferred finding is closed or turned into a ticket."
+covers = []
+after = [1, 2, 3, 4, 6, 7, 5, 8, 9]
+hitl = false
+risk = "low"

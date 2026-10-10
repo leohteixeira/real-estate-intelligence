@@ -1,0 +1,79 @@
+---
+type: epic
+title: 'Deterministic place figures'
+parent: initiative-real-estate-intelligence
+covers: [CAP-9, CAP-28]
+after: []
+assignee: ''
+risk: medium
+---
+
+# Deterministic place figures
+
+## Description
+
+The `market` context: its own price facts, fed by events, and the deterministic figures of a place
+with their provenance. By the owner's decision it also serves what the Place overview draws beyond
+CAP-9: the median of the parent place, the counts of the plate, the neighbours table and the monthly
+series of twelve months. Of CAP-28 it erases the facts of a suppressed listing.
+
+## Outcome
+
+For anyone reading a market: every figure of a place is reproducible, dated and counted; the signal
+is the neighborhood figure of the first success signal of the spec.
+
+## Requirements
+
+The spec is the requirement source: children cite its ids CAP-9, CAP-28. Where an id is shared with
+another epic, Description says which part this epic delivers.
+
+## Done when
+
+1. For a place `/api/v1` returns the median asking price per m² with its movement, the median time
+   on market, the price reductions in 30 days, the listings per property and whether a sale price is
+   recorded, each equal to its documented rule on the fixture dataset with every property counted
+   once at its asking price.
+2. Every figure carries its record count, sources and computation time, and a stale figure states
+   its age.
+3. A price change in `properties` moves the figure through events; no query reads the `properties`
+   schema.
+4. The parent median, the plate counts, the neighbours table and the twelve-month series are served,
+   and the facts of a suppressed listing are gone.
+5. The endpoints answer in production over the synthetic dataset.
+
+## Boundaries
+
+The `market` context and its schema. Not the 30-day, 6-month and 12-month analytics and the ranking
+of CAP-22, not recorded sale figures (CAP-33).
+
+## References
+
+- parent — `_bmad-output/initiative-real-estate-intelligence/initiative-real-estate-intelligence.md`
+- spec —
+  `_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/spec-real-estate-intelligence.md`,
+  sections Capabilities and Constraints
+- architecture —
+  `_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md`;
+  ADRs 0011, 0012 and 0013 under `specs/adrs/`
+- design — `_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/ux.md`,
+  section Place overview
+
+## Notes
+
+- Source conflict: CAP-9 and CAP-22 — the spec keeps a monthly series out of the MVP vs the owner's
+  decision above. The correction goes to `bmad-spec`.
+- Decision: the MVP Place overview shows everything its artboard draws, the twelve-month series
+  included (owner, 2026-10-10). The spec places movement over windows in CAP-22; the series is
+  brought forward and the rest of CAP-22 stays in V2.
+- Unknown: whether the series is recomputed from price facts or stored as monthly snapshots; the
+  series entry settles it.
+- Waits on epic-platform-baseline because: it needs the outbox, the kernel and the contract
+  conventions.
+- Waits on epic-properties because: it needs the `properties.listing.*` and `properties.property.*`
+  event contracts and the `locations` facade.
+- Tracer bullet: entry 2; entry 1 precedes it so epic-web opens on the contracts.
+- Waits on epic-collection because: it needs the `collection.listing.suppressed` event contract.
+- Decision: a figure is stale when computed before the last completed collection of its sources;
+  `market` consumes `collection.run.completed` (owner, 2026-10-10).
+- Decision: a neighbouring place is one registered as adjacent in `locations`, not a sibling in the
+  zone (owner, 2026-10-10).
