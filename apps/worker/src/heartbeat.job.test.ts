@@ -7,6 +7,7 @@ describe('HeartbeatJob', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.stubEnv('DATABASE_URL', 'postgres://app:app@localhost:5434/app');
+    vi.stubEnv('RABBITMQ_URL', 'amqp://app:app@localhost:5672/app');
     vi.stubEnv('WORKER_INTERVAL_MS', '1000');
   });
 
