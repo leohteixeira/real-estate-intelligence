@@ -41,6 +41,7 @@ const listing: CollectedListing = {
 function fixture() {
   const transaction = {} as Transaction;
   const repository: SnapshotReparseRepository = {
+    appendParsedEvidence: vi.fn(async () => undefined),
     findOperation: vi.fn(async () => null),
     findObservation: vi.fn(async () => original),
     verifyOriginalBytes: vi.fn(() => []),
@@ -73,6 +74,11 @@ describe('ReparseSnapshot', () => {
       new AbortController().signal,
     );
     const event = f.outbox.append.mock.calls[0]![1][0]!;
+    expect(f.repository.appendParsedEvidence).toHaveBeenCalledWith(expect.anything(), [event]);
+    expect(f.repository.complete).toHaveBeenCalledBefore(
+      f.repository.appendParsedEvidence as never,
+    );
+    expect(f.repository.appendParsedEvidence).toHaveBeenCalledBefore(f.outbox.append as never);
     expect(event.version).toBe(2);
     expect(event.payload).toMatchObject({
       run: { runId: original.runId },

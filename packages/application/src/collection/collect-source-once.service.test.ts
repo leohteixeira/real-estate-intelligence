@@ -173,6 +173,9 @@ function fixture(
     listEnabled: vi.fn(async () => []),
   };
   const runs: CollectionRunRepository = {
+    appendParsedEvidence: vi.fn(async () => {
+      calls.push('evidence');
+    }),
     pause: vi.fn(),
     resume: vi.fn(),
     findByOperationKey: vi.fn(async () => options.replay ?? null),
@@ -238,6 +241,7 @@ function fixture(
   );
   return {
     service,
+    transaction,
     calls,
     source,
     snapshots,
@@ -398,7 +402,18 @@ describe('CollectSourceOnce', () => {
       expect.any(Function),
       signal,
     );
-    expect(context.calls).toEqual(['fetch', 'store', 'parse', 'transaction', 'persist', 'outbox']);
+    expect(context.calls).toEqual([
+      'fetch',
+      'store',
+      'parse',
+      'transaction',
+      'persist',
+      'evidence',
+      'outbox',
+    ]);
+    expect(context.runs.appendParsedEvidence).toHaveBeenCalledWith(context.transaction, [
+      context.events[0]![0],
+    ]);
     expect(context.snapshots.store).toHaveBeenCalledWith(
       expect.objectContaining({ bytes: DOCUMENT.bytes, synthetic: true }),
       expect.any(AbortSignal),
@@ -524,6 +539,7 @@ describe('CollectSourceOnce', () => {
     ).rejects.toThrow('database unavailable');
     expect(context.snapshots.store).toHaveBeenCalledOnce();
     expect(context.outbox.append).not.toHaveBeenCalled();
+    expect(context.runs.appendParsedEvidence).not.toHaveBeenCalled();
   });
 
   it('rejects a concurrent persistence winner bound to another source without appending events', async () => {

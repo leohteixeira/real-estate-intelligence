@@ -19,6 +19,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApi } from '../configure-api';
 import { LocationsModule } from '../locations/index';
 import { PropertiesModule } from './properties.module';
+import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 
 describe('production properties and locations module HTTP contract', () => {
   let app: INestApplication;
@@ -26,7 +27,10 @@ describe('production properties and locations module HTTP contract', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [PropertiesModule, LocationsModule],
-    }).compile();
+    })
+      .overrideProvider(DATABASE_CONNECTION)
+      .useValue({ query: async () => [], close: async () => undefined })
+      .compile();
     app = module.createNestApplication();
     configureApi(app);
     await app.listen(0, '127.0.0.1');

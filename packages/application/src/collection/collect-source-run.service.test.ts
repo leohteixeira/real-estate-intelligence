@@ -90,6 +90,14 @@ function enabledSource() {
 }
 
 class RunRepositoryDouble implements CollectionRunRepository {
+  public readonly parsedEvidence: import('./parsed-event-evidence.port.js').ParsedCollectionEvent[] =
+    [];
+  public async appendParsedEvidence(
+    _transaction: Transaction,
+    events: readonly import('./parsed-event-evidence.port.js').ParsedCollectionEvent[],
+  ) {
+    this.parsedEvidence.push(...events);
+  }
   public run: CollectionRunState | null = null;
   public observations: PersistedCollectionObservation[] = [];
 
@@ -526,6 +534,9 @@ describe('CollectSourceRun', () => {
       ['collection.snapshot.parsed'],
       ['collection.snapshot.parsed', 'collection.run.completed'],
     ]);
+    expect(context.runs.parsedEvidence).toEqual(
+      context.batches.flat().filter(({ type }) => type === 'collection.snapshot.parsed'),
+    );
     expect(context.order.slice(0, 2)).toEqual(['transaction', 'fetch:null']);
     expect(context.order).toContain('fetch:fixture:2026-10:1');
     expect(context.order.indexOf('store')).toBeLessThan(context.order.indexOf('parse'));
