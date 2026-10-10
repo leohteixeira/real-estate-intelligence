@@ -5,6 +5,7 @@ import {
   type EventPublisher,
   type OutboxRelayPort,
 } from '@rei/application';
+import { runOutboxPublishSpan } from '@rei/infrastructure';
 
 import { readConfig } from '../config';
 
@@ -71,10 +72,9 @@ export class OutboxRelayJob {
     try {
       signal.throwIfAborted();
       const deadlineAt = Date.now() + operationTimeoutMs;
-      await this.publisher.publish(
-        event,
-        AbortSignal.any([signal, AbortSignal.timeout(operationTimeoutMs)]),
-        deadlineAt,
+      const publicationSignal = AbortSignal.any([signal, AbortSignal.timeout(operationTimeoutMs)]);
+      await runOutboxPublishSpan(event.traceContext, publicationSignal, () =>
+        this.publisher.publish(event, publicationSignal, deadlineAt),
       );
     } catch (error) {
       await this.outbox.releaseClaim(event.eventId, event.claimId);

@@ -6,6 +6,7 @@ export type { ProvenanceInput } from './provenance.js';
 export { isSerializableEventPayload, isSerializableValue } from './serializable.js';
 export type { EventPayload, SerializablePrimitive, SerializableValue } from './serializable.js';
 export { parseRfc3339Timestamp } from './timestamp.js';
+export { immutableTraceContext } from './trace-context.js';
 export type { TraceContext } from './trace-context.js';
 export { isUuidV7, parseUuidV7 } from './uuid-v7.js';
 export type { UuidV7 } from './uuid-v7.js';

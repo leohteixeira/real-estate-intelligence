@@ -17,6 +17,13 @@ import { randomUUID } from 'node:crypto';
 
 import { redactConnectionError } from '../persistence/redact.js';
 import {
+  activeAmqpTraceHeaders,
+  amqpTraceHeaders,
+  assertTraceContextConsistency,
+  extractAmqpTraceContext,
+  startMessagingConsumeSpan,
+} from '../telemetry/index.js';
+import {
   translateRabbitMqPublisherFailure,
   type RabbitMqPublishPhase,
 } from './rabbitmq-publisher-failure.js';
@@ -297,7 +304,6 @@ export function parseAuditTraceRequestedMessage(content: Buffer): EventEnvelope 
   if (
     event.type !== AUDIT_TRACE_REQUESTED_TYPE ||
     event.version !== AUDIT_TRACE_REQUESTED_VERSION ||
-    event.traceContext !== null ||
     Object.keys(event.payload).length !== 0
   ) {
     throw new Error('Broker delivery is not a supported audit trace event.');
@@ -533,6 +539,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
           contentEncoding: 'utf-8',
           messageId: event.eventId,
           type: event.type,
+          headers: activeAmqpTraceHeaders(),
         },
         settleConfirm,
       );
@@ -696,7 +703,9 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     const attempt = deliveryAttempt(message);
 
     let event: EventEnvelope;
+    let transportTraceContext: EventEnvelope['traceContext'] = null;
     try {
+      transportTraceContext = extractAmqpTraceContext(message.properties?.headers);
       event = parseEventMessage(message.content);
       if (!eventTypes.includes(event.type)) {
         throw new Error('Broker delivery is not bound to this consumer.');
@@ -704,6 +713,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       if (event.type === AUDIT_TRACE_REQUESTED_TYPE) {
         event = parseAuditTraceRequestedMessage(message.content);
       }
+      assertTraceContextConsistency(event.traceContext, transportTraceContext);
     } catch {
       await this.transferConfirmed(
         generation,
@@ -711,12 +721,26 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         `${consumerName}.dead-letter`,
         attempt,
         'invalid-envelope',
+        transportTraceContext,
       );
       if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
       return;
     }
 
-    const work = Promise.resolve().then(() => handler(event));
+    const tracedHandler = startMessagingConsumeSpan(
+      transportTraceContext ?? event.traceContext,
+      async () => handler(event),
+    );
+    const work = tracedHandler.completion;
+    let handlerSettled = false;
+    void work.then(
+      () => {
+        handlerSettled = true;
+      },
+      () => {
+        handlerSettled = true;
+      },
+    );
     this.#handlerWork.add(work);
     void work.then(
       () => this.#handlerWork.delete(work),
@@ -726,6 +750,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       await bounded(work, this.config.operationTimeoutMs, 'Event handling');
       if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
     } catch {
+      if (!handlerSettled) tracedHandler.markTimedOut();
       try {
         if (attempt < (this.config.deliveryLimit ?? 5)) {
           await abortableDelay(
@@ -738,6 +763,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
             sourceQueue,
             attempt + 1,
             'handler-retry',
+            transportTraceContext,
           );
         } else {
           await this.transferConfirmed(
@@ -746,6 +772,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
             `${consumerName}.dead-letter`,
             attempt,
             'delivery-limit',
+            transportTraceContext,
           );
         }
         if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
@@ -761,6 +788,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     destinationQueue: string,
     attempt: number,
     reason: 'handler-retry' | 'delivery-limit' | 'invalid-envelope',
+    traceContext: EventEnvelope['traceContext'],
   ): Promise<void> {
     const correlationId = randomUUID();
     let returned = false;
@@ -776,6 +804,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         contentEncoding: 'utf-8',
         correlationId,
         headers: {
+          ...(traceContext === null ? {} : amqpTraceHeaders(traceContext)),
           'x-rei-delivery-attempt': attempt,
           'x-rei-dead-letter-reason': reason,
         },

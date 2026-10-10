@@ -1,4 +1,4 @@
-import { AuditTraceRequested, type UuidV7 } from '@rei/domain';
+import { AuditTraceRequested, type TraceContext, type UuidV7 } from '@rei/domain';
 
 import type {
   Clock,
@@ -15,7 +15,7 @@ export class RequestAuditTrace {
     private readonly outbox: OutboxAppendPort,
   ) {}
 
-  public async execute(): Promise<UuidV7> {
+  public async execute(traceContext: TraceContext | null): Promise<UuidV7> {
     return this.transactions.runInTransaction(async (transaction) => {
       const eventId = await this.identifiers.generate(transaction);
       const aggregateId = await this.identifiers.generate(transaction);
@@ -23,6 +23,7 @@ export class RequestAuditTrace {
         eventId,
         aggregateId,
         occurredAt: this.clock.now(),
+        traceContext,
       });
 
       await this.outbox.append(transaction, [event]);

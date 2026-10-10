@@ -17,6 +17,7 @@ import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK } from '@opentelemetry/sdk-node';
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
 
 const serviceName = process.env.OTEL_SERVICE_NAME ?? 'real-estate-intelligence-worker';
@@ -31,9 +32,9 @@ export function telemetryExporterConfiguration(enabled: boolean) {
         }),
       }
     : {
-        // Empty arrays suppress the SDK's implicit OTLP trace, log and metric
-        // exporters when this service has no collector endpoint configured.
-        spanProcessors: [],
+        // A no-export processor keeps the tracer provider active while the empty
+        // log and metric arrays suppress the SDK's implicit OTLP exporters.
+        spanProcessors: [new NoopSpanProcessor()],
         logRecordProcessors: [],
         metricReaders: [],
       };

@@ -11,6 +11,7 @@ import { DomainEvent, type DomainEventInput, type EventPayload, type UuidV7 } fr
 import type { DatabaseConnection } from './database-connection.js';
 import { postgresClientFor } from './postgres-transaction.js';
 import { redactConnectionError } from './redact.js';
+import { runOutboxAppendSpan } from '../telemetry/index.js';
 
 interface OutboxDatabaseRow {
   readonly event_id: unknown;
@@ -89,27 +90,29 @@ export class PostgresOutbox implements OutboxAppendPort, OutboxRelayPort, Outbox
   public constructor(private readonly connection: DatabaseConnection) {}
 
   public async append(transaction: Transaction, events: readonly EventEnvelope[]): Promise<void> {
-    const client = postgresClientFor(transaction, this.connection);
-    try {
-      for (const event of events) {
-        await client.query(
-          `INSERT INTO platform.outbox
-             (event_id, event_type, event_version, aggregate_id, occurred_at, trace_context, payload)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            event.eventId,
-            event.type,
-            event.version,
-            event.aggregateId,
-            event.occurredAt,
-            event.traceContext,
-            event.payload,
-          ],
-        );
+    return runOutboxAppendSpan(async () => {
+      const client = postgresClientFor(transaction, this.connection);
+      try {
+        for (const event of events) {
+          await client.query(
+            `INSERT INTO platform.outbox
+               (event_id, event_type, event_version, aggregate_id, occurred_at, trace_context, payload)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              event.eventId,
+              event.type,
+              event.version,
+              event.aggregateId,
+              event.occurredAt,
+              event.traceContext,
+              event.payload,
+            ],
+          );
+        }
+      } catch (error) {
+        throw redactConnectionError(error);
       }
-    } catch (error) {
-      throw redactConnectionError(error);
-    }
+    });
   }
 
   public async claimPending(limit: number, leaseDurationMs: number): Promise<readonly OutboxRow[]> {
