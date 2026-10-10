@@ -1,4 +1,10 @@
-import type { CollectedListing, Sha256Hash, TraceContext, UuidV7 } from '@rei/domain';
+import {
+  createSourceRegistration,
+  type CollectedListing,
+  type Sha256Hash,
+  type TraceContext,
+  type UuidV7,
+} from '@rei/domain';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -18,6 +24,7 @@ import type {
 } from './collection-run.repository.js';
 import type { ListingSource, RawListingDocument } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
+import type { SourceRegisterRepository } from './source-register.repository.js';
 
 const IDS = [
   '0199c8f2-2394-7ba0-8f9e-286378779210',
@@ -104,14 +111,30 @@ function fixture(options: { replay?: CollectionExecutionResult; enabled?: boolea
     }),
   };
   let persistedInput: PersistCompletedCollectionInput | undefined;
+  const sources: SourceRegisterRepository = {
+    findById: vi.fn(async () =>
+      createSourceRegistration({
+        sourceId: 'synthetic-data',
+        displayLabel: 'Labelled synthetic fixture',
+        category: 'synthetic-listing',
+        enabled: options.enabled ?? true,
+        enabledAt: options.enabled === false ? null : '2026-10-10T00:00:00Z',
+        permissions: {
+          collectionAllowed: options.enabled ?? true,
+          imageFetchingAllowed: true,
+          listingTextDisplayAllowed: true,
+        },
+        review: { outcome: 'not-required', reviewedAt: null, evidence: 'Fixture.' },
+        access: { method: 'repository-fixture', detail: 'Checked-in fixture.' },
+        rate: { status: 'not-applicable', limit: null, windowSeconds: null },
+        licence: { status: 'not-applicable', label: 'Synthetic data', url: null },
+      }),
+    ),
+    enableAtomically: vi.fn(),
+    listEnabled: vi.fn(async () => []),
+  };
   const runs: CollectionRunRepository = {
     findByOperationKey: vi.fn(async () => options.replay ?? null),
-    findSource: vi.fn(async () => ({
-      sourceId: 'synthetic-data',
-      enabled: options.enabled ?? true,
-      collectionAllowed: options.enabled ?? true,
-      synthetic: true,
-    })),
     persistCompleted: vi.fn(async (_transaction, input) => {
       calls.push('persist');
       persistedInput = input;
@@ -152,6 +175,7 @@ function fixture(options: { replay?: CollectionExecutionResult; enabled?: boolea
   const service = new CollectSourceOnce(
     source,
     snapshots,
+    sources,
     runs,
     transactions,
     identifiers,
@@ -164,6 +188,7 @@ function fixture(options: { replay?: CollectionExecutionResult; enabled?: boolea
     source,
     snapshots,
     runs,
+    sources,
     transactions,
     outbox,
     events,
@@ -181,7 +206,7 @@ describe('CollectSourceOnce', () => {
     ).resolves.toEqual(result());
 
     expect(context.runs.findByOperationKey).toHaveBeenCalledWith('operation-1', signal);
-    expect(context.runs.findSource).toHaveBeenCalledWith('synthetic-data', signal);
+    expect(context.sources.findById).toHaveBeenCalledWith('synthetic-data', signal);
     expect(context.transactions.runInTransaction).toHaveBeenCalledWith(
       expect.any(Function),
       signal,

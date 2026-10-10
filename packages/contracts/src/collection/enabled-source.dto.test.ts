@@ -8,7 +8,7 @@ describe('EnabledSourceDto', () => {
 
     expect(hydrated).toEqual({
       sourceId: 'synthetic-data',
-      displayLabel: 'Synthetic dataset',
+      displayLabel: 'Labelled synthetic fixture',
       enabled: true,
       permissions: {
         collectionAllowed: true,
@@ -22,5 +22,13 @@ describe('EnabledSourceDto', () => {
       },
     });
     expect(hydrated.licence.status).not.toBe('licensed');
+    expect(Object.keys(hydrated).sort()).toEqual([
+      'displayLabel',
+      'enabled',
+      'licence',
+      'permissions',
+      'sourceId',
+    ]);
+    expect(JSON.stringify(hydrated)).not.toMatch(/review|rate|access|evidence|enabledAt/i);
   });
 });

@@ -8,7 +8,7 @@ import {
 } from '@aws-sdk/client-s3';
 import type { RawListingDocument, Transaction } from '@rei/application';
 import { ExternalFailure } from '@rei/application';
-import type { CollectedListing } from '@rei/domain';
+import { createSourceRegistration, type CollectedListing } from '@rei/domain';
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +16,7 @@ import {
   InMemoryCollectionRunRepository,
   InMemoryListingSource,
   InMemoryRawSnapshotStore,
+  InMemorySourceRegisterRepository,
 } from './in-memory-collection.adapters.js';
 import { S3RawSnapshotStore } from './s3-raw-snapshot-store.js';
 import {
@@ -121,8 +122,24 @@ describe('in-memory collection adapters', () => {
   });
 
   it('stores and replays completed run results by operation key', async () => {
-    const repository = new InMemoryCollectionRunRepository([
-      { sourceId: 'synthetic-data', enabled: true, collectionAllowed: true, synthetic: true },
+    const repository = new InMemoryCollectionRunRepository();
+    const register = new InMemorySourceRegisterRepository([
+      createSourceRegistration({
+        sourceId: 'synthetic-data',
+        displayLabel: 'Labelled synthetic fixture',
+        category: 'synthetic-listing',
+        enabled: true,
+        enabledAt: '2026-10-10T00:00:00Z',
+        permissions: {
+          collectionAllowed: true,
+          imageFetchingAllowed: true,
+          listingTextDisplayAllowed: true,
+        },
+        review: { outcome: 'not-required', reviewedAt: null, evidence: 'Fixture.' },
+        access: { method: 'repository-fixture', detail: 'Checked-in fixture.' },
+        rate: { status: 'not-applicable', limit: null, windowSeconds: null },
+        licence: { status: 'not-applicable', label: 'Synthetic data', url: null },
+      }),
     ]);
     const input = {
       operationKey: 'operation-1',
@@ -143,8 +160,8 @@ describe('in-memory collection adapters', () => {
       manifestHash: `sha256:${'1'.repeat(64)}`,
     } as const;
 
-    expect(await repository.findSource('synthetic-data')).toMatchObject({ enabled: true });
-    expect(await repository.findSource('missing')).toBeNull();
+    expect(await register.findById('synthetic-data')).toMatchObject({ enabled: true });
+    expect(await register.findById('missing')).toBeNull();
     const first = await repository.persistCompleted({} as Transaction, input);
     const replay = await repository.persistCompleted({} as Transaction, input);
     expect(first.created).toBe(true);

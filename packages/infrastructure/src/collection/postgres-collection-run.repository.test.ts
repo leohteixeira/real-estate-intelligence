@@ -45,21 +45,14 @@ function connectionDouble(client: DatabaseClient, identity = {}) {
 }
 
 describe('PostgresCollectionRunRepository', () => {
-  it('maps operation replay and source registration queries strictly', async () => {
+  it('maps operation replay queries strictly', async () => {
     const queryAbortable = vi.fn(
       async (
         ...args: [statement: string, parameters?: readonly unknown[], signal?: AbortSignal]
       ) => {
         const [statement] = args;
         if (statement.includes('FROM collection.collection_run')) return [resultRow];
-        return [
-          {
-            source_id: 'synthetic-data',
-            enabled: true,
-            collection_allowed: true,
-            source_kind: 'synthetic',
-          },
-        ];
+        return [];
       },
     );
     const signal = new AbortController().signal;
@@ -72,13 +65,7 @@ describe('PostgresCollectionRunRepository', () => {
       runId: input.runId,
       contentHash: input.contentHash,
     });
-    await expect(repository.findSource('synthetic-data', signal)).resolves.toEqual({
-      sourceId: 'synthetic-data',
-      enabled: true,
-      collectionAllowed: true,
-      synthetic: true,
-    });
-    expect(queryAbortable).toHaveBeenCalledTimes(2);
+    expect(queryAbortable).toHaveBeenCalledOnce();
     expect(
       queryAbortable.mock.calls.every(([, , receivedSignal]) => receivedSignal === signal),
     ).toBe(true);

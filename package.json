@@ -16,6 +16,7 @@
     "test:coverage": "bash scripts/test-coverage.sh",
     "test:integration": "node integration/audit-tracer.integration.mjs",
     "test:integration:collection": "node integration/synthetic-collection.integration.mjs",
+    "test:integration:source-register": "node --test integration/source-register-cleanup.test.mjs && node integration/source-register.integration.mjs",
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
