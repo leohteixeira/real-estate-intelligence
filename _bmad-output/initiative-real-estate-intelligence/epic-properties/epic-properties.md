@@ -81,3 +81,18 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   change goes to the owner (owner, 2026-10-10).
 - Decision: `locations` keeps a seeded adjacency between neighborhoods for the neighbours table
   (owner, 2026-10-10).
+- Decision: D-020 freezes the versioned property/listing/search/reduction and place DTOs plus the
+  eight listing/property v1 events, served by explicitly labelled synthetic read-only adapters.
+  Preserve the shared `totalItems` cursor envelope; validate all UX query parameters without
+  changing collection v1 types. Supplement only fictional block/adjacency and permission/expiry
+  examples; do not fabricate market medians, measured match scores, source rights or sale facts.
+  Denied descriptions contain no text on any response path. Production persistence, matching,
+  event publication and match events belong to later stories; the existing framework-neutral
+  validators/facades and Vitest override conflicting modular-monolith skill defaults as in D-012
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-021 completes the unpublished stub contracts with all six place levels and explicitly
+  fictional blocks, signed property-price change percentages, property-level reductions, prepared
+  probability/reasons and structured feature/type agreement. Reassignment events allow surviving
+  property IDs and include dated active listing facts that validate conserved prices and both sets
+  of minima without foreign reads. Production resolution, matching and calibration stay deferred
+  (agent, on the owner's behalf, 2026-10-10).

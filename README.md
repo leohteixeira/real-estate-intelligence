@@ -16,8 +16,9 @@ The CAP-28 privacy records are the
 Both are version 1, accepted as an engineering baseline by the agent on the owner's behalf,
 2026-10-10, under D-019. Real processing remains disabled pending their source-specific gates.
 
-> Current state: **foundation**. Structure, tooling and processes are in place; there are no
-> entities, no collectors, no comparables and no business endpoints.
+> Current state: **synthetic contract foundation**. Collection plumbing and deterministic synthetic
+> replay exist, and properties/locations expose read-only stub endpoints. Real-source processing,
+> persisted property ingestion, production matching, market figures and comparables are not enabled.
 
 ## Stack
 
@@ -60,8 +61,8 @@ The dependency direction is always inwards:
 ## Architecture
 
 A modular monolith: the logical boundaries are fixed now, and a separate deploy or database for a
-module is a later, operational choice. ADRs 0011 to 0013 describe the target; no
-context holds business code yet.
+module is a later, operational choice. ADRs 0011 to 0013 describe the target; collection owns the
+existing ingestion foundation and properties/locations provide synthetic read contracts.
 
 | Context       | Class      | Owns                                                         |
 | ------------- | ---------- | ------------------------------------------------------------ |
@@ -107,6 +108,8 @@ pnpm run lint
 pnpm run typecheck
 pnpm run test
 pnpm run build
+pnpm run test:coverage
+pnpm run test:integration:properties   # isolated compiled-API synthetic read journey (after build)
 
 pnpm --filter "@rei/api" dev      # http://0.0.0.0:8200
 pnpm --filter "@rei/worker" dev
@@ -125,12 +128,17 @@ mandatory: without it the process still starts, but without instrumentation, bec
 
 ## Endpoints
 
-| Service | Method | Route     | Description                                            |
-| ------- | ------ | --------- | ------------------------------------------------------ |
-| API     | `GET`  | `/health` | Liveness. Touches no dependency at all.                |
-| API     | `GET`  | `/ready`  | Readiness. Answers 503 when PostgreSQL does not reply. |
-| API     | —      | `/api/v1` | Versioned contract surface, still empty.               |
-| AI      | `GET`  | `/health` | Dependency-free liveness.                              |
+| Service | Method | Route                                                          | Description                                            |
+| ------- | ------ | -------------------------------------------------------------- | ------------------------------------------------------ |
+| API     | `GET`  | `/health`                                                      | Liveness. Touches no dependency at all.                |
+| API     | `GET`  | `/ready`                                                       | Readiness. Answers 503 when PostgreSQL does not reply. |
+| API     | `GET`  | `/api/v1/properties`, `/api/v1/listings/:id`, `/api/v1/places` | Synthetic properties, listings and place navigation.   |
+| AI      | `GET`  | `/health`                                                      | Dependency-free liveness.                              |
+
+The [properties and locations API reference](docs/api/properties-and-locations.md) documents all
+seven GET families, query validation, paging, event contracts, stable fixture IDs, description
+permissions, expiry and the explicit synthetic-only limitations. Responses are tagged
+`synthetic-stub`; no property read starts collection or writes the outbox.
 
 ## Ports
 
