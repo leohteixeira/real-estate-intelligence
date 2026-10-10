@@ -26,6 +26,35 @@ entities, no collectors, no comparables, no Mastra tools and no business endpoin
 - Collectors respect the sources' ToS, robots, rate limits and licensing. In development, use
   synthetic datasets or explicitly permitted sources.
 
+### Bounded contexts (ADR 0011)
+
+- Nine contexts: `properties`, `market`, `comparables` (Core); `collection`, `locations`, `ask`,
+  `alerts` (Supporting); `audit`, `identity` (Generic). Do not add a context without an ADR.
+- A context is the same folder name in `@rei/domain`, `@rei/application`, `@rei/infrastructure`,
+  `@rei/contracts`, `apps/api` and `apps/worker`. Inside it, group files by aggregate and express
+  the layer as a suffix (`listing.entity.ts`, `listing.service.ts`, `listing.pg-repository.ts`).
+  Never create `entities/`, `services/`, `repositories/` or `dto/` folders.
+- Import another context only through its `index.ts` (facade, DTOs, event contracts). Never import
+  its entities, services or repositories.
+- A context reads and writes only its own PostgreSQL schema. No foreign key and no join crosses a
+  schema; reference another context by identifier.
+
+### Events and the outbox (ADR 0012)
+
+- One transaction changes one aggregate and appends its events to `platform.outbox`. Never publish
+  to RabbitMQ from a request or from inside a business transaction.
+- Name events `context.aggregate.action`. Payloads carry primitives and identifiers only.
+- Every consumer is idempotent through `platform.inbox` and acknowledges after its commit.
+
+### External systems (ADR 0013)
+
+- Reach every external system through a port named for the capability, with its adapter in
+  `@rei/infrastructure` (or in `@rei/ai` for AI providers) and an in-memory fake for tests.
+- An adapter makes one attempt. Retry, timeout, circuit breaker, bulkhead, rate limit and fallback
+  belong to the `@nestjs/resilience` policy that wraps it; timings live in named configuration.
+- Retry only idempotent operations; every write carries an idempotency key. A block, a login wall
+  or a CAPTCHA from a source is never retried.
+
 ## Conventions
 
 - Explicit SQL through `pg`. No ORM.

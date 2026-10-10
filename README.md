@@ -5,7 +5,10 @@ not a listing aggregator, but a market intelligence layer that answers questions
 square meter, appreciation by region, recent price drops, stale listings and undervalued
 properties.
 
-The product specification lives at `/workspace/docs/real_state_intelligence.md`.
+The product specification lives under
+[`_bmad-output/`](_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/),
+the decisions under [`specs/adrs/`](specs/adrs/) and the architecture document, with its diagrams,
+at [`docs/architecture/architecture.html`](docs/architecture/architecture.html).
 
 > Current state: **foundation**. Structure, tooling and processes are in place; there are no
 > entities, no collectors, no comparables and no business endpoints.
@@ -40,10 +43,41 @@ packages/
 └── infrastructure/  # adapters; vendor SDKs only here
 migrations/    # versioned SQL
 specs/adrs/    # architecture decisions
+docs/
+├── architecture/    # architecture document (HTML, opens in a browser)
+└── design/          # design system and screen canvas
 ```
 
 The dependency direction is always inwards:
 `@rei/api` / `@rei/worker` → `@rei/application` → `@rei/domain`.
+
+## Architecture
+
+A modular monolith: the logical boundaries are fixed now, and a separate deploy or database for a
+module is a later, operational choice. ADRs 0011 to 0013 describe the target; no
+context holds business code yet.
+
+| Context       | Class      | Owns                                                         |
+| ------------- | ---------- | ------------------------------------------------------------ |
+| `properties`  | Core       | `Property`, `Listing` and its history, entity resolution     |
+| `market`      | Core       | Deterministic place figures and their movement               |
+| `comparables` | Core       | Comparable sets by stated criteria (V2)                      |
+| `collection`  | Supporting | Source register, collection runs, raw snapshots, suppression |
+| `locations`   | Supporting | Place hierarchy and reference geography                      |
+| `ask`         | Supporting | Threads, natural-language runs, checkpoints, quota           |
+| `alerts`      | Supporting | Alert rules and the inbox (after the MVP)                    |
+| `audit`       | Generic    | Append-only audit log                                        |
+| `identity`    | Generic    | Principal and roles behind Keycloak (after the MVP)          |
+
+- A context is the same folder name in each package and application; inside it, files are grouped
+  by aggregate and the technical layer is a suffix.
+- A context is the only reader and writer of its PostgreSQL schema. Another context is reached
+  through its facade, for a query, or through an event, for a change.
+- Events are written to an outbox in the transaction that changes the aggregate and published to
+  RabbitMQ by a relay in the worker. Consumers are idempotent.
+- Every external system sits behind a port and an adapter, wrapped by one resilience composition:
+  timeout, retry with capped exponential backoff and jitter, circuit breaker with a named fallback,
+  and an idempotency key on every write.
 
 `@rei/ai` does **not** depend on `@rei/infrastructure`, does not receive `DATABASE_URL` and does not
 instantiate a connection pool. It reaches the domain only through typed tools that call `/api/v1`.
