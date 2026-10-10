@@ -3,7 +3,7 @@ title: 'Shared kernel of the four packages'
 type: 'refactor'
 ticket: '2'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'ff7844fdf2360696e7a05a17d23a7a26b85788c9'
 route: 'full'
 route_source: 'auto'
