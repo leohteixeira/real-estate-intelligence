@@ -67,6 +67,23 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 
 ## Notes
 
+- Decision: D-017 and the accepted ADR 0019 amendment require incremental single-candidate
+  durable selection before each deletion attempt, preserving the total cycle batch bound and
+  preventing a slow first object from starving unattempted peers after deadline cancellation
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-015 and ADR 0019 require bounded durable reconciliation of expired tombstones,
+  because cancellation may release a database lock before a remote PUT finishes. The access
+  deadline and terminal state remain fixed; local campaign keys are generated in memory
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-016 and the accepted ADR 0019 amendment separate due eligibility from a durable
+  monotonic selection order, preventing object-specific failures from monopolizing bounded
+  reconciliation batches without changing expiry or falsely confirming deletion
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-014 and ADR 0018 require closed JSON sanitization before storage and parsing,
+  authenticated application-side encryption with no default key, acquisition-scoped fixed
+  30-day expiry including pre-commit uploads, and durable hash/history preservation. Synthetic
+  bytes remain unchanged; only an isolated local fixture exercises the real-data path, with no
+  external source enabled (agent, on the owner's behalf, 2026-10-10).
 - Decision: D-013 requires per-source Retry-After admission across logical calls, remaining
   delay on canonical failure, a deadline covering initial registry/pending-hold waits, and
   lifecycle-managed telemetry in both operator roots without duplicate worker subscribers
