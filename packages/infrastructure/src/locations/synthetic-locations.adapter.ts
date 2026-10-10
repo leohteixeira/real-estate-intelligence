@@ -1,4 +1,12 @@
 import type { LocationsFacade } from '@rei/application';
+import {
+  Place,
+  parsePublishedAddress,
+  normalizePlaceName,
+  normalizeStreetName,
+  selectUniqueBlock,
+  type PublishedAddress,
+} from '@rei/domain';
 import type {
   CollectedListingLocation,
   ResolvedPropertyPlace,
@@ -154,10 +162,81 @@ export function syntheticBlockId(neighborhood: string): string {
 export function syntheticPlace(id: string): PlaceDetail | null {
   return syntheticPlaces().find((place) => place.id === id) ?? null;
 }
+/** Supplementary fictional reference only; never part of the original prepared projection. */
+export function supplementaryPlaces(): readonly PlaceDetail[] {
+  return [
+    [
+      'sao-paulo-bela-vista',
+      'sao-paulo-bela-vista-avenida-exemplo-fictional-block',
+      'Avenida Exemplo',
+    ],
+    [
+      'sao-paulo-vila-mariana',
+      'sao-paulo-vila-mariana-rua-cenario-um-fictional-block',
+      'Rua Cenário Um',
+    ],
+  ].map(([parentId, id, street]) => {
+    const parent = syntheticPlace(parentId!)!;
+    const block = ref(
+      id!,
+      'street-block',
+      street === 'Avenida Exemplo'
+        ? 'Fictional Avenida Exemplo block'
+        : 'Fictional Vila Mariana Rua Cenário Um block',
+      street === 'Avenida Exemplo'
+        ? 'Quarteirão fictício Avenida Exemplo'
+        : 'Quarteirão fictício Vila Mariana Rua Cenário Um',
+    );
+    return {
+      ...block,
+      parentId: parent.id,
+      breadcrumbs: [...parent.breadcrumbs, block],
+      adjacentPlaceIds: [],
+      propertyCount: 0,
+      coordinates: null,
+      block: {
+        streetName: street!,
+        fromNumber: 100,
+        toNumber: 199,
+        origin: 'prepared-fixture' as const,
+      },
+    };
+  });
+}
+export function registeredSyntheticPlace(id: string): PlaceDetail | null {
+  return syntheticPlace(id) ?? supplementaryPlaces().find((place) => place.id === id) ?? null;
+}
 export function placeContains(scope: string, neighborhood: string): boolean {
   return syntheticPlace(neighborhood)?.breadcrumbs.some((place) => place.id === scope) ?? false;
 }
 export class SyntheticLocationsAdapter implements LocationsFacade {
+  public async resolvePublishedAddress(
+    input: PublishedAddress,
+  ): Promise<ResolvedPropertyPlace | null> {
+    const address = parsePublishedAddress(input);
+    const candidates =
+      address.city === 'sao paulo' && address.stateCode === 'sp'
+        ? [...syntheticPlaces(), ...supplementaryPlaces()]
+            .filter(
+              (place) =>
+                place.block &&
+                normalizeStreetName(place.block.streetName) === address.street &&
+                place.breadcrumbs.some(
+                  (crumb) =>
+                    crumb.kind === 'neighborhood' &&
+                    normalizePlaceName(crumb.name.ptBR) === address.neighborhood,
+                ),
+            )
+            .map((place) => new Place(place))
+        : [];
+    const place = selectUniqueBlock(candidates, address.number)?.detail;
+    return place
+      ? structuredClone({
+          place: { id: place.id, kind: place.kind, name: place.name },
+          breadcrumbs: place.breadcrumbs,
+        })
+      : null;
+  }
   public async resolveFixtureAddress(
     address: CollectedListingLocation,
   ): Promise<ResolvedPropertyPlace | null> {

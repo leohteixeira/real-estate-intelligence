@@ -15,7 +15,7 @@ import {
 } from '@rei/domain';
 import {
   placeContains,
-  syntheticPlace,
+  registeredSyntheticPlace,
   syntheticPlaces,
   SYNTHETIC_READ_METADATA,
 } from '../locations/index.js';
@@ -248,7 +248,7 @@ export class SyntheticPropertiesAdapter implements PropertiesFacade {
     query: PageQuery,
   ): Promise<ReductionsResponse | null> {
     validateReadQuery(query, false);
-    if (!syntheticPlace(placeId)) return null;
+    if (!registeredSyntheticPlace(placeId)) return null;
     const items = this.properties
       .filter((property) => placeContains(placeId, property.summary.place.id))
       .flatMap((property) => {

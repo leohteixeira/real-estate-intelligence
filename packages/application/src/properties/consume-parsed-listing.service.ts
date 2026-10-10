@@ -41,7 +41,10 @@ export class ConsumeParsedListing {
       if (!(await this.collection.verifyParsedEvent(transaction, event)))
         throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
       signal.throwIfAborted();
-      const resolved = await this.locations.resolveFixtureAddress(event.payload.listing.location);
+      const resolved = await this.locations.resolveFixtureAddress(
+        event.payload.listing.location,
+        transaction,
+      );
       if (!resolved)
         throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
       if (!(await this.inbox.record(transaction, PARSED_LISTING_CONSUMER, event.eventId))) return;
