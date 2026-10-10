@@ -50,12 +50,15 @@ export interface StartCollectionRunInput {
 
 export interface PersistedCollectionObservation {
   readonly snapshotId: UuidV7;
-  readonly parsedEventId: UuidV7;
+  readonly parsedEventId: UuidV7 | null;
   readonly sourceListingId: string;
   readonly sourceUrl: string;
   readonly observedAt: string;
   readonly contentHash: Sha256Hash;
   readonly objectKey: string;
+  readonly outcome: 'parsed' | 'failed';
+  readonly changed: boolean;
+  readonly failureReason: string | null;
 }
 
 export interface CommitCollectionObservationInput extends PersistedCollectionObservation {
@@ -102,6 +105,12 @@ export interface CollectionRunRepository {
     transaction: Transaction,
     runId: UuidV7,
   ): Promise<readonly PersistedCollectionObservation[]>;
+  findLatestCompletedContentHash(
+    transaction: Transaction,
+    sourceId: string,
+    beforeRunId: UuidV7,
+    sourceListingId: string,
+  ): Promise<Sha256Hash | null>;
   lockRunForPage(
     transaction: Transaction,
     runId: UuidV7,

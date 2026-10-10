@@ -8,6 +8,19 @@ export type {
 export { CollectSourceOnce } from './collect-source-once.service.js';
 export { CollectSourceRun } from './collect-source-run.service.js';
 export type { CollectSourceRunResult } from './collect-source-run.service.js';
+export {
+  RequestDueCollectionRuns,
+  collectionScheduleOperationKey,
+} from './collection-schedule.service.js';
+export { COLLECTION_SCHEDULE_REPOSITORY } from './collection-schedule.repository.js';
+export type {
+  ClaimedCollectionSchedule,
+  CollectionScheduleRepository,
+} from './collection-schedule.repository.js';
+export {
+  ConsumeCollectionRunRequest,
+  SCHEDULED_COLLECTION_CONSUMER,
+} from './consume-collection-run-request.service.js';
 export { EnableSource, validateSourceId } from './enable-source.service.js';
 export type { EnableSourceResult } from './enable-source.service.js';
 export { COLLECTION_RUN_REPOSITORY } from './collection-run.repository.js';

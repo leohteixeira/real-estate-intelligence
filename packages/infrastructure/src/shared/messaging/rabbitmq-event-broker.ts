@@ -35,6 +35,9 @@ const AUDIT_CONSUMER = 'audit.event-log';
 export interface RabbitMqEventBrokerConfig {
   readonly url: string;
   readonly operationTimeoutMs: number;
+  readonly handlerTimeoutMs?: number;
+  readonly drainTimeoutMs?: number;
+  readonly prefetch?: number;
   readonly deliveryLimit?: number;
   readonly redeliveryDelayMs?: number;
 }
@@ -285,7 +288,7 @@ function parseEventMessage(content: Buffer): EventEnvelope {
   }
 
   try {
-    return new HydratedEvent({
+    const event = new HydratedEvent({
       eventId: value.eventId,
       type: value.type,
       version: value.version,
@@ -293,6 +296,18 @@ function parseEventMessage(content: Buffer): EventEnvelope {
       occurredAt: value.occurredAt,
       traceContext: value.traceContext as DomainEventInput<string, EventPayload>['traceContext'],
       payload: value.payload as EventPayload,
+    });
+    // Subscriber handlers are a second, event-specific trust boundary. Keep the generic
+    // transport validation above, but pass them a plain wire envelope so strict domain parsers
+    // can reject missing or unexpected fields instead of receiving an infrastructure class.
+    return Object.freeze({
+      eventId: event.eventId,
+      type: event.type,
+      version: event.version,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      traceContext: event.traceContext,
+      payload: event.payload,
     });
   } catch {
     throw new Error('Broker delivery is not a valid event envelope.');
@@ -340,6 +355,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   readonly #deliveries = new Set<Promise<void>>();
   readonly #handlerWork = new Set<Promise<void>>();
   readonly #cleanupWork = new Set<Promise<void>>();
+  readonly #deliveryControllers = new Set<AbortController>();
 
   public constructor(
     private readonly config: RabbitMqEventBrokerConfig,
@@ -412,7 +428,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         signal,
       );
       await bounded(
-        channel.prefetch(1),
+        channel.prefetch(this.config.prefetch ?? 1),
         this.config.operationTimeoutMs,
         'RabbitMQ prefetch',
         signal,
@@ -727,9 +743,26 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       return;
     }
 
+    const deliveryController = new AbortController();
+    this.#deliveryControllers.add(deliveryController);
+    const abortFromGeneration = (): void =>
+      deliveryController.abort(
+        generation.controller.signal.reason instanceof Error
+          ? generation.controller.signal.reason
+          : new Error('RabbitMQ generation was retired.'),
+      );
+    generation.controller.signal.addEventListener('abort', abortFromGeneration, { once: true });
+    const handlerTimeoutMs = this.config.handlerTimeoutMs ?? this.config.operationTimeoutMs;
+    const deadlineAt = Date.now() + handlerTimeoutMs;
+    const deadlineTimer = setTimeout(() => {
+      const error = new Error('Event handler deadline exceeded.');
+      error.name = 'TimeoutError';
+      deliveryController.abort(error);
+    }, handlerTimeoutMs);
+    deadlineTimer.unref();
     const tracedHandler = startMessagingConsumeSpan(
       transportTraceContext ?? event.traceContext,
-      async () => handler(event),
+      async () => handler(event, { signal: deliveryController.signal, deadlineAt }),
     );
     const work = tracedHandler.completion;
     let handlerSettled = false;
@@ -747,10 +780,28 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       () => this.#handlerWork.delete(work),
     );
     try {
-      await bounded(work, this.config.operationTimeoutMs, 'Event handling');
+      await bounded(work, handlerTimeoutMs, 'Event handling', deliveryController.signal);
       if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
     } catch {
       if (!handlerSettled) tracedHandler.markTimedOut();
+      if (this.#closing || generation.invalidated || generation.controller.signal.aborted) {
+        return;
+      }
+      // Give cancellation-aware handlers a bounded opportunity to roll back before this delivery
+      // is copied for retry. A handler that ignores cancellation retires the channel, leaving the
+      // original message unacknowledged for RabbitMQ to redeliver after the connection closes.
+      if (!handlerSettled) {
+        await bounded(
+          work.catch(() => undefined),
+          this.config.operationTimeoutMs,
+          'Event handler cancellation drain',
+        ).catch(() => undefined);
+        if (!handlerSettled) {
+          this.invalidateGeneration(generation);
+          await this.closeGeneration(generation, 'RabbitMQ stuck event handler');
+          return;
+        }
+      }
       try {
         if (attempt < (this.config.deliveryLimit ?? 5)) {
           await abortableDelay(
@@ -779,6 +830,10 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       } catch {
         // The source stays unsettled. Ambiguous transfer state retires the generation below.
       }
+    } finally {
+      clearTimeout(deadlineTimer);
+      generation.controller.signal.removeEventListener('abort', abortFromGeneration);
+      this.#deliveryControllers.delete(deliveryController);
     }
   }
 
@@ -881,10 +936,13 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       }
       generation.consumerTags.clear();
     }
+    for (const controller of this.#deliveryControllers) {
+      controller.abort(new Error('RabbitMQ broker is closing.'));
+    }
     if (this.#deliveries.size > 0 || this.#handlerWork.size > 0) {
       await bounded(
         Promise.allSettled([...this.#deliveries, ...this.#handlerWork]).then(() => undefined),
-        this.config.operationTimeoutMs,
+        this.config.drainTimeoutMs ?? this.config.operationTimeoutMs,
         'RabbitMQ in-flight delivery drain',
       ).catch(() => undefined);
     }

@@ -34,7 +34,8 @@ const OPERATION_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 interface PreparedObservation {
   readonly document: RawListingDocument;
   readonly stored: StoredRawSnapshot;
-  readonly listing: CollectedListing;
+  readonly listing: CollectedListing | null;
+  readonly failureReason: 'parser-rejected' | null;
 }
 
 export interface CollectSourceRunResult {
@@ -43,6 +44,8 @@ export interface CollectSourceRunResult {
   readonly sourceId: string;
   readonly observedCount: number;
   readonly parsedCount: number;
+  readonly changedCount: number;
+  readonly failedCount: number;
   readonly manifestHash: NonNullable<CollectionRunState['manifestHash']>;
   readonly completedEventId: NonNullable<CollectionRunState['completedEventId']>;
   readonly completedAt: string;
@@ -73,6 +76,8 @@ function completedResult(run: CollectionRunState, replayed: boolean): CollectSou
     sourceId: run.sourceId,
     observedCount: run.counts.observed,
     parsedCount: run.counts.parsed,
+    changedCount: run.counts.changed,
+    failedCount: run.counts.failed,
     manifestHash: run.manifestHash,
     completedEventId: run.completedEventId,
     completedAt: run.completedAt,
@@ -174,8 +179,21 @@ export class CollectSourceRun {
           signal,
         );
         signal.throwIfAborted();
-        const listing = await this.source.parse(document, signal);
-        prepared.push({ document, stored, listing });
+        try {
+          const listing = await this.source.parse(document, signal);
+          prepared.push({ document, stored, listing, failureReason: null });
+        } catch (error) {
+          if (error instanceof ExternalFailure && error.kind === 'rejected') {
+            prepared.push({
+              document,
+              stored,
+              listing: null,
+              failureReason: 'parser-rejected',
+            });
+            continue;
+          }
+          throw error;
+        }
       }
 
       try {
@@ -216,7 +234,18 @@ export class CollectSourceRun {
           const occurredAt = this.clock.now();
           for (const item of prepared) {
             const snapshotId = await this.identifiers.generate(transaction);
-            const parsedEventId = await this.identifiers.generate(transaction);
+            const parsedEventId =
+              item.listing === null ? null : await this.identifiers.generate(transaction);
+            const priorHash =
+              item.listing === null
+                ? null
+                : await this.runs.findLatestCompletedContentHash(
+                    transaction,
+                    sourceId,
+                    locked.runId,
+                    item.document.sourceListingId,
+                  );
+            const changed = priorHash !== null && priorHash !== item.stored.contentHash;
             observations.push({
               snapshotId,
               parsedEventId,
@@ -227,26 +256,30 @@ export class CollectSourceRun {
               objectKey: item.stored.objectKey,
               byteLength: item.stored.byteLength,
               mediaType: item.stored.mediaType,
+              outcome: item.listing === null ? 'failed' : 'parsed',
+              changed,
+              failureReason: item.failureReason,
             });
-            parsedEvents.push(
-              new CollectionSnapshotParsed({
-                eventId: parsedEventId,
-                aggregateId: snapshotId,
-                occurredAt,
-                traceContext,
-                payload: {
-                  run: { runId: locked.runId },
-                  snapshot: { snapshotId, contentHash: item.stored.contentHash },
-                  source: {
-                    sourceId,
-                    sourceListingId: item.document.sourceListingId,
-                    sourceUrl: item.document.sourceUrl,
-                    observedAt: item.document.observedAt,
+            if (item.listing !== null && parsedEventId !== null)
+              parsedEvents.push(
+                new CollectionSnapshotParsed({
+                  eventId: parsedEventId,
+                  aggregateId: snapshotId,
+                  occurredAt,
+                  traceContext,
+                  payload: {
+                    run: { runId: locked.runId },
+                    snapshot: { snapshotId, contentHash: item.stored.contentHash },
+                    source: {
+                      sourceId,
+                      sourceListingId: item.document.sourceListingId,
+                      sourceUrl: item.document.sourceUrl,
+                      observedAt: item.document.observedAt,
+                    },
+                    listing: item.listing,
                   },
-                  listing: item.listing,
-                },
-              }),
-            );
+                }),
+              );
           }
 
           const completedAt = page.exhausted ? occurredAt : null;

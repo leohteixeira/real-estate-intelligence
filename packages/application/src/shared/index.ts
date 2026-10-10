@@ -12,7 +12,12 @@ export {
 } from './external-failure.js';
 export type { ExternalFailureKind, ExternalFailureOptions } from './external-failure.js';
 export { EVENT_SUBSCRIBER } from './event-subscriber.js';
-export type { EventHandler, EventSubscriber, EventSubscription } from './event-subscriber.js';
+export type {
+  EventDeliveryContext,
+  EventHandler,
+  EventSubscriber,
+  EventSubscription,
+} from './event-subscriber.js';
 export { INBOX, INBOX_RETENTION_PORT } from './inbox.js';
 export type { Inbox, InboxRetentionPort } from './inbox.js';
 export { OUTBOX_APPEND_PORT, OUTBOX_RELAY_PORT, OUTBOX_RETENTION_PORT } from './outbox.js';

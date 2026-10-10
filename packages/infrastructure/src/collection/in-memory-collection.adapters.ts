@@ -96,7 +96,7 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
     if (!run || run.status !== 'completed' || run.completedEventId === null) return null;
     const observations = this.#observations.get(run.runId) ?? [];
     const observation = observations.length === 1 ? observations[0] : undefined;
-    if (!observation) return null;
+    if (!observation || observation.parsedEventId === null) return null;
     return Object.freeze({
       operationKey: run.operationKey,
       sourceId: run.sourceId,
@@ -153,6 +153,9 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
       observedAt: input.observedAt,
       contentHash: input.contentHash,
       objectKey: input.objectKey,
+      outcome: 'parsed' as const,
+      changed: false,
+      failureReason: null,
     });
     this.#operationRuns.set(input.operationKey, run.runId);
     this.#runs.set(run.runId, run);
@@ -219,6 +222,26 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
     return Object.freeze([...(this.#observations.get(runId) ?? [])]);
   }
 
+  public async findLatestCompletedContentHash(
+    _transaction: Transaction,
+    sourceId: string,
+    beforeRunId: CollectionRunState['runId'],
+    sourceListingId: string,
+  ) {
+    const candidates = [...this.#runs.values()]
+      .filter(
+        (run) => run.sourceId === sourceId && run.status === 'completed' && run.runId < beforeRunId,
+      )
+      .sort((left, right) => right.runId.localeCompare(left.runId));
+    for (const candidate of candidates) {
+      const observation = (this.#observations.get(candidate.runId) ?? []).find(
+        (item) => item.sourceListingId === sourceListingId,
+      );
+      if (observation) return observation.contentHash;
+    }
+    return null;
+  }
+
   public async commitPage(_transaction: Transaction, input: CommitCollectionPageInput) {
     const run = this.#runs.get(input.runId);
     if (!run) throw new Error('Collection run was not found.');
@@ -243,6 +266,9 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
       nextCursor: input.nextCursor,
       checkpointedAt: input.checkpointedAt,
       observedDelta: input.observations.length,
+      parsedDelta: input.observations.filter(({ outcome }) => outcome === 'parsed').length,
+      changedDelta: input.observations.filter(({ changed }) => changed).length,
+      failedDelta: input.observations.filter(({ outcome }) => outcome === 'failed').length,
       exhausted: input.exhausted,
       ...(input.completedAt === null ? {} : { completedAt: input.completedAt }),
       ...(input.manifestHash === null ? {} : { manifestHash: input.manifestHash }),
@@ -259,6 +285,9 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
           observedAt: item.observedAt,
           contentHash: item.contentHash,
           objectKey: item.objectKey,
+          outcome: item.outcome,
+          changed: item.changed,
+          failureReason: item.failureReason,
         }),
       ),
     ]);

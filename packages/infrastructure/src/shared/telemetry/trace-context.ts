@@ -63,7 +63,7 @@ function completeWithFailure(span: Span, result: 'cancelled' | 'failed' | 'timed
 }
 
 async function runSpan<TResult>(
-  name: 'collection.run' | 'outbox.append' | 'outbox.publish',
+  name: 'collection.run' | 'collection.scheduled-run' | 'outbox.append' | 'outbox.publish',
   kind: SpanKind,
   durableParent: TraceContext | null | undefined,
   signal: AbortSignal | undefined,
@@ -81,6 +81,43 @@ async function runSpan<TResult>(
       span.end();
     }
   });
+}
+
+export interface ScheduledCollectionSpanResult {
+  readonly replayed: boolean;
+  readonly observedCount: number;
+  readonly parsedCount: number;
+  readonly changedCount: number;
+  readonly failedCount: number;
+}
+
+/** Runs beneath the active messaging.consume span and records only bounded categorical/count data. */
+export function runScheduledCollectionSpan<TResult extends ScheduledCollectionSpanResult>(
+  signal: AbortSignal,
+  work: () => Promise<TResult>,
+): Promise<TResult> {
+  return tracer.startActiveSpan(
+    'collection.scheduled-run',
+    { kind: SpanKind.INTERNAL },
+    context.active(),
+    async (span) => {
+      try {
+        const result = await work();
+        span.setAttribute('rei.collection.replayed', result.replayed);
+        span.setAttribute('rei.collection.observed_count', result.observedCount);
+        span.setAttribute('rei.collection.parsed_count', result.parsedCount);
+        span.setAttribute('rei.collection.changed_count', result.changedCount);
+        span.setAttribute('rei.collection.failed_count', result.failedCount);
+        completeSuccessfully(span);
+        return result;
+      } catch (error) {
+        completeWithFailure(span, resultFor(error, signal));
+        throw error;
+      } finally {
+        span.end();
+      }
+    },
+  );
 }
 
 /** Creates the causal root for one owner-operated collection command. */

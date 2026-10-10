@@ -2,7 +2,13 @@ import type { EventEnvelope } from './outbox.js';
 
 export const EVENT_SUBSCRIBER = Symbol.for('rei.EventSubscriber');
 
-export type EventHandler = (event: EventEnvelope) => Promise<void>;
+export interface EventDeliveryContext {
+  /** Aborts on handler deadline, generation loss, or controlled worker shutdown. */
+  readonly signal: AbortSignal;
+  readonly deadlineAt: number;
+}
+
+export type EventHandler = (event: EventEnvelope, delivery: EventDeliveryContext) => Promise<void>;
 
 export interface EventSubscription {
   /** Stable logical identity used as both the durable queue name and inbox key. */

@@ -11,10 +11,20 @@ export interface WorkerConfig {
   readonly shutdownTimeoutMs: number;
   readonly eventDeliveryLimit: number;
   readonly eventRedeliveryDelayMs: number;
+  readonly eventHandlerTimeoutMs: number;
+  readonly brokerDrainTimeoutMs: number;
+  readonly collectionPrefetch: number;
   readonly outboxRetentionMs: number;
   readonly inboxRetentionMs: number;
   readonly retentionIntervalMs: number;
   readonly retentionBatchSize: number;
+}
+
+export interface ScheduledCollectionConfig extends CollectionCommandConfig {
+  readonly pollIntervalMs: number;
+  readonly claimBatchSize: number;
+  readonly concurrency: number;
+  readonly runTimeoutMs: number;
 }
 
 export interface CollectionCommandConfig {
@@ -47,6 +57,11 @@ const DEFAULT_RETENTION_INTERVAL_MS = 5 * 60 * 1_000;
 const DEFAULT_RETENTION_BATCH_SIZE = 1_000;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 const DEFAULT_COLLECTION_DEADLINE_MS = 30_000;
+const DEFAULT_EVENT_HANDLER_TIMEOUT_MS = 120_000;
+const DEFAULT_BROKER_DRAIN_TIMEOUT_MS = 10_000;
+const DEFAULT_COLLECTION_CONCURRENCY = 2;
+const DEFAULT_COLLECTION_POLL_INTERVAL_MS = 1_000;
+const DEFAULT_COLLECTION_CLAIM_BATCH_SIZE = 10;
 
 function positiveInteger(
   env: NodeJS.ProcessEnv,
@@ -150,6 +165,27 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     100,
     30_000,
   );
+  const eventHandlerTimeoutMs = positiveInteger(
+    env,
+    'EVENT_HANDLER_TIMEOUT_MS',
+    DEFAULT_EVENT_HANDLER_TIMEOUT_MS,
+    operationTimeoutMs,
+    MAX_TIMER_DELAY_MS,
+  );
+  const brokerDrainTimeoutMs = positiveInteger(
+    env,
+    'BROKER_DRAIN_TIMEOUT_MS',
+    DEFAULT_BROKER_DRAIN_TIMEOUT_MS,
+    operationTimeoutMs,
+    shutdownTimeoutMs,
+  );
+  const collectionPrefetch = positiveInteger(
+    env,
+    'COLLECTION_CONCURRENCY',
+    DEFAULT_COLLECTION_CONCURRENCY,
+    1,
+    32,
+  );
   const outboxRetentionMs = positiveInteger(
     env,
     'OUTBOX_RETENTION_MS',
@@ -192,6 +228,9 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     shutdownTimeoutMs,
     eventDeliveryLimit,
     eventRedeliveryDelayMs,
+    eventHandlerTimeoutMs,
+    brokerDrainTimeoutMs,
+    collectionPrefetch,
     outboxRetentionMs,
     inboxRetentionMs,
     retentionIntervalMs,
@@ -259,5 +298,52 @@ export function readCollectionCommandConfig(env: NodeJS.ProcessEnv): CollectionC
     objectStoreBucket,
     objectStoreAccessKeyId: required(env, 'OBJECT_STORE_ACCESS_KEY_ID'),
     objectStoreSecretAccessKey: required(env, 'OBJECT_STORE_SECRET_ACCESS_KEY'),
+  };
+}
+
+export function readScheduledCollectionConfig(env: NodeJS.ProcessEnv): ScheduledCollectionConfig {
+  const command = readCollectionCommandConfig(env);
+  const concurrency = positiveInteger(
+    env,
+    'COLLECTION_CONCURRENCY',
+    DEFAULT_COLLECTION_CONCURRENCY,
+    1,
+    32,
+  );
+  const runTimeoutMs = positiveInteger(
+    env,
+    'COLLECTION_RUN_TIMEOUT_MS',
+    DEFAULT_EVENT_HANDLER_TIMEOUT_MS - 5_000,
+    100,
+    MAX_TIMER_DELAY_MS,
+  );
+  const handlerTimeoutMs = positiveInteger(
+    env,
+    'EVENT_HANDLER_TIMEOUT_MS',
+    DEFAULT_EVENT_HANDLER_TIMEOUT_MS,
+    100,
+    MAX_TIMER_DELAY_MS,
+  );
+  if (runTimeoutMs > handlerTimeoutMs) {
+    throw new Error('COLLECTION_RUN_TIMEOUT_MS must not exceed EVENT_HANDLER_TIMEOUT_MS.');
+  }
+  return {
+    ...command,
+    pollIntervalMs: positiveInteger(
+      env,
+      'COLLECTION_SCHEDULE_INTERVAL_MS',
+      DEFAULT_COLLECTION_POLL_INTERVAL_MS,
+      100,
+      MAX_TIMER_DELAY_MS,
+    ),
+    claimBatchSize: positiveInteger(
+      env,
+      'COLLECTION_SCHEDULE_BATCH_SIZE',
+      DEFAULT_COLLECTION_CLAIM_BATCH_SIZE,
+      1,
+      100,
+    ),
+    concurrency,
+    runTimeoutMs,
   };
 }

@@ -16,6 +16,9 @@ import { ResilientEventPublisher } from './resilience/resilient-event-publisher'
         return new RabbitMqEventBroker({
           url: config.rabbitMqUrl,
           operationTimeoutMs: config.operationTimeoutMs,
+          handlerTimeoutMs: config.eventHandlerTimeoutMs,
+          drainTimeoutMs: config.brokerDrainTimeoutMs,
+          prefetch: config.collectionPrefetch,
           deliveryLimit: config.eventDeliveryLimit,
           redeliveryDelayMs: config.eventRedeliveryDelayMs,
         });

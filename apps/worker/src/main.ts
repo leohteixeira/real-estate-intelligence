@@ -3,6 +3,8 @@ import { RabbitMqEventBroker } from '@rei/infrastructure';
 
 import { AuditTraceConsumer } from './audit/audit-trace.consumer';
 import { CollectionAuditConsumer } from './collection/collection-audit.consumer';
+import { CollectionRunRequestConsumer } from './collection/collection-run-request.consumer';
+import { CollectionScheduleJob } from './collection/collection-schedule.job';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -30,15 +32,19 @@ async function bootstrap(): Promise<void> {
   const relay = context.get(OutboxRelayJob);
   const auditConsumer = context.get(AuditTraceConsumer);
   const collectionConsumer = context.get(CollectionAuditConsumer);
+  const collectionRunConsumer = context.get(CollectionRunRequestConsumer);
+  const collectionSchedule = context.get(CollectionScheduleJob);
   const broker = context.get(RabbitMqEventBroker);
   const brokerSupervisor = context.get(BrokerConnectionSupervisor);
   const retention = context.get(DeliveryRetentionJob);
   await auditConsumer.start();
   await collectionConsumer.start();
+  await collectionRunConsumer.start();
   brokerSupervisor.start();
   relay.start();
   retention.start();
   heartbeat.start();
+  collectionSchedule.start();
 
   let stopping: Promise<void> | undefined;
   const stop = (signal: NodeJS.Signals): Promise<void> => {
@@ -47,6 +53,7 @@ async function bootstrap(): Promise<void> {
       await shutdownWorker(
         {
           clearReadiness: () => clearWorkerReadiness(),
+          stopCollectionSchedule: () => collectionSchedule.stop(),
           stopBrokerSupervisor: () => brokerSupervisor.stop(),
           stopRelay: () => relay.stop(),
           stopRetention: () => retention.stop(),

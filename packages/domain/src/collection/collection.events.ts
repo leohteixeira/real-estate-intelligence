@@ -10,6 +10,7 @@ import {
 import { parseSha256Hash, type Sha256Hash } from './sha256-hash.js';
 
 export const COLLECTION_SNAPSHOT_PARSED_TYPE = 'collection.snapshot.parsed' as const;
+export const COLLECTION_RUN_REQUESTED_TYPE = 'collection.run.requested' as const;
 export const COLLECTION_RUN_COMPLETED_TYPE = 'collection.run.completed' as const;
 export const COLLECTION_LISTING_SUPPRESSED_TYPE = 'collection.listing.suppressed' as const;
 export const COLLECTION_EVENT_VERSION = 1 as const;
@@ -88,6 +89,12 @@ export type CollectionRunCompletedPayload = Readonly<{
   readonly manifestHash: Sha256Hash;
 }>;
 
+export type CollectionRunRequestedPayload = Readonly<{
+  readonly sourceId: string;
+  readonly scheduledFor: string;
+  readonly operationKey: string;
+}>;
+
 export type CollectionListingSuppressedPayload = Readonly<{
   readonly sourceId: string;
   readonly sourceListingId: string;
@@ -108,10 +115,24 @@ export type CollectionRunCompletedInput = CollectionEventInput<
   typeof COLLECTION_RUN_COMPLETED_TYPE,
   CollectionRunCompletedPayload
 >;
+export type CollectionRunRequestedInput = CollectionEventInput<
+  typeof COLLECTION_RUN_REQUESTED_TYPE,
+  CollectionRunRequestedPayload
+>;
 export type CollectionListingSuppressedInput = CollectionEventInput<
   typeof COLLECTION_LISTING_SUPPRESSED_TYPE,
   CollectionListingSuppressedPayload
 >;
+
+/** Canonical idempotency key for one source's scheduled UTC slot. */
+export function collectionRunOperationKey(
+  sourceIdValue: string,
+  scheduledForValue: string,
+): string {
+  const canonicalSourceId = sourceId(sourceIdValue, 'sourceId');
+  const canonicalScheduledFor = parseRfc3339Timestamp(scheduledForValue, 'scheduledFor');
+  return `collection:${canonicalSourceId}:${canonicalScheduledFor}`;
+}
 
 function fail(message: string, field: string): never {
   throw new DomainValidationError(message, field);
@@ -436,6 +457,27 @@ function parseRunPayload(value: unknown): CollectionRunCompletedPayload {
   return result;
 }
 
+function parseRequestedPayload(value: unknown): CollectionRunRequestedPayload {
+  const parsed = exactRecord(value, ['sourceId', 'scheduledFor', 'operationKey'], 'payload');
+  const parsedSourceId = sourceId(parsed.sourceId, 'payload.sourceId');
+  const scheduledFor = parseRfc3339Timestamp(
+    stringValue(parsed.scheduledFor, 'payload.scheduledFor'),
+    'payload.scheduledFor',
+  );
+  const operationKey = stringValue(parsed.operationKey, 'payload.operationKey', 200);
+  if (operationKey !== collectionRunOperationKey(parsedSourceId, scheduledFor)) {
+    return fail(
+      'payload.operationKey must match the source and scheduled UTC instant.',
+      'payload.operationKey',
+    );
+  }
+  return {
+    sourceId: parsedSourceId,
+    scheduledFor,
+    operationKey,
+  };
+}
+
 function parseSuppressedPayload(value: unknown): CollectionListingSuppressedPayload {
   const parsed = exactRecord(value, ['sourceId', 'sourceListingId'], 'payload');
   return {
@@ -507,6 +549,22 @@ export class CollectionRunCompleted extends DomainEvent<
   }
 }
 
+export class CollectionRunRequested extends DomainEvent<
+  typeof COLLECTION_RUN_REQUESTED_TYPE,
+  CollectionRunRequestedPayload
+> {
+  public constructor(input: CollectionRunRequestedInput) {
+    const payload = parseRequestedPayload(input.payload);
+    super({
+      ...input,
+      type: COLLECTION_RUN_REQUESTED_TYPE,
+      version: COLLECTION_EVENT_VERSION,
+      traceContext: input.traceContext ?? null,
+      payload,
+    });
+  }
+}
+
 export class CollectionListingSuppressed extends DomainEvent<
   typeof COLLECTION_LISTING_SUPPRESSED_TYPE,
   CollectionListingSuppressedPayload
@@ -524,6 +582,7 @@ export class CollectionListingSuppressed extends DomainEvent<
 
 export type CollectionEvent =
   | CollectionSnapshotParsed
+  | CollectionRunRequested
   | CollectionRunCompleted
   | CollectionListingSuppressed;
 
@@ -540,6 +599,11 @@ export function parseCollectionRunCompleted(value: unknown): CollectionRunComple
   return new CollectionRunCompleted({ ...parsed, payload: parseRunPayload(parsed.payload) });
 }
 
+export function parseCollectionRunRequested(value: unknown): CollectionRunRequested {
+  const parsed = envelope(value, COLLECTION_RUN_REQUESTED_TYPE);
+  return new CollectionRunRequested({ ...parsed, payload: parseRequestedPayload(parsed.payload) });
+}
+
 export function parseCollectionListingSuppressed(value: unknown): CollectionListingSuppressed {
   const parsed = envelope(value, COLLECTION_LISTING_SUPPRESSED_TYPE);
   return new CollectionListingSuppressed({
@@ -548,7 +612,7 @@ export function parseCollectionListingSuppressed(value: unknown): CollectionList
   });
 }
 
-/** Hydrates only the three public version-1 collection facts from an untyped wire value. */
+/** Hydrates the public version-1 collection facts from an untyped wire value. */
 export function parseCollectionEvent(value: unknown): CollectionEvent {
   const parsed = record(value, 'event');
   switch (parsed.type) {
@@ -556,6 +620,8 @@ export function parseCollectionEvent(value: unknown): CollectionEvent {
       return parseCollectionSnapshotParsed(value);
     case COLLECTION_RUN_COMPLETED_TYPE:
       return parseCollectionRunCompleted(value);
+    case COLLECTION_RUN_REQUESTED_TYPE:
+      return parseCollectionRunRequested(value);
     case COLLECTION_LISTING_SUPPRESSED_TYPE:
       return parseCollectionListingSuppressed(value);
     default:

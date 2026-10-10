@@ -44,6 +44,7 @@ interface RunRow {
   readonly completed_at: unknown;
   readonly observed_count: unknown;
   readonly parsed_count: unknown;
+  readonly changed_count: unknown;
   readonly suppressed_count: unknown;
   readonly failed_count: unknown;
   readonly manifest_hash: unknown;
@@ -70,7 +71,7 @@ const LEGACY_RESULT_QUERY = `
 
 const RUN_FIELDS = `run.operation_key, run.run_id::text, run.source_id, run.status,
   run.started_at, run.completed_at, run.observed_count, run.parsed_count,
-  run.suppressed_count, run.failed_count, run.manifest_hash,
+  run.changed_count, run.suppressed_count, run.failed_count, run.manifest_hash,
   run.completed_event_id::text, run.checkpoint_ordinal, run.checkpoint_cursor,
   run.checkpointed_at`;
 
@@ -99,6 +100,7 @@ function mapRun(row: RunRow): CollectionRunState {
     (row.status !== 'running' && row.status !== 'completed') ||
     typeof row.observed_count !== 'number' ||
     typeof row.parsed_count !== 'number' ||
+    (row.changed_count !== undefined && typeof row.changed_count !== 'number') ||
     typeof row.suppressed_count !== 'number' ||
     typeof row.failed_count !== 'number' ||
     typeof row.checkpoint_ordinal !== 'number'
@@ -117,6 +119,7 @@ function mapRun(row: RunRow): CollectionRunState {
     counts: {
       observed: row.observed_count,
       parsed: row.parsed_count,
+      changed: row.changed_count ?? 0,
       suppressed: row.suppressed_count,
       failed: row.failed_count,
     },
@@ -221,8 +224,8 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       await client.query(
         `INSERT INTO collection.collection_run
            (run_id, operation_key, source_id, status, started_at, observed_count, parsed_count,
-            suppressed_count, failed_count, checkpoint_ordinal)
-         VALUES ($1, $2, $3, 'running', $4, 0, 0, 0, 0, 0)
+            changed_count, suppressed_count, failed_count, checkpoint_ordinal)
+         VALUES ($1, $2, $3, 'running', $4, 0, 0, 0, 0, 0, 0)
          ON CONFLICT (operation_key) DO NOTHING`,
         [input.runId, input.operationKey, input.sourceId, input.startedAt],
       );
@@ -277,10 +280,14 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         observed_at: unknown;
         content_hash: unknown;
         object_key: unknown;
+        outcome: unknown;
+        changed: unknown;
+        failure_reason: unknown;
       }>(
         `SELECT observation.snapshot_id::text, observation.parsed_event_id::text,
                 observation.source_listing_id, observation.source_url, observation.observed_at,
-                observation.content_hash, object.object_key
+                observation.content_hash, object.object_key, observation.outcome,
+                observation.changed, observation.failure_reason
            FROM collection.snapshot_observation AS observation
            JOIN collection.raw_object AS object ON object.content_hash = observation.content_hash
           WHERE observation.run_id = $1
@@ -291,26 +298,63 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         rows.map((row) => {
           if (
             typeof row.snapshot_id !== 'string' ||
-            typeof row.parsed_event_id !== 'string' ||
+            (row.parsed_event_id !== null && typeof row.parsed_event_id !== 'string') ||
             typeof row.source_listing_id !== 'string' ||
             typeof row.source_url !== 'string' ||
             !(row.observed_at instanceof Date) ||
             typeof row.content_hash !== 'string' ||
-            typeof row.object_key !== 'string'
+            typeof row.object_key !== 'string' ||
+            (row.outcome !== 'parsed' && row.outcome !== 'failed') ||
+            typeof row.changed !== 'boolean' ||
+            (row.failure_reason !== null && typeof row.failure_reason !== 'string')
           ) {
             throw new Error('PostgreSQL returned a malformed collection observation.');
           }
           return Object.freeze({
             snapshotId: parseUuidV7(row.snapshot_id),
-            parsedEventId: parseUuidV7(row.parsed_event_id),
+            parsedEventId: row.parsed_event_id === null ? null : parseUuidV7(row.parsed_event_id),
             sourceListingId: row.source_listing_id,
             sourceUrl: row.source_url,
             observedAt: row.observed_at.toISOString(),
             contentHash: parseSha256Hash(row.content_hash),
             objectKey: row.object_key,
+            outcome: row.outcome,
+            changed: row.changed,
+            failureReason: row.failure_reason,
           });
         }),
       );
+    } catch (error) {
+      throw redactConnectionError(error);
+    }
+  }
+
+  public async findLatestCompletedContentHash(
+    transaction: Transaction,
+    sourceId: string,
+    beforeRunId: CollectionRunState['runId'],
+    sourceListingId: string,
+  ): Promise<ReturnType<typeof parseSha256Hash> | null> {
+    const client = postgresClientFor(transaction, this.connection);
+    try {
+      const rows = await client.query<{ content_hash: unknown }>(
+        `SELECT observation.content_hash
+           FROM collection.snapshot_observation AS observation
+           JOIN collection.collection_run AS prior_run ON prior_run.run_id = observation.run_id
+          WHERE prior_run.source_id = $1
+            AND prior_run.status = 'completed'
+            AND prior_run.run_id < $2
+            AND observation.source_listing_id = $3
+          ORDER BY prior_run.completed_at DESC, prior_run.run_id DESC
+          LIMIT 1`,
+        [sourceId, beforeRunId, sourceListingId],
+      );
+      const value = rows[0]?.content_hash;
+      if (value === undefined) return null;
+      if (typeof value !== 'string') {
+        throw new Error('PostgreSQL returned a malformed prior collection hash.');
+      }
+      return parseSha256Hash(value);
     } catch (error) {
       throw redactConnectionError(error);
     }
@@ -358,8 +402,8 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         await client.query(
           `INSERT INTO collection.snapshot_observation
              (snapshot_id, run_id, content_hash, source_listing_id, source_url, observed_at,
-              parsed_event_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              parsed_event_id, outcome, changed, failure_reason)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             observation.snapshotId,
             input.runId,
@@ -368,6 +412,9 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
             observation.sourceUrl,
             observation.observedAt,
             observation.parsedEventId,
+            observation.outcome,
+            observation.changed,
+            observation.failureReason,
           ],
         );
       }
@@ -378,11 +425,13 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
                 checkpoint_cursor = $4,
                 checkpointed_at = $5,
                 observed_count = observed_count + $6,
-                parsed_count = parsed_count + $6,
-                status = CASE WHEN $7::boolean THEN 'completed' ELSE 'running' END,
-                completed_at = CASE WHEN $7::boolean THEN $8::timestamptz ELSE NULL END,
-                manifest_hash = CASE WHEN $7::boolean THEN $9::text ELSE NULL END,
-                completed_event_id = CASE WHEN $7::boolean THEN $10::uuid ELSE NULL END
+                parsed_count = parsed_count + $7,
+                changed_count = changed_count + $8,
+                failed_count = failed_count + $9,
+                status = CASE WHEN $10::boolean THEN 'completed' ELSE 'running' END,
+                completed_at = CASE WHEN $10::boolean THEN $11::timestamptz ELSE NULL END,
+                manifest_hash = CASE WHEN $10::boolean THEN $12::text ELSE NULL END,
+                completed_event_id = CASE WHEN $10::boolean THEN $13::uuid ELSE NULL END
           WHERE run.run_id = $1
             AND run.status = 'running'
             AND run.checkpoint_ordinal = $2
@@ -395,6 +444,9 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
           input.nextCursor,
           input.checkpointedAt,
           input.observations.length,
+          input.observations.filter(({ outcome }) => outcome === 'parsed').length,
+          input.observations.filter(({ changed }) => changed).length,
+          input.observations.filter(({ outcome }) => outcome === 'failed').length,
           input.exhausted,
           input.completedAt,
           input.manifestHash,
@@ -418,9 +470,9 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       const inserted = await client.query<{ run_id: string }>(
         `INSERT INTO collection.collection_run
            (run_id, operation_key, source_id, status, started_at, completed_at,
-            observed_count, parsed_count, suppressed_count, failed_count, manifest_hash,
+            observed_count, parsed_count, changed_count, suppressed_count, failed_count, manifest_hash,
             completed_event_id, checkpoint_ordinal, checkpointed_at)
-         VALUES ($1, $2, $3, 'completed', $4, $5, 1, 1, 0, 0, $6, $7, 1, $5)
+         VALUES ($1, $2, $3, 'completed', $4, $5, 1, 1, 0, 0, 0, $6, $7, 1, $5)
          ON CONFLICT (operation_key) DO NOTHING
          RETURNING run_id::text`,
         [
@@ -481,8 +533,8 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       await client.query(
         `INSERT INTO collection.snapshot_observation
            (snapshot_id, run_id, content_hash, source_listing_id, source_url, observed_at,
-            parsed_event_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            parsed_event_id, outcome, changed)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'parsed', false)`,
         [
           input.snapshotId,
           input.runId,

@@ -32,13 +32,15 @@ export class PostgresCollectionFacade implements CollectionFacade {
       completed_at: unknown;
       observed_count: unknown;
       parsed_count: unknown;
+      changed_count?: unknown;
       suppressed_count: unknown;
       failed_count: unknown;
       manifest_hash: unknown;
       source_listing_ids: unknown;
     }>(
       `SELECT run.run_id::text, run.source_id, run.started_at, run.completed_at,
-              run.observed_count, run.parsed_count, run.suppressed_count, run.failed_count,
+              run.observed_count, run.parsed_count, run.changed_count,
+              run.suppressed_count, run.failed_count,
               run.manifest_hash,
               COALESCE(array_agg(observation.source_listing_id ORDER BY observation.source_listing_id)
                 FILTER (WHERE observation.source_listing_id IS NOT NULL), ARRAY[]::text[]) AS source_listing_ids
@@ -57,6 +59,7 @@ export class PostgresCollectionFacade implements CollectionFacade {
       !(row.completed_at instanceof Date) ||
       typeof row.observed_count !== 'number' ||
       typeof row.parsed_count !== 'number' ||
+      (row.changed_count !== undefined && typeof row.changed_count !== 'number') ||
       typeof row.suppressed_count !== 'number' ||
       typeof row.failed_count !== 'number' ||
       typeof row.manifest_hash !== 'string' ||
@@ -73,6 +76,7 @@ export class PostgresCollectionFacade implements CollectionFacade {
       counts: Object.freeze({
         observed: row.observed_count,
         parsed: row.parsed_count,
+        changed: row.changed_count ?? 0,
         suppressed: row.suppressed_count,
         failed: row.failed_count,
       }),

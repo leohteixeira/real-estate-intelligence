@@ -15,6 +15,7 @@ export interface CollectionCheckpoint {
 export interface CollectionRunCounts {
   readonly observed: number;
   readonly parsed: number;
+  readonly changed: number;
   readonly suppressed: number;
   readonly failed: number;
 }
@@ -75,7 +76,7 @@ export function createRunningCollectionRun(input: {
     ...input,
     status: 'running',
     checkpoint: { ordinal: 0, cursor: null, checkpointedAt: null },
-    counts: { observed: 0, parsed: 0, suppressed: 0, failed: 0 },
+    counts: { observed: 0, parsed: 0, changed: 0, suppressed: 0, failed: 0 },
     completedAt: null,
     manifestHash: null,
     completedEventId: null,
@@ -100,11 +101,15 @@ export function hydrateCollectionRun(input: CollectionRunState): CollectionRunSt
   const counts = {
     observed: nonnegativeInteger(input.counts.observed, 'counts.observed'),
     parsed: nonnegativeInteger(input.counts.parsed, 'counts.parsed'),
+    changed: nonnegativeInteger(input.counts.changed, 'counts.changed'),
     suppressed: nonnegativeInteger(input.counts.suppressed, 'counts.suppressed'),
     failed: nonnegativeInteger(input.counts.failed, 'counts.failed'),
   };
   if (counts.parsed + counts.suppressed + counts.failed > counts.observed) {
     throw new TypeError('Collection run counts are incoherent.');
+  }
+  if (counts.changed > counts.parsed) {
+    throw new TypeError('Changed collection observations cannot exceed parsed observations.');
   }
   if (input.status === 'running') {
     if (
@@ -134,6 +139,10 @@ export function advanceCollectionRun(
     readonly nextCursor: string | null;
     readonly checkpointedAt: string;
     readonly observedDelta: number;
+    readonly parsedDelta?: number;
+    readonly changedDelta?: number;
+    readonly suppressedDelta?: number;
+    readonly failedDelta?: number;
     readonly exhausted: boolean;
     readonly completedAt?: string;
     readonly manifestHash?: Sha256Hash;
@@ -148,6 +157,13 @@ export function advanceCollectionRun(
     throw new StaleCollectionCheckpointError();
   }
   const observedDelta = nonnegativeInteger(input.observedDelta, 'observedDelta');
+  const parsedDelta = nonnegativeInteger(input.parsedDelta ?? observedDelta, 'parsedDelta');
+  const changedDelta = nonnegativeInteger(input.changedDelta ?? 0, 'changedDelta');
+  const suppressedDelta = nonnegativeInteger(input.suppressedDelta ?? 0, 'suppressedDelta');
+  const failedDelta = nonnegativeInteger(input.failedDelta ?? 0, 'failedDelta');
+  if (parsedDelta + suppressedDelta + failedDelta > observedDelta || changedDelta > parsedDelta) {
+    throw new TypeError('Collection run count deltas are incoherent.');
+  }
   const nextCursor = parseCollectionCheckpointCursor(input.nextCursor);
   parseRfc3339Timestamp(input.checkpointedAt, 'checkpointedAt');
   if (!input.exhausted && observedDelta === 0) {
@@ -164,7 +180,10 @@ export function advanceCollectionRun(
   const counts = {
     ...run.counts,
     observed: run.counts.observed + observedDelta,
-    parsed: run.counts.parsed + observedDelta,
+    parsed: run.counts.parsed + parsedDelta,
+    changed: run.counts.changed + changedDelta,
+    suppressed: run.counts.suppressed + suppressedDelta,
+    failed: run.counts.failed + failedDelta,
   };
   if (!input.exhausted) {
     if (input.completedAt || input.manifestHash || input.completedEventId) {

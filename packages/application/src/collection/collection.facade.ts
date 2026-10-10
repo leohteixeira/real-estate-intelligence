@@ -13,6 +13,7 @@ export interface CollectionSourcePermissions {
 export interface CollectionRunCounts {
   readonly observed: number;
   readonly parsed: number;
+  readonly changed: number;
   readonly suppressed: number;
   readonly failed: number;
 }
