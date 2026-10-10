@@ -1,0 +1,98 @@
+/*
+ * Real Estate Intelligence design tokens ("Placa").
+ * Normative values live in apps/web/DESIGN.md; this file is their CSS form.
+ */
+:root {
+  /* Enamel blue: the shell, primary actions and data lines. */
+  --enamel-900: #08214f;
+  --enamel-800: #0b2c6b;
+  --enamel-700: #0f3a8a;
+  --enamel-600: #1a4fb3;
+  --enamel-200: #c5d5f0;
+  --enamel-100: #e1e9f7;
+  --enamel-50: #f0f4fb;
+
+  /* Porcelain neutrals, tinted towards the enamel hue. */
+  --porcelain: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #101b33;
+  --ink-2: #3d4a66;
+  --ink-3: #5a6781;
+  --line: #d5dbe6;
+  --line-strong: #9aa6bb;
+
+  /* Wayfinding yellow: "you are here" and nothing else. */
+  --here: #f2b705;
+  --here-ink: #3a2c00;
+
+  /* Zone strips: place identity only (plate strip, map fill, zone series). */
+  --zone-centro: #c8402a;
+  --zone-oeste: #1c8257;
+  --zone-sul: #7446bd;
+  --zone-norte: #b85a06;
+  --zone-leste: #0b7f99;
+
+  /* Direction of a price movement. Neither is "good" or "bad". */
+  --up: #a8480a;
+  --down: #1a4fb3;
+
+  /* States. */
+  --ok: #17734b;
+  --ok-bg: #e3f3ea;
+  --warn: #7a5200;
+  --warn-bg: #fcefc9;
+  --danger: #a52a1a;
+  --danger-bg: #fbe6e2;
+  --warn-ink: #4a3200;
+  --danger-ink: #6d1a10;
+  --ok-ink: #0e4a30;
+  --map-ground: #e9edf3;
+
+  --focus: var(--enamel-600);
+
+  /* Type. Barlow descends from road and plate lettering. */
+  --font-ui: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-plate: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-code: ui-monospace, Menlo, Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 3rem;
+
+  /* Space: 4 px base. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-14: 56px;
+
+  /* Shape. */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-plate: 10px;
+  --r-sheet: 14px;
+  --r-pill: 999px;
+
+  /* Depth: flat by default; only overlays lift. */
+  --shadow-sheet: 0 -8px 28px rgba(16, 27, 51, 0.16);
+  --shadow-pop: 0 10px 28px rgba(16, 27, 51, 0.18);
+
+  /* Motion. */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-1: 150ms;
+  --dur-2: 220ms;
+
+  /* Layout. */
+  --gutter: 16px;
+  --rail-w: 232px;
+  --target: 44px;
+}
