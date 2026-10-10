@@ -93,6 +93,11 @@ for it here.
   already exist (owner, 2026-10-10).
 - Decision: `pricePerSquareMeter` lives in the `market` context and other contexts reach it through
   its facade, because `shared/` holds no business rule (ADR 0011) (owner, 2026-10-10).
+- Decision: every external model route receiving user text proves Zero Data Retention before
+  transmission, fails closed without current evidence and never falls back to a less private route.
+  The primary model stays behind the gateway until a direct route proves the same guarantee (ADR
+  0014).
+  (agent, on the owner's behalf, 2026-10-10).
 - Assumption: the thin `audit` context lives here because `collection`, `properties` and `ask` all
   feed it and none depends on another for it.
 - Decision: entry 3 is the tracer bullet. Entry 11 precedes every code story because the spec and

@@ -19,6 +19,7 @@
 | 0011 | Nine bounded contexts, a context as one folder per layer package, a schema per context          | Every module                   |
 | 0012 | Domain events, the transactional outbox, idempotent consumers, RabbitMQ as the only broker      | CAP-1, CAP-5, CAP-13           |
 | 0013 | A port and an adapter for every external system, one resilience composition, idempotency keys   | CAP-1, CAP-2, CAP-15           |
+| 0014 | Verified Zero Data Retention for every user-text model route, with fail-closed enforcement      | CAP-10, CAP-15                 |
 
 ADR 0002 is superseded by ADR 0007. ADR 0001 sets the record itself: an accepted ADR is never
 edited, only superseded.
@@ -30,12 +31,11 @@ edited, only superseded.
 The owner took these decisions after the accepted ADRs; each needs its ADR before code. RabbitMQ as
 the only broker left this list: ADR 0012 records it.
 
-| Decision                                                                                                        | Relation         | Affects                     |
-| --------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------------- |
-| Zero Data Retention on every route; the primary model goes through the gateway until the direct route proves it | Extends ADR 0009 | CAP-10, CAP-15              |
-| Field allowlist, image fingerprints, sanitized and encrypted raw snapshots, 30-day expiry, suppression list     | New              | CAP-2, CAP-3, CAP-4, CAP-28 |
-| Tile provider and PostGIS, decided with the V2 Map screen; GeoSampa fiscal blocks as its block layer            | New              | CAP-24                      |
-| Keycloak as the identity provider, and how the API and the web application validate a session                   | New              | CAP-32                      |
+| Decision                                                                                                    | Relation | Affects                     |
+| ----------------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
+| Field allowlist, image fingerprints, sanitized and encrypted raw snapshots, 30-day expiry, suppression list | New      | CAP-2, CAP-3, CAP-4, CAP-28 |
+| Tile provider and PostGIS, decided with the V2 Map screen; GeoSampa fiscal blocks as its block layer        | New      | CAP-24                      |
+| Keycloak as the identity provider, and how the API and the web application validate a session               | New      | CAP-32                      |
 
 ## Current state
 
