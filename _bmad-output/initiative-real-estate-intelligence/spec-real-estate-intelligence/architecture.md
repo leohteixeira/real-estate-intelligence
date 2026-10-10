@@ -6,20 +6,21 @@
 
 ## Decision records
 
-| ADR  | Decides                                                                                         | Binds                          |
-| ---- | ----------------------------------------------------------------------------------------------- | ------------------------------ |
-| 0003 | `pg` driver, no ORM, versioned SQL migrations, extensions enabled by the migration needing them | All persistence                |
-| 0004 | Vitest as the single runner, hand-written doubles, when integration and e2e tests start         | All tests, CAP-17              |
-| 0005 | OpenTelemetry with explicit instrumentations, preloaded bootstrap, native NestJS logger         | Every process, CAP-18          |
-| 0006 | React 19, Vite 8, TypeScript 5.9 pin; no Tailwind, router or data-fetching library yet          | CAP-19, CAP-20                 |
-| 0007 | NestJS 12 for API, worker and AI; LangChain and LangGraph replace Mastra; isolation boundary    | CAP-10 to CAP-18, CAP-25       |
-| 0008 | Typed intent routing with Jev, heuristic fallback, 0.85 gate, taxonomy                          | CAP-11, CAP-12, CAP-17         |
-| 0009 | Resilience policies for AI providers, Zero Data Retention                                       | CAP-15                         |
-| 0010 | Durable runs on RabbitMQ, remote checkpoints in PostgreSQL, SSE, thread capability              | CAP-13, CAP-14, CAP-16, CAP-18 |
-| 0011 | Nine bounded contexts, a context as one folder per layer package, a schema per context          | Every module                   |
-| 0012 | Domain events, the transactional outbox, idempotent consumers, RabbitMQ as the only broker      | CAP-1, CAP-5, CAP-13           |
-| 0013 | A port and an adapter for every external system, one resilience composition, idempotency keys   | CAP-1, CAP-2, CAP-15           |
-| 0014 | Verified Zero Data Retention for every user-text model route, with fail-closed enforcement      | CAP-10, CAP-15                 |
+| ADR  | Decides                                                                                         | Binds                              |
+| ---- | ----------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 0003 | `pg` driver, no ORM, versioned SQL migrations, extensions enabled by the migration needing them | All persistence                    |
+| 0004 | Vitest as the single runner, hand-written doubles, when integration and e2e tests start         | All tests, CAP-17                  |
+| 0005 | OpenTelemetry with explicit instrumentations, preloaded bootstrap, native NestJS logger         | Every process, CAP-18              |
+| 0006 | React 19, Vite 8, TypeScript 5.9 pin; no Tailwind, router or data-fetching library yet          | CAP-19, CAP-20                     |
+| 0007 | NestJS 12 for API, worker and AI; LangChain and LangGraph replace Mastra; isolation boundary    | CAP-10 to CAP-18, CAP-25           |
+| 0008 | Typed intent routing with Jev, heuristic fallback, 0.85 gate, taxonomy                          | CAP-11, CAP-12, CAP-17             |
+| 0009 | Resilience policies for AI providers, Zero Data Retention                                       | CAP-15                             |
+| 0010 | Durable runs on RabbitMQ, remote checkpoints in PostgreSQL, SSE, thread capability              | CAP-13, CAP-14, CAP-16, CAP-18     |
+| 0011 | Nine bounded contexts, a context as one folder per layer package, a schema per context          | Every module                       |
+| 0012 | Domain events, the transactional outbox, idempotent consumers, RabbitMQ as the only broker      | CAP-1, CAP-5, CAP-13               |
+| 0013 | A port and an adapter for every external system, one resilience composition, idempotency keys   | CAP-1, CAP-2, CAP-15               |
+| 0014 | Verified Zero Data Retention for every user-text model route, with fail-closed enforcement      | CAP-10, CAP-15                     |
+| 0015 | Closed collected-data allowlist, source permissions, snapshot lifecycle and suppression         | CAP-2, CAP-3, CAP-4, CAP-8, CAP-28 |
 
 ADR 0002 is superseded by ADR 0007. ADR 0001 sets the record itself: an accepted ADR is never
 edited, only superseded.
@@ -31,11 +32,10 @@ edited, only superseded.
 The owner took these decisions after the accepted ADRs; each needs its ADR before code. RabbitMQ as
 the only broker left this list: ADR 0012 records it.
 
-| Decision                                                                                                    | Relation | Affects                     |
-| ----------------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
-| Field allowlist, image fingerprints, sanitized and encrypted raw snapshots, 30-day expiry, suppression list | New      | CAP-2, CAP-3, CAP-4, CAP-28 |
-| Tile provider and PostGIS, decided with the V2 Map screen; GeoSampa fiscal blocks as its block layer        | New      | CAP-24                      |
-| Keycloak as the identity provider, and how the API and the web application validate a session               | New      | CAP-32                      |
+| Decision                                                                                             | Relation | Affects |
+| ---------------------------------------------------------------------------------------------------- | -------- | ------- |
+| Tile provider and PostGIS, decided with the V2 Map screen; GeoSampa fiscal blocks as its block layer | New      | CAP-24  |
+| Keycloak as the identity provider, and how the API and the web application validate a session        | New      | CAP-32  |
 
 ## Current state
 
@@ -640,38 +640,39 @@ the dark theme. Alerts open when CAP-23 is built.
 
 Module names are the bounded contexts of ADR 0011.
 
-| Capability     | Lives in                                                                             | Governed by                                                  |
-| -------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| CAP-1          | `collection`: collectors in `apps/worker`; `ListingSource` adapters; source register | Ingestion pipeline; Privacy and sources; ADR 0003, ADR 0013  |
-| CAP-2          | `collection`; `RawSnapshotStore` port; sanitizer                                     | Ingestion pipeline; Privacy and sources                      |
-| CAP-3          | `properties`, `locations`                                                            | Conceptual model; field allowlist; ADR 0003                  |
-| CAP-4          | Entity resolution in `properties`; fingerprints from the collectors                  | Ingestion pipeline; match thresholds; image permission       |
-| CAP-5          | `properties`, `collection`; outbox                                                   | Listing events                                               |
-| CAP-6          | Search query in `properties`; `/api/v1`                                              | ADR 0003                                                     |
-| CAP-7, CAP-8   | `properties`; `/api/v1`                                                              | Conceptual model; asking-price rule; listing-text permission |
-| CAP-9          | `market`                                                                             | Deterministic rules                                          |
-| CAP-10         | Graph in `apps/ai`; typed tool over `/api/v1`; `pricePerSquareMeter`                 | ADR 0007, ADR 0008, ADR 0014                                 |
-| CAP-11, CAP-12 | Decision port and adapters in `apps/ai`                                              | ADR 0008                                                     |
-| CAP-13         | `ask`; `apps/api` persistence, outbox, `apps/worker` delivery, RabbitMQ              | ADR 0010, ADR 0012                                           |
-| CAP-14         | `ask`: run endpoints and SSE in `apps/api`; headless web client                      | ADR 0010                                                     |
-| CAP-15         | Resilience policies around the adapters in `apps/ai`                                 | ADR 0009, ADR 0014                                           |
-| CAP-16         | `ask` in `apps/api`                                                                  | ADR 0010; demo quota                                         |
-| CAP-17         | Datasets and tests beside the adapters                                               | ADR 0004, ADR 0008                                           |
-| CAP-18         | OpenTelemetry bootstrap of each process                                              | ADR 0005, ADR 0010                                           |
-| CAP-19, CAP-20 | `apps/web`                                                                           | ADR 0006; `ux.md`; `apps/web/DESIGN.md`                      |
-| CAP-21         | `comparables`                                                                        | Deterministic rules; PostGIS when distance needs it          |
-| CAP-22         | `market`                                                                             | Deterministic rules                                          |
-| CAP-23         | `alerts`                                                                             | Fixed rules, after each collection run; protected surface    |
-| CAP-24         | Map in `apps/web`; `locations`; GeoSampa fiscal blocks                               | Tile provider and PostGIS, by ADR at V2; CC BY-SA 4.0        |
-| CAP-25         | One typed tool per intent in `apps/ai`                                               | ADR 0008                                                     |
-| CAP-26         | `collection`; `/api/v1`; `apps/web`                                                  | Ingestion pipeline; protected surface                        |
-| CAP-27         | Entity-resolution review; `audit`                                                    | Audit log; match thresholds; protected surface               |
-| CAP-28         | Privacy notice in `apps/web`; suppression in `collection`, erasure in `properties`   | Privacy and sources                                          |
-| CAP-29         | Tokens and styles in `apps/web`                                                      | `apps/web/DESIGN.md`; `ux.md`                                |
-| CAP-30         | Extraction through `apps/ai`; interpreted attributes in `properties`                 | Where a model may be used                                    |
-| CAP-31         | Entity resolution in `properties`; embedding model port                              | Where a model may be used; match thresholds                  |
-| CAP-32         | `identity`; session validation in `apps/api` and `apps/web`; Keycloak                | Public and protected surfaces; ADR owed                      |
-| CAP-33         | `market`; `TransactionSource` adapters                                               | Privacy and sources; place figures only                      |
+| Capability     | Lives in                                                                             | Governed by                                                 |
+| -------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| CAP-1          | `collection`: collectors in `apps/worker`; `ListingSource` adapters; source register | Ingestion pipeline; Privacy and sources; ADR 0003, ADR 0013 |
+| CAP-2          | `collection`; `RawSnapshotStore` port; sanitizer                                     | Ingestion pipeline; Privacy and sources; ADR 0015           |
+| CAP-3          | `properties`, `locations`                                                            | Conceptual model; ADR 0003, ADR 0015                        |
+| CAP-4          | Entity resolution in `properties`; fingerprints from the collectors                  | Ingestion pipeline; match thresholds; ADR 0015              |
+| CAP-5          | `properties`, `collection`; outbox                                                   | Listing events                                              |
+| CAP-6          | Search query in `properties`; `/api/v1`                                              | ADR 0003                                                    |
+| CAP-7          | `properties`; `/api/v1`                                                              | Conceptual model; asking-price rule                         |
+| CAP-8          | `properties`; `/api/v1`                                                              | Conceptual model; listing-text permission; ADR 0015         |
+| CAP-9          | `market`                                                                             | Deterministic rules                                         |
+| CAP-10         | Graph in `apps/ai`; typed tool over `/api/v1`; `pricePerSquareMeter`                 | ADR 0007, ADR 0008, ADR 0014                                |
+| CAP-11, CAP-12 | Decision port and adapters in `apps/ai`                                              | ADR 0008                                                    |
+| CAP-13         | `ask`; `apps/api` persistence, outbox, `apps/worker` delivery, RabbitMQ              | ADR 0010, ADR 0012                                          |
+| CAP-14         | `ask`: run endpoints and SSE in `apps/api`; headless web client                      | ADR 0010                                                    |
+| CAP-15         | Resilience policies around the adapters in `apps/ai`                                 | ADR 0009, ADR 0014                                          |
+| CAP-16         | `ask` in `apps/api`                                                                  | ADR 0010; demo quota                                        |
+| CAP-17         | Datasets and tests beside the adapters                                               | ADR 0004, ADR 0008                                          |
+| CAP-18         | OpenTelemetry bootstrap of each process                                              | ADR 0005, ADR 0010                                          |
+| CAP-19, CAP-20 | `apps/web`                                                                           | ADR 0006; `ux.md`; `apps/web/DESIGN.md`                     |
+| CAP-21         | `comparables`                                                                        | Deterministic rules; PostGIS when distance needs it         |
+| CAP-22         | `market`                                                                             | Deterministic rules                                         |
+| CAP-23         | `alerts`                                                                             | Fixed rules, after each collection run; protected surface   |
+| CAP-24         | Map in `apps/web`; `locations`; GeoSampa fiscal blocks                               | Tile provider and PostGIS, by ADR at V2; CC BY-SA 4.0       |
+| CAP-25         | One typed tool per intent in `apps/ai`                                               | ADR 0008                                                    |
+| CAP-26         | `collection`; `/api/v1`; `apps/web`                                                  | Ingestion pipeline; protected surface                       |
+| CAP-27         | Entity-resolution review; `audit`                                                    | Audit log; match thresholds; protected surface              |
+| CAP-28         | Privacy notice in `apps/web`; suppression in `collection`, erasure in `properties`   | Privacy and sources; ADR 0015                               |
+| CAP-29         | Tokens and styles in `apps/web`                                                      | `apps/web/DESIGN.md`; `ux.md`                               |
+| CAP-30         | Extraction through `apps/ai`; interpreted attributes in `properties`                 | Where a model may be used                                   |
+| CAP-31         | Entity resolution in `properties`; embedding model port                              | Where a model may be used; match thresholds                 |
+| CAP-32         | `identity`; session validation in `apps/api` and `apps/web`; Keycloak                | Public and protected surfaces; ADR owed                     |
+| CAP-33         | `market`; `TransactionSource` adapters                                               | Privacy and sources; place figures only                     |
 
 ## Deferred to the stories
 

@@ -17,6 +17,7 @@ companions:
   - ../../../specs/adrs/0012-domain-events-and-transactional-outbox.md
   - ../../../specs/adrs/0013-anti-corruption-layer-and-resilience-for-external-systems.md
   - ../../../specs/adrs/0014-zero-data-retention-for-user-text-routes.md
+  - ../../../specs/adrs/0015-handling-of-collected-data.md
 sources:
   - /workspace/docs/real-state-intelligence/real_state_intelligence.md
   - /workspace/docs/real-state-intelligence/plan.md

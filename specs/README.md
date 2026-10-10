@@ -30,6 +30,7 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0007 to 0010 | AI runtime boundary, typed routing, AI resilience, durable runs (0007 supersedes 0002) |
 | 0011 to 0013 | Bounded contexts and layout, events and outbox, ports and resilience                   |
 | 0014         | Zero Data Retention for every external model route that receives user text             |
+| 0015         | Collected-data allowlist, permissions, snapshots, photographs and suppression          |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.

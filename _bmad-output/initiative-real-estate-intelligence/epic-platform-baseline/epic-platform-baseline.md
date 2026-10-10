@@ -98,6 +98,10 @@ for it here.
   The primary model stays behind the gateway until a direct route proves the same guarantee (ADR
   0014).
   (agent, on the owner's behalf, 2026-10-10).
+- Decision: real listings use the closed collected-data allowlist; image-fetch and listing-text
+  permissions default to denied; photographs are discarded after deterministic fingerprinting;
+  sanitized, encrypted snapshots expire after 30 days while their hash remains; and suppression
+  survives erasure and prevents recollection (ADR 0015) (agent, on the owner's behalf, 2026-10-10).
 - Assumption: the thin `audit` context lives here because `collection`, `properties` and `ask` all
   feed it and none depends on another for it.
 - Decision: entry 3 is the tracer bullet. Entry 11 precedes every code story because the spec and

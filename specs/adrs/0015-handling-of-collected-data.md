@@ -1,0 +1,90 @@
+# ADR 0015 — Handling of collected data
+
+- **Status:** accepted
+- **Date:** 2026-10-10
+- **Accepted by:** the agent on the owner's behalf, 2026-10-10
+
+## Context
+
+The product keeps listing history and provenance, reprocesses raw snapshots and compares listings
+that may describe the same property. Those capabilities need collected data, but the product
+contract also forbids storing personal data and photographs of natural persons. Source permissions
+further determine whether photographs may be fetched for fingerprinting and whether masked listing
+text may be displayed.
+
+Without one binding decision, collectors, snapshot storage, normalized records, APIs and removal
+flows could apply different field sets, retention periods or permission defaults. This ADR records
+the contract's engineering reading. It is not legal advice and does not replace a legal review.
+
+## Decision
+
+### Closed allowlist for real listings
+
+A real listing may persist only these fields:
+
+- property type, asking price, area, bedrooms, bathrooms, parking spaces and features;
+- the location as the source publishes it, without unit or complement;
+- dates, the listing source and the source URL;
+- the advertiser type (private or agency) and the agency name, which belongs to a legal entity;
+- the description after phone numbers, e-mail addresses, CPF numbers and links are masked;
+- image fingerprints computed during collection under the permission rules below.
+
+The allowlist is closed: a field not listed above is rejected or dropped before persistence. The
+name, phone number, e-mail address or individual CRECI number of a natural person is never stored,
+and neither is a photograph. Adding a field requires a superseding ADR and an updated source and
+privacy review.
+
+### Photographs and listing text
+
+The source register records two independent permissions. Both default to denied and become allowed
+only when the source review establishes the permission and records its evidence and review date:
+
+- **Fetch images.** When allowed, the collector may fetch photographs, compute one deterministic
+  fingerprint per selected photograph in memory and immediately discard the photograph. The image
+  request consumes the source's rate limit. This ADR does not choose the fingerprint algorithm,
+  similarity measure or number of photographs.
+- **Display listing text.** When allowed, the API may return the masked description and compare its
+  masked versions. When denied, the API returns only that the description changed and when, plus a
+  link to the source. The masked description may remain stored for parsing and entity resolution,
+  but no excerpt may be displayed, including a source sentence for an interpreted attribute.
+
+These permissions do not enable a source or change any existing source-review outcome. Collection
+itself remains disabled unless the source's terms of use, robots policy and licence allow it.
+
+### Raw snapshots and synthetic fixtures
+
+- A real-source payload is sanitized before persistence: forbidden contact fields are removed and
+  phone numbers, e-mail addresses, CPF numbers and links are masked in text.
+- A sanitized real-source snapshot is encrypted at rest and deleted 30 days after collection.
+  Reprocessing is available only inside that window. After deletion, normalized data retains the
+  snapshot's content hash so its provenance remains auditable.
+- Synthetic fixtures are identified separately from real-source snapshots. They contain no
+  personal data, may be retained beyond 30 days and may carry prepared fingerprints without
+  photographs. Their permissions may allow both image evidence and listing text for deterministic
+  tests, but those permissions do not transfer to a real source.
+
+### Removal and suppression
+
+A removal request first records a suppression against the listing's stable source identity. The
+system then deletes the listing's stored data, real-source snapshots and image fingerprints while
+preserving the suppression entry and the minimum audit evidence required to enforce it. As soon as
+discovery yields a candidate's stable source identity, collection checks suppression before fetching
+the listing payload or any image. It checks again before persisting a payload or producing any
+downstream artifact, so a later run, redelivery or reprocessing operation cannot recreate the
+listing or its artifacts.
+
+## Consequences
+
+Collectors and parsers must share one sanitizer and one closed allowlist, and storage must support
+encrypted real-source snapshots, expiry and deletion. Source adapters must consult the register
+before image requests, APIs must enforce the listing-text permission and every collection path must
+consult suppression before fetching and again before persistence. These controls reduce retained
+data and display rights by default, at the cost of additional source metadata, lifecycle jobs and
+audit tests.
+
+## Reassessment trigger
+
+Reassess this decision after a legal review changes the engineering reading, when a source grants
+or withdraws a permission, or when a product capability proposes another persisted field. A source
+permission change updates the source register; a change to the allowlist, retention period, image
+lifecycle or suppression semantics requires a superseding ADR.
