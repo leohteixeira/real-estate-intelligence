@@ -290,6 +290,45 @@ describe('ResilientEventPublisher', () => {
     expect(adapter.attempts).toHaveLength(2);
   });
 
+  it('counts slow non-transient failures while preserving the caller failure', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const failure = new ExternalFailure({
+      kind: 'rejected',
+      operation: 'event-publisher.publish',
+    });
+    const slowFailure: ScriptedPublishStep = async () => {
+      await new Promise<void>((resolve) => setTimeout(resolve, 50));
+      throw failure;
+    };
+    const adapter = new ScriptedEventPublisher([slowFailure]);
+    const publisher = new ResilientEventPublisher(
+      adapter,
+      settings({
+        circuitBreaker: { minimumCalls: 2, slowCallThresholdMs: 50 },
+        retry: { attempts: 1 },
+        attemptTimeoutMs: 100,
+      }),
+    );
+
+    const first = expect(publisher.publish(event, new AbortController().signal)).rejects.toBe(
+      failure,
+    );
+    await vi.advanceTimersByTimeAsync(50);
+    await first;
+    const second = expect(publisher.publish(event, new AbortController().signal)).rejects.toBe(
+      failure,
+    );
+    await vi.advanceTimersByTimeAsync(50);
+    await second;
+
+    expect(publisher.circuitBreaker.state).toBe('open');
+    expect(await outcomeKind(publisher.publish(event, new AbortController().signal))).toBe(
+      'exhausted',
+    );
+    expect(adapter.attempts).toHaveLength(2);
+  });
+
   it('rejects the attempt above the named rate without waiting', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

@@ -30,7 +30,7 @@ describe('ScriptedEventPublisher', () => {
     ]);
   });
 
-  it('passes cancellation to active scripted work', async () => {
+  it('maps active cancellation to a sanitized closed failure', async () => {
     const controller = new AbortController();
     const publisher = new ScriptedEventPublisher([
       async (_event, signal) =>
@@ -42,7 +42,40 @@ describe('ScriptedEventPublisher', () => {
     const active = publisher.publish(event, controller.signal);
     controller.abort(new Error('cancelled by caller'));
 
-    await expect(active).rejects.toThrow('cancelled by caller');
+    const failure = await active.catch((error: unknown) => error);
+    expect(failure).toMatchObject({ kind: 'cancelled' });
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).not.toContain('cancelled by caller');
     expect(publisher.attempts).toHaveLength(1);
+  });
+
+  it('reports cancellation when an aborted step rejects an existing closed failure', async () => {
+    const controller = new AbortController();
+    const transient = new ExternalFailure({ kind: 'transient', operation: 'publish' });
+    const publisher = new ScriptedEventPublisher([
+      async (_event, signal) =>
+        new Promise<void>((_resolve, reject) =>
+          signal.addEventListener('abort', () => reject(transient), { once: true }),
+        ),
+    ]);
+
+    const active = publisher.publish(event, controller.signal);
+    controller.abort();
+
+    await expect(active).rejects.toMatchObject({ kind: 'cancelled' });
+  });
+
+  it('maps an arbitrary scripted error to a sanitized rejection', async () => {
+    const publisher = new ScriptedEventPublisher([
+      async () => Promise.reject(new Error('vendor endpoint and secret detail')),
+    ]);
+
+    const failure = await publisher
+      .publish(event, new AbortController().signal)
+      .catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ kind: 'rejected' });
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).not.toMatch(/vendor|endpoint|secret/i);
   });
 });

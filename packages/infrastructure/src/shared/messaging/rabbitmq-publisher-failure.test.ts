@@ -7,7 +7,7 @@ describe('translateRabbitMqPublisherFailure', () => {
   it.each([
     [{ code: 'ECONNRESET', message: 'amqp://user:secret@broker' }, 'connection', 'transient'],
     [new Error('publisher confirmation timed out'), 'confirm', 'transient'],
-    [{ code: 406, message: 'PRECONDITION_FAILED secret exchange' }, 'publish', 'rejected'],
+    [{ code: 406, message: 'PRECONDITION_FAILED secret exchange' }, 'connection', 'rejected'],
     [{ code: 530, message: 'NOT_ALLOWED user secret' }, 'connection', 'unauthorized'],
     [new Error('message nacked'), 'confirm', 'rejected'],
     [new Error('unknown channel failure'), 'publish', 'transient'],

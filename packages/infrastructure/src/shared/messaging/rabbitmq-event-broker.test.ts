@@ -19,8 +19,15 @@ const subscription: EventSubscription = {
 };
 
 type Listener = (...arguments_: unknown[]) => void;
+type ConfirmCallback = (error: unknown | null) => void;
+type PublisherOutcome = 'ack' | 'pending' | Error;
+type PublisherCloseOutcome = 'resolved' | 'pending' | Error;
 
-function generationDouble(publishResult = true) {
+function generationDouble(
+  publishResult = true,
+  publisherOutcomes: readonly PublisherOutcome[] = ['ack'],
+  publisherCloseOutcomes: readonly PublisherCloseOutcome[] = [],
+) {
   const connectionListeners = new Map<string, Listener[]>();
   const channelListeners = new Map<string, Listener[]>();
   const deliveries = new Map<string, (message: ReturnType<typeof message> | null) => void>();
@@ -56,8 +63,64 @@ function generationDouble(publishResult = true) {
     );
     return channel;
   });
+  const publisherChannels: Array<typeof channel> = [];
+  const publisherCallbacks: ConfirmCallback[] = [];
+  const publisherChannelListeners: Array<Map<string, Listener[]>> = [];
+  let channelCreations = 0;
   const connection = {
-    createConfirmChannel: vi.fn().mockResolvedValue(channel),
+    createConfirmChannel: vi.fn(async () => {
+      channelCreations += 1;
+      if (channelCreations === 1) return channel;
+
+      const publisherIndex = publisherChannels.length;
+      const listeners = new Map<string, Listener[]>();
+      const outcome = publisherOutcomes[publisherIndex] ?? 'ack';
+      const closeOutcome = publisherCloseOutcomes[publisherIndex] ?? 'resolved';
+      const close =
+        closeOutcome === 'pending'
+          ? vi.fn(() => new Promise<void>(() => undefined))
+          : closeOutcome instanceof Error
+            ? vi.fn().mockRejectedValue(closeOutcome)
+            : vi.fn().mockResolvedValue(undefined);
+      const publisherChannel = {
+        ...channel,
+        publish: vi.fn(
+          (
+            _exchange: string,
+            _routingKey: string,
+            _content: Buffer,
+            _options: Record<string, unknown>,
+            callback?: ConfirmCallback,
+          ) => {
+            if (callback) {
+              publisherCallbacks.push(callback);
+              if (outcome !== 'pending') {
+                queueMicrotask(() => callback(outcome === 'ack' ? null : outcome));
+              }
+            }
+            return publishResult;
+          },
+        ),
+        waitForConfirms: vi.fn().mockResolvedValue(undefined),
+        close,
+        on: vi.fn(),
+        off: vi.fn(),
+      };
+      publisherChannel.on.mockImplementation((name: string, listener: Listener) => {
+        listeners.set(name, [...(listeners.get(name) ?? []), listener]);
+        return publisherChannel;
+      });
+      publisherChannel.off.mockImplementation((name: string, listener: Listener) => {
+        listeners.set(
+          name,
+          (listeners.get(name) ?? []).filter((candidate) => candidate !== listener),
+        );
+        return publisherChannel;
+      });
+      publisherChannelListeners.push(listeners);
+      publisherChannels.push(publisherChannel);
+      return publisherChannel;
+    }),
     close: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
   };
@@ -69,6 +132,8 @@ function generationDouble(publishResult = true) {
   return {
     channel,
     connection,
+    publisherCallbacks,
+    publisherChannels,
     delivery: (queue = subscription.consumerName) => deliveries.get(queue),
     emitConnection: (name: 'close' | 'error') => {
       for (const listener of connectionListeners.get(name) ?? []) listener();
@@ -76,14 +141,21 @@ function generationDouble(publishResult = true) {
     emitChannel: (name: 'close' | 'error') => {
       for (const listener of channelListeners.get(name) ?? []) listener();
     },
+    emitPublisherChannel: (index: number, name: 'close' | 'error', error?: unknown) => {
+      for (const listener of publisherChannelListeners[index]?.get(name) ?? []) listener(error);
+    },
     emitReturn: (returned: ReturnType<typeof message>) => {
       for (const listener of channelListeners.get('return') ?? []) listener(returned);
     },
   };
 }
 
-function brokerDouble(publishResult = true) {
-  const generation = generationDouble(publishResult);
+function brokerDouble(
+  publishResult = true,
+  publisherOutcomes: readonly PublisherOutcome[] = ['ack'],
+  publisherCloseOutcomes: readonly PublisherCloseOutcome[] = [],
+) {
+  const generation = generationDouble(publishResult, publisherOutcomes, publisherCloseOutcomes);
   const broker = new RabbitMqEventBroker(
     {
       url: 'amqp://redacted:redacted@broker/vhost',
@@ -285,22 +357,25 @@ describe('RabbitMqEventBroker', () => {
   });
 
   it('publishes persistent messages and waits for a confirm even under write backpressure', async () => {
-    const { broker, channel } = brokerDouble(false);
+    const { broker, publisherChannels } = brokerDouble(false);
 
     await broker.publish(event, new AbortController().signal);
 
-    expect(channel.publish).toHaveBeenCalledWith(
+    expect(publisherChannels).toHaveLength(1);
+    expect(publisherChannels[0]!.publish).toHaveBeenCalledWith(
       'rei.events',
       event.type,
       expect.any(Buffer),
       expect.objectContaining({ persistent: true, messageId: event.eventId }),
+      expect.any(Function),
     );
-    expect(channel.waitForConfirms).toHaveBeenCalledOnce();
+    expect(publisherChannels[0]!.waitForConfirms).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(publisherChannels[0]!.close).toHaveBeenCalledOnce());
     await broker.close();
   });
 
   it('does not publish when the caller cancels as start finishes', async () => {
-    const { broker, channel } = brokerDouble();
+    const { broker, channel, publisherChannels } = brokerDouble();
     await broker.start();
     channel.publish.mockClear();
     const controller = new AbortController();
@@ -313,6 +388,7 @@ describe('RabbitMqEventBroker', () => {
     });
 
     expect(channel.publish).not.toHaveBeenCalled();
+    expect(publisherChannels).toHaveLength(0);
     await broker.close();
   });
 
@@ -336,27 +412,116 @@ describe('RabbitMqEventBroker', () => {
     await broker.close();
   });
 
+  it('classifies a numeric setup rejection as non-retryable without leaking broker detail', async () => {
+    const generation = generationDouble();
+    generation.channel.assertExchange.mockRejectedValueOnce(
+      Object.assign(new Error('PRECONDITION_FAILED secret exchange declaration'), {
+        code: 406,
+        replyText: 'PRECONDITION_FAILED secret exchange declaration',
+      }),
+    );
+    const connector = vi.fn().mockResolvedValue(generation.connection);
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://user:secret@broker/vhost', operationTimeoutMs: 1_000 },
+      connector,
+    );
+
+    const failure = await broker
+      .publish(event, new AbortController().signal)
+      .catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ kind: 'rejected' });
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).not.toMatch(/secret|exchange|broker|amqp/i);
+    expect(connector).toHaveBeenCalledOnce();
+    expect(generation.channel.close).toHaveBeenCalledOnce();
+    expect(generation.connection.close).toHaveBeenCalledOnce();
+    await broker.close();
+  });
+
   it('maps the amqplib negative-confirm error to a non-retryable rejection', async () => {
-    const { broker, channel } = brokerDouble();
-    channel.waitForConfirms.mockRejectedValueOnce(new Error('message nacked'));
+    const { broker, publisherChannels } = brokerDouble(true, [new Error('message nacked')]);
 
     await expect(broker.publish(event, new AbortController().signal)).rejects.toMatchObject({
       kind: 'rejected',
     });
 
+    await vi.waitFor(() => expect(publisherChannels[0]!.close).toHaveBeenCalledOnce());
     await broker.close();
+  });
+
+  it('isolates overlapping ack and nack callbacks on their own publisher channels', async () => {
+    const generation = generationDouble(true, ['pending', 'pending']);
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
+      async () => generation.connection,
+    );
+    const acknowledgedEvent = {
+      ...event,
+      eventId: '0199c8f2-2394-7ba0-af9e-286378779221' as UuidV7,
+    };
+    await broker.start();
+
+    const rejected = broker.publish(event, new AbortController().signal);
+    const acknowledged = broker.publish(acknowledgedEvent, new AbortController().signal);
+    await vi.waitFor(() => expect(generation.publisherCallbacks).toHaveLength(2));
+    generation.publisherCallbacks[1]!(null);
+    generation.publisherCallbacks[0]!(new Error('message nacked'));
+
+    await expect(acknowledged).resolves.toBeUndefined();
+    await expect(rejected).rejects.toMatchObject({ kind: 'rejected' });
+    expect(generation.publisherChannels).toHaveLength(2);
+    expect(generation.publisherChannels[0]!.publish).toHaveBeenCalledWith(
+      'rei.events',
+      event.type,
+      expect.any(Buffer),
+      expect.objectContaining({ messageId: event.eventId }),
+      expect.any(Function),
+    );
+    expect(generation.publisherChannels[1]!.publish).toHaveBeenCalledWith(
+      'rei.events',
+      acknowledgedEvent.type,
+      expect.any(Buffer),
+      expect.objectContaining({ messageId: acknowledgedEvent.eventId }),
+      expect.any(Function),
+    );
+    expect(generation.channel.close).not.toHaveBeenCalled();
+    expect(generation.connection.close).not.toHaveBeenCalled();
+    await broker.close();
+  });
+
+  it('does not let a stalled publisher close reverse an acknowledged publication', async () => {
+    vi.useFakeTimers();
+    try {
+      const generation = generationDouble(true, ['ack'], ['pending']);
+      const broker = new RabbitMqEventBroker(
+        { url: 'amqp://broker/vhost', operationTimeoutMs: 25 },
+        async () => generation.connection,
+      );
+
+      await expect(broker.publish(event, new AbortController().signal)).resolves.toBeUndefined();
+      expect(generation.publisherChannels[0]!.close).toHaveBeenCalledOnce();
+
+      const closing = broker.close();
+      await vi.advanceTimersByTimeAsync(25);
+      await closing;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not let a rejected publisher close reverse an acknowledged publication', async () => {
+    const { broker, publisherChannels } = brokerDouble(true, ['ack'], [new Error('close failed')]);
+
+    await expect(broker.publish(event, new AbortController().signal)).resolves.toBeUndefined();
+    await vi.waitFor(() => expect(publisherChannels[0]!.close).toHaveBeenCalledOnce());
+    await expect(broker.close()).resolves.toBeUndefined();
   });
 
   it('preserves the baseline audit route when started without an audit subscription', async () => {
     const generation = generationDouble();
-    let legacyRouteBound = true;
     generation.channel.unbindQueue.mockImplementation(async () => {
-      legacyRouteBound = false;
       return {};
-    });
-    generation.channel.publish.mockImplementation(() => {
-      expect(legacyRouteBound).toBe(true);
-      return true;
     });
     const broker = new RabbitMqEventBroker(
       { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
@@ -370,18 +535,13 @@ describe('RabbitMqEventBroker', () => {
       expect.anything(),
     );
     expect(generation.channel.unbindQueue).not.toHaveBeenCalled();
-    expect(generation.channel.publish).toHaveBeenCalledOnce();
+    expect(generation.publisherChannels[0]!.publish).toHaveBeenCalledOnce();
     await broker.close();
   });
 
-  it('retires an ambiguous publisher generation before the next connection attempt', async () => {
-    const first = generationDouble();
-    first.channel.waitForConfirms.mockRejectedValue(new Error('confirm state unknown'));
-    const second = generationDouble();
-    const connector = vi
-      .fn()
-      .mockResolvedValueOnce(first.connection)
-      .mockResolvedValueOnce(second.connection);
+  it('closes only a failed publisher channel and keeps the generation usable', async () => {
+    const generation = generationDouble(true, [new Error('confirm state unknown'), 'ack']);
+    const connector = vi.fn().mockResolvedValue(generation.connection);
     const broker = new RabbitMqEventBroker(
       { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
       connector,
@@ -390,11 +550,95 @@ describe('RabbitMqEventBroker', () => {
     await expect(broker.publish(event, new AbortController().signal)).rejects.toMatchObject({
       kind: 'transient',
     });
+    await expect(broker.publish(event, new AbortController().signal)).resolves.toBeUndefined();
+
+    await vi.waitFor(() => expect(generation.publisherChannels[0]!.close).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(generation.publisherChannels[1]!.close).toHaveBeenCalledOnce());
+    expect(generation.channel.close).not.toHaveBeenCalled();
+    expect(generation.connection.close).not.toHaveBeenCalled();
+    expect(connector).toHaveBeenCalledOnce();
+    await broker.close();
+  });
+
+  it('contains a publisher channel error without mutating active consumer state', async () => {
+    const generation = generationDouble(true, ['pending']);
+    const handler = vi.fn().mockResolvedValue(undefined);
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
+      async () => generation.connection,
+    );
+    await broker.subscribe(subscription, handler);
     await broker.start();
 
-    expect(first.channel.close).toHaveBeenCalledOnce();
-    expect(first.connection.close).toHaveBeenCalledOnce();
-    expect(connector).toHaveBeenCalledTimes(2);
+    const publication = broker.publish(event, new AbortController().signal);
+    await vi.waitFor(() => expect(generation.publisherChannels).toHaveLength(1));
+    generation.emitPublisherChannel(0, 'error', new Error('secret server channel failure'));
+    generation.emitPublisherChannel(0, 'close');
+
+    const failure = await publication.catch((error: unknown) => error);
+    expect(failure).toMatchObject({ kind: 'transient' });
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).not.toContain('secret server channel failure');
+    await vi.waitFor(() => expect(generation.publisherChannels[0]!.close).toHaveBeenCalledOnce());
+    expect(generation.channel.close).not.toHaveBeenCalled();
+    expect(generation.connection.close).not.toHaveBeenCalled();
+    generation.delivery()!(message());
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(generation.channel.ack).toHaveBeenCalledOnce());
+    await broker.close();
+  });
+
+  it('times out only the publisher channel while active consumer state remains usable', async () => {
+    const generation = generationDouble(true, ['pending']);
+    const handler = vi.fn().mockResolvedValue(undefined);
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 25 },
+      async () => generation.connection,
+    );
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+
+    vi.useFakeTimers();
+    try {
+      const publication = broker.publish(event, new AbortController().signal);
+      const result = expect(publication).rejects.toMatchObject({ kind: 'transient' });
+      await vi.advanceTimersByTimeAsync(25);
+      await result;
+    } finally {
+      vi.useRealTimers();
+    }
+
+    await vi.waitFor(() => expect(generation.publisherChannels[0]!.close).toHaveBeenCalledOnce());
+    expect(generation.channel.close).not.toHaveBeenCalled();
+    expect(generation.connection.close).not.toHaveBeenCalled();
+    generation.delivery()!(message());
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(generation.channel.ack).toHaveBeenCalledOnce());
+    await broker.close();
+  });
+
+  it('cancels only the active publisher channel while active consumer state remains usable', async () => {
+    const generation = generationDouble(true, ['pending']);
+    const handler = vi.fn().mockResolvedValue(undefined);
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
+      async () => generation.connection,
+    );
+    const controller = new AbortController();
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+
+    const publication = broker.publish(event, controller.signal);
+    await vi.waitFor(() => expect(generation.publisherChannels).toHaveLength(1));
+    controller.abort(new Error('publication cancelled'));
+    await expect(publication).rejects.toMatchObject({ kind: 'cancelled' });
+
+    await vi.waitFor(() => expect(generation.publisherChannels[0]!.close).toHaveBeenCalledOnce());
+    expect(generation.channel.close).not.toHaveBeenCalled();
+    expect(generation.connection.close).not.toHaveBeenCalled();
+    generation.delivery()!(message());
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(generation.channel.ack).toHaveBeenCalledOnce());
     await broker.close();
   });
 

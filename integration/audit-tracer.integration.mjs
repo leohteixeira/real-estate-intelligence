@@ -45,7 +45,7 @@ function assert(condition, message) {
   }
 }
 
-async function waitFor(description, probe, timeoutMs = 60_000) {
+async function waitFor(description, probe, timeoutMs = 60_000, pollIntervalMs = 250) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
   while (Date.now() < deadline) {
@@ -55,7 +55,7 @@ async function waitFor(description, probe, timeoutMs = 60_000) {
     } catch (error) {
       lastError = error;
     }
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
   }
   const suffix = lastError instanceof Error ? ` (${lastError.name})` : '';
   throw new Error(`Timed out waiting for ${description}${suffix}.`);
@@ -477,17 +477,34 @@ async function proveBrokerOutageLeavesOutboxRecoverable(connection) {
     rabbitStopped = true;
     event = await appendSingleEvent(connection);
 
-    // Let the relay observe a real connection failure, then stop it through its normal shutdown
-    // path so any active or queued policy work releases its claim before we inspect persistence.
-    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    const claimed = await waitFor(
+      'the outage event to be claimed by the relay',
+      async () => {
+        const rows = await connection.query(
+          `SELECT published_at, claim_id::text
+             FROM platform.outbox
+            WHERE event_id = $1`,
+          [event.eventId],
+        );
+        return rows[0]?.claim_id ? rows[0] : undefined;
+      },
+      60_000,
+      5,
+    );
+    assert(claimed.published_at === null, 'Broker outage published the claimed outbox row.');
+
+    // Stop through the normal shutdown path while a real failed publication owns the claim.
     await stopWorker();
     workerStopped = true;
-    const rows = await connection.query(
-      `SELECT published_at, claim_id::text
-         FROM platform.outbox
-        WHERE event_id = $1`,
-      [event.eventId],
-    );
+    const rows = await waitFor('the outage claim to be released during shutdown', async () => {
+      const released = await connection.query(
+        `SELECT published_at, claim_id::text
+           FROM platform.outbox
+          WHERE event_id = $1`,
+        [event.eventId],
+      );
+      return released[0]?.claim_id === null ? released : undefined;
+    });
     assert(
       rows[0]?.published_at === null,
       'Broker outage falsely marked the outbox row published.',
