@@ -2,13 +2,14 @@
 
 The seven read endpoints below are a versioned, synthetic contract surface. Property and listing
 detail query persisted initial owned-synthetic observations first, then use prepared fallback for
-existing fixture IDs. Search, places, counts and reductions remain prepared; no read starts
+existing fixture IDs. Place navigation reads a persisted synthetic reference; property search,
+counts and reductions remain prepared. No read starts
 collection, publishes events, resolves entities or calculates market figures. The prepared fixture
 is the unchanged collection replay: five prepared properties, nine listing identities and thirteen
 monthly observations from October 2025 through October 2026. Supplementary permission, expiry and missing-value
 examples are separate from that population.
 
-Prepared success responses have this `metadata` object:
+Prepared property reads and persisted place navigation have this `metadata` object:
 
 ```json
 {
@@ -45,10 +46,52 @@ listing request. Denied text omits current text, versions and excerpts while pre
 a failed permission lookup returns a sanitized failure, never a permissive response. Only masked,
 allowlisted canonical facts are stored; contact, unit/complement and photograph data are excluded.
 
-Reference geography is fixture-only: exact known portal streets may resolve a prepared fictional
-block. `SYN-SP-0001` on Avenida Exemplo resolves Bela Vista neighborhood, not the differently named
-prepared block. Unknown city, state, neighborhood or street is refused; there is no geocoding or
-label-based matching. Persisted records do not enter prepared search, place counts or reductions.
+Reference geography is fixture-only and persisted in the owned `locations` schema. New
+`SYN-SP-0001` observations on Avenida Exemplo resolve to
+`sao-paulo-bela-vista-avenida-exemplo-fictional-block`, with six crumbs. Existing five-crumb initial
+property snapshots remain immutable and readable after replay or restart. Persisted property
+records do not enter prepared search, place counts or reductions.
+
+The ingestion-only `resolveFixtureAddress(address, transaction?)` forwards the verified
+Collection transaction scope into Locations. Its SQL uses the same active pool lease, after
+evidence verification; foreign or inactive scopes are rejected. Ordinary picker and published
+address queries use the bounded pool and retain its existing timeouts.
+
+## Persisted synthetic geography and address resolution
+
+The reference contains the original eighteen places, with unchanged public IDs, order, bilingual
+names, registered adjacency, prepared counts and coordinates, plus two fictional street blocks:
+
+| Public ID                                               | Neighborhood / zone | Published street | Prepared count / coordinates |
+| ------------------------------------------------------- | ------------------- | ---------------- | ---------------------------- |
+| `sao-paulo-bela-vista-avenida-exemplo-fictional-block`  | Bela Vista / Centro | Avenida Exemplo  | `0` / `null`                 |
+| `sao-paulo-vila-mariana-rua-cenario-um-fictional-block` | Vila Mariana / Sul  | Rua Cenário Um   | `0` / `null`                 |
+
+Both ranges are prepared inclusive examples `100–199`, not inferred published house numbers.
+The hierarchy is country → state → city → zone → neighborhood → street block. The five zones are
+Centro, Norte, Sul, Leste and Oeste. The only registered adjacency is Bela Vista ↔ Vila Mariana;
+it is synthetic reference data, not an inference about real neighborhoods. Internal UUIDv7 IDs
+are separate from unique stable public IDs, and migrations/restarts preserve both.
+
+The internal read-only `LocationsFacade.resolvePublishedAddress` accepts exactly `city`,
+`stateCode`, `neighborhood`, `street` and optional `number`. It is not a public HTTP endpoint or
+a Collection event change. Equality ignores accents, case and repeated spaces; leading `Rua` /
+`R.` and `Avenida` / `Av.` are explicit aliases. No substring, fuzzy, matching-label or geocoder
+correction is performed. In particular, COBALTO's published Vila Mariana / Rua Cenário Um resolves
+to its separate supplementary block, not Bela Vista based on a matching label.
+
+A number must be a nonnegative safe integer and match exactly one inclusive registered range.
+Without a number, the street must have exactly one block. Unknown or ambiguous addresses and
+out-of-range numbers return `null`. Extra fields (including units and complements), noninteger or
+unsafe numbers, and malformed streets with appended numbers/units are rejected before database
+I/O; the service does not heuristically extract private address suffixes. Query values are never
+persisted, logged or added to canonical events. Collection still supplies no number.
+
+All place reads use PostgreSQL and fail closed with the standard sanitized error response if
+persistence is unavailable; there is no prepared-memory fallback. Supplementary IDs are valid
+prepared search/reduction scopes with empty results, but the five-property projection and its
+original eighteen-place counts are unchanged. No public place writes, new business events,
+geometry/PostGIS activation or real-source processing are introduced.
 
 ## Endpoints
 
@@ -145,7 +188,8 @@ wire data. They do not fetch source URLs.
   and `propertyCount`, nullable `coordinates: {latitude, longitude}` and nullable `block` metadata.
   A block supplies `streetName`, inclusive `fromNumber`/`toNumber` range and
   `origin: "prepared-fixture"`. Each authoritative fixture property has one stable fictional block;
-  property/listing canonical places are those blocks. Coordinates and street ranges are explicitly
+  prepared property/listing canonical places are those blocks; newly ingested observations use
+  the block registered for their published address. Coordinates and street ranges are explicitly
   prepared examples, never geocoded. No unit or complement is exposed. Non-block places have null
   coordinates and block metadata. Adjacency is registered between neighborhoods only.
 - `PropertySummary`: canonical identity/type/place/crumbs, nullable area and room attributes,
@@ -288,3 +332,15 @@ loading, starts only PostgreSQL, existing migrations and the compiled API, valid
 responses and errors, verifies collection/raw-object/outbox counts do not change, and removes its
 own containers and volumes in scoped cleanup. Unit and real-HTTP tests also cover contract/event
 mutations, filters, paging, history, rights and expiry. No frontend or external source is involved.
+
+`pnpm run test:integration:locations` independently traverses all twenty persisted places, resolves
+all nine catalog addresses plus the tracer through the real SQL facade and fetches their returned
+blocks through HTTP. It checks boundaries, ambiguity, privacy validation, relational constraints,
+migration replay, restart, stable UUIDv7 IDs and fail-closed reads. Ten synchronized transactions
+hold every production pool lease before resolving all ten addresses, proving the resolver needs
+no second checkout. SQL writes reject whitespace-only English, Portuguese and street names for
+every ECMAScript trim character, while valid 200-character names remain readable. The production
+`test:integration:properties-ingestion` campaign verifies the new six-crumb block through genuine
+collection → RabbitMQ → worker → Property/Listing HTTP, plus historical five-crumb replay/restart
+compatibility. Both use unique owned projects, dynamic ports, disabled env-file loading and exact
+container/volume cleanup.

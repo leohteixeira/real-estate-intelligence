@@ -60,3 +60,27 @@ publication evidence, written atomically with initial/paged collection or repars
 It verifies event time and values without depending on retained outbox rows or inventing legacy
 evidence. Update triggers protect original evidence; deletion remains possible for the later
 ADR 0015 suppression capability. Properties verifies it only through the Collection facade.
+
+## Synthetic Locations reference
+
+`5001_locations_create_place_hierarchy.sql` owns `locations.place`, reference metadata and
+undirected neighborhood adjacency. It seeds exactly twenty places: the unchanged original eighteen
+plus two fictional blocks for Bela Vista / Avenida Exemplo and Vila Mariana / Rua Cenário Um.
+Supplementary blocks retain prepared ranges `100–199`, null coordinates and zero prepared counts.
+The synthetic metadata timestamp is UTC; it is not a freshness claim about real geography.
+
+Each internal ID is a database-generated UUIDv7; the separately unique public slug remains the
+HTTP identity. The migration runner applies the seed once, preserving internal/public IDs on
+replay. Composite own-schema foreign keys and strict parent-kind checks enforce all six levels
+and prevent cycles. SQL checks enforce integer safe inclusive ranges without rounding fractional
+input, finite coordinate pairs, block-only metadata and valid neighborhood-only adjacency. One
+ordered undirected pair produces both read directions and prohibits duplicate/self edges.
+
+`locations.valid_reference_name` uses the explicit ECMAScript trim whitespace set for both
+display names and street names, including tabs, line breaks and Unicode spaces. Trimmed values
+must contain 1–200 characters; whitespace-only values cannot be persisted and break hydration.
+
+No foreign-schema joins or keys, address-query storage, unit/complement fields, PostGIS extension,
+business events or mutation routes are introduced. Properties stores its initial resolved-place
+snapshot through the facade; historical five-crumb snapshots are not rewritten by this migration.
+Use `pnpm run test:integration:locations` after the build for real constraint, replay and HTTP tests.

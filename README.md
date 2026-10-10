@@ -18,8 +18,9 @@ Both are version 1, accepted as an engineering baseline by the agent on the owne
 
 > Current state: **synthetic contract foundation**. Collection plumbing and deterministic synthetic
 > replay exist. Verified owned-synthetic parsed events now persist an initial single-listing Property
-> and Listing, served through the detail routes. Search, places, counts and reductions remain prepared
-> fixtures. Real-source processing, production matching, full history, market figures and comparables
+> and Listing, served through the detail routes. Locations persists twenty synthetic reference places;
+> property search, counts and reductions remain the unchanged prepared fixtures.
+> Real-source processing, production matching, full history, market figures and comparables
 > are not enabled.
 
 ## Stack
@@ -113,6 +114,7 @@ pnpm run test
 pnpm run build
 pnpm run test:coverage
 pnpm run test:integration:properties   # isolated compiled-API synthetic read journey (after build)
+pnpm run test:integration:locations    # isolated persisted reference/resolution/SQL/HTTP campaign
 pnpm run test:integration:properties-ingestion # isolated collect → broker → persisted HTTP journey
 
 pnpm --filter "@rei/api" dev      # http://0.0.0.0:8200
@@ -148,6 +150,11 @@ verified later observations and parser corrections are stored as pending facts, 
 Descriptions require the source's current display permission on every persisted read, failing closed
 when denied or unavailable. Ingestion is restricted to registered owned synthetic sources and exact
 known fixture addresses; it is not production normalization or entity resolution.
+Locations reads the owned PostgreSQL reference without an in-memory fallback. New observations
+resolve to registered fictional street blocks with six crumbs; historical five-crumb snapshots stay
+immutable. The two supplementary blocks have null coordinates and zero prepared properties. Exact
+accent/case/space and Rua/R. or Avenida/Av. normalization is supported; optional published numbers
+select inclusive ranges and are not stored. There is no geocoder, fuzzy matching or real geography.
 
 ## Ports
 

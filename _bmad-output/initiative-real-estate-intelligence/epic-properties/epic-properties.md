@@ -90,6 +90,24 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   event publication and match events belong to later stories; the existing framework-neutral
   validators/facades and Vitest override conflicting modular-monolith skill defaults as in D-012
   (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-024 persists the six-level prepared reference, neighborhood-zone mapping and
+  registered fixture adjacency in locations migration 5001. Internal PostgreSQL UUIDv7 IDs retain
+  separate stable public place IDs. Add a distinct fictional Avenida Exemplo block in Bela Vista,
+  with prepared range 100–199 and null coordinates; preserve the Collection dataset and v1/v2
+  contracts. A separate facade address query accepts an optional published number: resolve only
+  one normalized registered block, using its range when given; ambiguity, unknown geography,
+  invalid numbers and unit/complement fail closed. Never infer a number or coordinates or store
+  queried addresses. API and worker use persisted geography, retaining prepared counts/metadata
+  and frozen read contracts; the supplemental block has zero prepared properties. New ingestion
+  uses its correct block without rewriting existing historical views. No real geography, PostGIS,
+  public mutation, new business event or production action
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-025 supplements D-024 with a second fictional block for Rua Cenário Um in
+  Vila Mariana (prepared range 100–199, null coordinates, zero prepared properties), totaling
+  twenty seeded places. Resolve all nine catalog addresses and the tracer from their published
+  geography. COBALTO_BELA_VISTA's intentional Vila Mariana address disagreement is preserved:
+  matching labels must never correct its neighborhood, street or zone
+  (agent, on the owner's behalf, 2026-10-10).
 - Decision: D-022 makes entry 2 a persisted synthetic tracer: collection-owned transaction-scoped
   evidence verifies every v1 observation and v2 correction. Inbox, immutable incoming fact, first
   Property/Listing and only ListingCreated outbox commit atomically. Stable source identity remains
