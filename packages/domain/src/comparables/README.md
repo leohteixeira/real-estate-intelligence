@@ -1,3 +1,3 @@
 # comparables
 
-Module planned by section 3.3 of the product specification. No code yet.
+Core context: comparable sets selected by stated criteria (V2). No code yet. See ADR 0011.

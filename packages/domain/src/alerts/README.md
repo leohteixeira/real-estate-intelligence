@@ -1,3 +1,4 @@
 # alerts
 
-Module planned by section 3.3 of the product specification. No code yet.
+Supporting context: alert rules, followed items and the inbox (after the MVP). No code yet. See
+ADR 0011.

@@ -3,8 +3,12 @@
 Canonical model and business rules. This package does **not** depend on infrastructure, on a vendor
 SDK or on a data source.
 
-One folder per module, following section 3.3 of the product specification. The folders are empty on
-purpose: the foundation phase does not create entities yet.
+One folder per bounded context (ADR 0011): `properties`, `market`, `comparables`, `collection`,
+`locations`, `ask`, `alerts`, `audit` and `identity`. Inside a context, one folder per aggregate
+holds its entity, value objects, events and rules, told apart by suffix (`listing.entity.ts`,
+`asking-price.vo.ts`, `listing.events.ts`); `shared/` holds the kernel no context owns. A context
+exports only through its `index.ts` and never imports the internals of another. The folders are
+empty on purpose: the foundation phase does not create entities yet.
 
 Rules that belong here once implementation starts:
 

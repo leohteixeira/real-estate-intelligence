@@ -1,3 +1,3 @@
 # locations
 
-Module planned by section 3.3 of the product specification. No code yet.
+Supporting context: the place hierarchy and reference geography. No code yet. See ADR 0011.

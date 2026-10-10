@@ -1,4 +1,4 @@
 # market
 
-Module planned by section 3.3 of the product specification. Currently holds the
-deterministic price per square meter rule; the rest of the module has no code yet.
+Core context: deterministic place figures and their movement. Currently holds the price per square
+meter rule; the rest has no code yet. See ADR 0011.

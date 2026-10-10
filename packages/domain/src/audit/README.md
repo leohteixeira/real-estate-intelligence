@@ -1,3 +1,3 @@
 # audit
 
-Module planned by section 3.3 of the product specification. No code yet.
+Generic context: the append-only audit log. No code yet. See ADR 0011.
