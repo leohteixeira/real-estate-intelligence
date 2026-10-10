@@ -45,18 +45,27 @@ function cancellation(): ExternalFailure {
 
 /** Deterministic, labelled fixture source. It never performs network I/O. */
 export class SyntheticListingSource implements ListingSource {
-  public async fetch(sourceId: string, signal: AbortSignal): Promise<RawListingDocument> {
+  public async fetchPage(sourceId: string, cursor: string | null, signal: AbortSignal) {
     if (signal.aborted) throw cancellation();
     if (sourceId !== SYNTHETIC_LISTING_SOURCE_ID) {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch' });
     }
+    if (cursor !== null) {
+      return Object.freeze({ documents: Object.freeze([]), nextCursor: null, exhausted: true });
+    }
     return Object.freeze({
-      sourceId,
-      sourceListingId: SYNTHETIC_LISTING_ID,
-      sourceUrl: `https://synthetic.invalid/listings/${SYNTHETIC_LISTING_ID}`,
-      observedAt: '2026-10-10T11:59:59.000Z',
-      mediaType: 'application/json',
-      bytes: Uint8Array.from(SYNTHETIC_LISTING_BYTES),
+      documents: Object.freeze([
+        Object.freeze({
+          sourceId,
+          sourceListingId: SYNTHETIC_LISTING_ID,
+          sourceUrl: `https://synthetic.invalid/listings/${SYNTHETIC_LISTING_ID}`,
+          observedAt: '2026-10-10T11:59:59.000Z',
+          mediaType: 'application/json' as const,
+          bytes: Uint8Array.from(SYNTHETIC_LISTING_BYTES),
+        }),
+      ]),
+      nextCursor: null,
+      exhausted: true,
     });
   }
 

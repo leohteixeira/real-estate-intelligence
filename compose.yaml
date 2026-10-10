@@ -166,6 +166,33 @@ services:
         condition: service_healthy
     restart: 'no'
 
+  # Explicit owner-operated resumable fixture command. It has no scheduler or collection consumer.
+  resumable-collection-command:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    entrypoint: ['node', '-r', './dist/otel.js', 'dist/collection/collect-resumable.js']
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
+      WORKER_OPERATION_TIMEOUT_MS: ${WORKER_OPERATION_TIMEOUT_MS:-5000}
+      COLLECTION_DEADLINE_MS: ${COLLECTION_DEADLINE_MS:-30000}
+      SYNTHETIC_PAGE_DELAY_MS: ${SYNTHETIC_PAGE_DELAY_MS:-0}
+      OBJECT_STORE_ENDPOINT: http://minio:9000
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION:-us-east-1}
+      OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-real-estate-snapshots}
+      OBJECT_STORE_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-realestate}
+      OBJECT_STORE_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-realestate}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: real-estate-intelligence-resumable-collection-command
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    restart: 'no'
+
   # Database-only operator surface for enabling an already reviewed register entry.
   source-enable:
     profiles: [tools]

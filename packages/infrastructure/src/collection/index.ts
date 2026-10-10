@@ -39,3 +39,4 @@ export type {
 } from './synthetic-sao-paulo.dataset.js';
 export { buildSyntheticSaoPauloReplay } from './synthetic-sao-paulo.replay.js';
 export type { SyntheticSaoPauloReplayEvent } from './synthetic-sao-paulo.replay.js';
+export { SyntheticSaoPauloListingSource } from './synthetic-sao-paulo-listing-source.js';

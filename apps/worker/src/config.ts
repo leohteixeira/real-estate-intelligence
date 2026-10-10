@@ -19,6 +19,7 @@ export interface WorkerConfig {
 
 export interface CollectionCommandConfig {
   readonly deadlineMs: number;
+  readonly syntheticPageDelayMs: number;
   readonly objectStoreEndpoint: string;
   readonly objectStoreRegion: string;
   readonly objectStoreBucket: string;
@@ -58,6 +59,20 @@ function positiveInteger(
   const value = raw && /^\d+$/.test(raw) ? Number(raw) : raw ? Number.NaN : fallback;
   if (!Number.isInteger(value) || value < minimum || value > maximum) {
     throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`);
+  }
+  return value;
+}
+
+function nonnegativeInteger(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  fallback: number,
+  maximum: number,
+): number {
+  const raw = env[name]?.trim();
+  const value = raw && /^\d+$/.test(raw) ? Number(raw) : raw ? Number.NaN : fallback;
+  if (!Number.isInteger(value) || value < 0 || value > maximum) {
+    throw new Error(`${name} must be an integer between 0 and ${maximum}.`);
   }
   return value;
 }
@@ -238,6 +253,7 @@ export function readCollectionCommandConfig(env: NodeJS.ProcessEnv): CollectionC
       100,
       MAX_TIMER_DELAY_MS,
     ),
+    syntheticPageDelayMs: nonnegativeInteger(env, 'SYNTHETIC_PAGE_DELAY_MS', 0, 30_000),
     objectStoreEndpoint: endpoint.toString().replace(/\/$/, ''),
     objectStoreRegion: required(env, 'OBJECT_STORE_REGION'),
     objectStoreBucket,

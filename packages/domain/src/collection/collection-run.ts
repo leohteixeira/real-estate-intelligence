@@ -1,0 +1,188 @@
+import { parseRfc3339Timestamp, type UuidV7 } from '../shared/index.js';
+import type { Sha256Hash } from './sha256-hash.js';
+
+export const COLLECTION_CHECKPOINT_CURSOR_MAX_LENGTH = 300;
+const SAFE_CURSOR = /^[\x21-\x7e]{1,300}$/;
+
+export type CollectionRunStatus = 'running' | 'completed';
+
+export interface CollectionCheckpoint {
+  readonly ordinal: number;
+  readonly cursor: string | null;
+  readonly checkpointedAt: string | null;
+}
+
+export interface CollectionRunCounts {
+  readonly observed: number;
+  readonly parsed: number;
+  readonly suppressed: number;
+  readonly failed: number;
+}
+
+export interface CollectionRunState {
+  readonly operationKey: string;
+  readonly runId: UuidV7;
+  readonly sourceId: string;
+  readonly status: CollectionRunStatus;
+  readonly startedAt: string;
+  readonly checkpoint: CollectionCheckpoint;
+  readonly counts: CollectionRunCounts;
+  readonly completedAt: string | null;
+  readonly manifestHash: Sha256Hash | null;
+  readonly completedEventId: UuidV7 | null;
+}
+
+export class StaleCollectionCheckpointError extends Error {
+  public constructor() {
+    super('The collection checkpoint is stale.');
+    this.name = 'StaleCollectionCheckpointError';
+  }
+}
+
+export function parseCollectionCheckpointCursor(value: string | null): string | null {
+  if (value === null) return null;
+  if (!SAFE_CURSOR.test(value)) {
+    throw new TypeError(
+      `checkpoint cursor must contain 1-${COLLECTION_CHECKPOINT_CURSOR_MAX_LENGTH} printable, non-whitespace ASCII characters.`,
+    );
+  }
+  return value;
+}
+
+function nonnegativeInteger(value: number, field: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new TypeError(`${field} must be a nonnegative safe integer.`);
+  }
+  return value;
+}
+
+function freezeRun(input: CollectionRunState): CollectionRunState {
+  return Object.freeze({
+    ...input,
+    checkpoint: Object.freeze({ ...input.checkpoint }),
+    counts: Object.freeze({ ...input.counts }),
+  });
+}
+
+export function createRunningCollectionRun(input: {
+  readonly operationKey: string;
+  readonly runId: UuidV7;
+  readonly sourceId: string;
+  readonly startedAt: string;
+}): CollectionRunState {
+  parseRfc3339Timestamp(input.startedAt, 'startedAt');
+  return freezeRun({
+    ...input,
+    status: 'running',
+    checkpoint: { ordinal: 0, cursor: null, checkpointedAt: null },
+    counts: { observed: 0, parsed: 0, suppressed: 0, failed: 0 },
+    completedAt: null,
+    manifestHash: null,
+    completedEventId: null,
+  });
+}
+
+export function hydrateCollectionRun(input: CollectionRunState): CollectionRunState {
+  if (!input.operationKey || !input.sourceId)
+    throw new TypeError('Collection run identity is required.');
+  parseRfc3339Timestamp(input.startedAt, 'startedAt');
+  const ordinal = nonnegativeInteger(input.checkpoint.ordinal, 'checkpoint.ordinal');
+  const cursor = parseCollectionCheckpointCursor(input.checkpoint.cursor);
+  if (ordinal === 0 && cursor !== null) {
+    throw new TypeError('Checkpoint ordinal zero must have a null cursor.');
+  }
+  if (ordinal > 0 && input.checkpoint.checkpointedAt === null) {
+    throw new TypeError('An advanced checkpoint requires checkpointedAt.');
+  }
+  if (input.checkpoint.checkpointedAt !== null) {
+    parseRfc3339Timestamp(input.checkpoint.checkpointedAt, 'checkpoint.checkpointedAt');
+  }
+  const counts = {
+    observed: nonnegativeInteger(input.counts.observed, 'counts.observed'),
+    parsed: nonnegativeInteger(input.counts.parsed, 'counts.parsed'),
+    suppressed: nonnegativeInteger(input.counts.suppressed, 'counts.suppressed'),
+    failed: nonnegativeInteger(input.counts.failed, 'counts.failed'),
+  };
+  if (counts.parsed + counts.suppressed + counts.failed > counts.observed) {
+    throw new TypeError('Collection run counts are incoherent.');
+  }
+  if (input.status === 'running') {
+    if (
+      input.completedAt !== null ||
+      input.manifestHash !== null ||
+      input.completedEventId !== null
+    ) {
+      throw new TypeError('A running collection run cannot carry terminal fields.');
+    }
+  } else if (
+    input.completedAt === null ||
+    input.manifestHash === null ||
+    input.completedEventId === null
+  ) {
+    throw new TypeError('A completed collection run requires every terminal field.');
+  } else {
+    parseRfc3339Timestamp(input.completedAt, 'completedAt');
+  }
+  return freezeRun({ ...input, checkpoint: { ...input.checkpoint, ordinal, cursor }, counts });
+}
+
+export function advanceCollectionRun(
+  run: CollectionRunState,
+  input: {
+    readonly expectedOrdinal: number;
+    readonly expectedCursor: string | null;
+    readonly nextCursor: string | null;
+    readonly checkpointedAt: string;
+    readonly observedDelta: number;
+    readonly exhausted: boolean;
+    readonly completedAt?: string;
+    readonly manifestHash?: Sha256Hash;
+    readonly completedEventId?: UuidV7;
+  },
+): CollectionRunState {
+  if (run.status !== 'running') throw new TypeError('A completed collection run is immutable.');
+  if (
+    input.expectedOrdinal !== run.checkpoint.ordinal ||
+    input.expectedCursor !== run.checkpoint.cursor
+  ) {
+    throw new StaleCollectionCheckpointError();
+  }
+  const observedDelta = nonnegativeInteger(input.observedDelta, 'observedDelta');
+  const nextCursor = parseCollectionCheckpointCursor(input.nextCursor);
+  parseRfc3339Timestamp(input.checkpointedAt, 'checkpointedAt');
+  if (!input.exhausted && observedDelta === 0) {
+    throw new TypeError('A nonterminal page must contain at least one observation.');
+  }
+  if (!input.exhausted && nextCursor === input.expectedCursor) {
+    throw new TypeError('A nonterminal page must advance its cursor.');
+  }
+  const checkpoint = {
+    ordinal: run.checkpoint.ordinal + 1,
+    cursor: nextCursor,
+    checkpointedAt: input.checkpointedAt,
+  };
+  const counts = {
+    ...run.counts,
+    observed: run.counts.observed + observedDelta,
+    parsed: run.counts.parsed + observedDelta,
+  };
+  if (!input.exhausted) {
+    if (input.completedAt || input.manifestHash || input.completedEventId) {
+      throw new TypeError('A nonterminal transition cannot carry terminal fields.');
+    }
+    return freezeRun({ ...run, checkpoint, counts });
+  }
+  if (!input.completedAt || !input.manifestHash || !input.completedEventId) {
+    throw new TypeError('A terminal transition requires completion time, manifest, and event ID.');
+  }
+  parseRfc3339Timestamp(input.completedAt, 'completedAt');
+  return freezeRun({
+    ...run,
+    status: 'completed',
+    checkpoint,
+    counts,
+    completedAt: input.completedAt,
+    manifestHash: input.manifestHash,
+    completedEventId: input.completedEventId,
+  });
+}

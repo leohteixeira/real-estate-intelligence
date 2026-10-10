@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import {
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  hashCollectionManifest,
   parseSha256Hash,
   type CollectedListing,
   type Sha256Hash,
@@ -52,8 +53,7 @@ function sha256(bytes: Uint8Array, field: string): Sha256Hash {
 }
 
 function manifestHash(observations: readonly SyntheticSaoPauloRunObservation[]): Sha256Hash {
-  const sourceListingIds = observations.map(({ sourceListingId }) => sourceListingId).sort();
-  return sha256(Buffer.from(JSON.stringify(sourceListingIds), 'utf8'), 'manifestHash');
+  return hashCollectionManifest(observations.map(({ sourceListingId }) => sourceListingId));
 }
 
 function listingKey(observation: SyntheticSaoPauloRunObservation): string {

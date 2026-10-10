@@ -32,16 +32,34 @@ export type {
 } from './collection.events.js';
 export { isSha256Hash, parseSha256Hash } from './sha256-hash.js';
 export type { Sha256Hash } from './sha256-hash.js';
+export { hashCollectionManifest, parseCollectionSourceListingId } from './collection-manifest.js';
 export {
+  COLLECTION_CHECKPOINT_CURSOR_MAX_LENGTH,
+  StaleCollectionCheckpointError,
+  advanceCollectionRun,
+  createRunningCollectionRun,
+  hydrateCollectionRun,
+  parseCollectionCheckpointCursor,
+} from './collection-run.js';
+export type {
+  CollectionCheckpoint,
+  CollectionRunCounts as CollectionAggregateCounts,
+  CollectionRunState,
+  CollectionRunStatus,
+} from './collection-run.js';
+export {
+  OWNED_SYNTHETIC_SOURCE_IDS,
   SOURCE_ACCESS_METHODS,
   SOURCE_CATEGORIES,
   SOURCE_REVIEW_OUTCOMES,
   createSourceRegistration,
   decideSourceEnablement,
+  isOwnedSyntheticSourceId,
   toEnabledSourceView,
 } from './source-registration.js';
 export type {
   EnabledSourceView,
+  OwnedSyntheticSourceId,
   SourceAccessMethod,
   SourceAccessPolicy,
   SourceCategory,

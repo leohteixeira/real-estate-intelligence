@@ -134,9 +134,22 @@ function validateUrl(value: string): string {
   return value;
 }
 
+export const OWNED_SYNTHETIC_SOURCE_IDS = Object.freeze([
+  'synthetic-data',
+  'synthetic-portal-aurora',
+  'synthetic-portal-brisa',
+  'synthetic-portal-cobalto',
+] as const);
+
+export type OwnedSyntheticSourceId = (typeof OWNED_SYNTHETIC_SOURCE_IDS)[number];
+
+export function isOwnedSyntheticSourceId(sourceId: string): sourceId is OwnedSyntheticSourceId {
+  return (OWNED_SYNTHETIC_SOURCE_IDS as readonly string[]).includes(sourceId);
+}
+
 function isOwnedSyntheticFixture(source: SourceRegistrationInput): boolean {
   return (
-    source.sourceId === 'synthetic-data' &&
+    isOwnedSyntheticSourceId(source.sourceId) &&
     source.category === 'synthetic-listing' &&
     source.access.method === 'repository-fixture'
   );
@@ -217,13 +230,13 @@ export function createSourceRegistration(input: SourceRegistrationInput): Source
     throw new TypeError('Review is not required only for the repository-owned synthetic fixture.');
   }
   if (input.category === 'synthetic-listing' && !isOwnedSyntheticFixture(input)) {
-    throw new TypeError('The synthetic-listing category is reserved for synthetic-data.');
+    throw new TypeError('The synthetic-listing category is reserved for owned fixture IDs.');
   }
-  if (input.sourceId === 'synthetic-data' && !isOwnedSyntheticFixture(input)) {
-    throw new TypeError('synthetic-data must use the complete repository-owned fixture identity.');
+  if (isOwnedSyntheticSourceId(input.sourceId) && !isOwnedSyntheticFixture(input)) {
+    throw new TypeError('Owned synthetic IDs must use the complete repository fixture identity.');
   }
   if (input.access.method === 'repository-fixture' && !isOwnedSyntheticFixture(input)) {
-    throw new TypeError('Repository-fixture access is reserved for synthetic-data.');
+    throw new TypeError('Repository-fixture access is reserved for owned synthetic fixtures.');
   }
   if (
     isOwnedSyntheticFixture(input) &&

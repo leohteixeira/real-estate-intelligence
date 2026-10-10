@@ -44,7 +44,7 @@ export class PostgresCollectionFacade implements CollectionFacade {
                 FILTER (WHERE observation.source_listing_id IS NOT NULL), ARRAY[]::text[]) AS source_listing_ids
          FROM collection.collection_run AS run
          LEFT JOIN collection.snapshot_observation AS observation ON observation.run_id = run.run_id
-        WHERE run.run_id = $1
+        WHERE run.run_id = $1 AND run.status = 'completed'
         GROUP BY run.run_id`,
       [runId],
     );

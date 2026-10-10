@@ -1,9 +1,11 @@
 import type {
   CollectionExecutionResult,
   CollectionRunRepository,
+  CommitCollectionPageInput,
   ListingSource,
   PersistCompletedCollectionInput,
   PersistCompletedCollectionResult,
+  PersistedCollectionObservation,
   RawListingDocument,
   RawSnapshotStore,
   SourceRegisterRepository,
@@ -13,9 +15,13 @@ import type {
 } from '@rei/application';
 import {
   createSourceRegistration,
+  createRunningCollectionRun,
   decideSourceEnablement,
+  advanceCollectionRun,
+  StaleCollectionCheckpointError,
   toEnabledSourceView,
   type CollectedListing,
+  type CollectionRunState,
   type EnabledSourceView,
   type SourceRegistration,
 } from '@rei/domain';
@@ -27,10 +33,18 @@ export class InMemoryListingSource implements ListingSource {
     private readonly listing: CollectedListing,
   ) {}
 
-  public async fetch(sourceId: string, signal: AbortSignal): Promise<RawListingDocument> {
+  public async fetchPage(sourceId: string, cursor: string | null, signal: AbortSignal) {
     signal.throwIfAborted();
     if (sourceId !== this.document.sourceId) throw new Error('The in-memory source is unknown.');
-    return Object.freeze({ ...this.document, bytes: Uint8Array.from(this.document.bytes) });
+    if (cursor !== null)
+      return Object.freeze({ documents: Object.freeze([]), nextCursor: null, exhausted: true });
+    return Object.freeze({
+      documents: Object.freeze([
+        Object.freeze({ ...this.document, bytes: Uint8Array.from(this.document.bytes) }),
+      ]),
+      nextCursor: null,
+      exhausted: true,
+    });
   }
 
   public async parse(
@@ -73,20 +87,79 @@ export class InMemoryRawSnapshotStore implements RawSnapshotStore {
 }
 
 export class InMemoryCollectionRunRepository implements CollectionRunRepository {
-  readonly #results = new Map<string, CollectionExecutionResult>();
+  readonly #runs = new Map<string, CollectionRunState>();
+  readonly #operationRuns = new Map<string, string>();
+  readonly #observations = new Map<string, PersistedCollectionObservation[]>();
 
   public async findByOperationKey(operationKey: string): Promise<CollectionExecutionResult | null> {
-    return this.#results.get(operationKey) ?? null;
+    const run = await this.loadRunByOperationKey(operationKey);
+    if (!run || run.status !== 'completed' || run.completedEventId === null) return null;
+    const observations = this.#observations.get(run.runId) ?? [];
+    const observation = observations.length === 1 ? observations[0] : undefined;
+    if (!observation) return null;
+    return Object.freeze({
+      operationKey: run.operationKey,
+      sourceId: run.sourceId,
+      runId: run.runId,
+      snapshotId: observation.snapshotId,
+      parsedEventId: observation.parsedEventId,
+      completedEventId: run.completedEventId,
+      contentHash: observation.contentHash,
+      objectKey: observation.objectKey,
+      replayed: false,
+    });
   }
 
   public async persistCompleted(
     _transaction: Transaction,
     input: PersistCompletedCollectionInput,
   ): Promise<PersistCompletedCollectionResult> {
-    const existing = this.#results.get(input.operationKey);
-    if (existing) return { created: false, result: existing };
+    const existingRunId = this.#operationRuns.get(input.operationKey);
+    if (existingRunId) {
+      const existingRun = this.#runs.get(existingRunId);
+      if (!existingRun || existingRun.sourceId !== input.sourceId) {
+        throw new Error('Collection operation key is already bound to a different source.');
+      }
+      const existing = await this.findByOperationKey(input.operationKey);
+      if (!existing) {
+        throw new Error('Existing collection operation is not a one-shot completed result.');
+      }
+      return { created: false, result: existing };
+    }
+    const run = advanceCollectionRun(
+      createRunningCollectionRun({
+        operationKey: input.operationKey,
+        runId: input.runId,
+        sourceId: input.sourceId,
+        startedAt: input.startedAt,
+      }),
+      {
+        expectedOrdinal: 0,
+        expectedCursor: null,
+        nextCursor: null,
+        checkpointedAt: input.completedAt,
+        observedDelta: 1,
+        exhausted: true,
+        completedAt: input.completedAt,
+        manifestHash: input.manifestHash,
+        completedEventId: input.completedEventId,
+      },
+    );
+    const observation = Object.freeze({
+      snapshotId: input.snapshotId,
+      parsedEventId: input.parsedEventId,
+      sourceListingId: input.sourceListingId,
+      sourceUrl: input.sourceUrl,
+      observedAt: input.observedAt,
+      contentHash: input.contentHash,
+      objectKey: input.objectKey,
+    });
+    this.#operationRuns.set(input.operationKey, run.runId);
+    this.#runs.set(run.runId, run);
+    this.#observations.set(run.runId, [observation]);
     const result = Object.freeze({
       operationKey: input.operationKey,
+      sourceId: input.sourceId,
       runId: input.runId,
       snapshotId: input.snapshotId,
       parsedEventId: input.parsedEventId,
@@ -95,8 +168,102 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
       objectKey: input.objectKey,
       replayed: false,
     });
-    this.#results.set(input.operationKey, result);
     return { created: true, result };
+  }
+
+  public async loadRunByOperationKey(operationKey: string): Promise<CollectionRunState | null> {
+    const runId = this.#operationRuns.get(operationKey);
+    return runId ? (this.#runs.get(runId) ?? null) : null;
+  }
+
+  public async startOrLoad(
+    _transaction: Transaction,
+    input: {
+      operationKey: string;
+      runId: CollectionRunState['runId'];
+      sourceId: string;
+      startedAt: string;
+    },
+  ): Promise<CollectionRunState> {
+    const existing = await this.loadRunByOperationKey(input.operationKey);
+    if (existing) return existing;
+    const run = createRunningCollectionRun(input);
+    this.#operationRuns.set(input.operationKey, run.runId);
+    this.#runs.set(run.runId, run);
+    this.#observations.set(run.runId, []);
+    return run;
+  }
+
+  public async lockRunForPage(
+    _transaction: Transaction,
+    runId: CollectionRunState['runId'],
+    expectedOrdinal: number,
+    expectedCursor: string | null,
+  ): Promise<CollectionRunState> {
+    const run = this.#runs.get(runId);
+    if (!run) throw new Error('Collection run was not found.');
+    if (
+      run.status !== 'running' ||
+      run.checkpoint.ordinal !== expectedOrdinal ||
+      run.checkpoint.cursor !== expectedCursor
+    ) {
+      throw new StaleCollectionCheckpointError();
+    }
+    return run;
+  }
+
+  public async listObservations(
+    _transaction: Transaction,
+    runId: CollectionRunState['runId'],
+  ): Promise<readonly PersistedCollectionObservation[]> {
+    return Object.freeze([...(this.#observations.get(runId) ?? [])]);
+  }
+
+  public async commitPage(_transaction: Transaction, input: CommitCollectionPageInput) {
+    const run = this.#runs.get(input.runId);
+    if (!run) throw new Error('Collection run was not found.');
+    if (
+      run.status !== 'running' ||
+      run.checkpoint.ordinal !== input.expectedOrdinal ||
+      run.checkpoint.cursor !== input.expectedCursor
+    ) {
+      return { committed: false, run } as const;
+    }
+    const existing = this.#observations.get(input.runId) ?? [];
+    const identities = new Set(existing.map(({ sourceListingId }) => sourceListingId));
+    for (const observation of input.observations) {
+      if (identities.has(observation.sourceListingId)) {
+        throw new Error('Collection observation identity conflicts with the committed prefix.');
+      }
+      identities.add(observation.sourceListingId);
+    }
+    const next = advanceCollectionRun(run, {
+      expectedOrdinal: input.expectedOrdinal,
+      expectedCursor: input.expectedCursor,
+      nextCursor: input.nextCursor,
+      checkpointedAt: input.checkpointedAt,
+      observedDelta: input.observations.length,
+      exhausted: input.exhausted,
+      ...(input.completedAt === null ? {} : { completedAt: input.completedAt }),
+      ...(input.manifestHash === null ? {} : { manifestHash: input.manifestHash }),
+      ...(input.completedEventId === null ? {} : { completedEventId: input.completedEventId }),
+    });
+    this.#observations.set(input.runId, [
+      ...existing,
+      ...input.observations.map((item) =>
+        Object.freeze({
+          snapshotId: item.snapshotId,
+          parsedEventId: item.parsedEventId,
+          sourceListingId: item.sourceListingId,
+          sourceUrl: item.sourceUrl,
+          observedAt: item.observedAt,
+          contentHash: item.contentHash,
+          objectKey: item.objectKey,
+        }),
+      ),
+    ]);
+    this.#runs.set(input.runId, next);
+    return { committed: true, run: next } as const;
   }
 }
 

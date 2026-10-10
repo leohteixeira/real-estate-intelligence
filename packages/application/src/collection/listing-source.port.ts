@@ -13,9 +13,19 @@ export interface RawListingDocument {
   readonly bytes: Uint8Array;
 }
 
+export interface ListingSourcePage {
+  readonly documents: readonly RawListingDocument[];
+  readonly nextCursor: string | null;
+  readonly exhausted: boolean;
+}
+
 /** Consumer-owned capability for acquiring and parsing source bytes in two explicit phases. */
 export interface ListingSource {
-  fetch(sourceId: string, signal: AbortSignal): Promise<RawListingDocument>;
+  fetchPage(
+    sourceId: string,
+    cursor: string | null,
+    signal: AbortSignal,
+  ): Promise<ListingSourcePage>;
   parse(document: RawListingDocument, signal: AbortSignal): Promise<CollectedListing>;
 }
 

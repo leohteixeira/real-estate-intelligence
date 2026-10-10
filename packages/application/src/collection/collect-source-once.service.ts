@@ -1,10 +1,8 @@
-import { createHash } from 'node:crypto';
-
 import {
   CollectionRunCompleted,
   CollectionSnapshotParsed,
-  parseSha256Hash,
-  type Sha256Hash,
+  hashCollectionManifest,
+  parseCollectionSourceListingId,
   type TraceContext,
 } from '@rei/domain';
 
@@ -39,12 +37,6 @@ function validateOperationKey(value: string): string {
  * Hashes the UTF-8 bytes of a JSON array sorted by ECMAScript UTF-16 code-unit order.
  * JSON escaping and array boundaries make the source-listing ID manifest unambiguous.
  */
-function hashSourceListingIdManifest(sourceListingIds: readonly string[]): Sha256Hash {
-  const canonicalManifest = JSON.stringify([...sourceListingIds].sort());
-  const digest = createHash('sha256').update(canonicalManifest, 'utf8').digest('hex');
-  return parseSha256Hash(`sha256:${digest}`, 'manifestHash');
-}
-
 /** Executes one explicitly requested source collection without scheduling or implicit retries. */
 export class CollectSourceOnce {
   public constructor(
@@ -67,8 +59,22 @@ export class CollectSourceOnce {
     const operationKey = validateOperationKey(operationKeyInput);
     signal.throwIfAborted();
 
-    const replay = await this.runs.findByOperationKey(operationKey, signal);
-    if (replay) return Object.freeze({ ...replay, replayed: true });
+    const existingRun = await this.runs.loadRunByOperationKey(operationKey, signal);
+    if (existingRun) {
+      if (
+        existingRun.sourceId !== sourceId ||
+        existingRun.status !== 'completed' ||
+        existingRun.counts.observed !== 1 ||
+        existingRun.counts.parsed !== 1
+      ) {
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+      }
+      const replay = await this.runs.findByOperationKey(operationKey, signal);
+      if (!replay || replay.sourceId !== sourceId) {
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+      }
+      return Object.freeze({ ...replay, replayed: true });
+    }
 
     const registration = await this.sources.findById(sourceId, signal);
     if (
@@ -82,8 +88,19 @@ export class CollectSourceOnce {
 
     signal.throwIfAborted();
     const startedAt = this.clock.now();
-    const document = await this.source.fetch(sourceId, signal);
+    const page = await this.source.fetchPage(sourceId, null, signal);
+    if (!page.exhausted || page.documents.length !== 1) {
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
+    }
+    const document = page.documents[0]!;
     if (document.sourceId !== registration.sourceId) {
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
+    }
+    let manifestHash: ReturnType<typeof hashCollectionManifest>;
+    try {
+      const sourceListingId = parseCollectionSourceListingId(document.sourceListingId);
+      manifestHash = hashCollectionManifest([sourceListingId]);
+    } catch {
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
     }
 
@@ -101,7 +118,6 @@ export class CollectSourceOnce {
     signal.throwIfAborted();
     const listing = await this.source.parse(document, signal);
     signal.throwIfAborted();
-    const manifestHash = hashSourceListingIdManifest([document.sourceListingId]);
 
     return this.transactions.runInTransaction(async (transaction) => {
       signal.throwIfAborted();
@@ -131,6 +147,9 @@ export class CollectSourceOnce {
       };
 
       const persisted = await this.runs.persistCompleted(transaction, persistence);
+      if (persisted.result.sourceId !== sourceId) {
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+      }
       if (!persisted.created) return Object.freeze({ ...persisted.result, replayed: true });
 
       const parsed = new CollectionSnapshotParsed({

@@ -12,5 +12,6 @@ export function redactConnectionError(error: unknown): Error {
     '$1://redacted:redacted@',
   );
 
+  if (error instanceof Error && redacted === message) return error;
   return new Error(redacted);
 }
