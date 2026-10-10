@@ -14,3 +14,6 @@ coverage/
 # Tooling
 .DS_Store
 *.log
+
+# BMad: the personal configuration layer stays local; team layers are tracked
+_bmad/custom/*.user.toml
