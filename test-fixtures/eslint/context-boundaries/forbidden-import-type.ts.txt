@@ -1,0 +1,1 @@
+export type ImportedType = import('../__TARGET_CONTEXT__/internal.js').ImportedType;

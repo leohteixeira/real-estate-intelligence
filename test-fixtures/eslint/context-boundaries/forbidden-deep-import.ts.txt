@@ -1,0 +1,1 @@
+import '../__TARGET_CONTEXT__/internal.js';
