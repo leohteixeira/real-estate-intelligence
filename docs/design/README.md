@@ -48,8 +48,17 @@ excluded from Prettier because the artboard format is whitespace-sensitive.
 
 ## Open decisions
 
-- The MVP city or region. The artboards use São Paulo and Pinheiros as a stand-in.
-- The map tile provider. Maps are schematic.
-- Authentication beyond the opaque thread capability.
-- A dark theme. None is defined.
-- The automatic-merge threshold for entity resolution. The review screen states no number.
+- When authentication lands. Alerts, operations and the review queue wait for it.
+- How the V2 dark theme is selected: system preference, a switch, or both.
+- The privacy notice has no artboard and no place in the navigation.
+
+Decided by the product owner on 2026-10-09:
+
+- São Paulo is the MVP city.
+- The MVP map stays schematic. The tile provider is chosen by ADR with the V2 Map screen.
+- Entity resolution merges at 0.90 or above and sends matches from 0.50 up to 0.90 to review. The
+  review screen states no number.
+- The interface meets WCAG 2.2 level AA. The tokens have not been checked against AA contrast yet.
+- A dark theme arrives in V2, once `DESIGN.md` revises its rule against a dark ground. None is
+  defined yet.
+- A removed listing is never read as a sale.

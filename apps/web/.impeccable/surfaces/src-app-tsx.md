@@ -16,7 +16,8 @@ related_targets: []
 - **Constraints:** bilingual (pt-BR authored and default, English second), BRL, synthetic data
   only, no photography, `/api/v1` contract only.
 - **Anti-goals:** listing portal, AI chatbot, generic SaaS dashboard, trading terminal.
-- **Unresolved:** MVP city, map tile provider, authentication beyond the thread capability.
+- **Unresolved:** when authentication lands (alerts, operations and review wait for it), how the V2
+  dark theme is selected, the privacy notice screen.
 
 ## Direction contract
 

@@ -17,29 +17,32 @@ hierarchy.
 
 The language switch sits in the shell on every screen.
 
+Places, Search, Ask and Market are public. Alerts and Operations are protected: they appear only for
+an authenticated, authorized user and stay out of the navigation until authentication runs.
+
 ## Screen inventory
 
 Artboard file names are relative to `canvas/project/`.
 
 ### Phone, 390 px
 
-| Artboard              | Screen                     | Phase | What it must show                                                                       |
-| --------------------- | -------------------------- | ----- | --------------------------------------------------------------------------------------- |
-| `Main.dc.html`        | Place overview             | MVP   | Plate, question field, median asking price with provenance, map, largest reductions     |
-| `Search.dc.html`      | Search results             | MVP   | Applied filters, sort, median of the result set, property rows                          |
-| `Filters.dc.html`     | Filters                    | MVP   | Place, type, price, price per m², area, rooms, time on market, history                  |
-| `Property.dc.html`    | Property                   | MVP   | Asking price, absence of a sale price, price history, listing lifelines, match evidence |
-| `Listing.dc.html`     | Listing and provenance     | MVP   | Source, collection run, raw snapshot, values with dates, events                         |
-| `Comparables.dc.html` | Comparables                | V2    | Median, position of the property, the criteria used, comparable rows                    |
-| `Market.dc.html`      | Market                     | V2    | City figures, zones, neighborhoods moving most, price bands                             |
-| `Map.dc.html`         | Map                        | V2    | Markers, layer switch, selected property in a sheet                                     |
-| `Ask.dc.html`         | Ask, completed run         | MVP   | Deterministic result, labelled explanation, run steps, available intents                |
-| `AskConfirm.dc.html`  | Ask, awaiting confirmation | MVP   | Degraded notice, proposed intent, confidence gate, editable inputs                      |
-| `Alerts.dc.html`      | Alerts                     | V2    | The four alert kinds and the rules                                                      |
-| `Operations.dc.html`  | Operations                 | Ops   | Source health, collection runs, pipeline counts, AI providers                           |
-| `Review.dc.html`      | Entity resolution review   | Ops   | Probability, evidence, side-by-side values, merge or keep separate                      |
-| `PlaceEN.dc.html`     | Place overview, English    | MVP   | The same screen in English, the second locale, with English number formats              |
-| `States.dc.html`      | System states              | All   | See below                                                                               |
+| Artboard              | Screen                     | Phase     | What it must show                                                                       |
+| --------------------- | -------------------------- | --------- | --------------------------------------------------------------------------------------- |
+| `Main.dc.html`        | Place overview             | MVP       | Plate, question field, median asking price with provenance, map, largest reductions     |
+| `Search.dc.html`      | Search results             | MVP       | Applied filters, sort, median of the result set, property rows                          |
+| `Filters.dc.html`     | Filters                    | MVP       | Place, type, price, price per m², area, rooms, time on market, history                  |
+| `Property.dc.html`    | Property                   | MVP       | Asking price, absence of a sale price, price history, listing lifelines, match evidence |
+| `Listing.dc.html`     | Listing and provenance     | MVP       | Source, collection run, raw snapshot, values with dates, events                         |
+| `Comparables.dc.html` | Comparables                | V2        | Median, position of the property, the criteria used, comparable rows                    |
+| `Market.dc.html`      | Market                     | V2        | City figures, zones, neighborhoods moving most, price bands                             |
+| `Map.dc.html`         | Map                        | V2        | Markers, layer switch, selected property in a sheet                                     |
+| `Ask.dc.html`         | Ask, completed run         | MVP       | Deterministic result, labelled explanation, run steps, available intents                |
+| `AskConfirm.dc.html`  | Ask, awaiting confirmation | MVP       | Degraded notice, proposed intent, confidence gate, editable inputs                      |
+| `Alerts.dc.html`      | Alerts                     | Protected | The four alert kinds and the rules                                                      |
+| `Operations.dc.html`  | Operations                 | Protected | Source health, collection runs, pipeline counts, AI providers                           |
+| `Review.dc.html`      | Entity resolution review   | Protected | Probability, evidence, side-by-side values, merge or keep separate                      |
+| `PlaceEN.dc.html`     | Place overview, English    | MVP       | The same screen in English, the second locale, with English number formats              |
+| `States.dc.html`      | System states              | All       | See below                                                                               |
 
 ### Desktop, 1440 px, fluid
 

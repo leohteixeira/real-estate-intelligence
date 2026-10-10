@@ -71,9 +71,15 @@ route and explain; they never produce a number.
 - BRL is the default currency. There is no implicit currency conversion.
 - Frontend toolchain per ADR 0006: React 19, Vite 8, TypeScript 5.9; no Tailwind, no router and no
   data-fetching library in the current phase.
-- Development uses synthetic datasets or explicitly permitted sources.
-- Undecided: the MVP city or region, the listing sources, the map tile provider, and
-  authentication beyond the opaque thread capability (Keycloak is reserved for V3).
+- Development uses synthetic datasets or explicitly permitted sources. A real source is enabled
+  only after its terms of use, robots policy and licence are reviewed and allow automated
+  collection; the synthetic dataset stays live, labelled, beside any real one.
+- Decided by the product owner on 2026-10-09: the MVP covers the city of São Paulo; its map is
+  schematic, with no third-party tiles, and the tile provider is chosen by ADR with the V2 map.
+- Alerts, operations and the entity-resolution review require an authenticated, authorized user.
+  They are built ready for that boundary and stay unexposed until authentication runs; there is no
+  interim access mechanism.
+- Undecided: when authentication lands (Keycloak is reserved for V3).
 
 ## Brand Commitments
 
@@ -102,5 +108,7 @@ route and explain; they never produce a number.
 
 ## Accessibility & Inclusion
 
-No product-specific standard was set. Brazilian Portuguese is the primary locale and English is
-fully supported.
+The interface meets WCAG 2.2 level AA, decided by the product owner on 2026-10-09 as an acceptance
+criterion of every screen and state. The tokens of `DESIGN.md` have not been checked against AA
+contrast yet. The MVP ships the light theme only; a dark theme follows in V2. Brazilian Portuguese
+is the primary locale and English is fully supported.
