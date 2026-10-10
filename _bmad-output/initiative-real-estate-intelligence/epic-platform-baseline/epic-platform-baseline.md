@@ -114,5 +114,11 @@ for it here.
 - Decision: V8 coverage is enforced independently per workspace at 80% for lines, statements, and
   functions and at 75% for branches; exclusions are limited to justified generated, declarative,
   composition-root, and browser-verified visual-shell code (owner, D-003, 2026-10-10).
+- Decision: the named EventPublisher policy uses five transient-only attempts with 100 ms
+  factor-two full-jitter backoff capped at 30 seconds and a 10% rolling 60-second retry budget; a
+  10-active/15-waiting bulkhead, 100-attempt-per-second limiter, two-second attempt timeout, and a
+  50%-of-20-in-10-seconds breaker also opening on 1.5-second logical calls bound the dependency.
+  Its named fallback always rejects so the outbox row remains pending (agent, on the owner's
+  behalf, D-005, 2026-10-10).
 - Assumption: this epic owns the structure of the environment example file and of `compose.yaml`;
   the entry of any epic that introduces a setting adds it there.
