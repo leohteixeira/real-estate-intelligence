@@ -14,6 +14,10 @@ rate limit.
 A robots file that allows a path is not a licence: the terms decide. `Not verified` means no
 permission was established, so the source stays disabled.
 
+The review of a source also settles two permissions, each a no until established: whether its
+photographs may be fetched to compute fingerprints, and whether its listing text may be shown. The
+synthetic dataset allows both.
+
 ## Candidates
 
 The city is São Paulo. The owner named open government data and eight listing portals. Reviewed on
@@ -38,13 +42,32 @@ The city is São Paulo. The owner named open government data and eight listing p
 
 No portal is allowed. Three forbid automated collection in terms that were read; for the other five
 no permission was established. Of the open data only GeoSampa states a licence, and it holds
-cadastral records and geometry, not listings. What could change an outcome:
+cadastral records and geometry, not listings.
+
+## What the owner decided
+
+Decided on 10 October 2026.
+
+- **Requests.** Written confirmation of reuse is sought first from Caixa, for its property list,
+  and from the Secretaria Municipal da Fazenda, for the ITBI transactions. Both stay `Disabled`
+  until a written answer allows them; the answer is recorded here with its date. The drafts, in
+  Portuguese, are in `/workspace/docs/real-state-intelligence/pedidos-de-reuso.md`.
+- **GeoSampa fiscal blocks.** Reference geography for the block layer of the V2 map, when PostGIS
+  arrives. Not a listing source; nothing is ingested in the MVP. The decision names the blocks
+  only: the lot layer has no use yet.
+- **GeoSampa IPTU base.** Not used: the cadastre creates no `Property`.
+- **ITBI transactions.** Once allowed, they feed only place figures, by neighborhood or street
+  block and period, above a minimum of transactions. A transaction is never attached to a
+  property.
+- **Licence.** GeoSampa is attributed wherever its data appears and in the privacy notice. Any map
+  layer or file that reproduces or transforms its geometry, with the figures drawn on it, is
+  published under CC BY-SA 4.0. A listing source that feeds those figures must allow that.
+
+What could still change an outcome:
 
 - written authorization from a portal or from an agency that owns its listings;
 - for Mercado Livre, the conditions of its official developer interface, still unread;
-- for Chaves na Mão, written confirmation that its assistant endpoint may feed scheduled storage;
-- for the ITBI transactions, written confirmation of reuse from the Secretaria Municipal da Fazenda;
-- for the Caixa list, its terms of use or a written confirmation of reuse.
+- for Chaves na Mão, written confirmation that its assistant endpoint may feed scheduled storage.
 
 ## Evidence
 
@@ -60,8 +83,8 @@ that depends on its exact wording.
   the allowlist drops.
 - Licence: Creative Commons Attribution Share-Alike 4.0, stated at
   <https://prefeitura.sp.gov.br/web/licenciamento/w/licen%C3%A7a-para-uso-de-dados-do-geosampa>,
-  which adds that the data "não podem ser considerados de DOMINIO PÚBLICO". What share-alike
-  requires of figures derived from it is an open question of the spec.
+  which adds that the data "não podem ser considerados de DOMINIO PÚBLICO". The owner's reading of
+  share-alike is under "What the owner decided".
 
 ### GeoSampa IPTU base
 
@@ -69,8 +92,8 @@ that depends on its exact wording.
   <https://metadados.geosampa.prefeitura.sp.gov.br/geonetwork/srv/api/records/b971efa1-aad5-42f3-ad28-18f1f4efe270>:
   a CSV series from 1995, updated yearly, with 29 fields in its data dictionary.
 - Cadastral attributes and tax reference values per m²; no asking or transaction price and no name
-  or CPF field. Its unit-level fields (taxpayer number, door number, complement, condominium number,
-  ideal fraction) are dropped at ingestion.
+  or CPF field. It holds unit-level fields: taxpayer number, door number, complement, condominium
+  number and ideal fraction.
 - Licence: the same CC BY-SA 4.0; municipal decree 56.932/2016 allows "o “download” e a
   reutilização dos dados sem necessidade de autorização prévia".
 - The download interface answered the review with a CAPTCHA. A collector does not work around it:
@@ -84,7 +107,7 @@ that depends on its exact wording.
   city's reference value, areas and IPTU use. No name or CPF: the city states that "não são
   disponibilizados os nomes ou razões sociais dos transmitentes e adquirentes de imóveis".
 - Its unit-level fields (cadastral number, door number, complement, registry office, registration
-  number, ideal fraction) would be dropped at ingestion.
+  number, ideal fraction) are dropped before anything is stored.
 - The page states no licence. Robots allows the page and the file host.
 
 ### Caixa property list
@@ -94,6 +117,15 @@ that depends on its exact wording.
 - 12 columns, among them asking price, appraisal value, address, description and sale modality. No
   person field; most addresses carry a door number and a unit marker, which the allowlist drops.
 - No licence or terms of use were found.
+
+### Request channels
+
+- Caixa: a search result on <https://www.caixa.gov.br/acesso-a-informacao/Paginas/sic.aspx> says
+  that access-to-information requests go through the federal platform Fala.BR,
+  <https://falabr.cgu.gov.br/>. The Caixa page itself did not open (redirect loop).
+- City of São Paulo: <https://esic.prefeitura.sp.gov.br/> is the city's electronic system for
+  registering information requests; a request names the body that holds the information.
+- Both were read on 10 October 2026.
 
 ### Other open data
 

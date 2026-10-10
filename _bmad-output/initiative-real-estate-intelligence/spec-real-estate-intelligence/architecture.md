@@ -24,12 +24,13 @@ edited, only superseded.
 
 The owner took these decisions after the ADRs above; each needs its ADR before code.
 
-| Decision                                                                                                        | Relation         | Affects              |
-| --------------------------------------------------------------------------------------------------------------- | ---------------- | -------------------- |
-| RabbitMQ is the only broker and also carries collection and parsing jobs; local ports 5672 and 15672            | Extends ADR 0010 | CAP-1, CAP-13        |
-| Zero Data Retention on every route; the primary model goes through the gateway until the direct route proves it | Extends ADR 0009 | CAP-10, CAP-15       |
-| Field allowlist, sanitized and encrypted raw snapshots, 30-day expiry, suppression list                         | New              | CAP-2, CAP-3, CAP-28 |
-| Tile provider and PostGIS, decided with the V2 Map screen                                                       | New              | CAP-24               |
+| Decision                                                                                                        | Relation         | Affects                     |
+| --------------------------------------------------------------------------------------------------------------- | ---------------- | --------------------------- |
+| RabbitMQ is the only broker and also carries collection and parsing jobs; local ports 5672 and 15672            | Extends ADR 0010 | CAP-1, CAP-13               |
+| Zero Data Retention on every route; the primary model goes through the gateway until the direct route proves it | Extends ADR 0009 | CAP-10, CAP-15              |
+| Field allowlist, image fingerprints, sanitized and encrypted raw snapshots, 30-day expiry, suppression list     | New              | CAP-2, CAP-3, CAP-4, CAP-28 |
+| Tile provider and PostGIS, decided with the V2 Map screen; GeoSampa fiscal blocks as its block layer            | New              | CAP-24                      |
+| Keycloak as the identity provider, and how the API and the web application validate a session                   | New              | CAP-32                      |
 
 ## Current state
 
@@ -78,8 +79,14 @@ typed HTTP, through `/api/v1` or internal endpoints that are explicitly authoriz
 
 Protected operations are built behind the authorization boundary and stay unexposed until
 authentication and authorization run. Nothing stands in for them meanwhile: no operator token,
-configuration switch or browser-held ownership. The ownership model already reserves a
-security-principal identifier for that integration.
+configuration switch or browser-held ownership.
+
+Authentication (CAP-32) is the first increment after the MVP, ahead of V2, and is delegated to
+Keycloak, the workspace's shared identity infrastructure. Its repository,
+`repos/portifolio-shared-keycloak`, holds no configuration yet. Authentication fills the
+security-principal identifier the ownership model already reserves and separates two levels: a
+signed-in user, for alert rules and followed items, and an operator, for Operations and review.
+Operations and review open with it; alerts follow when CAP-23 is built.
 
 ## Modules, ports and adapters
 
@@ -90,12 +97,14 @@ Business modules, each with an explicit responsibility and low coupling: `proper
 `locations`, `collectors`, `snapshots`, `market`, `comparables`, `analytics`, `search`, `agents`,
 `alerts`, `audit`.
 
-| Port                                      | Adapters behind it                                                               |
-| ----------------------------------------- | -------------------------------------------------------------------------------- |
-| `ObjectStorage`                           | MinIO, R2, any S3-compatible store                                               |
-| `ListingSource`                           | One per source: the synthetic dataset, an open-data file, a reviewed site or API |
-| `LanguageModel`                           | OpenAI, Anthropic, Gemini, Ollama, any compatible API                            |
-| Decision model, embedding model, reranker | External APIs or local models, swapped without touching business rules           |
+| Port                                      | Adapters behind it                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------- |
+| `ObjectStorage`                           | MinIO, R2, any S3-compatible store                                                    |
+| `ListingSource`                           | One per source: the synthetic dataset, an open-data file, a reviewed site or API      |
+| Transaction source                        | One per source of recorded transactions; the ITBI files once their reuse is confirmed |
+| Reference geography                       | GeoSampa fiscal blocks, loaded for the V2 map; not a `ListingSource`                  |
+| `LanguageModel`                           | OpenAI, Anthropic, Gemini, Ollama, any compatible API                                 |
+| Decision model, embedding model, reranker | External APIs or local models, swapped without touching business rules                |
 
 Vendor DTOs are converted to canonical models before they enter the domain.
 
@@ -108,10 +117,12 @@ flowchart TD
   disc --> q[["RabbitMQ"]]
   q --> col["Collector workers"]
   col --> san["Sanitizer: contact fields removed, patterns masked"]
+  col --> fp["Image fingerprints, where the source allows: photographs hashed, then discarded"]
   san --> raw["Raw snapshot, encrypted in S3-compatible storage"]
   raw --> parse["Parser: allowlisted fields only"]
   parse --> norm["Normalization"]
   norm --> er["Entity resolution"]
+  fp --> er
   er --> pl["Property and Listing, in PostgreSQL"]
   pl --> ev["Historical events"]
   ev --> ma["Market analytics"]
@@ -129,6 +140,11 @@ flowchart TD
 - An entity-resolution match stores `SamePropertyProbability` and its reasons, for example similar
   coordinates, identical area, identical bedrooms, similar description, overlapping images. In the
   MVP the reasons come from rules only.
+- Overlapping images compare fingerprints, never photographs. Where the review of a source allows
+  fetching images, the collector fetches photographs of the listing, computes a perceptual
+  fingerprint of each in memory and discards the image; those requests count against the rate
+  limit of the source. The synthetic dataset has no photographs: its fixture carries the
+  fingerprints.
 - A property's asking price is the lowest among its active listings; place metrics count each
   property once at that price.
 - Alerts are evaluated after each collection run, by fixed rules.
@@ -152,7 +168,8 @@ Stored from a real listing, a closed allowlist:
 - the location as the source publishes it, without unit or complement;
 - dates, the listing source and the source URL;
 - the advertiser type (private or agency) and the agency name, which belongs to a legal entity;
-- the description, after phone numbers, e-mail addresses, CPF numbers and links are masked.
+- the description, after phone numbers, e-mail addresses, CPF numbers and links are masked;
+- image fingerprints, computed at collection from photographs that are then discarded.
 
 Never stored: the name, phone, e-mail or individual CRECI number of a natural person, and
 photographs.
@@ -163,20 +180,47 @@ Snapshots and removal:
   same patterns masked in text), encrypted at rest and deleted 30 days after collection.
   Reprocessing works inside that window; afterwards the normalized data keeps the snapshot hash.
 - Snapshots of the synthetic dataset hold no personal data and are kept.
-- A removal request deletes the stored data and snapshots of a listing and adds it to a suppression
-  list that collection consults, so a later run does not restore it.
+- A removal request deletes the stored data, snapshots and image fingerprints of a listing and adds
+  it to a suppression list that collection consults, so a later run does not restore it.
 
 Before the first real collection:
 
-- a public privacy notice in Brazilian Portuguese and English, with the contact e-mail;
+- a public privacy notice in Brazilian Portuguese and English, naming the controller and the
+  contact e-mail, both supplied by configuration;
 - the removal routine and its suppression list;
 - a record of processing operations and a legitimate-interest assessment, kept in the repository;
-- the source register, holding per source the access policy and the date its terms were reviewed.
+- the source register, holding per source the access policy, the date its terms were reviewed,
+  whether its images may be fetched and whether its listing text may be shown.
 
 A source is enabled only after its terms of use, robots policy and licence were reviewed and allow
 automated collection; `listing-sources.md` holds the candidates and each outcome. A collector never
 works around a login wall, a CAPTCHA, a block or a rate limit. The synthetic dataset stays live as
 a labelled source beside any real one.
+
+The review of a source also settles two permissions, each a no until established:
+
+- **Images.** Whether photographs may be fetched to compute fingerprints.
+- **Listing text.** Whether the description may be shown. Where it may, the API returns the masked
+  description and the comparison of its versions; where it may not, the API returns only that the
+  description changed and when, and the screen links to the source. The rule covers any excerpt,
+  such as the source sentence of an interpreted attribute (CAP-30). The masked text stays stored
+  for parsing and entity resolution either way.
+
+Open data that is not listing data:
+
+- **GeoSampa** (CC BY-SA 4.0) is reference geography: its fiscal blocks become the block layer of
+  the V2 map, when PostGIS arrives. It creates no `Property`, its IPTU base is not used and
+  nothing of it is ingested in the MVP, where the place hierarchy comes from the address a listing
+  publishes. Its data is attributed wherever it appears and in the privacy notice, and any map
+  layer or file that reproduces or transforms its geometry, with the figures drawn on it, is
+  published under CC BY-SA 4.0. That is the conservative reading, with no legal review.
+- **ITBI transactions**, once the Secretaria Municipal da Fazenda confirms their reuse, feed only
+  place figures (CAP-33): by neighborhood or street block and period, above a configured minimum
+  of transactions, tagged `Sale`. A transaction is never attached to a property, and its
+  unit-level fields are dropped before anything is stored, the raw snapshot included.
+
+Written confirmation of reuse is sought first from Caixa, for its property list, and from the
+Fazenda, for the ITBI transactions; each stays disabled until a written answer allows it.
 
 ### Conceptual model
 
@@ -193,8 +237,9 @@ Candidate entities, not a schema:
 | Market      | `MarketMetric`, `MarketSnapshot`             |
 | Outputs     | `Analysis`, `Alert`, `AgentRun`              |
 
-The privacy decisions add a source-register entry and a suppression entry; their names are left to
-the stories.
+The privacy decisions add a source-register entry and a suppression entry, and the later decisions
+an image fingerprint per listing and a place-level sale figure; their names are left to the
+stories.
 
 ### Where a model may be used
 
@@ -363,12 +408,14 @@ Failure matrix:
   reopens.
 - In the MVP an opaque capability protects each thread; the API validates it before exposing
   history, confirmation, cancellation or SSE.
-- The ownership model reserves a security-principal identifier for a later Keycloak integration.
+- The ownership model reserves a security-principal identifier, which the Keycloak integration of
+  CAP-32 fills.
 - The AI service receives only model credentials and internal tokens of minimal scope.
 - Tools are allowlisted; the model creates no URL, SQL or operation name.
 - The brief also asks for authentication, authorization, workspace isolation, rate limiting, input
-  validation, secret management and audit logs. Protected operations wait for the first two (see
-  Public and protected surfaces); when authentication lands is an open question of the spec.
+  validation, secret management and audit logs. Protected operations wait for the first two, which
+  arrive with CAP-32 right after the MVP (see Public and protected surfaces). Whether workspaces
+  are isolated is an open question of the spec.
 
 ### Observability
 
@@ -417,15 +464,16 @@ default CI, and reports accuracy, latency and cost without storing the key or se
 
 ## Infrastructure and ports
 
-| Service    | Port        | Note                                                                                |
-| ---------- | ----------- | ----------------------------------------------------------------------------------- |
-| Web        | 3200        |                                                                                     |
-| API        | 8200        | Public contract under `/api/v1`                                                     |
-| AI service | 4111        | Internal; called by the worker                                                      |
-| PostgreSQL | 5434        | PostGIS and `vector` available in the image, enabled per migration                  |
-| Valkey     | 6380        | `optional` profile; no consumer; not the broker                                     |
-| MinIO      | 9100, 9101  | `optional` profile                                                                  |
-| RabbitMQ   | 5672, 15672 | AMQP and management; the only broker; the workspace port table still has to list it |
+| Service    | Port         | Note                                                                                             |
+| ---------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| Web        | 3200         |                                                                                                  |
+| API        | 8200         | Public contract under `/api/v1`                                                                  |
+| AI service | 4111         | Internal; called by the worker                                                                   |
+| PostgreSQL | 5434         | PostGIS and `vector` available in the image, enabled per migration                               |
+| Valkey     | 6380         | `optional` profile; no consumer; not the broker                                                  |
+| MinIO      | 9100, 9101   | `optional` profile                                                                               |
+| RabbitMQ   | 5672, 15672  | AMQP and management; the only broker; the workspace port table still has to list it              |
+| Keycloak   | Not assigned | Shared identity infrastructure of the workspace; port and placement decided by the ADR of CAP-32 |
 
 The Compose project is `real-estate-intelligence` and publishes only its assigned ports.
 Development servers bind to `0.0.0.0`.
@@ -441,8 +489,8 @@ workspace port table gains RabbitMQ.
 The owner targets the whole MVP together, so no group waits behind another by preference. Stories
 are ordered by dependency: the data foundation before market reading, a screen after the capability
 it shows, the natural-language increment independently. RabbitMQ arrives with whichever of
-ingestion or the natural-language increment lands first. Protected operations wait for
-authentication.
+ingestion or the natural-language increment lands first. Authentication follows the MVP as its own
+increment and opens the protected operations.
 
 Planned sequence of the natural-language increment, each story ending in observable behaviour with
 tests proportional to its risk:
@@ -470,44 +518,48 @@ Exit criteria of that increment:
 - The client follows the run over SSE to a terminal state.
 - Offline tests pass without network and the live probe stays explicitly optional.
 
-Later phases: V2 brings comparables, market analytics, the map with PostGIS and a tile provider,
-execution of the remaining intents by the graph, model-interpreted attributes, model-assisted
-entity resolution and the dark theme. Alerts, Operations and Review wait for authentication.
+After the MVP, authentication with Keycloak (CAP-32) comes first and opens Operations and Review.
+V2 then brings comparables, market analytics, the map with PostGIS, a tile provider and the
+GeoSampa block layer, place-level sale figures once their source is confirmed, execution of the
+remaining intents by the graph, model-interpreted attributes, model-assisted entity resolution and
+the dark theme. Alerts open when CAP-23 is built.
 
 ## Capability to architecture map
 
 Module names follow the brief's conceptual list and are indicative.
 
-| Capability     | Lives in                                                                             | Governed by                                               |
-| -------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------- |
-| CAP-1          | Collectors in `apps/worker`; `ListingSource` adapters; source register               | Ingestion pipeline; Privacy and sources; ADR 0003         |
-| CAP-2          | `snapshots`; `ObjectStorage` port; sanitizer                                         | Ingestion pipeline; Privacy and sources                   |
-| CAP-3          | `properties`, `listings`, `locations`                                                | Conceptual model; field allowlist; ADR 0003               |
-| CAP-4          | Entity resolution in the domain and application packages                             | Ingestion pipeline; match thresholds                      |
-| CAP-5          | `listings`, `snapshots`                                                              | Listing events                                            |
-| CAP-6          | `search`; `/api/v1`                                                                  | ADR 0003                                                  |
-| CAP-7, CAP-8   | `properties`, `listings`; `/api/v1`                                                  | Conceptual model; asking-price rule                       |
-| CAP-9          | `market`, `analytics`                                                                | Deterministic rules                                       |
-| CAP-10         | Graph in `apps/ai`; typed tool over `/api/v1`; `pricePerSquareMeter`                 | ADR 0007, ADR 0008                                        |
-| CAP-11, CAP-12 | Decision port and adapters in `apps/ai`                                              | ADR 0008                                                  |
-| CAP-13         | `apps/api` persistence, `apps/worker` delivery, RabbitMQ, PostgreSQL                 | ADR 0010                                                  |
-| CAP-14         | Run endpoints and SSE in `apps/api`; headless web client                             | ADR 0010                                                  |
-| CAP-15         | Resilience policies around the adapters in `apps/ai`                                 | ADR 0009; Zero Data Retention on every route              |
-| CAP-16         | `apps/api`                                                                           | ADR 0010; demo quota                                      |
-| CAP-17         | Datasets and tests beside the adapters                                               | ADR 0004, ADR 0008                                        |
-| CAP-18         | OpenTelemetry bootstrap of each process                                              | ADR 0005, ADR 0010                                        |
-| CAP-19, CAP-20 | `apps/web`                                                                           | ADR 0006; `ux.md`; `apps/web/DESIGN.md`                   |
-| CAP-21         | `comparables`                                                                        | Deterministic rules; PostGIS when distance needs it       |
-| CAP-22         | `market`, `analytics`                                                                | Deterministic rules                                       |
-| CAP-23         | `alerts`                                                                             | Fixed rules, after each collection run; protected surface |
-| CAP-24         | Map in `apps/web`; `locations`                                                       | Tile provider and PostGIS, by ADR at V2                   |
-| CAP-25         | One typed tool per intent in `apps/ai`                                               | ADR 0008                                                  |
-| CAP-26         | `collectors`; `/api/v1`; `apps/web`                                                  | Ingestion pipeline; protected surface                     |
-| CAP-27         | Entity-resolution review; `audit`                                                    | Audit log; match thresholds; protected surface            |
-| CAP-28         | Privacy notice in `apps/web`; removal and suppression in `listings` and `collectors` | Privacy and sources                                       |
-| CAP-29         | Tokens and styles in `apps/web`                                                      | `apps/web/DESIGN.md`; `ux.md`                             |
-| CAP-30         | Extraction through `apps/ai`; interpreted attributes in `listings`                   | Where a model may be used                                 |
-| CAP-31         | Entity resolution; embedding model port                                              | Where a model may be used; match thresholds               |
+| Capability     | Lives in                                                                                   | Governed by                                                  |
+| -------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| CAP-1          | Collectors in `apps/worker`; `ListingSource` adapters; source register                     | Ingestion pipeline; Privacy and sources; ADR 0003            |
+| CAP-2          | `snapshots`; `ObjectStorage` port; sanitizer                                               | Ingestion pipeline; Privacy and sources                      |
+| CAP-3          | `properties`, `listings`, `locations`                                                      | Conceptual model; field allowlist; ADR 0003                  |
+| CAP-4          | Entity resolution in the domain and application packages; fingerprints from the collectors | Ingestion pipeline; match thresholds; image permission       |
+| CAP-5          | `listings`, `snapshots`                                                                    | Listing events                                               |
+| CAP-6          | `search`; `/api/v1`                                                                        | ADR 0003                                                     |
+| CAP-7, CAP-8   | `properties`, `listings`; `/api/v1`                                                        | Conceptual model; asking-price rule; listing-text permission |
+| CAP-9          | `market`, `analytics`                                                                      | Deterministic rules                                          |
+| CAP-10         | Graph in `apps/ai`; typed tool over `/api/v1`; `pricePerSquareMeter`                       | ADR 0007, ADR 0008                                           |
+| CAP-11, CAP-12 | Decision port and adapters in `apps/ai`                                                    | ADR 0008                                                     |
+| CAP-13         | `apps/api` persistence, `apps/worker` delivery, RabbitMQ, PostgreSQL                       | ADR 0010                                                     |
+| CAP-14         | Run endpoints and SSE in `apps/api`; headless web client                                   | ADR 0010                                                     |
+| CAP-15         | Resilience policies around the adapters in `apps/ai`                                       | ADR 0009; Zero Data Retention on every route                 |
+| CAP-16         | `apps/api`                                                                                 | ADR 0010; demo quota                                         |
+| CAP-17         | Datasets and tests beside the adapters                                                     | ADR 0004, ADR 0008                                           |
+| CAP-18         | OpenTelemetry bootstrap of each process                                                    | ADR 0005, ADR 0010                                           |
+| CAP-19, CAP-20 | `apps/web`                                                                                 | ADR 0006; `ux.md`; `apps/web/DESIGN.md`                      |
+| CAP-21         | `comparables`                                                                              | Deterministic rules; PostGIS when distance needs it          |
+| CAP-22         | `market`, `analytics`                                                                      | Deterministic rules                                          |
+| CAP-23         | `alerts`                                                                                   | Fixed rules, after each collection run; protected surface    |
+| CAP-24         | Map in `apps/web`; `locations`; GeoSampa fiscal blocks                                     | Tile provider and PostGIS, by ADR at V2; CC BY-SA 4.0        |
+| CAP-25         | One typed tool per intent in `apps/ai`                                                     | ADR 0008                                                     |
+| CAP-26         | `collectors`; `/api/v1`; `apps/web`                                                        | Ingestion pipeline; protected surface                        |
+| CAP-27         | Entity-resolution review; `audit`                                                          | Audit log; match thresholds; protected surface               |
+| CAP-28         | Privacy notice in `apps/web`; removal and suppression in `listings` and `collectors`       | Privacy and sources                                          |
+| CAP-29         | Tokens and styles in `apps/web`                                                            | `apps/web/DESIGN.md`; `ux.md`                                |
+| CAP-30         | Extraction through `apps/ai`; interpreted attributes in `listings`                         | Where a model may be used                                    |
+| CAP-31         | Entity resolution; embedding model port                                                    | Where a model may be used; match thresholds                  |
+| CAP-32         | Session validation in `apps/api` and `apps/web`; Keycloak                                  | Public and protected surfaces; ADR owed                      |
+| CAP-33         | `market`, `analytics`; transaction-source adapters                                         | Privacy and sources; place figures only                      |
 
 ## Deferred to the stories
 
@@ -518,3 +570,7 @@ Module names follow the brief's conceptual list and are indicative.
 - What "No, rephrase" does to a paused run, and whether a run awaiting confirmation expires.
 - The masking patterns and their tests, the encryption mechanism of the object store and the shape
   of the suppression list.
+- The fingerprint algorithm, its similarity measure and how many photographs of a listing are
+  fetched.
+- The minimum number of transactions that lets a place and period show a sale figure.
+- The realm, the roles and the session validation of the Keycloak integration, within its ADR.

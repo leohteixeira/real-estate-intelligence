@@ -87,7 +87,9 @@ the screens to them.
     coordinates, area, bedrooms, description, images); fixture listings of one property resolve to
     one `Property` holding several `Listing` records. A match at 0.90 or above merges, one from
     0.50 up to 0.90 stays separate and awaits review, and one below 0.50 stays separate without
-    review.
+    review. Image evidence compares fingerprints: a fixture source that allows fetching images
+    yields one fingerprint per photograph it fetches and stores no photograph, and one that does
+    not yields none.
 - **CAP-5**
   - **intent:** A change to a listing is recorded as an event, so the evolution of a listing and of
     its price can be reconstructed.
@@ -98,11 +100,12 @@ the screens to them.
 - **CAP-28**
   - **intent:** A person can read what the product collects and why, and can have a listing removed
     and kept out.
-  - **success:** A public privacy notice in Brazilian Portuguese and English states what is
-    collected, from which sources, for what purpose, on what legal basis and for how long, the
-    rights of the data subject and the contact e-mail. A removal request deletes the stored data
-    and snapshots of the listing and adds it to a suppression list, and a later collection run over
-    a fixture that contains it does not restore it.
+  - **success:** A public privacy notice in Brazilian Portuguese and English, reached from every
+    public screen and from the landing page, states what is collected, from which sources and
+    under which licence, for what purpose, on what legal basis and for how long, the rights of the
+    data subject, who the controller is and the contact e-mail. A removal request deletes the
+    stored data, snapshots and image fingerprints of the listing and adds it to a suppression
+    list, and a later collection run over a fixture that contains it does not restore it.
 
 ### MVP: market reading
 
@@ -123,7 +126,9 @@ the screens to them.
   - **intent:** A user can trace any value of a listing to where and when it was collected.
   - **success:** A listing exposes its source, source URL, first-seen and last-collected times,
     collection run, raw snapshot (its hash once the snapshot expired), the date since which each
-    value holds and its full event list.
+    value holds and its full event list. The description and the comparison of its versions are
+    returned only for a source whose register entry allows showing its text; for any other source
+    the response states that the description changed and when, and holds no text.
 - **CAP-9**
   - **intent:** A user can read deterministic market figures for a place, each with its provenance.
   - **success:** For a place the backend returns the median asking price per m² with its movement,
@@ -199,10 +204,10 @@ the screens to them.
   - **intent:** A user can read a market and follow a run in a place-first web application on a
     phone and on a desktop, in Brazilian Portuguese or English.
   - **success:** Every MVP screen and every system state of `ux.md` exists at 390 px and from
-    960 px up in the light theme, meets WCAG 2.2 level AA, opens with its place plate, shows each
-    figure with its provenance line and each price with its `Asking` or `Sale` tag, switches locale
-    with locale-formatted numbers and takes every value from `/api/v1`. V2 and protected screens
-    join under the same rules as their capabilities land.
+    960 px up in the light theme, meets WCAG 2.2 level AA, opens with its place plate (the privacy
+    notice excepted), shows each figure with its provenance line and each price with its `Asking`
+    or `Sale` tag, switches locale with locale-formatted numbers and takes every value from
+    `/api/v1`. V2 and protected screens join under the same rules as their capabilities land.
 - **CAP-20**
   - **intent:** A visitor can learn from a public landing page what the product answers for each of
     its four audiences.
@@ -211,55 +216,19 @@ the screens to them.
     with reduced motion, marks every figure as synthetic and offers the demo link only when
     `VITE_DEMO_URL` is set. The page is already built; `ux.md` lists what is left before it ships.
 
-### V2
+### After the MVP: authentication and protected operations
 
-- **CAP-21**
-  - **intent:** A user can compare a property with comparable properties selected by stated,
-    adjustable criteria.
-  - **success:** The comparable set is reproducible from its criteria alone (distance, property
-    type, area, bedrooms, bathrooms, parking spaces, features, listing period); the result states
-    the criteria, the candidates considered, the matches, the median asking price per m² of the set
-    and the subject's deviation from it; changing a criterion changes the set deterministically.
-- **CAP-22**
-  - **intent:** A user can read how the market of a city, zone or neighborhood is moving.
-  - **success:** For 30-day, 6-month and 12-month windows the backend returns, per place, the
-    movement of the median asking price per m², the change in active listings, the median time on
-    market, the share of listings with a reduction, recurring reductions, new listings and the
-    distribution by asking-price band, and ranks the neighborhoods that moved most, each equal to
-    the documented rule applied to the fixture series.
-- **CAP-24**
-  - **intent:** A user can explore the properties and prices of a place on a map.
-  - **success:** The map shows the same filtered properties as the list as markers and offers a
-    price-per-m²-per-block layer; selecting a marker shows that property's row and opens the
-    property; no marker locates a unit.
-- **CAP-25**
-  - **intent:** A user can ask natural-language questions that search listings, read a property's
-    history, read region statistics and find comparables.
-  - **success:** `listing_search`, `property_history`, `region_statistics` and `comparables` each
-    become executable only when their typed deterministic backend capability exists, one intent at
-    a time, each with its evaluation dataset, returning tool results the model only explains.
-- **CAP-29**
-  - **intent:** A user can read every screen in a dark theme.
-  - **success:** Every screen renders from a second, dark token set defined in
-    `apps/web/DESIGN.md` and `tokens.css`, under the same screen rules and at WCAG 2.2 level AA.
-- **CAP-30**
-  - **intent:** A user can see the attributes a model read from the description of a listing, told
-    apart from measured ones.
-  - **success:** Each interpreted attribute is stored with its prompt version and its source
-    sentence and is shown tagged "Interpreted, not measured"; the extraction ships with a versioned
-    evaluation dataset.
-- **CAP-31**
-  - **intent:** The system matches listings of one property that rules alone miss, and still shows
-    why.
-  - **success:** Description similarity from embeddings and model-interpreted attributes appear as
-    further reasons of the same match score, measured against a labelled evaluation dataset; a
-    merge is still decided by the deterministic thresholds, never by a model.
+Authentication is the first increment after the MVP, ahead of V2. Operations and entity-resolution
+review open with it, and alerts follow when CAP-23 is built. CAP-23, CAP-26 and CAP-27 require an
+authenticated, authorized user, are built ready for that boundary and stay unexposed until it runs.
 
-### Protected operations, after authentication
-
-These require an authenticated, authorized user. They are built ready for that boundary and stay
-unexposed until authentication and authorization run.
-
+- **CAP-32**
+  - **intent:** A person signs in, and protected operations open only to those authorized for
+    them.
+  - **success:** Operations, entity-resolution review, alert rules and followed items are refused
+    to an anonymous visitor and to a signed-in user without the required role; an authorized
+    operator reaches Operations and Review; the public surface works unchanged without signing in;
+    each protected action is audit-logged with its security principal.
 - **CAP-23**
   - **intent:** A user can set rules on a place or on followed properties and be alerted when one
     fires.
@@ -281,6 +250,59 @@ unexposed until authentication and authorization run.
     separate or skips; the decision is written to the audit log and can be undone, and both
     listings keep their full history either way.
 
+### V2
+
+- **CAP-21**
+  - **intent:** A user can compare a property with comparable properties selected by stated,
+    adjustable criteria.
+  - **success:** The comparable set is reproducible from its criteria alone (distance, property
+    type, area, bedrooms, bathrooms, parking spaces, features, listing period); the result states
+    the criteria, the candidates considered, the matches, the median asking price per m² of the set
+    and the subject's deviation from it; changing a criterion changes the set deterministically.
+- **CAP-22**
+  - **intent:** A user can read how the market of a city, zone or neighborhood is moving.
+  - **success:** For 30-day, 6-month and 12-month windows the backend returns, per place, the
+    movement of the median asking price per m², the change in active listings, the median time on
+    market, the share of listings with a reduction, recurring reductions, new listings and the
+    distribution by asking-price band, and ranks the neighborhoods that moved most, each equal to
+    the documented rule applied to the fixture series.
+- **CAP-24**
+  - **intent:** A user can explore the properties and prices of a place on a map.
+  - **success:** The map shows the same filtered properties as the list as markers and offers a
+    price-per-m²-per-block layer that credits the source of its block geometry; selecting a marker
+    shows that property's row and opens the property; no marker locates a unit.
+- **CAP-25**
+  - **intent:** A user can ask natural-language questions that search listings, read a property's
+    history, read region statistics and find comparables.
+  - **success:** `listing_search`, `property_history`, `region_statistics` and `comparables` each
+    become executable only when their typed deterministic backend capability exists, one intent at
+    a time, each with its evaluation dataset, returning tool results the model only explains.
+- **CAP-29**
+  - **intent:** A user can read every screen in a dark theme.
+  - **success:** Every screen renders from a second, dark token set defined in
+    `apps/web/DESIGN.md` and `tokens.css`, under the same screen rules and at WCAG 2.2 level AA.
+    The theme follows the system preference until the user picks one with the switch in the shell,
+    and that choice is remembered in the browser.
+- **CAP-30**
+  - **intent:** A user can see the attributes a model read from the description of a listing, told
+    apart from measured ones.
+  - **success:** Each interpreted attribute is stored with its prompt version and its source
+    sentence and is shown tagged "Interpreted, not measured"; the extraction ships with a versioned
+    evaluation dataset.
+- **CAP-31**
+  - **intent:** The system matches listings of one property that rules alone miss, and still shows
+    why.
+  - **success:** Description similarity from embeddings and model-interpreted attributes appear as
+    further reasons of the same match score, measured against a labelled evaluation dataset; a
+    merge is still decided by the deterministic thresholds, never by a model.
+- **CAP-33**
+  - **intent:** A user can read what properties sold for in a place, from recorded transactions.
+  - **success:** Over a fixture of transaction records, a place and period with at least the
+    configured minimum of transactions shows the median declared value per m² tagged `Sale`, with
+    its count, source and period; one below the minimum reads "None available"; no property shows
+    a sale from these records and no unit-level field of a record is stored. It stays unexposed
+    until a transaction source is enabled.
+
 ## Constraints
 
 ### Domain truth
@@ -293,6 +315,8 @@ unexposed until authentication and authorization run.
   transaction the product says that no sale is recorded.
 - A removed listing is never treated as sold: time on market measures listed time, and no figure or
   text speaks of a sale unless a source records the transaction.
+- A recorded transaction is used only as a place figure, by neighborhood or street block and
+  period, above a configured minimum of transactions. It is never attached to a property.
 - A property's asking price is the lowest among its active listings, and place metrics count each
   property once at that price.
 - Entity resolution and comparables are explainable: a match carries its probability and evidence,
@@ -312,6 +336,12 @@ unexposed until authentication and authorization run.
   of `architecture.md`; names, contacts, individual CRECI numbers and photographs are never stored,
   and a description is stored only after phone numbers, e-mail addresses, CPF numbers and links are
   masked.
+- A photograph is reduced to a fingerprint at collection and discarded, only for a source whose
+  review allows fetching images. The fingerprint comes from a deterministic algorithm, and the
+  image requests count against the rate limit of the source.
+- The description of a real listing is shown, and its versions compared, only where the source
+  register allows showing its text; elsewhere the product states that it changed and when, and
+  links to the source. The default is not to show it.
 - A raw snapshot of a real source is sanitized before it is stored, encrypted at rest and deleted
   after 30 days.
 - The owner, a natural person, is the controller as a small-size processing agent, on the legal
@@ -324,6 +354,13 @@ unexposed until authentication and authorization run.
 - Collectors honour each source's terms of use, robots and access policies, rate limits, API
   policies and licensing, and never work around a login wall, a CAPTCHA, a block or a rate limit.
 - The synthetic dataset stays live as a labelled source beside any real one.
+- The Caixa property list and the ITBI transactions are the first real sources sought. Each stays
+  disabled until a written answer from its publisher, Caixa or the Secretaria Municipal da
+  Fazenda, allows its reuse.
+- GeoSampa is reference geography for the V2 map, not a listing source: it creates no `Property`
+  and nothing of it is ingested in the MVP. Its data is attributed wherever it appears and in the
+  privacy notice, and any map layer or file that reproduces or transforms its geometry, with the
+  figures drawn on it, is published under CC BY-SA 4.0.
 
 ### Determinism and AI
 
@@ -354,7 +391,8 @@ unexposed until authentication and authorization run.
   business value; it only formats numbers and dates for the locale.
 - The product separates a public surface from protected operations. Operations, entity-resolution
   review, alert rules and followed places or properties require authentication and authorization,
-  are built ready for that boundary and stay unexposed until it runs.
+  are built ready for that boundary and stay unexposed until it runs. Authentication is delegated
+  to Keycloak and is the first increment after the MVP, ahead of V2.
 - Cloud-agnostic and container-first: every component runs in containers on a Linux VPS, started by
   `docker compose up`; a managed service is an option, never a requirement. PostgreSQL is the
   primary database, with PostGIS, `pgvector` and S3-compatible storage only where a capability
@@ -384,7 +422,10 @@ unexposed until authentication and authorization run.
   second, and phone and desktop are equally complete. Everything else in the repository is written
   in English.
 - The interface meets WCAG 2.2 level AA.
-- The MVP ships the light theme only; the dark theme is CAP-29.
+- The MVP ships the light theme only; the dark theme is CAP-29, which follows the system preference
+  and offers a switch in the shell.
+- The privacy notice is a public document page, linked from the footer of the landing page and of
+  the application shell. It has no artboard and, being outside the place hierarchy, no place plate.
 - Demonstration data is synthetic and labelled `Synthetic data`; the product uses no photography.
 
 ### Process
@@ -404,15 +445,16 @@ unexposed until authentication and authorization run.
 - Any number, comparable selection or market calculation produced by a language model.
 - Inferring or asserting a transaction price from an asking price, or a sale from a removed
   listing.
+- A `Property` created from cadastral records, or a sale attached to a property from transaction
+  records.
 - Forecasting: a market reading is a signal from asking-price data.
 - A city or region other than São Paulo in the MVP.
 - Storing personal data or photographs of advertisers, owners or brokers.
 - Collecting from a source whose terms forbid it, or working around an access control.
 - An interim access mechanism for protected operations before authentication: no operator token,
   configuration switch or browser-held ownership.
-- V3, outside this spec: image analysis, opportunity scoring, advanced maps, trend forecasting,
-  multiple regions, recurring agent searches and multi-user authentication integrated with
-  Keycloak.
+- V3, outside this spec: image analysis beyond the fingerprints of CAP-4, opportunity scoring,
+  advanced maps, trend forecasting, multiple regions and recurring agent searches.
 - In the first natural-language increment: the visual Ask screens (its client is headless),
   execution of the four other intents, currency conversion, LangSmith as an operational requirement
   and providers beyond the defined primary and secondary roles.
@@ -439,8 +481,22 @@ unexposed until authentication and authorization run.
   The Placa design is the later design flow that the brief and the plan deferred to.
 - Stories are ordered by dependency, not by a preferred phase: the data foundation before market
   reading, a screen after the capability it shows, the natural-language increment independently.
-- The owner's "everything this weekend" is read as the MVP (CAP-1 to CAP-20 and CAP-28); V2 and
-  the protected operations stay later. The date is a delivery target, not part of this contract.
+- The owner's "everything this weekend" is read as the MVP (CAP-1 to CAP-20 and CAP-28);
+  authentication follows, then V2. The date is a delivery target, not part of this contract.
+- The third success signal waits for a real listing source. None is enabled until Caixa answers or
+  a portal authorizes collection, so the MVP goes live on the synthetic dataset.
+- The fingerprint path ships with CAP-4 in the MVP, proven on a fixture source. The synthetic
+  dataset has no photographs, so its fixture carries the fingerprints.
+- The authentication increment covers sign-in and two levels of authorization, a signed-in user
+  and an operator. It depends on the workspace's shared Keycloak, whose repository holds no
+  configuration yet.
+- CAP-33 is placed in V2 and shows the median declared value per m², by analogy with the
+  asking-price figure: the owner decided that transactions feed place figures only, not when or
+  which. The minimum number of transactions is left to its story.
+- A listing source that feeds figures drawn on the GeoSampa block layer must allow those figures to
+  be published under CC BY-SA 4.0; its review checks that.
+- The privacy notice names the controller and carries no place plate. Both are this spec's reading:
+  the owner decided where the notice sits and that it has no artboard.
 - The brief's MVP "basic dashboard" is the Place overview screen; the design rejects a KPI-card
   dashboard.
 - The place hierarchy is the brief's (country, state, city, neighborhood, coordinates) extended by
@@ -448,8 +504,10 @@ unexposed until authentication and authorization run.
 - Alerts are delivered to the in-app inbox only; no email or push channel is specified.
 - Sanitizing and the 30-day expiry apply to snapshots of real sources; snapshots of the synthetic
   dataset hold no personal data and are kept.
-- The privacy rules are an engineering reading of the LGPD (articles 7, 10, 18 and 37) and of ANPD
-  resolution CD/ANPD 2/2022 on small-size processing agents; no legal review has confirmed them.
+- The privacy rules are an engineering reading of the LGPD (articles 7, 9, 10, 18 and 37) and of
+  ANPD resolution CD/ANPD 2/2022 on small-size processing agents; no legal review has confirmed
+  them. The same holds for treating an image fingerprint as listing data and for the reading of
+  CC BY-SA 4.0.
 - Values printed in artboards are synthetic illustrations, not decisions: comparables within 800 m
   and 15% of area, collector request rates, retry counts. Binding values are the ones the plan, the
   ADRs and the owner fixed: 0.85, three pending runs, two minutes, 30 days, eight turns, 16,000
@@ -460,21 +518,8 @@ unexposed until authentication and authorization run.
 
 ## Open Questions
 
-- When does authentication land? The brief keeps Keycloak in V3, and alerts, Operations and Review
-  wait for it.
-- No portal passed the source review of 9 October 2026: three forbid automated collection and five
-  could not be verified. Of the open data only GeoSampa states a licence; the ITBI transactions and
-  the Caixa property list state none (`listing-sources.md`). Does the owner seek written
-  authorization or confirmation, and from whom first?
-- Entity resolution lists overlapping images as evidence, and photographs are never stored. May a
-  real source keep an image fingerprint (a hash, not the photograph), or does image evidence apply
-  to the synthetic dataset only?
-- May the Listing screen show the full description of a real listing and compare its versions, or
-  only state that it changed and link to the source? Listing text may be protected and the terms of
-  a source may restrict republication.
-- The open data found is not listing data, except the Caixa list: GeoSampa holds cadastral records
-  and block geometry, ITBI holds transaction values. How does each enter a model built on
-  `Property` and `Listing`, does an ITBI transaction feed the `Sale` price, and what does the
-  share-alike clause of CC BY-SA 4.0 require of figures derived from GeoSampa?
-- How is the V2 dark theme selected: system preference, a switch, or both?
-- The privacy notice has no artboard. Where does it sit in the navigation, and who designs it?
+- Does a signed-in user belong to a workspace whose alert rules and followed items are isolated
+  from other workspaces, or is ownership per user only? The brief names workspace isolation and a
+  `Workspace` entity and nothing specifies them.
+- The sign-in entry, the signed-in state of the shell and the V2 theme switch have no artboard. Who
+  designs them?

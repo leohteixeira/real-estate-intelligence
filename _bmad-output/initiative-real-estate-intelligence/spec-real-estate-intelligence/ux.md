@@ -72,8 +72,10 @@ hierarchy and are links. The language switch sits in the shell on every screen.
 
 Places, Search, Ask and Market are public. Alerts and Operations belong to the protected surface:
 they appear only for an authenticated, authorized user and stay out of the navigation until
-authentication runs. The privacy notice is public; its place in the navigation is not designed
-yet.
+authentication runs, which is the first increment after the MVP. The privacy notice is public: a
+"Privacy" link sits in the footer of the landing page and of the application shell. On desktop
+that is the foot of the rail, beside the language switch; the phone shell draws no footer, so the
+story adds one at the end of the page.
 
 ## Screens
 
@@ -81,26 +83,27 @@ Phone artboards are 390 px wide; desktop artboards are 1440 px and fluid. Every 
 of CAP-19. V2 screens ship with the capability they serve and protected screens once authentication
 runs, under the same rules.
 
-| Screen                     | Phase     | Artboards                                         | Capabilities                           |
-| -------------------------- | --------- | ------------------------------------------------- | -------------------------------------- |
-| Place overview             | MVP       | `Main.dc.html`, `DesktopPlace.dc.html`            | CAP-9                                  |
-| Place overview, English    | MVP       | `PlaceEN.dc.html`                                 | CAP-19                                 |
-| Search results             | MVP       | `Search.dc.html`, `DesktopPlace.dc.html`          | CAP-6                                  |
-| Filters                    | MVP       | `Filters.dc.html`                                 | CAP-6                                  |
-| Property                   | MVP       | `Property.dc.html`, `DesktopProperty.dc.html`     | CAP-4, CAP-5, CAP-7                    |
-| Listing and provenance     | MVP       | `Listing.dc.html`                                 | CAP-2, CAP-5, CAP-8                    |
-| Ask, completed run         | MVP       | `Ask.dc.html`, `DesktopAsk.dc.html`               | CAP-10, CAP-11, CAP-12, CAP-14, CAP-18 |
-| Ask, awaiting confirmation | MVP       | `AskConfirm.dc.html`, `DesktopAsk.dc.html`        | CAP-11, CAP-13, CAP-16                 |
-| System states              | All       | `States.dc.html`                                  | CAP-19                                 |
-| Privacy notice             | MVP       | None yet                                          | CAP-28                                 |
-| Comparables                | V2        | `Comparables.dc.html`, `DesktopProperty.dc.html`  | CAP-21                                 |
-| Market                     | V2        | `Market.dc.html`, `DesktopMarket.dc.html`         | CAP-22                                 |
-| Map                        | V2        | `Map.dc.html`                                     | CAP-24                                 |
-| Alerts                     | Protected | `Alerts.dc.html`                                  | CAP-23                                 |
-| Operations                 | Protected | `Operations.dc.html`, `DesktopOperations.dc.html` | CAP-26                                 |
-| Entity resolution review   | Protected | `Review.dc.html`, `DesktopOperations.dc.html`     | CAP-27                                 |
-| Landing page               | Built     | `LandingDesktop.dc.html`, `LandingMobile.dc.html` | CAP-20                                 |
-| Design system              | n/a       | `Foundations.dc.html`, `Components.dc.html`       | All                                    |
+| Screen                     | Phase         | Artboards                                         | Capabilities                           |
+| -------------------------- | ------------- | ------------------------------------------------- | -------------------------------------- |
+| Place overview             | MVP           | `Main.dc.html`, `DesktopPlace.dc.html`            | CAP-9                                  |
+| Place overview, English    | MVP           | `PlaceEN.dc.html`                                 | CAP-19                                 |
+| Search results             | MVP           | `Search.dc.html`, `DesktopPlace.dc.html`          | CAP-6                                  |
+| Filters                    | MVP           | `Filters.dc.html`                                 | CAP-6                                  |
+| Property                   | MVP           | `Property.dc.html`, `DesktopProperty.dc.html`     | CAP-4, CAP-5, CAP-7                    |
+| Listing and provenance     | MVP           | `Listing.dc.html`                                 | CAP-2, CAP-5, CAP-8                    |
+| Ask, completed run         | MVP           | `Ask.dc.html`, `DesktopAsk.dc.html`               | CAP-10, CAP-11, CAP-12, CAP-14, CAP-18 |
+| Ask, awaiting confirmation | MVP           | `AskConfirm.dc.html`, `DesktopAsk.dc.html`        | CAP-11, CAP-13, CAP-16                 |
+| System states              | All           | `States.dc.html`                                  | CAP-19                                 |
+| Privacy notice             | MVP           | None: built from the components                   | CAP-28                                 |
+| Comparables                | V2            | `Comparables.dc.html`, `DesktopProperty.dc.html`  | CAP-21                                 |
+| Market                     | V2            | `Market.dc.html`, `DesktopMarket.dc.html`         | CAP-22                                 |
+| Map                        | V2            | `Map.dc.html`                                     | CAP-24                                 |
+| Sign-in entry              | After the MVP | None yet                                          | CAP-32                                 |
+| Alerts                     | Protected     | `Alerts.dc.html`                                  | CAP-23                                 |
+| Operations                 | Protected     | `Operations.dc.html`, `DesktopOperations.dc.html` | CAP-26                                 |
+| Entity resolution review   | Protected     | `Review.dc.html`, `DesktopOperations.dc.html`     | CAP-27                                 |
+| Landing page               | Built         | `LandingDesktop.dc.html`, `LandingMobile.dc.html` | CAP-20                                 |
+| Design system              | n/a           | `Foundations.dc.html`, `Components.dc.html`       | All                                    |
 
 On desktop the rail replaces the tab bar, the plate moves into the blue header and bands become
 panels. Screens without a desktop artboard (filters, listing, alerts, review) follow the same rule.
@@ -115,6 +118,8 @@ panels. Screens without a desktop artboard (filters, listing, alerts, review) fo
 - Figures: median asking price per m² with its movement and the parent place's median, median time
   on market, price reductions in 30 days, listings per property, and recorded sale prices, which
   read "None available" when no source reports one. A property counts once, at its asking price.
+- A recorded sale figure is a place aggregate of transaction records, tagged `Sale` (CAP-33, V2):
+  it needs a minimum of transactions and never belongs to one property.
 - Largest reductions are property rows and lead to all properties of the place.
 - The artboard also draws the asking price per m² over 12 months.
 - Desktop: the result table sits beside the map, with a table of neighbouring places.
@@ -152,7 +157,8 @@ panels. Screens without a desktop artboard (filters, listing, alerts, review) fo
 - Asking-price history lists each change with date and percentage, back to the first listing.
 - Lifelines: one bar per listing on a shared month axis. Length is time on market, a tick is a
   price change, a dashed stretch is a removal from the source.
-- "Why they are one property": the probability and one evidence bar per reason.
+- "Why they are one property": the probability and one evidence bar per reason. Images in common
+  counts matching fingerprints; no photograph is stored or shown.
 - Features state how many listings agree and which source differs, or that no source reports it.
 - Actions: compare with similar properties, create an alert, ask about the property. Creating an
   alert belongs to the protected surface.
@@ -168,9 +174,12 @@ panels. Screens without a desktop artboard (filters, listing, alerts, review) fo
 - Provenance: source, source URL, first seen, last collected, collection run, raw snapshot stored
   before parsing, number of snapshots kept.
 - Each value shows the date since which it holds.
-- Events are listed by type with the previous value; description versions can be compared.
-- For a real source the stored snapshot is sanitized, expires after 30 days and leaves its hash,
-  and the description is shown with phone numbers, e-mail addresses, CPF numbers and links masked.
+- Events are listed by type with the previous value.
+- For a real source the stored snapshot is sanitized, expires after 30 days and leaves its hash.
+- The description follows its source. Where the source register allows showing the text, the
+  screen shows it masked (phone numbers, e-mail addresses, CPF numbers and links) and compares its
+  versions; elsewhere it states that the description changed and when, and links to the source.
+  The synthetic dataset shows its text.
 - Amenities read from the description, tagged "Interpreted, not measured", arrive in V2 with
   CAP-30. In the MVP the screen shows only the structured attributes of the source.
 
@@ -225,6 +234,8 @@ panels. Screens without a desktop artboard (filters, listing, alerts, review) fo
 
 - Must show: markers, layer switch, selected property in a sheet.
 - Layers: properties, and price per m² per block.
+- The block layer draws the fiscal blocks of GeoSampa and states their attribution and licence
+  (CC BY-SA 4.0) on the map.
 - The sheet holds the property row and leads to the property or back to the list.
 
 ### Alerts
@@ -242,8 +253,9 @@ panels. Screens without a desktop artboard (filters, listing, alerts, review) fo
 
 - Must show: source health, collection runs, pipeline counts, AI providers.
 - Protected: only an authenticated, authorized operator opens it.
-- Sources: status, listings, last run, errors, rate limit, access policy and the date the terms
-  were reviewed. The synthetic dataset appears as a static source.
+- Sources: status, listings, last run, errors, rate limit, access policy, the date the terms were
+  reviewed, and whether images may be fetched and listing text shown. The synthetic dataset
+  appears as a static source.
 - Collection runs: queued or scheduled, running with page progress and saved checkpoint, completed,
   completed with errors, and retrying with attempt count and next attempt. A run can be stopped
   and its errors opened.
@@ -264,6 +276,19 @@ panels. Screens without a desktop artboard (filters, listing, alerts, review) fo
 - Names the fields in which the two listings differ.
 - Actions: merge, keep separate, skip. The decision is audit-logged and can be undone, and both
   listings keep their full history.
+
+### Privacy notice
+
+- Must show: what is collected, from which sources, the purpose, the legal basis, the retention,
+  the rights of the data subject, how to ask for a removal, the controller and the contact e-mail.
+- A public document page in Brazilian Portuguese and English, linked as "Privacy" from the footer
+  of the landing page and of the application shell.
+- No artboard: the story builds it from the existing components, under `apps/web/DESIGN.md`.
+- Sources are listed with their licence and attribution; GeoSampa is credited here once its data
+  is used.
+- The controller's name and the contact e-mail are supplied by configuration, as the demo address
+  is; the repository holds neither.
+- It sits outside the place hierarchy and carries no place plate.
 
 ## System states
 
@@ -299,12 +324,16 @@ authorized operator sees it.
 5. Text written by a model is labelled as such and sits beside the figure it explains.
 6. A property is located to its street block and number range, never to a unit.
 
+The privacy notice is the one exception to rule 1.
+
 ## Accessibility and theme
 
 - The interface meets WCAG 2.2 level AA; it is an acceptance criterion of every screen and state.
 - The tokens of `apps/web/DESIGN.md` have not been checked against AA contrast yet.
 - The MVP ships the light theme only. A dark theme arrives in V2 (CAP-29) as a second token set;
   `DESIGN.md` forbids a dark ground today, so its owner revises that rule first.
+- The theme follows the system preference until the user picks one with a switch in the shell,
+  beside the language switch; the choice is remembered in the browser.
 - Already required by the design: a movement never relies on colour alone, and the landing page
   honours reduced motion.
 
@@ -426,20 +455,22 @@ deterministic synthetic city), `copy.ts` (both locales and number formatting) an
   to measure its height and six were looked at; none was reviewed on the canvas, and the finish
   review of the design workflow was not run.
 - Every property, price, statistic and source in the artboards and the landing page is synthetic.
-- No artboard exists for the privacy notice (CAP-28).
+- The privacy notice (CAP-28) has no artboard, by decision. The sign-in entry, the signed-in state
+  of the shell and the theme switch have none yet.
 - `docs/design/canvas/` is excluded from Prettier because the artboard format is
   whitespace-sensitive.
 
 Before anything ships: review the WebGL scene in a real browser, self-host Barlow and Barlow
-Condensed (they load from Google Fonts today), and set the public demo address and the repository
-visibility.
+Condensed (they load from Google Fonts today), set the public demo address and the repository
+visibility, and link the privacy notice from the landing footer, which is one line of text today.
 
 ## Open design decisions
 
-Carried as Open Questions in the spec: when authentication lands, how the V2 dark theme is selected,
-where the privacy notice sits and who designs it, whether the full description of a real listing
-may be shown, and whether image evidence survives without photographs.
+Carried as Open Questions in the spec: who designs the sign-in entry, the signed-in state of the
+shell and the V2 theme switch, which have no artboard.
 
 Decided since the first derive: São Paulo as the MVP city, a schematic MVP map with the tile
-provider left to a V2 ADR, the 0.90 and 0.50 match thresholds, WCAG 2.2 level AA and a dark theme
-in V2.
+provider left to a V2 ADR, the 0.90 and 0.50 match thresholds, WCAG 2.2 level AA, a dark theme in
+V2 that follows the system preference with a switch, authentication as the first increment after
+the MVP, the privacy notice as a footer link without an artboard, listing text shown per source
+and image evidence from fingerprints.
