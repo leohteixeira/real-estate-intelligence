@@ -3,7 +3,7 @@ title: 'Conventions of the versioned contract'
 type: 'feature'
 ticket: '7'
 created: '2026-10-10'
-status: 'built'
+status: 'done'
 baseline_revision: '6268fe67dd2d273c1a828da59571c9ebaaf9f9e6'
 route: 'full'
 route_source: 'pinned'
@@ -13,7 +13,7 @@ review_source: 'pinned'
 lenses_ran:
   - 'quick'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'AGENTS.md'
   - '_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md'
@@ -114,6 +114,10 @@ access, provider connections, or context business behavior.
   exception filter in `configureApi`, shared by production bootstrap and HTTP lifecycle tests.
 - Logged unexpected failures as a sanitized structured event containing only the request identifier;
   exception text, stack, path, request data, and payload remain absent.
+- Preserved safe status mappings for structurally recognized Express/body-parser HTTP errors, and
+  log every normalized 5xx response without including exception details.
+- Replaced the inbound request header itself with the server UUID so downstream middleware and
+  controllers cannot observe a spoofed client correlation value.
 - Added runtime matrix coverage and declaration-level regressions proving that ordinary contract
   interfaces compose while non-JSON page items become unassignable.
 
@@ -138,12 +142,37 @@ access, provider connections, or context business behavior.
     `api.unexpected_failure` event and server-generated request ID, covered by a logger spy that also
     rejects the fixture's sensitive message and path.
 
+### 2026-10-10 — Follow-up review pass
+
+- verdicts: 4 findings — high 0, medium 3, low 0, false 1, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` Express/body-parser HTTP errors lost their public status mapping —
+    reproduced an oversized JSON request returning 500 instead of 413; the filter now recognizes a
+    conservative structural HTTP-error shape and the configured application returns the stable
+    `payload_too_large` envelope.
+  - `[medium]` `[patch]` Downstream consumers could still read a spoofed request header — verified
+    that only the private request slot and response header were replaced; the middleware now also
+    overwrites the normalized inbound header, and a controller-level test proves one server UUID is
+    visible throughout the request lifecycle.
+  - `[false]` `[reject]` Optional properties could explicitly receive `undefined` — the contract
+    promises JSON-safe wire serialization, not identity-preserving round trips for omitted optional
+    fields. JavaScript's standard optional-property semantics serialize that value as absence;
+    prohibiting it would require a repository-wide `exactOptionalPropertyTypes` policy or
+    disproportionate type machinery outside this story.
+  - `[medium]` `[patch]` Nest 5xx exceptions were redacted but not logged — reproduced a silent
+    `InternalServerErrorException`; every normalized 5xx now emits only the sanitized event and
+    request ID, with a focused regression proving the private message is absent.
+- convergence: the first and fourth findings share the exception-normalization root cause; the
+  request-header issue is independent. All confirmed findings were patched and the full gate suite
+  passed, so no additional follow-up review is recommended.
+
 ## Design Notes
 
 The public wire shapes are deliberately structural: `MoneyResponse` uses `minorUnits` plus the
-literal `BRL`; `ProvenanceResponse<T extends JsonValue>` mirrors the domain evidence using strings;
-and `PaginatedResponse<T>` carries `items` plus `{ nextCursor, totalItems }`. A nullable opaque
-cursor avoids offset drift while `totalItems` supports the product's explicit result count.
+literal `BRL`; `ProvenanceResponse<T>` maps its value through `JsonCompatible<T>` and mirrors the
+domain evidence using strings; and `PaginatedResponse<T>` maps its items through the same JSON-safe
+shape while carrying `{ nextCursor, totalItems }`. A nullable opaque cursor avoids offset drift
+while `totalItems` supports the product's explicit result count.
 
 The error envelope is `{ error: { code, message, requestId } }`. Status-derived client errors use
 stable public codes and messages, while unexpected failures collapse to `internal_error`. Request
@@ -187,29 +216,30 @@ health bodies.
 
 ### Review Findings
 
-- Patches applied: 3 medium findings across 2 root-cause entries. The corrections constrain generic
-  values to recursively JSON-compatible shapes, allow existing ordinary contract interfaces to
-  compose, and restore sanitized observability for unexpected failures.
+- Patches applied: 6 medium findings across both review passes. The corrections constrain generic
+  values to recursively JSON-compatible shapes, allow ordinary contract interfaces to compose,
+  preserve framework HTTP statuses, normalize the inbound request header, and provide sanitized
+  observability for every 5xx response.
 - Items deferred: 0.
-- Findings rejected: 0.
-- Follow-up review recommendation: true. Two medium entries were patched on the first pass; the
-  recursive generic mapping and sanitized logging path should receive an independent follow-up
-  review even though focused and full verification passed.
+- Findings rejected: 1. Explicit `undefined` on an optional property follows standard omission
+  semantics and does not violate JSON-safe wire serialization.
+- Follow-up review recommendation: false. The independent follow-up review converged after all
+  three confirmed findings were patched and reverified.
 
 ### Verification Performed
 
 - `pnpm run lint` -- passed, including context-boundary and migration-convention checks.
 - `pnpm run typecheck` -- passed across all eight checked workspace projects and the declaration
   regressions.
-- `pnpm run test` -- passed: 287 tests across 45 files, including all matrix scenarios.
-- `pnpm run test:coverage` -- passed every configured threshold; API retained 100% statements and
-  lines with 90% branch coverage.
+- `pnpm run test` -- passed: 289 tests across 45 files, including all matrix scenarios and the real
+  oversized-body request path.
+- `pnpm run test:coverage` -- passed every configured threshold; API reached 92.64% statements and
+  lines, 86.44% branches, and 100% functions after the structural error guards were added.
 - `pnpm run build` -- passed for all eight checked workspace projects; Vite emitted only its existing
   chunk-size advisory.
 - `git diff --check` -- passed after the review patches.
 
 ### Residual Risks
 
-No known functional defect remains in the story scope. The explicit follow-up recommendation is the
-remaining review risk: the recursive JSON-compatible type and sanitized failure-log branch were
-introduced as review patches and have not yet received a second context-free review.
+No known functional defect remains in the story scope. Vite continues to emit its pre-existing
+chunk-size advisory for the web build; it is unrelated to this HTTP-contract story.
