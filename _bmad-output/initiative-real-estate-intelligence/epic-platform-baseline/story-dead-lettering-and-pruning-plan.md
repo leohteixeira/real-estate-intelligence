@@ -3,7 +3,7 @@ title: 'Dead-lettering and pruning'
 type: 'feature'
 ticket: '14'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'cf55d7cd397dac244dc44fab181e7dbd8de41edd'
 route: 'full'
 route_source: 'pinned'
