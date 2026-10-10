@@ -30,7 +30,7 @@ pre-commit:
             stage_fixed: true
           - name: markdownlint
             glob: '*.md'
-            run: pnpm exec markdownlint-cli2 --fix {staged_files}
+            run: pnpm exec markdownlint-cli2 --no-globs --fix {staged_files}
             stage_fixed: true
 
     - name: dockerfile
