@@ -1,6 +1,7 @@
 import type { Sha256Hash, UuidV7 } from '@rei/domain';
 import type { Transaction } from '../shared/index.js';
 import type { RawListingDocument } from './listing-source.port.js';
+import type { ParsedEventEvidence } from './parsed-event-evidence.port.js';
 
 export const SNAPSHOT_REPARSE_REPOSITORY = Symbol.for('rei.SnapshotReparseRepository');
 export interface ReparseObservation extends Omit<RawListingDocument, 'bytes'> {
@@ -29,7 +30,7 @@ export interface SnapshotReparseOperation {
   readonly parserRevision: string;
   readonly result: SnapshotReparseResult | null;
 }
-export interface SnapshotReparseRepository {
+export interface SnapshotReparseRepository extends ParsedEventEvidence {
   findOperation(
     operationKey: string,
     signal: AbortSignal,

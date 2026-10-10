@@ -1,6 +1,7 @@
 import type { CollectionRunState, Sha256Hash, UuidV7, SourceHold } from '@rei/domain';
 
 import type { Transaction } from '../shared/index.js';
+import type { ParsedEventEvidence } from './parsed-event-evidence.port.js';
 
 export const COLLECTION_RUN_REPOSITORY = Symbol.for('rei.CollectionRunRepository');
 
@@ -86,7 +87,7 @@ export interface CommitCollectionPageResult {
   readonly run: CollectionRunState;
 }
 
-export interface CollectionRunRepository {
+export interface CollectionRunRepository extends ParsedEventEvidence {
   pause(transaction: Transaction, runId: UuidV7, hold: SourceHold): Promise<CollectionRunState>;
   resume(transaction: Transaction, runId: UuidV7): Promise<CollectionRunState>;
   findByOperationKey(

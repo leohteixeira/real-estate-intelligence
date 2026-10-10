@@ -1,13 +1,32 @@
 import { Inject, Module, type OnModuleInit } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { PROPERTIES_FACADE } from '@rei/application';
-import { SyntheticPropertiesAdapter } from '@rei/infrastructure';
+import { COLLECTION_FACADE, PROPERTIES_FACADE, type CollectionFacade } from '@rei/application';
+import {
+  PersistedPropertiesFacade,
+  PostgresPropertyRepository,
+  SyntheticPropertiesAdapter,
+  type DatabaseConnection,
+} from '@rei/infrastructure';
+import { CollectionModule } from '../collection/index';
+import { PersistenceModule, DATABASE_CONNECTION } from '../persistence/persistence.module';
 import { ListingsController, PropertiesController } from './properties.controller';
 import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
 
 @Module({
+  imports: [PersistenceModule, CollectionModule],
   controllers: [PropertiesController, ListingsController],
-  providers: [{ provide: PROPERTIES_FACADE, useFactory: () => new SyntheticPropertiesAdapter() }],
+  providers: [
+    {
+      provide: PROPERTIES_FACADE,
+      inject: [DATABASE_CONNECTION, COLLECTION_FACADE],
+      useFactory: (connection: DatabaseConnection, collection: CollectionFacade) =>
+        new PersistedPropertiesFacade(
+          new PostgresPropertyRepository(connection),
+          collection,
+          new SyntheticPropertiesAdapter(),
+        ),
+    },
+  ],
   exports: [PROPERTIES_FACADE],
 })
 export class PropertiesModule implements OnModuleInit {

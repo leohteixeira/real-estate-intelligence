@@ -1,5 +1,7 @@
 import type { LocationsFacade } from '@rei/application';
 import type {
+  CollectedListingLocation,
+  ResolvedPropertyPlace,
   FixtureMetadata,
   PlaceDetail,
   PlaceRef,
@@ -156,6 +158,28 @@ export function placeContains(scope: string, neighborhood: string): boolean {
   return syntheticPlace(neighborhood)?.breadcrumbs.some((place) => place.id === scope) ?? false;
 }
 export class SyntheticLocationsAdapter implements LocationsFacade {
+  public async resolveFixtureAddress(
+    address: CollectedListingLocation,
+  ): Promise<ResolvedPropertyPlace | null> {
+    if (address.city !== 'São Paulo' || address.stateCode !== 'SP') return null;
+    const places = syntheticPlaces();
+    const block = places.find(
+      (entry) =>
+        entry.kind === 'street-block' &&
+        entry.block?.streetName === address.street &&
+        entry.breadcrumbs.some(
+          (crumb) => crumb.kind === 'neighborhood' && crumb.name.ptBR === address.neighborhood,
+        ),
+    );
+    const knownNeighborhood =
+      address.street === 'Avenida Exemplo' && address.neighborhood === 'Bela Vista'
+        ? places.find((entry) => entry.id === 'sao-paulo-bela-vista')
+        : null;
+    const resolved = block ?? knownNeighborhood;
+    if (!resolved) return null;
+    const { id, kind, name, breadcrumbs } = resolved;
+    return structuredClone({ place: { id, kind, name }, breadcrumbs });
+  }
   public async roots(): Promise<PlacesResponse> {
     return structuredClone({
       metadata: SYNTHETIC_READ_METADATA,

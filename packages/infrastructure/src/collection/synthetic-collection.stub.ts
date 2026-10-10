@@ -134,6 +134,9 @@ function fixtureEvents(): readonly CollectionEvent[] {
 
 /** Fixture-only adapter. It is intentionally not registered by an API or worker module. */
 export class SyntheticCollectionStub implements CollectionFacade {
+  public async verifyParsedEvent(): Promise<boolean> {
+    return false;
+  }
   public constructor(private readonly eventPublisher: EventPublisher) {}
 
   public async getSourcePermissions(sourceId: string): Promise<CollectionSourcePermissions> {

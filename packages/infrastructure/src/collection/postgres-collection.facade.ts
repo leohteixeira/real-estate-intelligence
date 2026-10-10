@@ -3,16 +3,94 @@ import type {
   CollectionRunView,
   CollectionSourcePermissions,
   SourceRegisterRepository,
+  ParsedCollectionEvent,
+  Transaction,
 } from '@rei/application';
-import { parseSha256Hash, parseUuidV7, type EnabledSourceView, type Sha256Hash } from '@rei/domain';
+import {
+  parseSha256Hash,
+  parseUuidV7,
+  parseCollectionEvent,
+  isOwnedSyntheticSourceId,
+  CollectionSnapshotCorrected,
+  type EnabledSourceView,
+  type Sha256Hash,
+} from '@rei/domain';
 
 import type { DatabaseConnection } from '../shared/persistence/database-connection.js';
+import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
 
 export class PostgresCollectionFacade implements CollectionFacade {
   public constructor(
     private readonly connection: DatabaseConnection,
     private readonly sources: SourceRegisterRepository,
   ) {}
+
+  public async verifyParsedEvent(
+    transaction: Transaction,
+    event: ParsedCollectionEvent,
+  ): Promise<boolean> {
+    if (!isOwnedSyntheticSourceId(event.payload.source.sourceId)) return false;
+    const client = postgresClientFor(transaction, this.connection);
+    const rows = await client.query<{
+      event: unknown;
+      original_event_id: string;
+      run_id: string;
+      source_id: string;
+      source_listing_id: string;
+      source_url: string;
+      observed_at: Date;
+      content_hash: string;
+      image_fingerprints: unknown;
+    }>(
+      `SELECT evidence.event, observation.parsed_event_id::text AS original_event_id,
+        observation.run_id::text, run.source_id, observation.source_listing_id, observation.source_url,
+        observation.observed_at, observation.content_hash, observation.image_fingerprints
+       FROM collection.parsed_event_evidence AS evidence
+       JOIN collection.snapshot_observation AS observation ON observation.snapshot_id = evidence.snapshot_id
+       JOIN collection.collection_run AS run ON run.run_id = observation.run_id
+       JOIN collection.source_register AS source ON source.source_id = run.source_id
+       WHERE evidence.event_id = $1 AND evidence.snapshot_id = $2 AND observation.outcome = 'parsed'
+         AND source.source_category = 'synthetic-listing' AND source.access_method = 'repository-fixture'
+         AND source.review_outcome = 'not-required' AND source.enabled AND source.collection_allowed
+         AND source.hold_reason IS NULL
+       FOR SHARE OF evidence, observation, run, source`,
+      [event.eventId, event.payload.snapshot.snapshotId],
+    );
+    const row = rows[0];
+    if (!row) return false;
+    const stored = parseCollectionEvent(row.event);
+    const { source, run, snapshot, listing } = event.payload;
+    if (
+      JSON.stringify(stored) !== JSON.stringify(event) ||
+      row.run_id !== run.runId ||
+      row.source_id !== source.sourceId ||
+      row.source_listing_id !== source.sourceListingId ||
+      row.source_url !== source.sourceUrl ||
+      row.content_hash !== snapshot.contentHash ||
+      !(row.observed_at instanceof Date) ||
+      row.observed_at.toISOString() !== source.observedAt ||
+      JSON.stringify(row.image_fingerprints) !== JSON.stringify(listing.imageFingerprints)
+    )
+      return false;
+    if (event instanceof CollectionSnapshotCorrected) {
+      const correction = event.payload.correction;
+      if (row.original_event_id !== correction.originalParsedEventId) return false;
+      const corrections = await client.query(
+        `SELECT operation_key FROM collection.snapshot_reparse
+        WHERE operation_key = $1 AND snapshot_id = $2 AND parser_revision = $3 AND event_id = $4
+          AND correction_order = $5 AND completed_at IS NOT NULL FOR SHARE`,
+        [
+          correction.operationKey,
+          snapshot.snapshotId,
+          correction.parserRevision,
+          event.eventId,
+          correction.order,
+        ],
+      );
+      return corrections.length === 1;
+    }
+    return row.original_event_id === event.eventId;
+  }
 
   public async getSourcePermissions(sourceId: string): Promise<CollectionSourcePermissions> {
     const source = await this.sources.findById(sourceId);

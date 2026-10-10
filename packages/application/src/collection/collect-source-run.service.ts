@@ -382,6 +382,7 @@ export class CollectSourceRun {
                 }),
               );
             }
+            await this.runs.appendParsedEvidence(transaction, parsedEvents);
             await this.outbox.append(transaction, events);
             return committed;
           }, signal);

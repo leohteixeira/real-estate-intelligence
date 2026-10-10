@@ -157,8 +157,9 @@ export class ReparseSnapshot {
           },
         });
         const result = { ...identity, eventId, order: locked.order, replayed: false };
-        await this.outbox.append(transaction, [event]);
         await this.repository.complete(transaction, result);
+        await this.repository.appendParsedEvidence(transaction, [event]);
+        await this.outbox.append(transaction, [event]);
         active();
         return result;
       }, signal);

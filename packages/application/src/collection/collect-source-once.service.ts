@@ -210,6 +210,7 @@ export class CollectSourceOnce {
           manifestHash,
         },
       });
+      await this.runs.appendParsedEvidence(transaction, [parsed]);
       await this.outbox.append(transaction, [parsed, completed]);
       return persisted.result;
     }, signal);

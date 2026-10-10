@@ -18,6 +18,7 @@ export { PostgresSnapshotReparseRepository } from './postgres-snapshot-reparse.r
 export { InMemorySnapshotReparseRepository } from './in-memory-snapshot-reparse.repository.js';
 export { PostgresCollectionScheduleRepository } from './postgres-collection-schedule.repository.js';
 export { PostgresCollectionFacade } from './postgres-collection.facade.js';
+export { PostgresParsedEventEvidence } from './postgres-parsed-event-evidence.js';
 export { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';
 export { S3RawSnapshotStore } from './s3-raw-snapshot-store.js';
 export { CanonicalSnapshotSanitizer } from './canonical-snapshot-sanitizer.js';

@@ -11,6 +11,13 @@ import { verifySnapshotReparseBytes } from './postgres-snapshot-reparse.reposito
 
 /** Deterministic fake for isolated orchestration tests; unavailable fixtures model expiry. */
 export class InMemorySnapshotReparseRepository implements SnapshotReparseRepository {
+  public readonly parsedEvidence: import('@rei/application').ParsedCollectionEvent[] = [];
+  public async appendParsedEvidence(
+    _transaction: Transaction,
+    events: readonly import('@rei/application').ParsedCollectionEvent[],
+  ): Promise<void> {
+    this.parsedEvidence.push(...events);
+  }
   public readonly observations = new Map<string, ReparseObservation>();
   public readonly operations = new Map<string, SnapshotReparseOperation>();
   public readonly unavailable = new Set<string>();

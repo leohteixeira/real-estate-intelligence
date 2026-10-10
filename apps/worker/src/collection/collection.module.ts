@@ -1,6 +1,7 @@
 import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import {
   CLOCK,
+  COLLECTION_FACADE,
   COLLECTION_RUN_REPOSITORY,
   COLLECTION_SCHEDULE_REPOSITORY,
   CollectSourceRun,
@@ -32,6 +33,7 @@ import {
 } from '@rei/application';
 import {
   PostgresCollectionRunRepository,
+  PostgresCollectionFacade,
   PostgresCollectionScheduleRepository,
   PostgresSourceRegisterRepository,
   S3RawSnapshotStore,
@@ -55,6 +57,12 @@ import { SnapshotRetentionJob } from './snapshot-retention.job';
 
 @Module({
   providers: [
+    {
+      provide: COLLECTION_FACADE,
+      inject: [DATABASE_CONNECTION, SOURCE_REGISTER_REPOSITORY],
+      useFactory: (connection: DatabaseConnection, sources: SourceRegisterRepository) =>
+        new PostgresCollectionFacade(connection, sources),
+    },
     { provide: SNAPSHOT_SANITIZER, useClass: CanonicalSnapshotSanitizer },
     {
       provide: SNAPSHOT_LIFECYCLE,
@@ -199,6 +207,7 @@ import { SnapshotRetentionJob } from './snapshot-retention.job';
     CollectionRunRequestConsumer,
   ],
   exports: [
+    COLLECTION_FACADE,
     CollectionAuditConsumer,
     CollectionScheduleJob,
     CollectionRunRequestConsumer,

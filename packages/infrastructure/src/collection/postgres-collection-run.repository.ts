@@ -185,6 +185,15 @@ async function oneRun(
 }
 
 export class PostgresCollectionRunRepository implements CollectionRunRepository {
+  public appendParsedEvidence(
+    transaction: Transaction,
+    events: readonly import('@rei/application').ParsedCollectionEvent[],
+  ): Promise<void> {
+    return new PostgresParsedEventEvidence(this.connection).appendParsedEvidence(
+      transaction,
+      events,
+    );
+  }
   public constructor(private readonly connection: DatabaseConnection) {}
 
   public async pause(
@@ -668,3 +677,4 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.snapshot.commit' });
   }
 }
+import { PostgresParsedEventEvidence } from './postgres-parsed-event-evidence.js';

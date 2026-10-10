@@ -1,4 +1,6 @@
 import type { EnabledSourceView, Sha256Hash, UuidV7 } from '@rei/domain';
+import type { Transaction } from '../shared/index.js';
+import type { ParsedCollectionEvent } from './parsed-event-evidence.port.js';
 
 export const COLLECTION_FACADE = Symbol.for('rei.CollectionFacade');
 
@@ -31,6 +33,8 @@ export interface CollectionRunView {
 
 /** Consumer-owned read boundary for collection facts that do not belong in events. */
 export interface CollectionFacade {
+  /** Verifies the full canonical publication and its still-current original authority. */
+  verifyParsedEvent(transaction: Transaction, event: ParsedCollectionEvent): Promise<boolean>;
   getSourcePermissions(sourceId: string): Promise<CollectionSourcePermissions>;
   getRun(runId: string): Promise<CollectionRunView | null>;
   getSnapshotHash(snapshotId: string): Promise<Sha256Hash | null>;

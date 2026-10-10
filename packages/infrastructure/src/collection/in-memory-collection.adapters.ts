@@ -93,6 +93,13 @@ export class InMemoryRawSnapshotStore implements RawSnapshotStore {
 }
 
 export class InMemoryCollectionRunRepository implements CollectionRunRepository {
+  public readonly parsedEvidence: import('@rei/application').ParsedCollectionEvent[] = [];
+  public async appendParsedEvidence(
+    _transaction: Transaction,
+    events: readonly import('@rei/application').ParsedCollectionEvent[],
+  ): Promise<void> {
+    this.parsedEvidence.push(...events);
+  }
   readonly #runs = new Map<string, CollectionRunState>();
   readonly #operationRuns = new Map<string, string>();
   readonly #observations = new Map<string, PersistedCollectionObservation[]>();

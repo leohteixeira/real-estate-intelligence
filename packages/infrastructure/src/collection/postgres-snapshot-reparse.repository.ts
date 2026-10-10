@@ -147,6 +147,15 @@ const OPERATION = `SELECT operation_key, snapshot_id::text, parser_revision,
   event_id::text, correction_order, completed_at FROM collection.snapshot_reparse WHERE operation_key = $1`;
 
 export class PostgresSnapshotReparseRepository implements SnapshotReparseRepository {
+  public appendParsedEvidence(
+    transaction: Transaction,
+    events: readonly import('@rei/application').ParsedCollectionEvent[],
+  ): Promise<void> {
+    return new PostgresParsedEventEvidence(this.connection).appendParsedEvidence(
+      transaction,
+      events,
+    );
+  }
   public constructor(private readonly connection: DatabaseConnection) {}
   public verifyOriginalBytes = verifySnapshotReparseBytes;
   public async findOperation(operationKey: string, signal: AbortSignal) {
@@ -277,3 +286,4 @@ export class PostgresSnapshotReparseRepository implements SnapshotReparseReposit
       return rejected();
   }
 }
+import { PostgresParsedEventEvidence } from './postgres-parsed-event-evidence.js';

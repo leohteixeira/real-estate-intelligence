@@ -27,5 +27,6 @@ import { CollectionController } from './collection.controller';
       ): PostgresCollectionFacade => new PostgresCollectionFacade(connection, sources),
     },
   ],
+  exports: [COLLECTION_FACADE],
 })
 export class CollectionModule {}

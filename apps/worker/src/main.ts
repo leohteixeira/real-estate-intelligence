@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { RabbitMqEventBroker } from '@rei/infrastructure';
+import { ParsedListingConsumer } from './properties/index';
 
 import { AuditTraceConsumer } from './audit/audit-trace.consumer';
 import { CollectionAuditConsumer } from './collection/collection-audit.consumer';
@@ -42,6 +43,7 @@ async function bootstrap(): Promise<void> {
   await auditConsumer.start();
   await collectionConsumer.start();
   await collectionRunConsumer.start();
+  await context.get(ParsedListingConsumer).start();
   brokerSupervisor.start();
   relay.start();
   retention.start();
