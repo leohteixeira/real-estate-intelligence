@@ -36,20 +36,23 @@ privacy review.
 
 ### Photographs and listing text
 
-The source register records two independent permissions. Both default to denied and become allowed
-only when the source review establishes the permission and records its evidence and review date:
+For each real source, the source register records two independent permissions. Both default to
+denied and become allowed only when the source review establishes the permission and records its
+evidence and review date:
 
-- **Fetch images.** When allowed, the collector may fetch photographs, compute one deterministic
-  fingerprint per selected photograph in memory and immediately discard the photograph. The image
-  request consumes the source's rate limit. This ADR does not choose the fingerprint algorithm,
-  similarity measure or number of photographs.
+- **Fetch images.** When allowed, the collector may select photographs to fetch. For each photograph
+  selected for fetching, it computes exactly one deterministic fingerprint in memory and
+  immediately discards the photograph after computation. The image request consumes the source's
+  rate limit. This ADR does not choose the fingerprint algorithm, similarity measure or number of
+  photographs.
 - **Display listing text.** When allowed, the API may return the masked description and compare its
   masked versions. When denied, the API returns only that the description changed and when, plus a
   link to the source. The masked description may remain stored for parsing and entity resolution,
   but no excerpt may be displayed, including a source sentence for an interpreted attribute.
 
-These permissions do not enable a source or change any existing source-review outcome. Collection
-itself remains disabled unless the source's terms of use, robots policy and licence allow it.
+These permissions do not enable a real source or change any existing source-review outcome.
+Collection from a real source remains disabled unless its terms of use, robots policy and licence
+allow it.
 
 ### Raw snapshots and synthetic fixtures
 

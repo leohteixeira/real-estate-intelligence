@@ -12,7 +12,7 @@ review: 'quick'
 review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/spec-real-estate-intelligence.md'
   - '_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md'
@@ -112,6 +112,19 @@ canonical Markdown map.
     yields the stable source identity, before either fetch, and another check before persistence or
     downstream work for redelivery and reprocessing.
 
+### 2026-10-10 — Follow-up review pass
+
+- verdicts: 2 findings — high 0, medium 2, low 0, false 0, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` ADR 0015 applied real-source review, evidence and enablement prerequisites
+    to every source even though the canonical synthetic fixture requires no review — the normative
+    prerequisites now apply explicitly to real sources, while the separate synthetic-fixture rules
+    retain the prepared test permissions.
+  - `[medium]` `[patch]` ADR 0015 required a fingerprint only for an undefined "selected
+    photograph," which could omit fetched images from the canonical fingerprint-and-discard
+    lifecycle — it now requires exactly one in-memory fingerprint for every photograph selected
+    for fetching and immediate disposal after computation.
+
 ## Verification
 
 **Commands:**
@@ -177,14 +190,17 @@ and recorded as an owner-delegated decision in the epic and external append-only
 - First-pass patches: one high entry. ADR 0015 now requires suppression to be checked as soon as a
   stable source identity is discovered, before fetching either the listing payload or images, and
   again before persistence or downstream work.
+- Follow-up patches: two medium entries. The real-source permission prerequisites now explicitly
+  exempt the synthetic fixture path, and every photograph selected for fetching now has an exact
+  one-fingerprint-and-immediate-discard lifecycle.
 - Deferred: none.
 - Rejected: none.
-- First-pass patched counts by entry verdict: high 1, medium 0, low 0.
+- Follow-up patched counts by entry verdict: high 0, medium 2, low 0.
 
 ### Follow-up review recommendation
 
-`true`. The first pass patched one high entry, so the workflow requires exactly one follow-up
-review after this built result is committed.
+`false`. The follow-up pass patched no high entries, so the work has converged under the workflow's
+follow-up rule.
 
 ### Verification performed
 
@@ -201,5 +217,4 @@ review after this built result is committed.
 ### Residual risks
 
 The web build retains its pre-existing Vite warning for the 536.96 kB `CityScene` chunk. It does not
-affect this documentation-only story. A required follow-up review remains because the first pass
-patched a high-severity privacy invariant.
+affect this documentation-only story. No review risk remains open after the follow-up pass.
