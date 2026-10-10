@@ -4,6 +4,13 @@ export type { DatabaseAvailabilityProbe } from './database-availability-probe.js
 export { DATABASE_AVAILABILITY_PROBE } from './database-availability-probe.js';
 export { EVENT_PUBLISHER } from './event-publisher.js';
 export type { EventPublisher } from './event-publisher.js';
+export {
+  EXTERNAL_FAILURE_KINDS,
+  ExternalFailure,
+  isExternalFailure,
+  isRetryableExternalFailure,
+} from './external-failure.js';
+export type { ExternalFailureKind, ExternalFailureOptions } from './external-failure.js';
 export { EVENT_SUBSCRIBER } from './event-subscriber.js';
 export type { EventHandler, EventSubscriber, EventSubscription } from './event-subscriber.js';
 export { INBOX, INBOX_RETENTION_PORT } from './inbox.js';

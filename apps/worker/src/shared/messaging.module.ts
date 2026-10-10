@@ -3,6 +3,8 @@ import { EVENT_PUBLISHER, EVENT_SUBSCRIBER } from '@rei/application';
 import { RabbitMqEventBroker } from '@rei/infrastructure';
 
 import { readConfig } from '../config';
+import { ResilienceTelemetry } from './resilience/resilience-telemetry';
+import { ResilientEventPublisher } from './resilience/resilient-event-publisher';
 
 @Global()
 @Module({
@@ -19,8 +21,14 @@ import { readConfig } from '../config';
         });
       },
     },
-    { provide: EVENT_PUBLISHER, useExisting: RabbitMqEventBroker },
+    {
+      provide: EVENT_PUBLISHER,
+      inject: [RabbitMqEventBroker],
+      useFactory: (broker: RabbitMqEventBroker): ResilientEventPublisher =>
+        new ResilientEventPublisher(broker),
+    },
     { provide: EVENT_SUBSCRIBER, useExisting: RabbitMqEventBroker },
+    ResilienceTelemetry,
   ],
   exports: [RabbitMqEventBroker, EVENT_PUBLISHER, EVENT_SUBSCRIBER],
 })

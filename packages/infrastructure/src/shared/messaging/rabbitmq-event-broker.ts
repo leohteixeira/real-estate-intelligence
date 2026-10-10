@@ -16,6 +16,10 @@ import amqp from 'amqplib';
 import { randomUUID } from 'node:crypto';
 
 import { redactConnectionError } from '../persistence/redact.js';
+import {
+  translateRabbitMqPublisherFailure,
+  type RabbitMqPublishPhase,
+} from './rabbitmq-publisher-failure.js';
 
 const EXCHANGE = 'rei.events';
 const LEGACY_AUDIT_QUEUE = 'audit.trace-requested.audit';
@@ -136,6 +140,40 @@ function bounded<TResult>(
   });
 }
 
+function waitForCaller<TResult>(
+  promise: Promise<TResult>,
+  signal: AbortSignal | undefined,
+  operation: string,
+): Promise<TResult> {
+  if (!signal) return promise;
+
+  return new Promise<TResult>((resolve, reject) => {
+    let settled = false;
+    const cleanup = (): void => signal.removeEventListener('abort', onAbort);
+    const resolveOnce = (value: TResult): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const rejectOnce = (error: unknown): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const onAbort = (): void => {
+      rejectOnce(
+        signal.reason instanceof Error ? signal.reason : new Error(`${operation} was aborted.`),
+      );
+    };
+
+    promise.then(resolveOnce, rejectOnce);
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+}
+
 async function acquireBounded<TResult>(
   promise: Promise<TResult>,
   timeoutMs: number,
@@ -164,6 +202,14 @@ async function acquireBounded<TResult>(
 
 function plainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function redactRabbitMqConnectionError(error: unknown): Error {
+  const redacted = redactConnectionError(error) as Error & { code?: number };
+  if (plainObject(error) && (error.code === 403 || error.code === 530)) {
+    redacted.code = error.code;
+  }
+  return redacted;
 }
 
 function deliveryAttempt(message: BrokerMessage): number {
@@ -301,11 +347,8 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
 
     if (!this.#starting) {
       const controller = new AbortController();
-      const establishmentSignal = signal
-        ? AbortSignal.any([controller.signal, signal])
-        : controller.signal;
       this.#startController = controller;
-      const tracked = this.establishGeneration(establishmentSignal).finally(() => {
+      const tracked = this.establishGeneration(controller.signal).finally(() => {
         if (this.#starting === tracked) {
           this.#starting = undefined;
           this.#startController = undefined;
@@ -313,7 +356,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       });
       this.#starting = tracked;
     }
-    await this.#starting;
+    await waitForCaller(this.#starting, signal, 'RabbitMQ connection wait');
   }
 
   private async establishGeneration(signal?: AbortSignal): Promise<void> {
@@ -421,7 +464,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       } else {
         await cleanup;
       }
-      throw redactConnectionError(error);
+      throw redactRabbitMqConnectionError(error);
     }
   }
 
@@ -436,12 +479,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
 
   public async publish(event: EventEnvelope, signal: AbortSignal): Promise<void> {
     if (signal.aborted) {
-      throw signal.reason instanceof Error ? signal.reason : new Error('Publish was aborted.');
-    }
-    await this.start();
-    const generation = this.#generation;
-    if (!generation) {
-      throw new Error('RabbitMQ connection closed before publication.');
+      throw translateRabbitMqPublisherFailure(signal.reason, signal, 'connection');
     }
     const content = Buffer.from(
       JSON.stringify({
@@ -455,9 +493,18 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       }),
     );
 
+    let generation: BrokerGeneration | undefined;
+    let phase: RabbitMqPublishPhase = 'connection';
     try {
+      await this.start(signal);
+      signal.throwIfAborted();
+      generation = this.#generation;
+      if (!generation) {
+        throw new Error('RabbitMQ connection closed before publication.');
+      }
       // A false return signals stream backpressure, not a rejected publish. The confirm remains
       // the publication boundary, so waitForConfirms must still decide the outcome.
+      phase = 'publish';
       generation.channel.publish(EXCHANGE, event.type, content, {
         persistent: true,
         contentType: 'application/json',
@@ -465,6 +512,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         messageId: event.eventId,
         type: event.type,
       });
+      phase = 'confirm';
       await bounded(
         generation.channel.waitForConfirms(),
         this.config.operationTimeoutMs,
@@ -475,20 +523,22 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       // A failed or timed-out confirm has an ambiguous delivery outcome. Retire this generation
       // so the next supervisor tick rebuilds both publisher and consumer topology instead of
       // repeatedly using a channel whose confirm state can no longer be trusted.
-      this.invalidateGeneration(generation);
-      await Promise.allSettled([
-        bounded(
-          generation.channel.close(),
-          this.config.operationTimeoutMs,
-          'RabbitMQ failed-publish channel close',
-        ),
-        bounded(
-          generation.connection.close(),
-          this.config.operationTimeoutMs,
-          'RabbitMQ failed-publish connection close',
-        ),
-      ]);
-      throw redactConnectionError(error);
+      if (generation) {
+        this.invalidateGeneration(generation);
+        await Promise.allSettled([
+          bounded(
+            generation.channel.close(),
+            this.config.operationTimeoutMs,
+            'RabbitMQ failed-publish channel close',
+          ),
+          bounded(
+            generation.connection.close(),
+            this.config.operationTimeoutMs,
+            'RabbitMQ failed-publish connection close',
+          ),
+        ]);
+      }
+      throw translateRabbitMqPublisherFailure(error, signal, phase);
     }
   }
 

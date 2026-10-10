@@ -70,9 +70,11 @@ export class OutboxRelayJob {
   ): Promise<void> {
     try {
       signal.throwIfAborted();
+      const deadlineAt = Date.now() + operationTimeoutMs;
       await this.publisher.publish(
         event,
         AbortSignal.any([signal, AbortSignal.timeout(operationTimeoutMs)]),
+        deadlineAt,
       );
     } catch (error) {
       await this.outbox.releaseClaim(event.eventId, event.claimId);
