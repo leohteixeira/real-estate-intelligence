@@ -12,9 +12,11 @@ import {
 } from '@rei/contracts';
 import {
   SUPPLEMENTARY_LISTING_IDS,
+  SyntheticLocationsAdapter,
   SUPPLEMENTARY_PROPERTY_IDS,
   syntheticReadId,
 } from '@rei/infrastructure';
+import { LOCATIONS_FACADE } from '@rei/application';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApi } from '../configure-api';
 import { LocationsModule } from '../locations/index';
@@ -30,6 +32,8 @@ describe('production properties and locations module HTTP contract', () => {
     })
       .overrideProvider(DATABASE_CONNECTION)
       .useValue({ query: async () => [], close: async () => undefined })
+      .overrideProvider(LOCATIONS_FACADE)
+      .useValue(new SyntheticLocationsAdapter())
       .compile();
     app = module.createNestApplication();
     configureApi(app);

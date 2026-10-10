@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PROPERTY_SORTS, type SearchQuery } from '@rei/domain';
 import { SyntheticPropertiesAdapter, validateReadQuery } from './synthetic-properties.adapter.js';
+import { supplementaryPlaces } from '../locations/index.js';
 import {
   SUPPLEMENTARY_LISTING_IDS,
   SUPPLEMENTARY_PROPERTY_IDS,
@@ -10,6 +11,16 @@ import {
 
 describe('synthetic properties read facade', () => {
   const adapter = new SyntheticPropertiesAdapter();
+  it('recognizes supplementary geography without assigning prepared properties or weakening cursor validation', async () => {
+    for (const block of supplementaryPlaces()) {
+      const reductions = await adapter.largestReductions(block.id, {});
+      expect(reductions!.items).toEqual([]);
+      expect(reductions!.totalItems).toBe(0);
+      expect((await adapter.search({ placeId: block.id })).items).toEqual([]);
+      await expect(adapter.largestReductions(block.id, { cursor: 'bad' })).rejects.toThrow();
+    }
+    expect((await adapter.search({})).placeCounts).toHaveLength(18);
+  });
   it('projects authoritative stable identities, lowest active asking price and provenance', async () => {
     const page = await adapter.search({});
     expect(page.totalItems).toBe(5);

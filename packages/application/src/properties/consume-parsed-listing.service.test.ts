@@ -82,6 +82,8 @@ function fixture(
   let nextId = 100;
   const controller = new AbortController();
   const evidence = new Map<string, ParsedListingFact>([[event.eventId, event]]);
+  const geographyCalls: { address: unknown; transaction: Transaction | undefined }[] = [];
+  let verifiedScope: Transaction | undefined;
   const checkpoint = (stage: string) => {
     if (options.failure === stage) throw new Error('Injected rollback.');
     if (options.cancel === stage) controller.abort(new Error('Injected cancellation.'));
@@ -132,11 +134,21 @@ function fixture(
   };
   const service = new ConsumeParsedListing(
     {
-      verifyParsedEvent: async (_tx, received) =>
-        !options.refuse &&
-        JSON.stringify(evidence.get(received.eventId)) === JSON.stringify(received),
+      verifyParsedEvent: async (tx, received) => {
+        verifiedScope = tx;
+        return (
+          !options.refuse &&
+          JSON.stringify(evidence.get(received.eventId)) === JSON.stringify(received)
+        );
+      },
     },
-    { resolveFixtureAddress: async () => (options.unknownAddress ? null : refs) },
+    {
+      resolveFixtureAddress: async (address, transaction) => {
+        expect(verifiedScope).toBeDefined();
+        geographyCalls.push({ address, transaction });
+        return options.unknownAddress ? null : refs;
+      },
+    },
     repository,
     transactions,
     {
@@ -156,10 +168,30 @@ function fixture(
     },
     { generate: async () => id(nextId++) },
   );
-  return { service, evidence, state: () => state, controller, options };
+  return {
+    service,
+    evidence,
+    state: () => state,
+    controller,
+    options,
+    geographyCalls,
+    verifiedScope: () => verifiedScope,
+  };
 }
 
 describe('ConsumeParsedListing atomic initial ingestion', () => {
+  it('resolves only verified geography through the exact evidence transaction scope', async () => {
+    const f = fixture();
+    await f.service.execute({ ...event }, f.controller.signal);
+    expect(f.geographyCalls).toHaveLength(1);
+    expect(f.geographyCalls[0]!.address).toEqual(event.payload.listing.location);
+    expect(f.geographyCalls[0]!.transaction).toBe(f.verifiedScope());
+    const refused = fixture({ refuse: true });
+    await expect(
+      refused.service.execute({ ...event }, refused.controller.signal),
+    ).rejects.toThrow();
+    expect(refused.geographyCalls).toHaveLength(0);
+  });
   it('deduplicates sequential/concurrent/restarted semantic replay even after inbox expiry', async () => {
     const f = fixture();
     await Promise.all(

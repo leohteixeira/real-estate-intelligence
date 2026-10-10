@@ -4,17 +4,21 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
 import { promisify } from 'node:util';
 import amqp from 'amqplib';
-import { CollectSourceOnce } from '../packages/application/dist/index.js';
+import { CollectSourceOnce, ConsumeParsedListing } from '../packages/application/dist/index.js';
 import { parseCollectionEvent } from '../packages/domain/dist/index.js';
 import {
   parsePropertyResponse,
   parseListingResponse,
   parseSearchResponse,
+  parsePlaceResponse,
 } from '../packages/contracts/dist/index.js';
 import {
   CanonicalSnapshotSanitizer,
   DatabaseConnection,
   PostgresCollectionRunRepository,
+  PostgresCollectionFacade,
+  PostgresInbox,
+  PostgresPropertyRepository,
   PostgresSourceRegisterRepository,
   PostgresTransactionRunner,
   PostgresUuidV7Generator,
@@ -24,6 +28,7 @@ import {
   S3RawSnapshotStore,
   SYNTHETIC_LISTING_BYTES,
   SyntheticListingSource,
+  SyntheticLocationsAdapter,
 } from '../packages/infrastructure/dist/index.js';
 
 const run = promisify(execFile);
@@ -295,7 +300,16 @@ try {
   );
   assert.equal(listing.listing.areaSquareMeters, 82.5);
   assert.equal(listing.listing.pricePerSquareMeter, 951515);
-  assert.equal(listing.listing.place.id, 'sao-paulo-bela-vista');
+  assert.equal(listing.listing.place.id, 'sao-paulo-bela-vista-avenida-exemplo-fictional-block');
+  assert.equal(detail.property.summary.place.id, listing.listing.place.id);
+  assert.deepEqual(
+    detail.property.summary.breadcrumbs.map((crumb) => crumb.kind),
+    ['country', 'state', 'city', 'zone', 'neighborhood', 'street-block'],
+  );
+  assert.deepEqual(
+    (await get(`places/${listing.listing.place.id}`, parsePlaceResponse)).place.breadcrumbs,
+    detail.property.summary.breadcrumbs,
+  );
   assert.deepEqual(listing.listing.provenance, {
     ...original.payload.source,
     ...original.payload.run,
@@ -500,8 +514,64 @@ try {
   await connection.query(
     "UPDATE collection.source_register SET listing_text_display_allowed=true WHERE source_id='synthetic-data'",
   );
+  // Recreate an authentic pre-3.3 initial observation using the historical resolver.
+  // Production replay must keep its immutable five-crumb location, not migrate it.
+  await compose('stop', 'worker');
+  const historical = await collector(customSource('SYN-HISTORICAL')).execute(
+    'synthetic-data',
+    'ingest-historical-place',
+    null,
+    signal(),
+  );
+  const historicalWire = await evidence(historical.parsedEventId);
+  const historicalConsumer = new ConsumeParsedListing(
+    new PostgresCollectionFacade(connection, new PostgresSourceRegisterRepository(connection)),
+    new SyntheticLocationsAdapter(),
+    new PostgresPropertyRepository(connection),
+    new PostgresTransactionRunner(connection),
+    new PostgresInbox(connection),
+    new PostgresOutbox(connection),
+    new PostgresUuidV7Generator(connection),
+  );
+  await historicalConsumer.execute(historicalWire, signal());
+  const historicalIdentity = (
+    await connection.query(
+      "SELECT property_id::text, listing_id::text FROM properties.listing WHERE source_listing_id='SYN-HISTORICAL'",
+    )
+  )[0];
+  const historicalDetail = await get(
+    `properties/${historicalIdentity.property_id}`,
+    parsePropertyResponse,
+  );
+  assert.equal(historicalDetail.property.summary.place.id, 'sao-paulo-bela-vista');
+  assert.equal(historicalDetail.property.summary.breadcrumbs.length, 5);
+  const historicalBaseline = await counts();
+  await compose('restart', 'api');
+  await compose('up', '--detach', '--wait', 'api', 'worker');
+  await drained();
+  await publisher.publish(historicalWire, signal());
+  await drained();
+  await stable(historicalBaseline);
+  assert.deepEqual(
+    await get(`properties/${historicalIdentity.property_id}`, parsePropertyResponse),
+    historicalDetail,
+  );
+  const historicalListing = await get(
+    `listings/${historicalIdentity.listing_id}`,
+    parseListingResponse,
+  );
+  assert.deepEqual(historicalListing.listing.place, historicalDetail.property.summary.place);
+  assert.equal(
+    (await get(`places/${historicalListing.listing.place.id}`, parsePlaceResponse)).place
+      .breadcrumbs.length,
+    5,
+  );
+  assert.equal(
+    historicalListing.listing.provenance.contentHash,
+    historicalWire.payload.snapshot.contentHash,
+  );
   console.log(
-    'Properties ingestion passed: production collection/evidence/broker/worker/HTTP, rollback/retry, concurrency/inbox expiry/restart, immutable pending v1/v2, authority/mutation/address rejection, current rights and prepared isolation.',
+    'Properties ingestion passed: production collection/evidence/broker/worker/HTTP, six-crumb block resolution, historical five-crumb replay/restart compatibility, rollback/retry, concurrency/inbox expiry/restart, immutable pending v1/v2, authority/mutation/address rejection, current rights and prepared isolation.',
   );
 } catch (error) {
   await compose('logs', '--no-color', '--tail', '100', 'worker', 'api', 'migrations')
