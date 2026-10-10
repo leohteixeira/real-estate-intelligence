@@ -29,6 +29,7 @@ import type { ListingSource, RawListingDocument } from './listing-source.port.js
 import { ListingSourceAccessRefusal } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
+import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
 const IDS = [
   '0199c8f2-2394-7ba0-8f9e-286378779210',
@@ -118,6 +119,7 @@ function fixture(
     run?: CollectionRunState | null;
     enabled?: boolean;
     document?: RawListingDocument;
+    sanitizer?: SnapshotSanitizer;
   } = {},
 ) {
   const calls: string[] = [];
@@ -191,6 +193,7 @@ function fixture(
       return {
         created: true,
         result: result({
+          sourceId: input.sourceId,
           operationKey: input.operationKey,
           runId: input.runId,
           snapshotId: input.snapshotId,
@@ -231,6 +234,7 @@ function fixture(
     identifiers,
     clock,
     outbox,
+    options.sanitizer,
   );
   return {
     service,
@@ -247,6 +251,96 @@ function fixture(
 }
 
 describe('CollectSourceOnce', () => {
+  it.each(['success', 'rejected', 'missing'] as const)(
+    'enforces the application privacy seam for a real category: %s',
+    async (outcome) => {
+      const original = {
+        ...DOCUMENT,
+        sourceId: 'privacy-fixture',
+        sourceUrl: 'https://fixture.invalid/1?private=value',
+        bytes: new TextEncoder().encode('private source bytes'),
+      };
+      const safe = {
+        ...original,
+        sourceUrl: 'https://fixture.invalid/1',
+        bytes: new TextEncoder().encode('sanitized bytes'),
+      };
+      const projected = { ...LISTING, maskedDescription: 'Sanitized parser facts.' };
+      const sanitizeParsed = vi.fn(() => projected);
+      const sanitize = vi.fn(() => {
+        if (outcome === 'rejected')
+          throw new ExternalFailure({
+            kind: 'rejected',
+            operation: 'collection.snapshot.sanitize',
+          });
+        return { document: safe, sanitizeParsed };
+      });
+      const context = fixture({
+        document: original,
+        ...(outcome === 'missing' ? {} : { sanitizer: { sanitize } }),
+      });
+      vi.mocked(context.sources.findById).mockResolvedValue(
+        createSourceRegistration({
+          sourceId: 'privacy-fixture',
+          displayLabel: 'Local port fixture',
+          category: 'listing',
+          enabled: true,
+          enabledAt: '2026-10-10T00:00:00Z',
+          permissions: {
+            collectionAllowed: true,
+            imageFetchingAllowed: false,
+            listingTextDisplayAllowed: false,
+          },
+          review: {
+            outcome: 'allowed',
+            reviewedAt: '2026-10-10T00:00:00Z',
+            evidence: 'Local port fixture only.',
+          },
+          access: { method: 'remote-http', detail: 'No network adapter.' },
+          rate: { status: 'configured', limit: 1, windowSeconds: 1 },
+          licence: {
+            status: 'licensed',
+            label: 'Local fixture',
+            url: 'https://fixture.invalid/licence',
+          },
+        }),
+      );
+      const execution = context.service.execute(
+        'privacy-fixture',
+        'privacy-once',
+        null,
+        new AbortController().signal,
+      );
+      if (outcome !== 'success') {
+        await expect(execution).rejects.toMatchObject({
+          kind: outcome === 'missing' ? 'forbidden' : 'rejected',
+        });
+        expect(context.snapshots.store).not.toHaveBeenCalled();
+        expect(context.source.parse).not.toHaveBeenCalled();
+        expect(context.events).toEqual([]);
+        return;
+      }
+      await execution;
+      expect(sanitize).toHaveBeenCalledWith(original);
+      expect(context.snapshots.store).toHaveBeenCalledWith(
+        expect.objectContaining({
+          synthetic: false,
+          bytes: safe.bytes,
+          acquisitionId: JSON.stringify([
+            'privacy-once',
+            'privacy-fixture',
+            original.sourceListingId,
+          ]),
+        }),
+        expect.any(AbortSignal),
+        undefined,
+      );
+      expect(context.source.parse).toHaveBeenCalledWith(safe, expect.any(AbortSignal));
+      expect(sanitizeParsed).toHaveBeenCalledWith(LISTING);
+      expect(context.persistedInput()?.sourceUrl).toBe(safe.sourceUrl);
+      expect(context.events[0]?.[0]?.payload).toMatchObject({ listing: projected });
+    },
+  );
   it('applies a durable refusal without inventing a pre-I/O run or snapshot', async () => {
     const context = fixture();
     vi.mocked(context.source.fetchPage).mockRejectedValueOnce(

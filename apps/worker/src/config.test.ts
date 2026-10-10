@@ -138,6 +138,9 @@ describe('readCollectionCommandConfig', () => {
     ).toEqual({
       deadlineMs: 30_000,
       syntheticPageDelayMs: 0,
+      snapshotRetentionIntervalMs: 300_000,
+      snapshotRetentionBatchSize: 100,
+      snapshotRetentionCycleTimeoutMs: 10_000,
       objectStoreEndpoint: 'http://minio:9000',
       objectStoreRegion: 'us-east-1',
       objectStoreBucket: 'real-estate-snapshots',
@@ -147,6 +150,9 @@ describe('readCollectionCommandConfig', () => {
   });
 
   it.each([
+    ['SNAPSHOT_RETENTION_BATCH_SIZE', '1001'],
+    ['SNAPSHOT_RETENTION_INTERVAL_MS', '99'],
+    ['SNAPSHOT_RETENTION_CYCLE_TIMEOUT_MS', '99'],
     ['OBJECT_STORE_ENDPOINT', 'minio:9000'],
     ['OBJECT_STORE_BUCKET', 'Bad_Bucket'],
     ['OBJECT_STORE_ACCESS_KEY_ID', ''],
@@ -154,6 +160,26 @@ describe('readCollectionCommandConfig', () => {
     ['SYNTHETIC_PAGE_DELAY_MS', '30001'],
   ])('rejects invalid %s', (name, value) => {
     expect(() => readCollectionCommandConfig({ ...STORAGE_ENV, [name]: value })).toThrow(name);
+  });
+  it('requires paired explicit encryption configuration without a fallback', () => {
+    expect(readCollectionCommandConfig(STORAGE_ENV).snapshotEncryption).toBeUndefined();
+    const key = Buffer.alloc(32, 7).toString('base64');
+    expect(
+      readCollectionCommandConfig({
+        ...STORAGE_ENV,
+        SNAPSHOT_ENCRYPTION_KEY_ID: 'fixture-key',
+        SNAPSHOT_ENCRYPTION_KEY_BASE64: key,
+      }).snapshotEncryption,
+    ).toEqual({ keyId: 'fixture-key', keyBase64: key });
+    for (const settings of [
+      { SNAPSHOT_ENCRYPTION_KEY_ID: 'fixture-key' },
+      { SNAPSHOT_ENCRYPTION_KEY_BASE64: key },
+      { SNAPSHOT_ENCRYPTION_KEY_ID: 'unsafe key', SNAPSHOT_ENCRYPTION_KEY_BASE64: key },
+      { SNAPSHOT_ENCRYPTION_KEY_ID: 'fixture-key', SNAPSHOT_ENCRYPTION_KEY_BASE64: 'invalid' },
+    ])
+      expect(() => readCollectionCommandConfig({ ...STORAGE_ENV, ...settings })).toThrow(
+        'Snapshot encryption',
+      );
   });
 });
 

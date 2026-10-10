@@ -33,6 +33,7 @@ import type { ListingSource, RawListingDocument } from './listing-source.port.js
 import { ListingSourceAccessRefusal } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
+import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
 const IDS = Array.from(
   { length: 12 },
@@ -188,6 +189,7 @@ function fixture(
     { documents: [document('AUR-BV-001')], nextCursor: 'fixture:2026-10:1', exhausted: false },
     { documents: [document('AUR-PN-001')], nextCursor: 'fixture:2026-10:2', exhausted: true },
   ],
+  sanitizer?: SnapshotSanitizer,
 ) {
   const order: string[] = [];
   const source: ListingSource = {
@@ -254,6 +256,7 @@ function fixture(
       identifiers,
       clock,
       outbox,
+      sanitizer,
     ),
     source,
     snapshots,
@@ -268,6 +271,66 @@ function fixture(
 }
 
 describe('CollectSourceRun', () => {
+  it('projects a real-category page before storage, parsing, observations and events', async () => {
+    const original = { ...document('listing-1'), sourceId: 'privacy-fixture' };
+    const safe = {
+      ...original,
+      sourceUrl: 'https://fixture.invalid/listings/1',
+      bytes: new TextEncoder().encode('sanitized'),
+    };
+    const projected = { ...LISTING, maskedDescription: 'Sanitized facts.' };
+    const sanitizeParsed = vi.fn(() => projected);
+    const sanitize = vi.fn(() => ({ document: safe, sanitizeParsed }));
+    const context = fixture([{ documents: [original], nextCursor: null, exhausted: true }], {
+      sanitize,
+    });
+    vi.mocked(context.sources.findById).mockResolvedValue(
+      createSourceRegistration({
+        sourceId: 'privacy-fixture',
+        displayLabel: 'Local port fixture',
+        category: 'listing',
+        enabled: true,
+        enabledAt: '2026-10-10T00:00:00Z',
+        permissions: {
+          collectionAllowed: true,
+          imageFetchingAllowed: false,
+          listingTextDisplayAllowed: false,
+        },
+        review: {
+          outcome: 'allowed',
+          reviewedAt: '2026-10-10T00:00:00Z',
+          evidence: 'Local port fixture only.',
+        },
+        access: { method: 'remote-http', detail: 'No network adapter.' },
+        rate: { status: 'configured', limit: 1, windowSeconds: 1 },
+        licence: {
+          status: 'licensed',
+          label: 'Local fixture',
+          url: 'https://fixture.invalid/licence',
+        },
+      }),
+    );
+    await context.service.execute(
+      'privacy-fixture',
+      'privacy-run',
+      null,
+      new AbortController().signal,
+    );
+    expect(sanitize).toHaveBeenCalledWith(original);
+    expect(context.snapshots.store).toHaveBeenCalledWith(
+      expect.objectContaining({
+        synthetic: false,
+        bytes: safe.bytes,
+        acquisitionId: JSON.stringify(['privacy-run', 'privacy-fixture', original.sourceListingId]),
+      }),
+      expect.any(AbortSignal),
+      undefined,
+    );
+    expect(context.source.parse).toHaveBeenCalledWith(safe, expect.any(AbortSignal));
+    expect(sanitizeParsed).toHaveBeenCalledWith(LISTING);
+    expect(context.runs.observations[0]?.sourceUrl).toBe(safe.sourceUrl);
+    expect(context.batches[0]?.[0]?.payload).toMatchObject({ listing: projected });
+  });
   it('does not fetch when a paused contender wins start-or-load even after the register is cleared', async () => {
     const context = fixture();
     const start = context.runs.startOrLoad.bind(context.runs);

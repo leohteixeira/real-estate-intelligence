@@ -288,6 +288,16 @@ describe('collection event contracts', () => {
     'See https://example.test/private',
     'Visit example.test/private',
     'UNMASKED CONTACT',
+    'Contact 06.12.34.56.78',
+    'Contact +33 6.12.34.56.78',
+    'Contact CRECI N.º 12345-F',
+    'Contact CRECI n°: 12345-F',
+    'Contact 0800 123 4567',
+    'Contact 0800-123-4567',
+    'Contact +34 612 345 678',
+    'Contact +351 912 345 678',
+    'Contact CRECI (SP) 12345-F',
+    'Contact CRECI Nº. 54321-F',
   ])('rejects unmasked description %s', (description) => {
     const value = mutableParsedWire();
     nested(value, 'payload', 'listing').maskedDescription = description;

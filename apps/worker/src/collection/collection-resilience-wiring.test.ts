@@ -2,11 +2,19 @@ import 'reflect-metadata';
 
 import { NestFactory } from '@nestjs/core';
 import { metrics } from '@opentelemetry/api';
-import { LISTING_SOURCE, RAW_SNAPSHOT_STORE, SOURCE_REGISTER_REPOSITORY } from '@rei/application';
+import {
+  LISTING_SOURCE,
+  RAW_SNAPSHOT_STORE,
+  SOURCE_REGISTER_REPOSITORY,
+  SNAPSHOT_SANITIZER,
+  SNAPSHOT_LIFECYCLE,
+  ExpireSnapshots,
+} from '@rei/application';
 import {
   InMemorySourceRegisterRepository,
   S3RawSnapshotStore,
   SyntheticListingSource,
+  CanonicalSnapshotSanitizer,
 } from '@rei/infrastructure';
 import { channel } from 'node:diagnostics_channel';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -18,6 +26,7 @@ import { CollectionModule } from './collection.module';
 import { ResilientListingSource } from './resilient-listing-source';
 import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
 import { ResumableCollectionCommandModule } from './resumable-collection-command.module';
+import { SnapshotRetentionJob } from './snapshot-retention.job';
 
 vi.mock('../config', () => {
   const storage = {
@@ -89,6 +98,12 @@ describe('collection resilience composition roots', () => {
       const diagnostics = channel('nestjs:resilience:retry');
       try {
         expect(app.get(ResilienceTelemetry)).toBeInstanceOf(ResilienceTelemetry);
+        expect(app.get(SNAPSHOT_SANITIZER)).toBeInstanceOf(CanonicalSnapshotSanitizer);
+        if (root === WorkerModule) {
+          expect(app.get(SNAPSHOT_LIFECYCLE)).toBeDefined();
+          expect(app.get(ExpireSnapshots)).toBeInstanceOf(ExpireSnapshots);
+          expect(app.get(SnapshotRetentionJob)).toBeInstanceOf(SnapshotRetentionJob);
+        }
         diagnostics.publish({
           type: 'retry',
           policy: 'listing-source.retry',
