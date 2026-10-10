@@ -3,7 +3,7 @@ title: 'ADR for Zero Data Retention on every route'
 type: 'chore'
 ticket: '9'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'f027b305fec76669567e9d02a0c05acb80a46234'
 route: 'oneshot'
 route_source: 'auto'
