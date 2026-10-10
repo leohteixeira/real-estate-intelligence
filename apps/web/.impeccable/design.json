@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-09T22:30:00Z",
+  "title": "Design System: Real Estate Intelligence",
+  "extensions": {
+    "colorMeta": {
+      "enamel-800": {
+        "role": "primary",
+        "displayName": "Enamel 800",
+        "canonical": "#0b2c6b",
+        "tonalRamp": [
+          "#08214f",
+          "#0b2c6b",
+          "#0f3a8a",
+          "#1a4fb3",
+          "#6f93d8",
+          "#c5d5f0",
+          "#e1e9f7",
+          "#f0f4fb"
+        ]
+      },
+      "enamel-600": {
+        "role": "primary",
+        "displayName": "Enamel 600",
+        "canonical": "#1a4fb3",
+        "tonalRamp": [
+          "#08214f",
+          "#0b2c6b",
+          "#0f3a8a",
+          "#1a4fb3",
+          "#6f93d8",
+          "#c5d5f0",
+          "#e1e9f7",
+          "#f0f4fb"
+        ]
+      },
+      "here": {
+        "role": "secondary",
+        "displayName": "Wayfinding Yellow",
+        "canonical": "#f2b705",
+        "tonalRamp": [
+          "#3a2c00",
+          "#5c4600",
+          "#8a6a00",
+          "#c29200",
+          "#f2b705",
+          "#f7cf52",
+          "#fbe49b",
+          "#fdf4d6"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#101b33",
+        "tonalRamp": [
+          "#101b33",
+          "#3d4a66",
+          "#5a6781",
+          "#9aa6bb",
+          "#d5dbe6",
+          "#e9edf3",
+          "#f4f6f9",
+          "#ffffff"
+        ]
+      },
+      "zone-oeste": {
+        "role": "tertiary",
+        "displayName": "Zone strip, Oeste",
+        "canonical": "#1c8257"
+      },
+      "zone-centro": {
+        "role": "tertiary",
+        "displayName": "Zone strip, Centro",
+        "canonical": "#c8402a"
+      },
+      "zone-sul": { "role": "tertiary", "displayName": "Zone strip, Sul", "canonical": "#7446bd" },
+      "zone-norte": {
+        "role": "tertiary",
+        "displayName": "Zone strip, Norte",
+        "canonical": "#b85a06"
+      },
+      "zone-leste": {
+        "role": "tertiary",
+        "displayName": "Zone strip, Leste",
+        "canonical": "#0b7f99"
+      }
+    },
+    "typographyMeta": {
+      "plate": { "displayName": "Plate", "purpose": "Place names on a plate, uppercase." },
+      "figure": { "displayName": "Figure", "purpose": "The leading number of a figure." },
+      "heading": { "displayName": "Heading", "purpose": "Questions and empty-state headings." },
+      "section": { "displayName": "Section", "purpose": "Section headings." },
+      "body": { "displayName": "Body", "purpose": "Default text." },
+      "small": { "displayName": "Small", "purpose": "Row secondaries, labels, table headers." },
+      "provenance": { "displayName": "Provenance", "purpose": "The source line under a figure." },
+      "tag": { "displayName": "Tag", "purpose": "Asking, Sale and Synthetic data tags." },
+      "code": { "displayName": "Code", "purpose": "Code identifiers only." }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 -8px 28px rgba(16, 27, 51, 0.16)",
+        "purpose": "A bottom sheet over content."
+      },
+      {
+        "name": "pop",
+        "value": "0 10px 28px rgba(16, 27, 51, 0.18)",
+        "purpose": "A control placed over the map."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Every state transition."
+      },
+      { "name": "dur-1", "value": "150ms", "purpose": "Hover, press, selection." },
+      { "name": "dur-2", "value": "220ms", "purpose": "Sheets and panels." }
+    ],
+    "breakpoints": [{ "name": "desktop", "value": "960px" }]
+  },
+  "components": [
+    {
+      "name": "Place plate",
+      "kind": "custom",
+      "refersTo": "plate",
+      "description": "Heads every screen: parent place, name in condensed capitals, zone strip.",
+      "html": "<div class=\"ds-plate\"><div class=\"ds-plate-in\"><p class=\"ds-plate-over\">São Paulo · SP</p><p class=\"ds-plate-name\">Pinheiros</p><p class=\"ds-plate-strip\"><span>Zona Oeste</span><span>1,037 properties</span></p></div></div>",
+      "css": ".ds-plate { background: #0f3a8a; border-radius: 10px; padding: 4px; color: #fff; max-width: 420px; font-family: 'Barlow', system-ui, sans-serif; } .ds-plate-in { border: 1.5px solid #fff; border-radius: 7px; overflow: hidden; } .ds-plate-over { margin: 0; font-size: 13px; font-weight: 500; padding: 8px 12px 0; } .ds-plate-name { margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 36px; line-height: 1; letter-spacing: 0.015em; text-transform: uppercase; padding: 2px 12px 8px; } .ds-plate-strip { margin: 0; background: #1c8257; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase; padding: 5px 12px; display: flex; justify-content: space-between; gap: 12px; }"
+    },
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action of a view.",
+      "html": "<button class=\"ds-btn-primary\">Show 212 properties</button>",
+      "css": ".ds-btn-primary { min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #1a4fb3; background: #1a4fb3; color: #fff; font: 600 15px/1.1 'Barlow', system-ui, sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: #0f3a8a; border-color: #0f3a8a; } .ds-btn-primary:active { background: #0b2c6b; } .ds-btn-primary:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
+    },
+    {
+      "name": "Default button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Secondary actions.",
+      "html": "<button class=\"ds-btn\">Create alert</button>",
+      "css": ".ds-btn { min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #9aa6bb; background: #fff; color: #101b33; font: 600 15px/1.1 'Barlow', system-ui, sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn:hover { background: #f0f4fb; border-color: #1a4fb3; } .ds-btn:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Text input with its label above.",
+      "html": "<label class=\"ds-field\">Minimum area (m²)<input value=\"60\" inputmode=\"numeric\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font: 600 13px/1.45 'Barlow', system-ui, sans-serif; color: #101b33; max-width: 240px; } .ds-field input { height: 44px; border: 1px solid #9aa6bb; border-radius: 6px; padding: 0 12px; font: 400 15px 'Barlow', system-ui, sans-serif; color: #101b33; } .ds-field input:hover { border-color: #3d4a66; } .ds-field input:focus-visible { outline: 0; border-color: #1a4fb3; box-shadow: 0 0 0 3px #e1e9f7; }"
+    },
+    {
+      "name": "Filter chip",
+      "kind": "chip",
+      "refersTo": "chip-selected",
+      "description": "A toggled filter.",
+      "html": "<button class=\"ds-chip\" aria-pressed=\"true\">2+ bedrooms</button>",
+      "css": ".ds-chip { height: 36px; padding: 0 12px; border: 1px solid #9aa6bb; border-radius: 999px; background: #fff; color: #101b33; font: 500 13px/1 'Barlow', system-ui, sans-serif; cursor: pointer; } .ds-chip:hover { border-color: #1a4fb3; } .ds-chip[aria-pressed='true'] { background: #e1e9f7; border-color: #1a4fb3; color: #0b2c6b; font-weight: 600; } .ds-chip:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
+    },
+    {
+      "name": "Figure with provenance",
+      "kind": "custom",
+      "refersTo": "tag",
+      "description": "A number with its tag, movement and source line.",
+      "html": "<div class=\"ds-fig\"><p class=\"ds-fig-label\">Median asking price per m² <span class=\"ds-tag\">Asking</span></p><p class=\"ds-fig-value\">R$ 12,480 <small>/m²</small></p><p class=\"ds-fig-prov\">1,284 active listings · 2 sources · Computed 9 Oct 2026, 06:00</p></div>",
+      "css": ".ds-fig { font-family: 'Barlow', system-ui, sans-serif; color: #101b33; padding: 16px; background: #fff; border-block: 1px solid #d5dbe6; font-variant-numeric: tabular-nums lining-nums; } .ds-fig p { margin: 0; } .ds-fig-label { font-size: 13px; font-weight: 500; color: #3d4a66; display: flex; gap: 6px; align-items: center; } .ds-tag { height: 20px; display: inline-flex; align-items: center; padding: 0 6px; border: 1px solid #3d4a66; border-radius: 4px; font: 600 13px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; } .ds-fig-value { font: 600 48px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; } .ds-fig-value small { font-size: 22px; font-weight: 500; color: #3d4a66; } .ds-fig-prov { font-size: 12px; color: #3d4a66; padding-top: 6px; }"
+    },
+    {
+      "name": "Tab bar",
+      "kind": "nav",
+      "refersTo": "tab-current",
+      "description": "Phone navigation; the current tab sits on a yellow pill.",
+      "html": "<nav class=\"ds-tabs\"><a href=\"#\" aria-current=\"page\"><span></span>Places</a><a href=\"#\"><span></span>Search</a><a href=\"#\"><span></span>Ask</a></nav>",
+      "css": ".ds-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: #fff; border-top: 1px solid #d5dbe6; padding: 6px 4px 10px; max-width: 280px; font-family: 'Barlow', system-ui, sans-serif; } .ds-tabs a { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 500; color: #5a6781; text-decoration: none; } .ds-tabs a:hover { color: #101b33; } .ds-tabs span { width: 52px; height: 28px; border-radius: 999px; } .ds-tabs a[aria-current='page'] { color: #101b33; font-weight: 600; } .ds-tabs a[aria-current='page'] span { background: #f2b705; } .ds-tabs a:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Street Plaque",
+    "overview": "Every screen is signed by its place before it shows a number. The system borrows four things from the enamel street plaques of Brazilian cities and nothing else: their blue, their condensed capitals, their density, and the plate itself. Navigation, controls and layout are the standard ones of a working web application.",
+    "keyCharacteristics": [
+      "A place plate heads every screen, from city down to a street block and its number range.",
+      "Enamel blue owns the shell.",
+      "Wayfinding yellow has one meaning: you are here.",
+      "Each city zone owns a strip colour, used only to identify the place.",
+      "Every number is tabular; every figure carries its provenance.",
+      "Asking prices and sale prices are tagged and never share a style."
+    ],
+    "rules": [
+      {
+        "name": "The One Job Rule",
+        "body": "Yellow means you are here. It is never a warning, a highlight, a badge or a decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Zone Rule",
+        "body": "A zone colour identifies a place. It never encodes a value, a state or a trend.",
+        "section": "colors"
+      },
+      {
+        "name": "The Neutral Movement Rule",
+        "body": "Movement is orange and blue and always carries a sign or a word; green and red are reserved for state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Prices Rule",
+        "body": "An asking price carries the outlined Asking tag; a recorded sale price carries the solid green Sale tag.",
+        "section": "colors"
+      },
+      {
+        "name": "The Capitals Rule",
+        "body": "Uppercase is for place names on a plate and for tags.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Rule",
+        "body": "A shadow means this sits over something else.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do open every screen with a place plate.",
+      "Do put a provenance line under every figure.",
+      "Do tag every price as Asking or Sale.",
+      "Do label model-written text as written by a model."
+    ],
+    "donts": [
+      "Don't build a grid of listing cards with a photograph and a price.",
+      "Don't render questions and answers as chat bubbles.",
+      "Don't arrange figures as a row of KPI cards.",
+      "Don't use yellow for anything except you are here."
+    ]
+  }
+}

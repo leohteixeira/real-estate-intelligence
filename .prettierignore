@@ -7,3 +7,6 @@ coverage/
 bin/
 obj/
 .turbo/
+
+# Design canvas artboards: whitespace-sensitive artifact source
+docs/design/canvas/

@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Visão do lugar, desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei app">
+
+<nav class="rail" aria-label="Principal">
+<a class="brand" href="DesktopPlace.dc.html">Real Estate<br>Intelligence</a>
+<a class="nav" href="DesktopPlace.dc.html" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg>Lugares</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>Buscar</a>
+<a class="nav" href="DesktopMarket.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg>Mercado</a>
+<a class="nav" href="DesktopAsk.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"></path><path d="M12 16.6v.1"></path></svg>Perguntar</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>Alertas · 3 novos</a>
+<h2>Operações</h2>
+<a class="nav" href="DesktopOperations.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>Fontes e execuções</a>
+<a class="nav" href="DesktopOperations.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>Fila de revisão · 7</a>
+<div class="rail__foot">
+<div class="lang" role="group" aria-label="Idioma" style="align-self: flex-start"><button type="button" aria-pressed="false">EN</button><button type="button" aria-pressed="true">PT</button></div>
+<p>Dados sintéticos de demonstração</p>
+</div>
+</nav>
+
+<div class="main">
+<header class="main__head">
+<div class="stack" style="gap: 10px; flex: 1 1 420px">
+<nav aria-label="Hierarquia do lugar"><ol class="crumbs"><li><a href="DesktopMarket.dc.html">Brasil</a></li><li><a href="DesktopMarket.dc.html">São Paulo</a></li><li><a href="DesktopMarket.dc.html">Zona Oeste</a></li></ol></nav>
+<div class="plate">
+<div class="plate__in">
+<p class="plate__over"><span>São Paulo · SP</span><span>Bairro</span></p>
+<h1 class="plate__name">Pinheiros</h1>
+<p class="plate__strip"><span>Zona Oeste</span><span>1.037 imóveis · 1.284 anúncios</span></p>
+</div>
+</div>
+</div>
+<form class="ask" style="flex: 1 1 380px; max-width: 560px">
+<label for="q">Pergunte sobre Pinheiros</label>
+<div class="ask__box"><input id="q" type="text" placeholder="Preço por m² de 68 m² a R$ 785.000"><button type="button">Perguntar</button></div>
+<p class="small" style="color: var(--enamel-200)">O backend calcula todos os números. O modelo apenas direciona e explica.</p>
+</form>
+</header>
+
+<div class="main__body">
+
+<section class="panel" aria-label="Números principais">
+<div class="figs figs--4" style="border-top: 0">
+<div class="fig" style="border-bottom: 0"><p class="fig__label">Mediana do preço pedido por m² <span class="tag">Pedido</span></p><p class="fig__value">R$ 12.480 <small>/m²</small></p><p class="small"><strong class="up">+3,1%</strong> em 6 meses</p><p class="prov" style="padding-top: 6px"><span>1.284 anúncios · 2 fontes</span><span>Calculado em 9 out. 2026, 06:00</span><a href="DesktopProperty.dc.html">Método</a></p></div>
+<div class="fig" style="border-bottom: 0"><p class="fig__label">Tempo mediano de anúncio</p><p class="fig__value">74 <small>dias</small></p><p class="small muted">São Paulo: 76 dias</p></div>
+<div class="fig" style="border-bottom: 0"><p class="fig__label">Reduções de preço, 30 dias</p><p class="fig__value">96 <small>anúncios</small></p><p class="small muted">7,5% dos anúncios ativos</p></div>
+<div class="fig" style="border-bottom: 0"><p class="fig__label">Preços de venda registrados <span class="tag tag--sale">Venda</span></p><p class="fig__value" style="font-size: 1.375rem; line-height: 3rem; color: var(--ink-2)">Nenhum disponível</p><p class="small muted">Nenhuma fonte informa transações</p></div>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+<section class="panel stack" style="flex: 1 1 380px; min-width: 0">
+<div class="sec"><h2>Mapa</h2><div class="seg" role="group" aria-label="Camada do mapa"><button type="button" aria-pressed="true">Imóveis</button><button type="button" aria-pressed="false">R$/m² por quadra</button></div></div>
+<div class="map" style="flex: 1; min-height: 420px; border-width: 1px 0 0; border-radius: 0 0 6px 6px"><img src="./map-neighborhood.svg" alt="Mapa esquemático de Pinheiros com 16 marcadores de imóveis. O imóvel selecionado fica na Rua dos Pinheiros."><span class="map__cap">Esquemático · provedor de mapa indefinido</span></div>
+</section>
+
+<section class="panel" style="flex: 2 1 560px; min-width: 0">
+<div class="sec"><h2>212 imóveis correspondem</h2><a class="btn" href="DesktopPlace.dc.html" style="min-height: 36px">Filtros · 5</a></div>
+<div class="chips" role="group" aria-label="Filtros aplicados" style="padding-bottom: 12px">
+<button type="button" class="chip" aria-pressed="true">Apartamento</button><button type="button" class="chip" aria-pressed="true">2+ quartos</button><button type="button" class="chip" aria-pressed="true">R$ 600k a 1M</button><button type="button" class="chip" aria-pressed="true">Até R$ 13.000/m²</button><button type="button" class="chip" aria-pressed="true">60 m² ou mais</button>
+</div>
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr><th scope="col">Quadra</th><th scope="col">Imóvel</th><th scope="col" class="r">Pedido</th><th scope="col" class="r">R$/m²</th><th scope="col" class="r" aria-sort="ascending"><button type="button">vs. mediana <svg class="i i--s" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg></button></th><th scope="col" class="r">Anúncios</th><th scope="col" class="r">Dias</th></tr></thead>
+<tbody>
+<tr aria-selected="true"><td><span class="line"><i class="here"></i><a href="DesktopProperty.dc.html">Rua dos Pinheiros, 1200–1298</a></span></td><td>Apto · 2 qtos · 68 m²</td><td class="r"><span class="num">785.000</span></td><td class="r"><span class="num">11.544</span></td><td class="r down">−7,5%</td><td class="r">3</td><td class="r">280</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Joaquim Antunes, 600–698</a></td><td>Apto · 2 qtos · 70 m²</td><td class="r"><span class="num">819.000</span></td><td class="r"><span class="num">11.700</span></td><td class="r down">−6,3%</td><td class="r">2</td><td class="r">204</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Fradique Coutinho, 400–498</a></td><td>Apto · 3 qtos · 84 m²</td><td class="r"><span class="num">998.000</span></td><td class="r"><span class="num">11.881</span></td><td class="r down">−4,8%</td><td class="r">1</td><td class="r">131</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Artur de Azevedo, 900–998</a></td><td>Apto · 2 qtos · 61 m²</td><td class="r"><span class="num">742.000</span></td><td class="r"><span class="num">12.164</span></td><td class="r down">−2,5%</td><td class="r">2</td><td class="r">58</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Cônego Eugênio Leite, 500–598</a></td><td>Apto · 2 qtos · 72 m²</td><td class="r"><span class="num">910.000</span></td><td class="r"><span class="num">12.639</span></td><td class="r up">+1,3%</td><td class="r">1</td><td class="r">22</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Lisboa, 200–298</a></td><td>Apto · 2 qtos · 65 m²</td><td class="r"><span class="num">845.000</span></td><td class="r"><span class="num">13.000</span></td><td class="r up">+4,2%</td><td class="r">1</td><td class="r">9</td></tr>
+</tbody>
+</table>
+</div>
+<div class="spread" style="padding: 12px 16px; align-items: center"><p class="small muted">Linhas 1 a 6 de 212. Cada linha é um imóvel; os anúncios dele ficam agrupados dentro dela.</p><button type="button" class="btn">Ver mais 20</button></div>
+</section>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px">
+<section class="panel" style="flex: 2 1 480px; min-width: 0">
+<div class="sec"><h2>Preço pedido por m², 12 meses</h2><a href="DesktopMarket.dc.html">Tendências</a></div>
+<div style="padding: 0 16px 16px">
+<svg viewBox="0 0 716 200" role="img" aria-label="A mediana do preço pedido por metro quadrado em Pinheiros subiu de R$ 11.960 em novembro de 2025 para R$ 12.480 em outubro de 2026, acima da mediana de São Paulo, de R$ 11.900." style="display: block; width: 100%; height: auto">
+<g stroke="#d5dbe6" stroke-width="1"><path d="M44 30H700M44 70H700M44 110H700M44 150H700"></path></g>
+<g font-family="Barlow, sans-serif" font-size="12" fill="#3d4a66"><text x="4" y="34">12,5k</text><text x="4" y="74">12,3k</text><text x="4" y="114">12,1k</text><text x="4" y="154">11,9k</text><text x="44" y="186">nov. 2025</text><text x="212" y="186">fev.</text><text x="391" y="186">mai.</text><text x="570" y="186">ago.</text><text x="652" y="186">out. 2026</text></g>
+<path d="M44 150H700" stroke="#3d4a66" stroke-width="1.5" stroke-dasharray="5 5" fill="none"></path>
+<polyline points="44,138 103.6,132 163.3,126 222.9,118 282.5,114 342.2,109 401.8,94 461.5,80 521.1,68 580.7,54 640.4,42 700,34" fill="none" stroke="#1a4fb3" stroke-width="2.5" stroke-linejoin="round"></polyline>
+<circle cx="700" cy="34" r="5" fill="#1a4fb3" stroke="#fff" stroke-width="2"></circle>
+<text x="540" y="143" font-family="Barlow, sans-serif" font-size="12" fill="#3d4a66">Mediana de São Paulo, R$ 11.900</text>
+<text x="590" y="24" font-family="Barlow Condensed, sans-serif" font-size="16" font-weight="600" fill="#101b33">Pinheiros, 12.480</text>
+</svg>
+</div>
+</section>
+<section class="panel" style="flex: 1 1 320px; min-width: 0">
+<div class="sec"><h2>Lugares vizinhos</h2></div>
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr><th scope="col">Bairro</th><th scope="col" class="r">R$/m²</th><th scope="col" class="r">6 meses</th></tr></thead>
+<tbody>
+<tr><td><span class="line"><i class="here" style="background: var(--zone-oeste)"></i><a href="DesktopPlace.dc.html">Vila Madalena</a></span></td><td class="r"><span class="num">13.120</span></td><td class="r up">+4,0%</td></tr>
+<tr><td><span class="line"><i class="here" style="background: var(--zone-oeste)"></i><a href="DesktopPlace.dc.html">Jardim Paulista</a></span></td><td class="r"><span class="num">14.950</span></td><td class="r up">+1,2%</td></tr>
+<tr><td><span class="line"><i class="here" style="background: var(--zone-oeste)"></i><a href="DesktopPlace.dc.html">Butantã</a></span></td><td class="r"><span class="num">8.640</span></td><td class="r down">−0,8%</td></tr>
+<tr><td><span class="line"><i class="here" style="background: var(--zone-centro)"></i><a href="DesktopPlace.dc.html">Consolação</a></span></td><td class="r"><span class="num">11.270</span></td><td class="r up">+2,6%</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1366}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

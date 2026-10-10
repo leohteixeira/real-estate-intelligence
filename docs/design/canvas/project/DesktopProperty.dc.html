@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Imóvel, desktop</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei app">
+
+<nav class="rail" aria-label="Principal">
+<a class="brand" href="DesktopPlace.dc.html">Real Estate<br>Intelligence</a>
+<a class="nav" href="DesktopPlace.dc.html" aria-current="page"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg>Lugares</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>Buscar</a>
+<a class="nav" href="DesktopMarket.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg>Mercado</a>
+<a class="nav" href="DesktopAsk.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"></path><path d="M12 16.6v.1"></path></svg>Perguntar</a>
+<a class="nav" href="DesktopPlace.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg>Alertas · 3 novos</a>
+<h2>Operações</h2>
+<a class="nav" href="DesktopOperations.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>Fontes e execuções</a>
+<a class="nav" href="DesktopOperations.dc.html"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>Fila de revisão · 7</a>
+<div class="rail__foot">
+<div class="lang" role="group" aria-label="Idioma" style="align-self: flex-start"><button type="button" aria-pressed="false">EN</button><button type="button" aria-pressed="true">PT</button></div>
+<p>Dados sintéticos de demonstração</p>
+</div>
+</nav>
+
+<div class="main">
+<header class="main__head">
+<div class="stack" style="gap: 10px; flex: 1 1 420px">
+<nav aria-label="Hierarquia do lugar"><ol class="crumbs"><li><a href="DesktopMarket.dc.html">São Paulo</a></li><li><a href="DesktopMarket.dc.html">Zona Oeste</a></li><li><a href="DesktopPlace.dc.html">Pinheiros</a></li></ol></nav>
+<div class="plate plate--block">
+<div class="plate__in">
+<p class="plate__over"><span>Pinheiros · São Paulo SP</span><span>Imóvel</span></p>
+<h1 class="plate__name">Rua dos Pinheiros</h1>
+<p class="plate__strip"><span>Zona Oeste</span><span>1200 – 1298</span></p>
+</div>
+</div>
+</div>
+<div class="stack" style="gap: 10px; flex: 1 1 380px; max-width: 560px">
+<p style="font-weight: 600">Apartamento · 2 quartos · 1 banheiro · 1 vaga · 68 m²</p>
+<div class="wrap"><a class="btn btn--primary" href="#comparables" style="border-color: #fff">Comparar com similares</a><button type="button" class="btn">Criar alerta</button><a class="btn" href="DesktopAsk.dc.html" style="color: var(--ink)">Perguntar sobre ele</a></div>
+</div>
+</header>
+
+<div class="main__body">
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+<section class="panel" style="flex: 1 1 340px; min-width: 0" aria-label="Preço">
+<div class="fig">
+<p class="fig__label">Preço pedido atual <span class="tag">Pedido</span></p>
+<p class="fig__value">R$ 785.000</p>
+<p class="small"><strong>R$ 11.544/m²</strong> · <strong class="down">7,5% abaixo</strong> da mediana de Pinheiros</p>
+<p class="prov" style="padding-top: 6px"><span>Menor de 3 anúncios ativos</span><span>Fonte A</span><span>Coletado em 9 out. 2026, 05:12</span></p>
+</div>
+<div class="fig fig--s" style="border-top: 1px solid var(--line)">
+<p class="fig__label">Preço de venda <span class="tag tag--sale">Venda</span></p>
+<p style="font-weight: 600">Nenhuma venda registrada</p>
+<p class="prov"><span>Nenhuma fonte informa uma transação deste imóvel. O preço pedido não é o preço pelo qual ele é vendido.</span></p>
+</div>
+</section>
+
+<section class="panel" style="flex: 2 1 520px; min-width: 0">
+<div class="sec"><h2>Histórico do preço pedido</h2><span class="small muted">4 eventos na Fonte A</span></div>
+<div style="padding: 0 16px 16px">
+<svg viewBox="0 0 716 190" role="img" aria-label="O preço pedido caiu em três etapas: R$ 850.000 em 2 de janeiro de 2026, R$ 825.000 em 5 de março, R$ 799.000 em 12 de maio e R$ 785.000 em 4 de agosto." style="display: block; width: 100%; height: auto">
+<g stroke="#d5dbe6" stroke-width="1"><path d="M48 40H700M48 85H700M48 130H700"></path></g>
+<g font-family="Barlow, sans-serif" font-size="12" fill="#3d4a66"><text x="4" y="44">860k</text><text x="4" y="89">820k</text><text x="4" y="134">780k</text><text x="48" y="178">nov. 2025</text><text x="157" y="178">jan.</text><text x="265" y="178">mar.</text><text x="374" y="178">mai.</text><text x="483" y="178">jul.</text><text x="591" y="178">set.</text></g>
+<path d="M160 51H274V79H396V108H544V124H662" fill="none" stroke="#1a4fb3" stroke-width="2.5" stroke-linejoin="round"></path>
+<g fill="#fff" stroke="#1a4fb3" stroke-width="2.5"><circle cx="160" cy="51" r="4.5"></circle><circle cx="274" cy="79" r="4.5"></circle><circle cx="396" cy="108" r="4.5"></circle><circle cx="544" cy="124" r="4.5"></circle></g>
+<g font-family="Barlow Condensed, sans-serif" font-size="16" font-weight="600" fill="#101b33"><text x="168" y="43">850.000 · 2 jan.</text><text x="282" y="71">825.000 · 5 mar.</text><text x="404" y="100">799.000 · 12 mai.</text><text x="552" y="116">785.000 · 4 ago.</text></g>
+</svg>
+</div>
+</section>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+<section class="panel" style="flex: 2 1 520px; min-width: 0">
+<div class="sec"><h2>3 anúncios, um imóvel</h2><a href="DesktopOperations.dc.html">Revisar evidências</a></div>
+<div style="padding: 0 16px 16px">
+<div class="life" style="grid-template-columns: 200px minmax(0, 1fr)">
+<span><a href="#prov">Fonte A</a> · <span class="num">R$ 785.000</span></span>
+<div class="life__track" role="img" aria-label="Fonte A: anunciado desde 2 de janeiro de 2026, com mudanças de preço em março, maio e agosto."><i class="life__bar" style="left: 17.2%; width: 77%"></i><i class="life__tick" style="left: 34.7%"></i><i class="life__tick" style="left: 53.3%"></i><i class="life__tick" style="left: 76.1%"></i></div>
+<span><a href="#prov">Fonte B</a> · <span class="num">R$ 799.000</span></span>
+<div class="life__track" role="img" aria-label="Fonte B: anunciado desde 10 de fevereiro de 2026."><i class="life__bar" style="left: 27.8%; width: 66.4%"></i></div>
+<span><a href="#prov">Fonte C</a> · <span class="num">R$ 799.000</span></span>
+<div class="life__track" role="img" aria-label="Fonte C: anunciado de 20 de janeiro a 30 de abril de 2026, removido até 3 de agosto, depois reapareceu."><i class="life__bar" style="left: 22.2%; width: 27.8%"></i><i class="life__bar life__bar--off" style="left: 50%; width: 25.8%"></i><i class="life__bar" style="left: 75.8%; width: 18.4%"></i></div>
+<span></span>
+<div class="life__axis"><span>nov.</span><span>jan.</span><span>mar.</span><span>mai.</span><span>jul.</span><span>set.</span></div>
+</div>
+<p class="prov" style="padding-top: 12px"><span>O comprimento da barra é o tempo de anúncio.</span><span>Marca: mudança de preço.</span><span>Tracejado: removido da fonte.</span><span>A Fonte B não acompanhou a última redução.</span></p>
+</div>
+</section>
+
+<section class="panel" style="flex: 1 1 340px; min-width: 0">
+<div class="sec"><h2>Por que estes são um só imóvel</h2></div>
+<div style="padding: 0 16px 16px">
+<div class="spread" style="padding-bottom: 12px"><span class="small muted">Probabilidade de ser o mesmo imóvel, A e B</span><span class="num" style="font-size: 1.75rem; line-height: 1">0,91</span></div>
+<div class="ev">
+<span>Coordenadas semelhantes</span><span class="bar"><i style="width: 97%"></i></span><span style="text-align: right">0,97</span>
+<span>Área idêntica</span><span class="bar"><i style="width: 100%"></i></span><span style="text-align: right">1,00</span>
+<span>Quartos idênticos</span><span class="bar"><i style="width: 100%"></i></span><span style="text-align: right">1,00</span>
+<span>Descrição semelhante</span><span class="bar"><i style="width: 84%"></i></span><span style="text-align: right">0,84</span>
+<span>Imagens em comum</span><span class="bar"><i style="width: 72%"></i></span><span style="text-align: right">0,72</span>
+</div>
+</div>
+</section>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch" id="comparables">
+<section class="panel" style="flex: 2 1 520px; min-width: 0">
+<div class="sec"><h2>12 comparáveis em até 800 m</h2><button type="button" class="btn" style="min-height: 36px">Ajustar critérios</button></div>
+<div class="fig" style="padding-top: 0">
+<p class="small">Mediana <strong>R$ 12.390/m²</strong> <span class="tag">Pedido</span> · este imóvel pede <strong class="down">6,8% abaixo</strong></p>
+<svg viewBox="0 0 716 70" role="img" aria-label="Doze comparáveis vão de R$ 11.700 a R$ 13.150 por metro quadrado. A mediana é R$ 12.390. Este imóvel, a R$ 11.544, fica abaixo de todos eles." style="display: block; width: 100%; height: auto; margin-top: 8px">
+<path d="M30 36H690" stroke="#9aa6bb" stroke-width="1"></path>
+<path d="M373.9 12V50" stroke="#101b33" stroke-width="1.5"></path>
+<g fill="#1a4fb3" fill-opacity=".8"><circle cx="134.2" cy="36" r="7"></circle><circle cx="197.1" cy="36" r="7"></circle><circle cx="241.9" cy="36" r="7"></circle><circle cx="295.4" cy="36" r="7"></circle><circle cx="325.3" cy="36" r="7"></circle><circle cx="356.5" cy="36" r="7"></circle><circle cx="391.3" cy="36" r="7"></circle><circle cx="419.1" cy="36" r="7"></circle><circle cx="460.4" cy="36" r="7"></circle><circle cx="509.4" cy="36" r="7"></circle><circle cx="585.8" cy="36" r="7"></circle><circle cx="637.9" cy="36" r="7"></circle></g>
+<rect x="71" y="27" width="18" height="18" rx="3" fill="#f2b705" stroke="#101b33" stroke-width="2"></rect>
+<g font-family="Barlow, sans-serif" font-size="12" fill="#3d4a66"><text x="30" y="66">R$ 11.400</text><text x="630" y="66">R$ 13.300</text><text x="382" y="18" fill="#101b33" font-weight="600">Mediana 12.390</text><text x="52" y="18" fill="#101b33" font-weight="600">Este imóvel</text></g>
+</svg>
+</div>
+<div class="tblwrap">
+<table class="tbl">
+<thead><tr><th scope="col">Quadra</th><th scope="col">Imóvel</th><th scope="col" class="r">Distância</th><th scope="col" class="r">R$/m²</th><th scope="col" class="r">Dias</th></tr></thead>
+<tbody>
+<tr><td><a href="DesktopProperty.dc.html">Rua Joaquim Antunes, 600–698</a></td><td>Apto · 2 qtos · 70 m²</td><td class="r">240 m</td><td class="r"><span class="num">11.700</span></td><td class="r">204</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Artur de Azevedo, 900–998</a></td><td>Apto · 2 qtos · 61 m²</td><td class="r">380 m</td><td class="r"><span class="num">12.164</span></td><td class="r">58</td></tr>
+<tr><td><a href="DesktopProperty.dc.html">Rua Cônego Eugênio Leite, 500–598</a></td><td>Apto · 2 qtos · 72 m²</td><td class="r">450 m</td><td class="r"><span class="num">12.639</span></td><td class="r">22</td></tr>
+</tbody>
+</table>
+</div>
+<p class="prov" style="padding: 12px 16px"><span>Critérios: apartamento · 58 a 78 m² · 2 ou 3 quartos · 1 vaga · elevador · ativo nos últimos 90 dias.</span><span>Os critérios selecionam; nenhum modelo escolhe comparáveis.</span></p>
+</section>
+
+<section class="panel" style="flex: 1 1 340px; min-width: 0" id="prov">
+<div class="sec"><h2>Características e fontes</h2></div>
+<div style="padding: 0 16px 16px">
+<dl class="kv">
+<dt>Área</dt><dd>68 m² · 3 de 3 anúncios</dd>
+<dt>Quartos</dt><dd>2 · 3 de 3 anúncios</dd>
+<dt>Banheiros</dt><dd>1 · 2 de 3, a Fonte B informa 2</dd>
+<dt>Vagas de garagem</dt><dd>1 · 3 de 3 anúncios</dd>
+<dt>Andar</dt><dd>Não informado por nenhuma fonte</dd>
+<dt>Visto pela primeira vez</dt><dd>2 jan. 2026, Fonte A</dd>
+<dt>Última coleta</dt><dd>9 out. 2026, 05:12</dd>
+<dt>Snapshots brutos</dt><dd>97 armazenados · <a href="DesktopOperations.dc.html">Ver</a></dd>
+</dl>
+<p class="prov" style="padding-top: 12px"><span>Localizado até a quadra. Números de unidade nunca são exibidos.</span></p>
+</div>
+</section>
+</div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1207}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+{
+  "title": "Real Estate Intelligence — escolha o mundo visual",
+  "question": "O sorteio atribuiu a Placa de Rua. Fique com ela, pegue uma alternativa ou sorteie de novo.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Placa de Rua",
+      "kicker": "THE ROLL",
+      "lineage": "placas esmaltadas de logradouro das cidades brasileiras",
+      "thesis": "Toda tela começa por uma placa: o lugar é assinado antes de qualquer número.",
+      "palette": ["#0f3a8a", "#f6f8fb", "#12203a", "#f2b705", "#d2452f", "#1f8a5b"],
+      "materials": [
+        "esmalte azul",
+        "faixa de zona colorida",
+        "sans condensada em caixa alta",
+        "numerais tabulares"
+      ],
+      "viewport": "Mobile: barra de esmalte azul com a placa do lugar (bairro em caixa alta, cidade/UF e faixa de zona), abaixo o campo de pergunta e filtros, depois mediana de R$/m², mapa do bairro e lista densa de imóveis; navegação por abas inferiores. Desktop: trilho lateral azul, placa no topo, mapa e tabela lado a lado.",
+      "risk": "Azul institucional pode parecer prefeitura ou banco se a tipografia da placa for tímida.",
+      "raised": [
+        {
+          "from": "challenger-wayfinding",
+          "raise": "Uma cor reservada a um único trabalho: o amarelo só marca onde você está e para onde pode ir, nunca decoração."
+        },
+        {
+          "from": "challenger-labanotation",
+          "raise": "Duração desenhada em escala exata: cada anúncio de um imóvel é uma barra cujo comprimento é o tempo no mercado."
+        },
+        {
+          "from": "challenger-splitflap",
+          "raise": "Colunas nunca se movem: mudanças de estado (run, coleta, preço) reestilizam a linha sem quebrar a grade."
+        },
+        {
+          "from": "challenger-jcard",
+          "raise": "Capacidade finita visível: os três runs pendentes por thread e a quota aparecem como vagas contadas."
+        },
+        {
+          "from": "challenger-console",
+          "raise": "Ações destrutivas isoladas por espaço deliberado, nunca vizinhas da ação primária."
+        }
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Planta de Valores",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "plantas cadastrais e mapas de zoneamento municipais",
+      "thesis": "O produto é um mapa cadastral vivo: quadras, lotes e manchas de valor por zona.",
+      "palette": ["#f3f1ea", "#1d2a2f", "#e8d58a", "#e2a48e", "#a9cdb5", "#3b6ea5"],
+      "materials": [
+        "tintas chapadas de zoneamento",
+        "códigos de quadra e lote",
+        "hachuras",
+        "legenda cartográfica"
+      ],
+      "viewport": "Mapa cadastral ocupando a tela com manchas de R$/m² por bairro; uma folha inferior traz o lugar selecionado, sua mediana e os imóveis.",
+      "risk": "É onde quase todo produto imobiliário com mapa acaba: lembra Zillow e portais com mapa."
+    },
+    {
+      "id": "challenger-wayfinding",
+      "label": "Sinalização de Terminal",
+      "verdict": "competitive",
+      "lineage": "sistema de sinalização amarela de aeroporto internacional",
+      "thesis": "Cada tela é um ponto de decisão: só as escolhas à frente, com a distância até cada uma.",
+      "palette": ["#ffd200", "#111111", "#ffffff", "#2b2b2b"],
+      "materials": [
+        "painel amarelo saturado",
+        "sans humanista preta",
+        "pictogramas brancos em quadrados pretos",
+        "numerais monumentais"
+      ],
+      "viewport": "Faixa amarela fixa no topo com o lugar atual e as próximas decisões (bairros vizinhos, imóveis, perguntas); o número principal, R$/m², em escala monumental.",
+      "case": "Vence em clareza de navegação por lugar; perde em identificação, pois o público reconhece a placa da própria rua, não o aeroporto.",
+      "risk": "Amarelo em tela cheia cansa em sessões longas de análise."
+    },
+    {
+      "id": "challenger-catalog",
+      "label": "Grade de Quadras",
+      "verdict": "competitive",
+      "lineage": "catálogo de evento em papel-jornal com mapa de pavilhão codificado",
+      "thesis": "Lista e mapa são o mesmo espaço: cada imóvel tem um código de célula que o localiza nos dois.",
+      "palette": ["#dcd9cf", "#141414", "#e0452b", "#8a877d"],
+      "materials": [
+        "tinta preta única",
+        "papel-jornal",
+        "células numeradas",
+        "uma cor de destaque no mapa"
+      ],
+      "viewport": "Grade compacta de células de imóveis com código de quadra; tocar numa célula salta para sua posição no mapa do bairro.",
+      "case": "Vence em clareza da relação lista↔mapa; perde em identificação e arrisca virar grade de anúncios.",
+      "risk": "Grade de miniaturas é o primeiro passo para parecer portal de anúncios."
+    },
+    {
+      "id": "challenger-splitflap",
+      "label": "Painel de Partidas",
+      "verdict": "declined",
+      "lineage": "painel split-flap de estação ferroviária",
+      "thesis": "Linhas vivas ordenadas por tempo em colunas que nunca se movem.",
+      "palette": ["#111111", "#ffffff", "#f2a900", "#b3261e"],
+      "materials": ["palhetas pretas foscas", "moldura de aço escovado"],
+      "viewport": "Um painel de linhas de imóveis e runs atualizando caractere a caractere.",
+      "case": "É fantasia de instrumento numa tela de trabalho e leva ao terminal financeiro que você recusou.",
+      "kept": "Colunas fixas; o estado reestiliza a linha sem quebrar a grade.",
+      "risk": "Escuro e monoespaçado: terminal financeiro."
+    },
+    {
+      "id": "challenger-labanotation",
+      "label": "Partitura de Movimento",
+      "verdict": "declined",
+      "lineage": "labanotação, a partitura vertical de dança",
+      "thesis": "O tempo sobe por uma pauta central e cada bloco tem o comprimento exato da sua duração.",
+      "palette": ["#ffffff", "#111111", "#bdbdbd"],
+      "materials": ["papel de partitura", "blocos sólidos, hachurados e pontilhados"],
+      "viewport": "Histórico de um imóvel como pauta vertical com um anúncio por coluna.",
+      "case": "Ilegível para quem só quer entender um imóvel; o público não tem essa notação.",
+      "kept": "Duração como comprimento exato.",
+      "risk": "Exige aprender uma notação antes de usar o produto."
+    },
+    {
+      "id": "challenger-jcard",
+      "label": "Encarte de Fita",
+      "verdict": "declined",
+      "lineage": "encarte de fita cassete escrito à mão",
+      "thesis": "Dois lados que não podem transbordar a fita.",
+      "palette": ["#ffffff", "#1f3fa6", "#8c8c8c", "#d8232a"],
+      "materials": ["esferográfica azul", "papel pautado"],
+      "viewport": "Listas manuscritas em duas metades com tempos à direita.",
+      "case": "Manuscrito contradiz a promessa de número determinístico e auditável.",
+      "kept": "Capacidade finita sempre visível.",
+      "risk": "Nostalgia sem relação com o mercado imobiliário."
+    },
+    {
+      "id": "challenger-console",
+      "label": "Console Grafite",
+      "verdict": "declined",
+      "lineage": "console de desenvolvedor dark-first",
+      "thesis": "Painéis persistentes separados por costuras de um pixel.",
+      "palette": ["#16181c", "#2a2e35", "#7aa2f7", "#e06c75"],
+      "materials": ["fundo grafite", "costuras finas", "acentos de sintaxe"],
+      "viewport": "Painéis em mosaico com cabeçalhos em versalete.",
+      "case": "É o dashboard SaaS genérico e o terminal que você listou como anti-objetivos.",
+      "kept": "Ação destrutiva isolada por espaço.",
+      "risk": "Serviria para qualquer produto."
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "buildPath": { "value": "code" },
+  "canon": true,
+  "canonCard": {
+    "label": "O padrão da categoria",
+    "thesis": "O que os produtos imobiliários entregam: busca, cards com foto e painel de indicadores.",
+    "palette": ["#ffffff", "#111827", "#2563eb", "#f3f4f6"],
+    "materials": ["grade limpa", "cards de imóvel", "KPIs"],
+    "viewport": "Barra de busca, filtros em chips, grade de cards com foto e preço, mapa ao lado.",
+    "risk": "Indistinguível de um portal de anúncios, por definição."
+  },
+  "steer": true
+}

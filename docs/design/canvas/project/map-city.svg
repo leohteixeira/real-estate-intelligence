@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 560" preserveAspectRatio="xMidYMid slice">
+  <rect width="780" height="560" fill="#dfe5ee"/>
+  <g stroke="#ffffff" stroke-width="4" stroke-linejoin="round">
+    <path d="M250 40 L470 20 L560 110 L470 190 L330 200 L230 140 Z" fill="#b85a06" fill-opacity=".55"/>
+    <path d="M330 200 L470 190 L500 280 L420 330 L320 300 Z" fill="#c8402a" fill-opacity=".7"/>
+    <path d="M90 170 L230 140 L330 200 L320 300 L250 380 L110 340 L60 250 Z" fill="#1c8257" fill-opacity=".45"/>
+    <path d="M170 215 L262 200 L300 262 L250 318 L176 300 Z" fill="#1c8257" fill-opacity=".9"/>
+    <path d="M470 190 L560 110 L720 160 L740 300 L620 360 L500 280 Z" fill="#0b7f99" fill-opacity=".45"/>
+    <path d="M250 380 L320 300 L420 330 L500 280 L620 360 L560 500 L400 545 L270 490 Z" fill="#7446bd" fill-opacity=".5"/>
+  </g>
+  <rect x="222" y="246" width="22" height="22" rx="4" fill="#f2b705" stroke="#101b33" stroke-width="3"/>
+  <g font-family="Barlow Condensed, Arial Narrow, sans-serif" font-size="22" font-weight="600" fill="#101b33" letter-spacing="1">
+    <text x="345" y="110">NORTE</text>
+    <text x="368" y="262">CENTRO</text>
+    <text x="96" y="200">OESTE</text>
+    <text x="590" y="240">LESTE</text>
+    <text x="400" y="430">SUL</text>
+  </g>
+</svg>

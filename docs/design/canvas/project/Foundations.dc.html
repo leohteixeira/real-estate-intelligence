@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Foundations</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei" style="width: 1280px; height: 1390px; background: var(--surface)">
+
+<header style="background: var(--enamel-800); color: #fff; padding: 40px 48px; display: flex; gap: 48px; align-items: flex-end; flex-wrap: wrap">
+<div class="plate" style="flex: 0 0 440px">
+<div class="plate__in">
+<p class="plate__over"><span>Real Estate Intelligence</span><span>Design system</span></p>
+<h1 class="plate__name" style="font-size: 3rem">Placa</h1>
+<p class="plate__strip"><span>Foundations</span><span>October 2026</span></p>
+</div>
+</div>
+<p style="flex: 1 1 400px; max-width: 56ch; font-size: 1.125rem; line-height: 1.5">Every screen is signed by its place before it shows a number. The system borrows four things from Brazilian enamel street plaques: their blue, their condensed capitals, their density, and the plate itself.</p>
+</header>
+
+<div style="padding: 8px 48px 48px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px">
+
+<section>
+<div class="sec"><h2>The place plate, at four scales</h2></div>
+<div class="stack" style="gap: 14px; background: var(--enamel-800); padding: 20px; border-radius: 6px">
+<div class="plate plate--city"><div class="plate__in"><p class="plate__over"><span>Brasil · SP</span><span>Cidade</span></p><p class="plate__name">São Paulo</p><p class="plate__strip"><span>5 zonas · 32 bairros</span><span>24.860 anúncios</span></p></div></div>
+<div class="plate"><div class="plate__in"><p class="plate__over"><span>São Paulo · SP</span><span>Bairro</span></p><p class="plate__name">Pinheiros</p><p class="plate__strip"><span>Zona Oeste</span><span>1.037 imóveis</span></p></div></div>
+<div class="plate plate--block"><div class="plate__in"><p class="plate__over"><span>Pinheiros · São Paulo SP</span><span>Quadra</span></p><p class="plate__name">Rua dos Pinheiros</p><p class="plate__strip"><span>Zona Oeste</span><span>1200 – 1298</span></p></div></div>
+<div class="plate" style="padding: 3px; max-width: 300px"><div class="plate__in" style="display: flex; align-items: stretch"><p class="plate__name" style="font-size: 1.375rem; padding: 6px 10px; flex: 1">Pinheiros</p><p class="plate__strip" style="align-items: center; font-size: 0.8125rem">212 exibidos</p></div></div>
+</div>
+<ul class="small muted stack" style="gap: 6px; padding-top: 14px; max-width: 60ch">
+<li>Top line: the parent place and the kind of place. Name: condensed capitals. Strip: zone, then one count.</li>
+<li>A city plate has a white strip. Below city level the strip takes the zone colour.</li>
+<li>A property is signed to its street block and number range, never to a unit.</li>
+</ul>
+</section>
+
+<section>
+<div class="sec"><h2>Colour, by job</h2></div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 12px" class="small">
+<div><div style="height: 56px; border-radius: 6px; background: var(--enamel-800)"></div><strong>Enamel 800</strong><br><span class="muted">#0B2C6B · shell</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--enamel-700)"></div><strong>Enamel 700</strong><br><span class="muted">#0F3A8A · plate</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--enamel-600)"></div><strong>Enamel 600</strong><br><span class="muted">#1A4FB3 · action, data</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--enamel-100)"></div><strong>Enamel 100</strong><br><span class="muted">#E1E9F7 · selected</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--porcelain); border: 1px solid var(--line)"></div><strong>Porcelain</strong><br><span class="muted">#F4F6F9 · ground</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line)"></div><strong>Surface</strong><br><span class="muted">#FFFFFF · bands</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--ink)"></div><strong>Ink</strong><br><span class="muted">#101B33 · text</span></div>
+<div><div style="height: 56px; border-radius: 6px; background: var(--ink-2)"></div><strong>Ink 2</strong><br><span class="muted">#3D4A66 · secondary</span></div>
+</div>
+
+<div class="sec" style="padding-top: 24px"><h2>Wayfinding yellow: you are here</h2></div>
+<div class="line" style="gap: 16px; align-items: flex-start">
+<div style="flex: 0 0 120px; height: 56px; border-radius: 6px; background: var(--here)"></div>
+<p class="small muted" style="max-width: 46ch"><strong style="color: var(--ink)">#F2B705.</strong> The current tab, the selected row, the selected map marker, this property among its comparables. Never a warning, a highlight or a decoration.</p>
+</div>
+
+<div class="sec" style="padding-top: 24px"><h2>Zone strips: place identity only</h2></div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px" class="small">
+<div><div style="height: 40px; border-radius: 6px; background: var(--zone-centro)"></div><strong>Centro</strong><br><span class="muted">#C8402A</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--zone-oeste)"></div><strong>Oeste</strong><br><span class="muted">#1C8257</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--zone-sul)"></div><strong>Sul</strong><br><span class="muted">#7446BD</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--zone-norte)"></div><strong>Norte</strong><br><span class="muted">#B85A06</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--zone-leste)"></div><strong>Leste</strong><br><span class="muted">#0B7F99</span></div>
+</div>
+
+<div class="sec" style="padding-top: 24px"><h2>Movement and state</h2></div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px" class="small">
+<div><div style="height: 40px; border-radius: 6px; background: var(--up)"></div><strong>Up</strong><br><span class="muted">#A8480A</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--down)"></div><strong>Down</strong><br><span class="muted">#1A4FB3</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--ok)"></div><strong>OK, sale</strong><br><span class="muted">#17734B</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--warn)"></div><strong>Waiting</strong><br><span class="muted">#7A5200</span></div>
+<div><div style="height: 40px; border-radius: 6px; background: var(--danger)"></div><strong>Failed</strong><br><span class="muted">#A52A1A</span></div>
+</div>
+<p class="small muted" style="padding-top: 10px; max-width: 60ch">A price going up or down is not good or bad, so movement is orange and blue with a sign, never green and red.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Type</h2></div>
+<div class="stack" style="gap: 14px">
+<div class="spread"><span style="font-family: var(--font-plate); font-weight: 600; font-size: 3rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.015em">Vila Madalena</span><span class="small muted" style="white-space: nowrap">Plate · Barlow Condensed 600 · 48</span></div>
+<div class="spread"><span class="num" style="font-size: 3rem; line-height: 1">R$ 12.480 /m²</span><span class="small muted" style="white-space: nowrap">Figure · Barlow Condensed 600 · 48</span></div>
+<div class="spread"><span style="font-size: 1.375rem; font-weight: 600; line-height: 1.2">Você quer o preço por metro quadrado?</span><span class="small muted" style="white-space: nowrap">Title · Barlow 600 · 22</span></div>
+<div class="spread"><span style="font-size: 1.125rem; font-weight: 600">Histórico do preço pedido</span><span class="small muted" style="white-space: nowrap">Section · Barlow 600 · 18</span></div>
+<div class="spread"><span>Apartamento · 2 quartos · 1 banheiro · 68 m²</span><span class="small muted" style="white-space: nowrap">Body · Barlow 400 · 15</span></div>
+<div class="spread"><span class="small muted">1.284 anúncios ativos · 2 fontes · Calculado em 9 out. 2026</span><span class="small muted" style="white-space: nowrap">Provenance · Barlow 400 · 12</span></div>
+<div class="spread"><span class="line"><span class="tag">Pedido</span><span class="tag tag--sale">Venda</span><span class="tag tag--synthetic">Dados sintéticos</span></span><span class="small muted" style="white-space: nowrap">Tag · Barlow Condensed 600 · 13</span></div>
+</div>
+<p class="small muted" style="padding-top: 14px; max-width: 60ch">Two families from one design. Capitals are for place names and tags only. Every number is tabular, so columns of prices align.</p>
+</section>
+
+<section>
+<div class="sec"><h2>Space, shape and depth</h2></div>
+<div class="line" style="align-items: flex-end; gap: 14px">
+<div class="small muted" style="text-align: center"><div style="width: 4px; height: 4px; background: var(--enamel-600); margin: 0 auto 6px"></div>4</div>
+<div class="small muted" style="text-align: center"><div style="width: 8px; height: 8px; background: var(--enamel-600); margin: 0 auto 6px"></div>8</div>
+<div class="small muted" style="text-align: center"><div style="width: 12px; height: 12px; background: var(--enamel-600); margin: 0 auto 6px"></div>12</div>
+<div class="small muted" style="text-align: center"><div style="width: 16px; height: 16px; background: var(--enamel-600); margin: 0 auto 6px"></div>16</div>
+<div class="small muted" style="text-align: center"><div style="width: 24px; height: 24px; background: var(--enamel-600); margin: 0 auto 6px"></div>24</div>
+<div class="small muted" style="text-align: center"><div style="width: 32px; height: 32px; background: var(--enamel-600); margin: 0 auto 6px"></div>32</div>
+<div class="small muted" style="text-align: center"><div style="width: 40px; height: 40px; background: var(--enamel-600); margin: 0 auto 6px"></div>40</div>
+<div class="small muted" style="text-align: center"><div style="width: 56px; height: 56px; background: var(--enamel-600); margin: 0 auto 6px"></div>56</div>
+</div>
+<div class="line" style="gap: 14px; padding-top: 24px; align-items: flex-end">
+<div class="small muted" style="text-align: center"><div style="width: 72px; height: 48px; border: 1.5px solid var(--ink); border-radius: 4px; margin-bottom: 6px"></div>4 · tag</div>
+<div class="small muted" style="text-align: center"><div style="width: 72px; height: 48px; border: 1.5px solid var(--ink); border-radius: 6px; margin-bottom: 6px"></div>6 · control</div>
+<div class="small muted" style="text-align: center"><div style="width: 72px; height: 48px; border: 1.5px solid var(--ink); border-radius: 10px; margin-bottom: 6px"></div>10 · plate</div>
+<div class="small muted" style="text-align: center"><div style="width: 72px; height: 48px; border: 1.5px solid var(--ink); border-radius: 14px 14px 0 0; margin-bottom: 6px"></div>14 · sheet</div>
+<div class="small muted" style="text-align: center"><div style="width: 72px; height: 36px; border: 1.5px solid var(--ink); border-radius: 999px; margin-bottom: 6px"></div>Pill · chip</div>
+</div>
+<ul class="small muted stack" style="gap: 6px; padding-top: 16px; max-width: 60ch">
+<li>Flat by default: hairlines separate, nothing floats. Only a sheet or a control over the map casts a shadow.</li>
+<li>Touch targets are 44 px or taller. The page gutter is 16 px on a phone, 24 px on a desktop.</li>
+<li>More space above a section heading (32) than below it (12).</li>
+<li>State changes take 150 to 220 ms. Nothing animates on page load.</li>
+</ul>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1390}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

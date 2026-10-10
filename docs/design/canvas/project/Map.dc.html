@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Mapa</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./tokens.css">
+<link rel="stylesheet" href="./components.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="rei stack" style="width: 390px; height: 844px">
+
+<header class="shell" style="padding-bottom: 12px; gap: 8px">
+<div class="shell__bar">
+<a class="iconbtn" href="Main.dc.html" aria-label="Voltar para Pinheiros" style="margin-left: -10px"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></a>
+<div class="plate" style="flex: 1; padding: 3px">
+<div class="plate__in" style="display: flex; align-items: stretch">
+<h1 class="plate__name" style="font-size: 1.375rem; padding: 6px 10px; flex: 1">Pinheiros</h1>
+<p class="plate__strip" style="align-items: center; font-size: 0.8125rem">212 exibidos</p>
+</div>
+</div>
+<a class="iconbtn" href="Filters.dc.html" aria-label="Filtros, 5 aplicados"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg></a>
+</div>
+</header>
+
+<div style="position: relative; flex: 1; min-height: 0">
+<div class="map" style="position: absolute; inset: 0; border: 0; border-radius: 0"><img src="./map-neighborhood.svg" alt="Mapa esquemático de Pinheiros com 16 marcadores de imóveis. O imóvel selecionado fica na Rua dos Pinheiros."></div>
+<div style="position: absolute; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-start">
+<div class="seg" role="group" aria-label="Camada do mapa" style="box-shadow: var(--shadow-pop)"><button type="button" aria-pressed="true">Imóveis</button><button type="button" aria-pressed="false">R$/m² por quadra</button></div>
+<div class="stack" style="gap: 6px">
+<button type="button" class="btn" aria-label="Aproximar" style="width: 44px; padding: 0; box-shadow: var(--shadow-pop)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+<button type="button" class="btn" aria-label="Afastar" style="width: 44px; padding: 0; box-shadow: var(--shadow-pop)"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path></svg></button>
+</div>
+</div>
+<p class="map__cap" style="bottom: 196px">Esquemático · provedor de mapa não definido</p>
+
+<div class="sheet" style="position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: 14px">
+<div class="sheet__grab" aria-hidden="true"></div>
+<div class="prow" style="padding-top: 4px">
+<span class="prow__t line"><i class="here"></i>Apartamento · 2 quartos · 68 m²</span><span class="prow__p">R$ 785.000</span>
+<span class="prow__s">Rua dos Pinheiros, 1200–1298</span><span class="prow__r">R$ 11.544/m²</span>
+<span class="prow__m"><strong class="down">7,5% abaixo da mediana</strong><span>3 anúncios</span><span>280 dias anunciado</span></span>
+</div>
+<div class="pad pair" style="padding-top: 6px"><a class="btn btn--primary" href="Property.dc.html">Ver imóvel</a><a class="btn" href="Search.dc.html">Lista dos 212</a></div>
+</div>
+</div>
+
+<nav class="tabbar" aria-label="Principal" style="margin-top: 0">
+<a href="Main.dc.html" aria-current="page"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"></path><circle cx="12" cy="10" r="2.3"></circle></svg></span>Lugares</a>
+<a href="Search.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg></span>Buscar</a>
+<a href="Ask.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9.6 9.5a2.4 2.4 0 1 1 3.6 2.1c-.8.5-1.2 1-1.2 1.9"></path><path d="M12 16.6v.1"></path></svg></span>Perguntar</a>
+<a href="Market.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"></path><path d="M15 6h5v5"></path></svg></span>Mercado</a>
+<a href="Operations.dc.html"><span class="ind"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>Mais</a>
+</nav>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

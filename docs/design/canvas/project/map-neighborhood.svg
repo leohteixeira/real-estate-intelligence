@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 480" preserveAspectRatio="xMidYMid slice">
+  <rect width="780" height="480" fill="#dfe5ee"/>
+  <g transform="rotate(-14 390 240)">
+    <g fill="#f8fafc">
+      <rect x="-60" y="-80" width="150" height="110" rx="4"/><rect x="104" y="-80" width="150" height="110" rx="4"/><rect x="268" y="-80" width="150" height="110" rx="4"/><rect x="432" y="-80" width="150" height="110" rx="4"/><rect x="596" y="-80" width="150" height="110" rx="4"/><rect x="760" y="-80" width="150" height="110" rx="4"/>
+      <rect x="-60" y="44" width="150" height="110" rx="4"/><rect x="104" y="44" width="150" height="110" rx="4"/><rect x="268" y="44" width="150" height="110" rx="4"/><rect x="432" y="44" width="150" height="110" rx="4"/><rect x="596" y="44" width="150" height="110" rx="4"/><rect x="760" y="44" width="150" height="110" rx="4"/>
+      <rect x="-60" y="186" width="150" height="110" rx="4"/><rect x="104" y="186" width="150" height="110" rx="4"/><rect x="432" y="186" width="150" height="110" rx="4"/><rect x="596" y="186" width="150" height="110" rx="4"/><rect x="760" y="186" width="150" height="110" rx="4"/>
+      <rect x="-60" y="310" width="150" height="110" rx="4"/><rect x="104" y="310" width="150" height="110" rx="4"/><rect x="268" y="310" width="150" height="110" rx="4"/><rect x="432" y="310" width="150" height="110" rx="4"/><rect x="596" y="310" width="150" height="110" rx="4"/><rect x="760" y="310" width="150" height="110" rx="4"/>
+      <rect x="-60" y="434" width="150" height="110" rx="4"/><rect x="104" y="434" width="150" height="110" rx="4"/><rect x="268" y="434" width="150" height="110" rx="4"/><rect x="432" y="434" width="150" height="110" rx="4"/><rect x="596" y="434" width="150" height="110" rx="4"/><rect x="760" y="434" width="150" height="110" rx="4"/>
+    </g>
+    <rect x="268" y="186" width="150" height="110" rx="4" fill="#cfe6d8"/>
+    <rect x="-80" y="160" width="1000" height="20" fill="#c9d3e2"/>
+    <g fill="#3d4a66" font-family="Barlow, Arial, sans-serif" font-size="15" font-weight="500">
+      <text x="110" y="175">Rua dos Pinheiros</text>
+      <text x="470" y="175">Rua dos Pinheiros</text>
+      <text x="290" y="246" fill="#17734b">Praça</text>
+    </g>
+    <g fill="#1a4fb3" stroke="#ffffff" stroke-width="3">
+      <circle cx="150" cy="90" r="9"/><circle cx="210" cy="120" r="9"/><circle cx="330" cy="70" r="9"/><circle cx="480" cy="100" r="9"/><circle cx="545" cy="62" r="9"/><circle cx="650" cy="120" r="9"/>
+      <circle cx="140" cy="240" r="9"/><circle cx="500" cy="230" r="9"/><circle cx="640" cy="250" r="9"/><circle cx="180" cy="360" r="9"/><circle cx="320" cy="380" r="9"/><circle cx="470" cy="350" r="9"/><circle cx="560" cy="395" r="9"/><circle cx="690" cy="350" r="9"/>
+      <circle cx="30" cy="110" r="9"/><circle cx="20" cy="370" r="9"/>
+    </g>
+    <rect x="356" y="121" width="26" height="26" rx="5" fill="#f2b705" stroke="#101b33" stroke-width="3"/>
+  </g>
+</svg>
