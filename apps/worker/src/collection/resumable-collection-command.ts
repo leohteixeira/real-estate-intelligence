@@ -49,6 +49,7 @@ export async function runResumableCollectionCommand(
     const args = argumentsFor(argv);
     const config = readCollectionCommandConfig(environment);
     timeoutMs = config.deadlineMs;
+    const deadlineAt = Date.now() + config.deadlineMs;
     const signal = AbortSignal.any([shutdown.signal, AbortSignal.timeout(config.deadlineMs)]);
     process.once('SIGINT', sigint);
     process.once('SIGTERM', sigterm);
@@ -57,10 +58,11 @@ export async function runResumableCollectionCommand(
     });
     const service = context.get(CollectSourceRun);
     const result = await runCollectionOperationSpan(signal, (traceContext) =>
-      service.execute(args.sourceId, args.operationKey, traceContext, signal),
+      service.execute(args.sourceId, args.operationKey, traceContext, signal, deadlineAt),
     );
     logger.log(
       JSON.stringify({
+        status: result.status,
         operationKey: result.operationKey,
         sourceId: result.sourceId,
         runId: result.runId,

@@ -46,6 +46,8 @@ export {
   createRunningCollectionRun,
   hydrateCollectionRun,
   parseCollectionCheckpointCursor,
+  pauseCollectionRun,
+  resumeCollectionRun,
 } from './collection-run.js';
 export type {
   CollectionCheckpoint,
@@ -58,6 +60,7 @@ export {
   SOURCE_ACCESS_METHODS,
   SOURCE_CATEGORIES,
   SOURCE_REVIEW_OUTCOMES,
+  SOURCE_ACCESS_REFUSALS,
   createSourceRegistration,
   decideSourceEnablement,
   isOwnedSyntheticSourceId,
@@ -78,6 +81,8 @@ export type {
   SourceRegistrationInput,
   SourceReview,
   SourceReviewOutcome,
+  SourceAccessRefusal,
+  SourceHold,
 } from './source-registration.js';
 export {
   SYNTHETIC_SAO_PAULO_LISTING_REFERENCES,

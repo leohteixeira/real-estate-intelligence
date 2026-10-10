@@ -49,7 +49,15 @@ export type SourceLicence =
   | { readonly status: 'not-verified'; readonly label: null; readonly url: null }
   | { readonly status: 'not-applicable'; readonly label: string; readonly url: null };
 
+export const SOURCE_ACCESS_REFUSALS = ['login-wall', 'captcha', 'block', 'access-denied'] as const;
+export type SourceAccessRefusal = (typeof SOURCE_ACCESS_REFUSALS)[number];
+export interface SourceHold {
+  readonly reason: SourceAccessRefusal;
+  readonly heldAt: string;
+}
+
 export interface SourceRegistrationInput {
+  readonly hold?: SourceHold | null;
   readonly sourceId: string;
   readonly displayLabel: string;
   readonly category: SourceCategory;
@@ -62,9 +70,10 @@ export interface SourceRegistrationInput {
   readonly licence: SourceLicence;
 }
 
-export type SourceRegistration = Readonly<SourceRegistrationInput>;
+export type SourceRegistration = Readonly<SourceRegistrationInput & { hold: SourceHold | null }>;
 
 export type SourceEnableRefusalCode =
+  | 'source-held'
   | 'collection-not-allowed'
   | 'review-forbidden'
   | 'review-not-verified'
@@ -156,6 +165,7 @@ function isOwnedSyntheticFixture(source: SourceRegistrationInput): boolean {
 }
 
 export function decideSourceEnablement(source: SourceRegistration): SourceEnableDecision {
+  if (source.hold !== null) return Object.freeze({ eligible: false, code: 'source-held' });
   if (!source.permissions.collectionAllowed) {
     return Object.freeze({ eligible: false, code: 'collection-not-allowed' });
   }
@@ -189,6 +199,13 @@ export function decideSourceEnablement(source: SourceRegistration): SourceEnable
 }
 
 export function createSourceRegistration(input: SourceRegistrationInput): SourceRegistration {
+  const hold = input.hold ?? null;
+  if (hold !== null) {
+    if (!SOURCE_ACCESS_REFUSALS.includes(hold.reason))
+      throw new TypeError('Unsupported source hold.');
+    utcInstant(hold.heldAt, 'hold.heldAt');
+    if (input.enabled) throw new TypeError('A held source must be disabled.');
+  }
   if (!SOURCE_ID.test(input.sourceId) || input.sourceId.length > 100) {
     throw new TypeError('sourceId must be a lower-kebab identifier of at most 100 characters.');
   }
@@ -278,6 +295,7 @@ export function createSourceRegistration(input: SourceRegistrationInput): Source
 
   const copy: SourceRegistration = Object.freeze({
     ...input,
+    hold: hold === null ? null : Object.freeze({ ...hold }),
     permissions: Object.freeze({ ...input.permissions }),
     review: Object.freeze({ ...input.review }),
     access: Object.freeze({ ...input.access }),

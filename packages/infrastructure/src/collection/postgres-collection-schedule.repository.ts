@@ -41,6 +41,11 @@ export class PostgresCollectionScheduleRepository implements CollectionScheduleR
                   schedule.interval_seconds
              FROM collection.collection_schedule AS schedule
             WHERE schedule.enabled
+              AND EXISTS (
+                SELECT 1 FROM collection.source_register AS source
+                 WHERE source.source_id = schedule.source_id
+                   AND source.enabled AND source.collection_allowed AND source.hold_reason IS NULL
+              )
               AND schedule.in_flight_operation_key IS NULL
               AND schedule.next_run_at <= $1::timestamptz
             ORDER BY schedule.next_run_at, schedule.schedule_id

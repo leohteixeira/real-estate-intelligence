@@ -7,6 +7,10 @@ import {
   EVENT_PUBLISHER_DEPENDENCY,
   eventPublisherResilienceSettings,
 } from './event-publisher-resilience.settings';
+import {
+  listingSourceResilienceSettings,
+  rawSnapshotStoreResilienceSettings,
+} from '../../collection/collection-resilience.settings';
 
 const EVENT_TYPES: readonly ResilienceEvent['type'][] = [
   'retry',
@@ -20,13 +24,21 @@ const EVENT_TYPES: readonly ResilienceEvent['type'][] = [
   'fallback',
 ];
 
-const POLICY_NAMES = new Set(Object.values(eventPublisherResilienceSettings.policies));
+const POLICY_DEPENDENCIES = new Map([
+  ...Object.values(eventPublisherResilienceSettings.policies).map(
+    (name) => [name, EVENT_PUBLISHER_DEPENDENCY] as const,
+  ),
+  ...[listingSourceResilienceSettings, rawSnapshotStoreResilienceSettings].flatMap((settings) =>
+    Object.values(settings.policies).map((name) => [name, settings.dependency] as const),
+  ),
+]);
 type DiagnosticsListener = (message: unknown, name: string | symbol) => void;
 
 export function safePolicyAttributes(event: ResilienceEvent): Attributes | undefined {
-  if (!POLICY_NAMES.has(event.policy)) return undefined;
+  const dependency = POLICY_DEPENDENCIES.get(event.policy);
+  if (!dependency) return undefined;
   const attributes: Attributes = {
-    'dependency.name': EVENT_PUBLISHER_DEPENDENCY,
+    'dependency.name': dependency,
     'resilience.policy.name': event.policy,
     'resilience.event.type': event.type,
   };

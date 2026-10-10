@@ -29,11 +29,15 @@ import {
 
 import { readCollectionCommandConfig } from '../config';
 import { DATABASE_CONNECTION, PersistenceModule } from '../persistence.module';
+import { ResilienceTelemetry } from '../shared/resilience/resilience-telemetry';
+import { ResilientListingSource } from './resilient-listing-source';
+import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
 
 @Global()
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }), PersistenceModule],
   providers: [
+    ResilienceTelemetry,
     { provide: CLOCK, useValue: { now: (): string => new Date().toISOString() } satisfies Clock },
     {
       provide: SyntheticSaoPauloListingSource,
@@ -42,7 +46,12 @@ import { DATABASE_CONNECTION, PersistenceModule } from '../persistence.module';
           readCollectionCommandConfig(process.env).syntheticPageDelayMs,
         ),
     },
-    { provide: LISTING_SOURCE, useExisting: SyntheticSaoPauloListingSource },
+    {
+      provide: LISTING_SOURCE,
+      inject: [SyntheticSaoPauloListingSource, SOURCE_REGISTER_REPOSITORY],
+      useFactory: (adapter: SyntheticSaoPauloListingSource, register: SourceRegisterRepository) =>
+        new ResilientListingSource(adapter, register),
+    },
     {
       provide: S3RawSnapshotStore,
       useFactory: (): S3RawSnapshotStore => {
@@ -56,7 +65,11 @@ import { DATABASE_CONNECTION, PersistenceModule } from '../persistence.module';
         });
       },
     },
-    { provide: RAW_SNAPSHOT_STORE, useExisting: S3RawSnapshotStore },
+    {
+      provide: RAW_SNAPSHOT_STORE,
+      inject: [S3RawSnapshotStore],
+      useFactory: (adapter: S3RawSnapshotStore) => new ResilientRawSnapshotStore(adapter),
+    },
     {
       provide: SOURCE_REGISTER_REPOSITORY,
       inject: [DATABASE_CONNECTION],

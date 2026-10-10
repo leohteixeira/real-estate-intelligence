@@ -52,6 +52,7 @@ export async function runSyntheticCollectionCommand(
     const key = operationKey(argv);
     const config = readCollectionCommandConfig(environment);
     cleanupTimeoutMs = config.deadlineMs;
+    const deadlineAt = Date.now() + config.deadlineMs;
     const signal = AbortSignal.any([
       shutdownController.signal,
       AbortSignal.timeout(config.deadlineMs),
@@ -63,7 +64,7 @@ export async function runSyntheticCollectionCommand(
     });
     const service = context.get(CollectSourceOnce);
     const result = await runCollectionOperationSpan(signal, (traceContext) =>
-      service.execute(SYNTHETIC_LISTING_SOURCE_ID, key, traceContext, signal),
+      service.execute(SYNTHETIC_LISTING_SOURCE_ID, key, traceContext, signal, deadlineAt),
     );
     logger.log(
       JSON.stringify({

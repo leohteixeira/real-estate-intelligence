@@ -1,4 +1,4 @@
-import type { CollectionRunState, Sha256Hash, UuidV7 } from '@rei/domain';
+import type { CollectionRunState, Sha256Hash, UuidV7, SourceHold } from '@rei/domain';
 
 import type { Transaction } from '../shared/index.js';
 
@@ -85,6 +85,8 @@ export interface CommitCollectionPageResult {
 }
 
 export interface CollectionRunRepository {
+  pause(transaction: Transaction, runId: UuidV7, hold: SourceHold): Promise<CollectionRunState>;
+  resume(transaction: Transaction, runId: UuidV7): Promise<CollectionRunState>;
   findByOperationKey(
     operationKey: string,
     signal?: AbortSignal,

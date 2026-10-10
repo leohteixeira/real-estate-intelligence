@@ -6,7 +6,7 @@ import type { CollectionScheduleRepository } from './collection-schedule.reposit
 
 export const SCHEDULED_COLLECTION_CONSUMER = 'collection.scheduled-run';
 
-/** Executes a durable schedule command and records success plus slot release atomically. */
+/** Records a completed or durable paused disposition plus its matching slot release atomically. */
 export class ConsumeCollectionRunRequest {
   public constructor(
     private readonly collector: CollectSourceRun,
@@ -18,6 +18,7 @@ export class ConsumeCollectionRunRequest {
   public async execute(
     untrustedEvent: unknown,
     signal: AbortSignal,
+    deadlineAt?: number,
   ): Promise<CollectSourceRunResult> {
     const event = parseCollectionRunRequested(untrustedEvent);
     const result = await this.collector.execute(
@@ -25,6 +26,7 @@ export class ConsumeCollectionRunRequest {
       event.payload.operationKey,
       event.traceContext,
       signal,
+      deadlineAt,
     );
     signal.throwIfAborted();
     await this.transactions.runInTransaction(async (transaction) => {

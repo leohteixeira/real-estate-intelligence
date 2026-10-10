@@ -37,7 +37,7 @@ export type {
 } from './collection-run.repository.js';
 export { SOURCE_REGISTER_REPOSITORY } from './source-register.repository.js';
 export type { SourceRegisterRepository } from './source-register.repository.js';
-export { LISTING_SOURCE } from './listing-source.port.js';
+export { LISTING_SOURCE, ListingSourceAccessRefusal } from './listing-source.port.js';
 export type {
   ListingSource,
   ListingSourceFailure,

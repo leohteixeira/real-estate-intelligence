@@ -20,7 +20,11 @@ export interface StoredRawSnapshot {
 
 /** Stores exact source bytes under an immutable, content-addressed key. */
 export interface RawSnapshotStore {
-  store(input: StoreRawSnapshotInput, signal: AbortSignal): Promise<StoredRawSnapshot>;
+  store(
+    input: StoreRawSnapshotInput,
+    signal: AbortSignal,
+    deadlineAt?: number,
+  ): Promise<StoredRawSnapshot>;
 }
 
 /** Documents the closed failure type adapters are required to use. */

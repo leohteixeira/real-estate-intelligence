@@ -1,6 +1,20 @@
-import type { CollectedListing } from '@rei/domain';
+import {
+  SOURCE_ACCESS_REFUSALS,
+  type CollectedListing,
+  type SourceAccessRefusal,
+} from '@rei/domain';
 
-import type { ExternalFailure } from '../shared/index.js';
+import { ExternalFailure } from '../shared/index.js';
+
+/** Canonical access refusal; no HTTP status or vendor error crosses this port. */
+export class ListingSourceAccessRefusal extends ExternalFailure {
+  public constructor(public readonly reason: SourceAccessRefusal) {
+    super({ kind: 'forbidden', operation: 'collection.source.fetch-page' });
+    if (!SOURCE_ACCESS_REFUSALS.includes(reason))
+      throw new TypeError('Unsupported access refusal.');
+    this.name = 'ListingSourceAccessRefusal';
+  }
+}
 
 export const LISTING_SOURCE = Symbol.for('rei.ListingSource');
 
@@ -25,6 +39,7 @@ export interface ListingSource {
     sourceId: string,
     cursor: string | null,
     signal: AbortSignal,
+    deadlineAt?: number,
   ): Promise<ListingSourcePage>;
   parse(document: RawListingDocument, signal: AbortSignal): Promise<CollectedListing>;
 }

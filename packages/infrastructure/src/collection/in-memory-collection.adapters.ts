@@ -13,17 +13,21 @@ import type {
   StoreRawSnapshotInput,
   Transaction,
 } from '@rei/application';
+import { ListingSourceAccessRefusal } from '@rei/application';
 import {
   createSourceRegistration,
   createRunningCollectionRun,
   decideSourceEnablement,
   advanceCollectionRun,
+  pauseCollectionRun,
+  resumeCollectionRun,
   StaleCollectionCheckpointError,
   toEnabledSourceView,
   type CollectedListing,
   type CollectionRunState,
   type EnabledSourceView,
   type SourceRegistration,
+  type SourceHold,
 } from '@rei/domain';
 import { createHash } from 'node:crypto';
 
@@ -90,6 +94,26 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
   readonly #runs = new Map<string, CollectionRunState>();
   readonly #operationRuns = new Map<string, string>();
   readonly #observations = new Map<string, PersistedCollectionObservation[]>();
+
+  public async pause(
+    _transaction: Transaction,
+    runId: CollectionRunState['runId'],
+    hold: SourceHold,
+  ) {
+    const run = this.#runs.get(runId);
+    if (!run) throw new Error('Collection run was not found.');
+    const paused = run.status === 'completed' ? run : pauseCollectionRun(run, hold);
+    this.#runs.set(runId, paused);
+    return paused;
+  }
+
+  public async resume(_transaction: Transaction, runId: CollectionRunState['runId']) {
+    const run = this.#runs.get(runId);
+    if (!run) throw new Error('Collection run was not found.');
+    const resumed = resumeCollectionRun(run);
+    this.#runs.set(runId, resumed);
+    return resumed;
+  }
 
   public async findByOperationKey(operationKey: string): Promise<CollectionExecutionResult | null> {
     const run = await this.loadRunByOperationKey(operationKey);
@@ -301,6 +325,40 @@ export class InMemorySourceRegisterRepository implements SourceRegisterRepositor
 
   public constructor(sources: readonly SourceRegistration[]) {
     for (const source of sources) this.#sources.set(source.sourceId, source);
+  }
+
+  public async holdAtomically(sourceId: string, hold: SourceHold, signal?: AbortSignal) {
+    signal?.throwIfAborted();
+    const current = this.#sources.get(sourceId);
+    if (!current) return null;
+    const held = createSourceRegistration({
+      ...current,
+      enabled: false,
+      enabledAt: null,
+      hold: current.hold ?? hold,
+    });
+    this.#sources.set(sourceId, held);
+    return held;
+  }
+
+  public async clearHoldAfterReview(sourceId: string, reviewedAt: string, signal?: AbortSignal) {
+    signal?.throwIfAborted();
+    const current = this.#sources.get(sourceId);
+    if (!current) return null;
+    if (!Number.isFinite(Date.parse(reviewedAt)))
+      throw new TypeError('Review instant is required.');
+    if (current.hold && Date.parse(reviewedAt) < Date.parse(current.hold.heldAt))
+      throw new TypeError('Review must follow the source hold.');
+    const reviewed = createSourceRegistration({ ...current, hold: null });
+    this.#sources.set(sourceId, reviewed);
+    return reviewed;
+  }
+
+  public async assertCollectible(_transaction: Transaction, sourceId: string) {
+    const current = this.#sources.get(sourceId);
+    if (current?.hold) throw new ListingSourceAccessRefusal(current.hold.reason);
+    if (!current?.enabled || !current.permissions.collectionAllowed)
+      throw new Error('Source is not collectible.');
   }
 
   public async findById(

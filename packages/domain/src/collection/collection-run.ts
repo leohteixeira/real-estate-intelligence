@@ -1,10 +1,11 @@
 import { parseRfc3339Timestamp, type UuidV7 } from '../shared/index.js';
 import type { Sha256Hash } from './sha256-hash.js';
+import { SOURCE_ACCESS_REFUSALS, type SourceHold } from './source-registration.js';
 
 export const COLLECTION_CHECKPOINT_CURSOR_MAX_LENGTH = 300;
 const SAFE_CURSOR = /^[\x21-\x7e]{1,300}$/;
 
-export type CollectionRunStatus = 'running' | 'completed';
+export type CollectionRunStatus = 'running' | 'paused' | 'completed';
 
 export interface CollectionCheckpoint {
   readonly ordinal: number;
@@ -21,6 +22,7 @@ export interface CollectionRunCounts {
 }
 
 export interface CollectionRunState {
+  readonly pause: SourceHold | null;
   readonly operationKey: string;
   readonly runId: UuidV7;
   readonly sourceId: string;
@@ -62,6 +64,7 @@ function freezeRun(input: CollectionRunState): CollectionRunState {
     ...input,
     checkpoint: Object.freeze({ ...input.checkpoint }),
     counts: Object.freeze({ ...input.counts }),
+    pause: input.pause === null ? null : Object.freeze({ ...input.pause }),
   });
 }
 
@@ -75,6 +78,7 @@ export function createRunningCollectionRun(input: {
   return freezeRun({
     ...input,
     status: 'running',
+    pause: null,
     checkpoint: { ordinal: 0, cursor: null, checkpointedAt: null },
     counts: { observed: 0, parsed: 0, changed: 0, suppressed: 0, failed: 0 },
     completedAt: null,
@@ -84,6 +88,13 @@ export function createRunningCollectionRun(input: {
 }
 
 export function hydrateCollectionRun(input: CollectionRunState): CollectionRunState {
+  if (!['running', 'paused', 'completed'].includes(input.status))
+    throw new TypeError('Unsupported collection run status.');
+  if (input.status === 'paused') {
+    if (!input.pause || !SOURCE_ACCESS_REFUSALS.includes(input.pause.reason))
+      throw new TypeError('A paused run requires a canonical pause reason.');
+    parseRfc3339Timestamp(input.pause.heldAt, 'pause.heldAt');
+  } else if (input.pause !== null) throw new TypeError('Only paused runs carry pause metadata.');
   if (!input.operationKey || !input.sourceId)
     throw new TypeError('Collection run identity is required.');
   parseRfc3339Timestamp(input.startedAt, 'startedAt');
@@ -111,7 +122,7 @@ export function hydrateCollectionRun(input: CollectionRunState): CollectionRunSt
   if (counts.changed > counts.parsed) {
     throw new TypeError('Changed collection observations cannot exceed parsed observations.');
   }
-  if (input.status === 'running') {
+  if (input.status !== 'completed') {
     if (
       input.completedAt !== null ||
       input.manifestHash !== null ||
@@ -129,6 +140,18 @@ export function hydrateCollectionRun(input: CollectionRunState): CollectionRunSt
     parseRfc3339Timestamp(input.completedAt, 'completedAt');
   }
   return freezeRun({ ...input, checkpoint: { ...input.checkpoint, ordinal, cursor }, counts });
+}
+
+export function pauseCollectionRun(run: CollectionRunState, pause: SourceHold): CollectionRunState {
+  if (run.status === 'completed') throw new TypeError('A completed collection run is immutable.');
+  if (run.status === 'paused') return run;
+  return hydrateCollectionRun({ ...run, status: 'paused', pause: Object.freeze({ ...pause }) });
+}
+
+export function resumeCollectionRun(run: CollectionRunState): CollectionRunState {
+  if (run.status !== 'paused')
+    throw new TypeError('Only a paused collection run can be explicitly resumed.');
+  return hydrateCollectionRun({ ...run, status: 'running', pause: null });
 }
 
 export function advanceCollectionRun(

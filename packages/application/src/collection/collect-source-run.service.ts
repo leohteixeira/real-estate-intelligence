@@ -8,6 +8,7 @@ import {
   type CollectedListing,
   type CollectionRunState,
   type TraceContext,
+  type SourceHold,
 } from '@rei/domain';
 
 import type {
@@ -28,6 +29,7 @@ import type {
 } from './listing-source.port.js';
 import type { RawSnapshotStore, StoredRawSnapshot } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
+import { ListingSourceAccessRefusal } from './listing-source.port.js';
 
 const OPERATION_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 
@@ -39,6 +41,7 @@ interface PreparedObservation {
 }
 
 export interface CollectSourceRunResult {
+  readonly status: 'completed' | 'paused';
   readonly operationKey: string;
   readonly runId: CollectionRunState['runId'];
   readonly sourceId: string;
@@ -46,9 +49,9 @@ export interface CollectSourceRunResult {
   readonly parsedCount: number;
   readonly changedCount: number;
   readonly failedCount: number;
-  readonly manifestHash: NonNullable<CollectionRunState['manifestHash']>;
-  readonly completedEventId: NonNullable<CollectionRunState['completedEventId']>;
-  readonly completedAt: string;
+  readonly manifestHash: CollectionRunState['manifestHash'];
+  readonly completedEventId: CollectionRunState['completedEventId'];
+  readonly completedAt: string | null;
   readonly replayed: boolean;
 }
 
@@ -71,6 +74,7 @@ function completedResult(run: CollectionRunState, replayed: boolean): CollectSou
     throw new TypeError('A running collection run cannot be returned as a completed result.');
   }
   return Object.freeze({
+    status: 'completed',
     operationKey: run.operationKey,
     runId: run.runId,
     sourceId: run.sourceId,
@@ -81,6 +85,24 @@ function completedResult(run: CollectionRunState, replayed: boolean): CollectSou
     manifestHash: run.manifestHash,
     completedEventId: run.completedEventId,
     completedAt: run.completedAt,
+    replayed,
+  });
+}
+
+function pausedResult(run: CollectionRunState, replayed: boolean): CollectSourceRunResult {
+  if (run.status !== 'paused') throw new TypeError('A durable paused run is required.');
+  return Object.freeze({
+    status: 'paused',
+    operationKey: run.operationKey,
+    runId: run.runId,
+    sourceId: run.sourceId,
+    observedCount: run.counts.observed,
+    parsedCount: run.counts.parsed,
+    changedCount: run.counts.changed,
+    failedCount: run.counts.failed,
+    manifestHash: null,
+    completedEventId: null,
+    completedAt: null,
     replayed,
   });
 }
@@ -134,6 +156,7 @@ export class CollectSourceRun {
     operationKeyInput: string,
     traceContext: TraceContext | null,
     signal: AbortSignal,
+    deadlineAt?: number,
   ): Promise<CollectSourceRunResult> {
     const operationKey = validateOperationKey(operationKeyInput);
     signal.throwIfAborted();
@@ -142,11 +165,12 @@ export class CollectSourceRun {
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
     }
     if (run?.status === 'completed') return completedResult(run, true);
+    if (run?.status === 'paused') return pausedResult(run, true);
 
     const registration = await this.sources.findById(sourceId, signal);
     if (
       registration === null ||
-      !registration.enabled ||
+      (!registration.enabled && registration.hold === null) ||
       !registration.permissions.collectionAllowed ||
       registration.category !== 'synthetic-listing'
     ) {
@@ -163,184 +187,218 @@ export class CollectSourceRun {
         throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
       }
       if (run.status === 'completed') return completedResult(run, true);
+      if (run.status === 'paused') return pausedResult(run, true);
     }
 
-    for (;;) {
-      signal.throwIfAborted();
-      const expected = run.checkpoint;
-      const page = await this.source.fetchPage(sourceId, expected.cursor, signal);
-      validatePage(page, sourceId, expected.cursor);
+    if (registration.hold !== null) return this.pause(run, registration.hold, signal);
 
-      const prepared: PreparedObservation[] = [];
-      for (const document of page.documents) {
+    try {
+      for (;;) {
         signal.throwIfAborted();
-        const stored = await this.snapshots.store(
-          { sourceId, mediaType: document.mediaType, synthetic: true, bytes: document.bytes },
-          signal,
-        );
-        signal.throwIfAborted();
-        try {
-          const listing = await this.source.parse(document, signal);
-          prepared.push({ document, stored, listing, failureReason: null });
-        } catch (error) {
-          if (error instanceof ExternalFailure && error.kind === 'rejected') {
-            prepared.push({
-              document,
-              stored,
-              listing: null,
-              failureReason: 'parser-rejected',
-            });
-            continue;
-          }
-          throw error;
-        }
-      }
+        const current = await this.sources.findById(sourceId, signal);
+        if (current?.hold) return this.pause(run, current.hold, signal);
+        if (!current?.enabled || !current.permissions.collectionAllowed)
+          throw new ExternalFailure({
+            kind: 'forbidden',
+            operation: 'collection.source.fetch-page',
+          });
+        const expected = run.checkpoint;
+        const page = await this.source.fetchPage(sourceId, expected.cursor, signal, deadlineAt);
+        validatePage(page, sourceId, expected.cursor);
 
-      try {
-        const transition = await this.transactions.runInTransaction(async (transaction) => {
-          const locked = await this.runs.lockRunForPage(
-            transaction,
-            run!.runId,
-            expected.ordinal,
-            expected.cursor,
+        const prepared: PreparedObservation[] = [];
+        for (const document of page.documents) {
+          signal.throwIfAborted();
+          const stored = await this.snapshots.store(
+            { sourceId, mediaType: document.mediaType, synthetic: true, bytes: document.bytes },
+            signal,
+            deadlineAt,
           );
-          if (locked.status === 'completed') return { run: locked, committed: false };
-
-          const prefix = await this.runs.listObservations(transaction, locked.runId);
-          const prefixByIdentity = new Map(prefix.map((item) => [item.sourceListingId, item]));
-          for (const item of prepared) {
-            const existing = prefixByIdentity.get(item.document.sourceListingId);
-            if (
-              existing &&
-              (existing.contentHash !== item.stored.contentHash ||
-                existing.sourceUrl !== item.document.sourceUrl ||
-                existing.observedAt !== item.document.observedAt)
-            ) {
-              throw new ExternalFailure({
-                kind: 'rejected',
-                operation: 'collection.run.commit-page',
+          signal.throwIfAborted();
+          try {
+            const listing = await this.source.parse(document, signal);
+            prepared.push({ document, stored, listing, failureReason: null });
+          } catch (error) {
+            if (error instanceof ExternalFailure && error.kind === 'rejected') {
+              prepared.push({
+                document,
+                stored,
+                listing: null,
+                failureReason: 'parser-rejected',
               });
+              continue;
             }
-            if (existing) {
-              throw new ExternalFailure({
-                kind: 'rejected',
-                operation: 'collection.run.commit-page',
-              });
-            }
+            throw error;
           }
+        }
 
-          const observations: CommitCollectionObservationInput[] = [];
-          const parsedEvents: CollectionSnapshotParsed[] = [];
-          const occurredAt = this.clock.now();
-          for (const item of prepared) {
-            const snapshotId = await this.identifiers.generate(transaction);
-            const parsedEventId =
-              item.listing === null ? null : await this.identifiers.generate(transaction);
-            const priorHash =
-              item.listing === null
-                ? null
-                : await this.runs.findLatestCompletedContentHash(
-                    transaction,
-                    sourceId,
-                    locked.runId,
-                    item.document.sourceListingId,
-                  );
-            const changed = priorHash !== null && priorHash !== item.stored.contentHash;
-            observations.push({
-              snapshotId,
-              parsedEventId,
-              sourceListingId: item.document.sourceListingId,
-              sourceUrl: item.document.sourceUrl,
-              observedAt: item.document.observedAt,
-              contentHash: item.stored.contentHash,
-              objectKey: item.stored.objectKey,
-              byteLength: item.stored.byteLength,
-              mediaType: item.stored.mediaType,
-              outcome: item.listing === null ? 'failed' : 'parsed',
-              changed,
-              failureReason: item.failureReason,
+        try {
+          const transition = await this.transactions.runInTransaction(async (transaction) => {
+            await this.sources.assertCollectible(transaction, sourceId);
+            const locked = await this.runs.lockRunForPage(
+              transaction,
+              run!.runId,
+              expected.ordinal,
+              expected.cursor,
+            );
+            if (locked.status === 'completed') return { run: locked, committed: false };
+
+            const prefix = await this.runs.listObservations(transaction, locked.runId);
+            const prefixByIdentity = new Map(prefix.map((item) => [item.sourceListingId, item]));
+            for (const item of prepared) {
+              const existing = prefixByIdentity.get(item.document.sourceListingId);
+              if (
+                existing &&
+                (existing.contentHash !== item.stored.contentHash ||
+                  existing.sourceUrl !== item.document.sourceUrl ||
+                  existing.observedAt !== item.document.observedAt)
+              ) {
+                throw new ExternalFailure({
+                  kind: 'rejected',
+                  operation: 'collection.run.commit-page',
+                });
+              }
+              if (existing) {
+                throw new ExternalFailure({
+                  kind: 'rejected',
+                  operation: 'collection.run.commit-page',
+                });
+              }
+            }
+
+            const observations: CommitCollectionObservationInput[] = [];
+            const parsedEvents: CollectionSnapshotParsed[] = [];
+            const occurredAt = this.clock.now();
+            for (const item of prepared) {
+              const snapshotId = await this.identifiers.generate(transaction);
+              const parsedEventId =
+                item.listing === null ? null : await this.identifiers.generate(transaction);
+              const priorHash =
+                item.listing === null
+                  ? null
+                  : await this.runs.findLatestCompletedContentHash(
+                      transaction,
+                      sourceId,
+                      locked.runId,
+                      item.document.sourceListingId,
+                    );
+              const changed = priorHash !== null && priorHash !== item.stored.contentHash;
+              observations.push({
+                snapshotId,
+                parsedEventId,
+                sourceListingId: item.document.sourceListingId,
+                sourceUrl: item.document.sourceUrl,
+                observedAt: item.document.observedAt,
+                contentHash: item.stored.contentHash,
+                objectKey: item.stored.objectKey,
+                byteLength: item.stored.byteLength,
+                mediaType: item.stored.mediaType,
+                outcome: item.listing === null ? 'failed' : 'parsed',
+                changed,
+                failureReason: item.failureReason,
+              });
+              if (item.listing !== null && parsedEventId !== null)
+                parsedEvents.push(
+                  new CollectionSnapshotParsed({
+                    eventId: parsedEventId,
+                    aggregateId: snapshotId,
+                    occurredAt,
+                    traceContext,
+                    payload: {
+                      run: { runId: locked.runId },
+                      snapshot: { snapshotId, contentHash: item.stored.contentHash },
+                      source: {
+                        sourceId,
+                        sourceListingId: item.document.sourceListingId,
+                        sourceUrl: item.document.sourceUrl,
+                        observedAt: item.document.observedAt,
+                      },
+                      listing: item.listing,
+                    },
+                  }),
+                );
+            }
+
+            const completedAt = page.exhausted ? occurredAt : null;
+            const manifestHash = page.exhausted
+              ? hashCollectionManifest([
+                  ...prefix.map(({ sourceListingId }) => sourceListingId),
+                  ...observations.map(({ sourceListingId }) => sourceListingId),
+                ])
+              : null;
+            const completedEventId = page.exhausted
+              ? await this.identifiers.generate(transaction)
+              : null;
+            const committed = await this.runs.commitPage(transaction, {
+              runId: locked.runId,
+              expectedOrdinal: expected.ordinal,
+              expectedCursor: expected.cursor,
+              nextCursor: page.nextCursor,
+              checkpointedAt: occurredAt,
+              observations,
+              exhausted: page.exhausted,
+              completedAt,
+              manifestHash,
+              completedEventId,
             });
-            if (item.listing !== null && parsedEventId !== null)
-              parsedEvents.push(
-                new CollectionSnapshotParsed({
-                  eventId: parsedEventId,
-                  aggregateId: snapshotId,
-                  occurredAt,
+            if (!committed.committed) return committed;
+
+            const events: (CollectionSnapshotParsed | CollectionRunCompleted)[] = [...parsedEvents];
+            if (page.exhausted) {
+              events.push(
+                new CollectionRunCompleted({
+                  eventId: completedEventId!,
+                  aggregateId: locked.runId,
+                  occurredAt: completedAt!,
                   traceContext,
                   payload: {
-                    run: { runId: locked.runId },
-                    snapshot: { snapshotId, contentHash: item.stored.contentHash },
-                    source: {
-                      sourceId,
-                      sourceListingId: item.document.sourceListingId,
-                      sourceUrl: item.document.sourceUrl,
-                      observedAt: item.document.observedAt,
-                    },
-                    listing: item.listing,
+                    sourceId,
+                    observedCount: committed.run.counts.observed,
+                    parsedCount: committed.run.counts.parsed,
+                    suppressedCount: committed.run.counts.suppressed,
+                    failedCount: committed.run.counts.failed,
+                    manifestHash: manifestHash!,
                   },
                 }),
               );
+            }
+            await this.outbox.append(transaction, events);
+            return committed;
+          }, signal);
+          run = transition.run;
+        } catch (error) {
+          if (!(error instanceof StaleCollectionCheckpointError)) throw error;
+          const winner = await this.runs.loadRunByOperationKey(operationKey, signal);
+          if (!winner) {
+            throw new Error('The winning collection checkpoint could not be reloaded.', {
+              cause: error,
+            });
           }
-
-          const completedAt = page.exhausted ? occurredAt : null;
-          const manifestHash = page.exhausted
-            ? hashCollectionManifest([
-                ...prefix.map(({ sourceListingId }) => sourceListingId),
-                ...observations.map(({ sourceListingId }) => sourceListingId),
-              ])
-            : null;
-          const completedEventId = page.exhausted
-            ? await this.identifiers.generate(transaction)
-            : null;
-          const committed = await this.runs.commitPage(transaction, {
-            runId: locked.runId,
-            expectedOrdinal: expected.ordinal,
-            expectedCursor: expected.cursor,
-            nextCursor: page.nextCursor,
-            checkpointedAt: occurredAt,
-            observations,
-            exhausted: page.exhausted,
-            completedAt,
-            manifestHash,
-            completedEventId,
-          });
-          if (!committed.committed) return committed;
-
-          const events: (CollectionSnapshotParsed | CollectionRunCompleted)[] = [...parsedEvents];
-          if (page.exhausted) {
-            events.push(
-              new CollectionRunCompleted({
-                eventId: completedEventId!,
-                aggregateId: locked.runId,
-                occurredAt: completedAt!,
-                traceContext,
-                payload: {
-                  sourceId,
-                  observedCount: committed.run.counts.observed,
-                  parsedCount: committed.run.counts.parsed,
-                  suppressedCount: committed.run.counts.suppressed,
-                  failedCount: committed.run.counts.failed,
-                  manifestHash: manifestHash!,
-                },
-              }),
-            );
-          }
-          await this.outbox.append(transaction, events);
-          return committed;
-        }, signal);
-        run = transition.run;
-      } catch (error) {
-        if (!(error instanceof StaleCollectionCheckpointError)) throw error;
-        const winner = await this.runs.loadRunByOperationKey(operationKey, signal);
-        if (!winner) {
-          throw new Error('The winning collection checkpoint could not be reloaded.', {
-            cause: error,
-          });
+          run = winner;
         }
-        run = winner;
-      }
 
-      if (run.status === 'completed') return completedResult(run, false);
+        if (run.status === 'completed') return completedResult(run, false);
+        if (run.status === 'paused') return pausedResult(run, true);
+      }
+    } catch (error) {
+      if (!(error instanceof ListingSourceAccessRefusal)) throw error;
+      const held = await this.sources.holdAtomically(
+        sourceId,
+        { reason: error.reason, heldAt: this.clock.now() },
+        signal,
+      );
+      if (!held?.hold) throw new Error('Source hold could not be persisted.', { cause: error });
+      return this.pause(run, held.hold, signal);
     }
+  }
+
+  private async pause(run: CollectionRunState, hold: SourceHold, signal: AbortSignal) {
+    const paused = await this.transactions.runInTransaction(
+      (transaction) => this.runs.pause(transaction, run.runId, hold),
+      signal,
+    );
+    return paused.status === 'completed'
+      ? completedResult(paused, true)
+      : pausedResult(paused, false);
   }
 }

@@ -18,7 +18,7 @@ import type {
   CollectionRunRepository,
   PersistCompletedCollectionInput,
 } from './collection-run.repository.js';
-import type { ListingSource } from './listing-source.port.js';
+import { ListingSourceAccessRefusal, type ListingSource } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
 
@@ -55,6 +55,7 @@ export class CollectSourceOnce {
     operationKeyInput: string,
     traceContext: TraceContext | null,
     signal: AbortSignal,
+    deadlineAt?: number,
   ): Promise<CollectionExecutionResult> {
     const operationKey = validateOperationKey(operationKeyInput);
     signal.throwIfAborted();
@@ -88,7 +89,19 @@ export class CollectSourceOnce {
 
     signal.throwIfAborted();
     const startedAt = this.clock.now();
-    const page = await this.source.fetchPage(sourceId, null, signal);
+    const page = await this.source
+      .fetchPage(sourceId, null, signal, deadlineAt)
+      .catch(async (error: unknown) => {
+        if (error instanceof ListingSourceAccessRefusal) {
+          const held = await this.sources.holdAtomically(
+            sourceId,
+            { reason: error.reason, heldAt: this.clock.now() },
+            signal,
+          );
+          if (!held?.hold) throw new Error('Source hold could not be persisted.', { cause: error });
+        }
+        throw error;
+      });
     if (!page.exhausted || page.documents.length !== 1) {
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
     }
@@ -113,6 +126,7 @@ export class CollectSourceOnce {
         bytes: document.bytes,
       },
       signal,
+      deadlineAt,
     );
 
     signal.throwIfAborted();
@@ -120,6 +134,7 @@ export class CollectSourceOnce {
     signal.throwIfAborted();
 
     return this.transactions.runInTransaction(async (transaction) => {
+      await this.sources.assertCollectible(transaction, sourceId);
       signal.throwIfAborted();
       const runId = await this.identifiers.generate(transaction);
       const snapshotId = await this.identifiers.generate(transaction);

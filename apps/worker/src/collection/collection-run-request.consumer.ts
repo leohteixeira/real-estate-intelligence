@@ -28,9 +28,12 @@ export class CollectionRunRequestConsumer {
       async (untrusted, delivery) => {
         const event = parseCollectionRunRequested(untrusted);
         const { runTimeoutMs } = readScheduledCollectionConfig(process.env);
+        const deadlineAt = Math.min(delivery.deadlineAt, Date.now() + runTimeoutMs);
         const signal = AbortSignal.any([delivery.signal, AbortSignal.timeout(runTimeoutMs)]);
         await this.limiter.run(event.payload.sourceId, signal, () =>
-          runScheduledCollectionSpan(signal, () => this.service.execute(untrusted, signal)),
+          runScheduledCollectionSpan(signal, () =>
+            this.service.execute(untrusted, signal, deadlineAt),
+          ),
         );
       },
     );

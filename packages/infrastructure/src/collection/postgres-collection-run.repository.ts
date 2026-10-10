@@ -15,6 +15,8 @@ import {
   parseSha256Hash,
   parseUuidV7,
   type CollectionRunState,
+  type SourceAccessRefusal,
+  type SourceHold,
 } from '@rei/domain';
 
 import type {
@@ -23,6 +25,7 @@ import type {
 } from '../shared/persistence/database-connection.js';
 import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
 import { redactConnectionError } from '../shared/persistence/redact.js';
+import { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';
 
 interface LegacyResultRow {
   readonly operation_key: unknown;
@@ -36,6 +39,8 @@ interface LegacyResultRow {
 }
 
 interface RunRow {
+  readonly pause_reason: unknown;
+  readonly paused_at: unknown;
   readonly operation_key: unknown;
   readonly run_id: unknown;
   readonly source_id: unknown;
@@ -73,7 +78,7 @@ const RUN_FIELDS = `run.operation_key, run.run_id::text, run.source_id, run.stat
   run.started_at, run.completed_at, run.observed_count, run.parsed_count,
   run.changed_count, run.suppressed_count, run.failed_count, run.manifest_hash,
   run.completed_event_id::text, run.checkpoint_ordinal, run.checkpoint_cursor,
-  run.checkpointed_at`;
+  run.checkpointed_at, run.pause_reason, run.paused_at`;
 
 const LOAD_RUN_QUERY = `SELECT ${RUN_FIELDS}
   FROM collection.collection_run AS run WHERE run.operation_key = $1`;
@@ -93,11 +98,14 @@ function nullableString(value: unknown, field: string): string | null {
 }
 
 function mapRun(row: RunRow): CollectionRunState {
+  if ((row.pause_reason === null) !== (row.paused_at === null)) {
+    throw new Error('PostgreSQL returned incoherent run pause metadata.');
+  }
   if (
     typeof row.operation_key !== 'string' ||
     typeof row.run_id !== 'string' ||
     typeof row.source_id !== 'string' ||
-    (row.status !== 'running' && row.status !== 'completed') ||
+    (row.status !== 'running' && row.status !== 'paused' && row.status !== 'completed') ||
     typeof row.observed_count !== 'number' ||
     typeof row.parsed_count !== 'number' ||
     (row.changed_count !== undefined && typeof row.changed_count !== 'number') ||
@@ -114,6 +122,13 @@ function mapRun(row: RunRow): CollectionRunState {
     runId: parseUuidV7(row.run_id),
     sourceId: row.source_id,
     status: row.status,
+    pause:
+      row.pause_reason === null
+        ? null
+        : {
+            reason: nullableString(row.pause_reason, 'pause reason') as SourceAccessRefusal,
+            heldAt: date(row.paused_at, 'paused at')!,
+          },
     startedAt: date(row.started_at, 'started at')!,
     completedAt: date(row.completed_at, 'completed at', true),
     counts: {
@@ -171,6 +186,49 @@ async function oneRun(
 
 export class PostgresCollectionRunRepository implements CollectionRunRepository {
   public constructor(private readonly connection: DatabaseConnection) {}
+
+  public async pause(
+    transaction: Transaction,
+    runId: CollectionRunState['runId'],
+    hold: SourceHold,
+  ) {
+    const client = postgresClientFor(transaction, this.connection);
+    await client.query(
+      `UPDATE collection.collection_run SET status = 'paused', pause_reason = $2, paused_at = $3
+      WHERE run_id = $1 AND status = 'running'`,
+      [runId, hold.reason, hold.heldAt],
+    );
+    const run = await oneRun(
+      client,
+      `SELECT ${RUN_FIELDS} FROM collection.collection_run AS run WHERE run.run_id = $1`,
+      [runId],
+    );
+    if (!run) throw new Error('Collection run was not found.');
+    return run;
+  }
+
+  public async resume(transaction: Transaction, runId: CollectionRunState['runId']) {
+    const client = postgresClientFor(transaction, this.connection);
+    const current = await oneRun(
+      client,
+      `SELECT ${RUN_FIELDS} FROM collection.collection_run AS run WHERE run.run_id = $1`,
+      [runId],
+    );
+    if (!current || current.status !== 'paused')
+      throw new TypeError('Only a paused run can be explicitly resumed.');
+    await new PostgresSourceRegisterRepository(this.connection).assertCollectible(
+      transaction,
+      current.sourceId,
+    );
+    const run = await oneRun(
+      client,
+      `UPDATE collection.collection_run AS run SET status = 'running', pause_reason = NULL, paused_at = NULL
+      WHERE run.run_id = $1 AND run.status = 'paused' RETURNING ${RUN_FIELDS}`,
+      [runId],
+    );
+    if (!run) throw new StaleCollectionCheckpointError();
+    return run;
+  }
 
   public async findByOperationKey(
     operationKey: string,

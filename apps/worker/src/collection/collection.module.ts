@@ -41,6 +41,8 @@ import { CollectionRunLimiter } from './collection-run-limiter';
 import { CollectionRunRequestConsumer } from './collection-run-request.consumer';
 import { CollectionScheduleJob } from './collection-schedule.job';
 import { FixtureListingSourceRouter } from './fixture-listing-source-router';
+import { ResilientListingSource } from './resilient-listing-source';
+import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
 
 @Module({
   providers: [
@@ -48,12 +50,16 @@ import { FixtureListingSourceRouter } from './fixture-listing-source-router';
     { provide: CLOCK, useValue: { now: (): string => new Date().toISOString() } satisfies Clock },
     {
       provide: LISTING_SOURCE,
-      useFactory: (): ListingSource =>
-        new FixtureListingSourceRouter(
-          new SyntheticListingSource(),
-          new SyntheticSaoPauloListingSource(
-            readScheduledCollectionConfig(process.env).syntheticPageDelayMs,
+      inject: [SOURCE_REGISTER_REPOSITORY],
+      useFactory: (register: SourceRegisterRepository): ListingSource =>
+        new ResilientListingSource(
+          new FixtureListingSourceRouter(
+            new SyntheticListingSource(),
+            new SyntheticSaoPauloListingSource(
+              readScheduledCollectionConfig(process.env).syntheticPageDelayMs,
+            ),
           ),
+          register,
         ),
     },
     {
@@ -69,7 +75,11 @@ import { FixtureListingSourceRouter } from './fixture-listing-source-router';
         });
       },
     },
-    { provide: RAW_SNAPSHOT_STORE, useExisting: S3RawSnapshotStore },
+    {
+      provide: RAW_SNAPSHOT_STORE,
+      inject: [S3RawSnapshotStore],
+      useFactory: (adapter: S3RawSnapshotStore) => new ResilientRawSnapshotStore(adapter),
+    },
     {
       provide: SOURCE_REGISTER_REPOSITORY,
       inject: [DATABASE_CONNECTION],
