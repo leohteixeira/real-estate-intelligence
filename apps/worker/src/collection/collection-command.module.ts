@@ -7,6 +7,7 @@ import {
   LISTING_SOURCE,
   OUTBOX_APPEND_PORT,
   RAW_SNAPSHOT_STORE,
+  SNAPSHOT_SANITIZER,
   SOURCE_REGISTER_REPOSITORY,
   TRANSACTION_RUNNER,
   UUID_V7_GENERATOR,
@@ -18,11 +19,14 @@ import {
   type SourceRegisterRepository,
   type TransactionRunner,
   type UuidV7Generator,
+  type SnapshotSanitizer,
 } from '@rei/application';
 import {
   PostgresCollectionRunRepository,
   PostgresSourceRegisterRepository,
   S3RawSnapshotStore,
+  CanonicalSnapshotSanitizer,
+  PostgresSnapshotLifecycle,
   SyntheticListingSource,
   type DatabaseConnection,
 } from '@rei/infrastructure';
@@ -37,6 +41,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }), PersistenceModule],
   providers: [
+    { provide: SNAPSHOT_SANITIZER, useClass: CanonicalSnapshotSanitizer },
     ResilienceTelemetry,
     {
       provide: CLOCK,
@@ -51,7 +56,8 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
     },
     {
       provide: S3RawSnapshotStore,
-      useFactory: (): S3RawSnapshotStore => {
+      inject: [DATABASE_CONNECTION, CLOCK],
+      useFactory: (connection: DatabaseConnection, clock: Clock): S3RawSnapshotStore => {
         const config = readCollectionCommandConfig(process.env);
         return new S3RawSnapshotStore({
           endpoint: config.objectStoreEndpoint,
@@ -59,6 +65,10 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
           bucket: config.objectStoreBucket,
           accessKeyId: config.objectStoreAccessKeyId,
           secretAccessKey: config.objectStoreSecretAccessKey,
+          lifecycle: new PostgresSnapshotLifecycle(connection),
+          clock,
+          reconciliationIntervalMs: config.snapshotRetentionIntervalMs,
+          ...(config.snapshotEncryption ? { encryption: config.snapshotEncryption } : {}),
         });
       },
     },
@@ -90,6 +100,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
         UUID_V7_GENERATOR,
         CLOCK,
         OUTBOX_APPEND_PORT,
+        SNAPSHOT_SANITIZER,
       ],
       useFactory: (
         source: ListingSource,
@@ -100,6 +111,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
         identifiers: UuidV7Generator,
         clock: Clock,
         outbox: OutboxAppendPort,
+        sanitizer: SnapshotSanitizer,
       ): CollectSourceOnce =>
         new CollectSourceOnce(
           source,
@@ -110,6 +122,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
           identifiers,
           clock,
           outbox,
+          sanitizer,
         ),
     },
   ],

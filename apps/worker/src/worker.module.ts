@@ -19,7 +19,7 @@ import { DeliveryRetentionJob } from './shared/delivery-retention.job';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, ignoreEnvFile: true }),
     PersistenceModule,
     MessagingModule,
     PropertiesModule,

@@ -13,7 +13,7 @@ import type {
   StoreRawSnapshotInput,
   Transaction,
 } from '@rei/application';
-import { ListingSourceAccessRefusal } from '@rei/application';
+import { ExternalFailure, ListingSourceAccessRefusal } from '@rei/application';
 import {
   createSourceRegistration,
   createRunningCollectionRun,
@@ -69,6 +69,8 @@ export class InMemoryRawSnapshotStore implements RawSnapshotStore {
   ): Promise<StoredRawSnapshot> {
     signal.throwIfAborted();
     const digest = createHash('sha256').update(input.bytes).digest('hex');
+    if (!input.synthetic)
+      throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.store' });
     const contentHash = `sha256:${digest}` as StoredRawSnapshot['contentHash'];
     const objectKey = `synthetic/sha256/${digest}.json`;
     this.#objects.set(objectKey, Uint8Array.from(input.bytes));

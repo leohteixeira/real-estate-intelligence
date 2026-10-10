@@ -35,6 +35,10 @@ export interface CollectionCommandConfig {
   readonly objectStoreBucket: string;
   readonly objectStoreAccessKeyId: string;
   readonly objectStoreSecretAccessKey: string;
+  readonly snapshotEncryption?: { readonly keyId: string; readonly keyBase64: string };
+  readonly snapshotRetentionIntervalMs: number;
+  readonly snapshotRetentionBatchSize: number;
+  readonly snapshotRetentionCycleTimeoutMs: number;
 }
 
 export interface WorkerDatabaseConfig {
@@ -264,6 +268,18 @@ function required(env: NodeJS.ProcessEnv, name: string): string {
 }
 
 export function readCollectionCommandConfig(env: NodeJS.ProcessEnv): CollectionCommandConfig {
+  const keyId = env.SNAPSHOT_ENCRYPTION_KEY_ID?.trim();
+  const keyBase64 = env.SNAPSHOT_ENCRYPTION_KEY_BASE64?.trim();
+  if (
+    Boolean(keyId) !== Boolean(keyBase64) ||
+    (keyId && !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(keyId)) ||
+    (keyBase64 &&
+      (Buffer.from(keyBase64, 'base64').byteLength !== 32 ||
+        Buffer.from(keyBase64, 'base64').toString('base64') !== keyBase64))
+  )
+    throw new Error(
+      'Snapshot encryption requires an explicit key identifier and a canonical base64 32-byte key.',
+    );
   const objectStoreEndpoint = required(env, 'OBJECT_STORE_ENDPOINT');
   let endpoint: URL;
   try {
@@ -285,6 +301,28 @@ export function readCollectionCommandConfig(env: NodeJS.ProcessEnv): CollectionC
   }
 
   return {
+    ...(keyId && keyBase64 ? { snapshotEncryption: { keyId, keyBase64 } } : {}),
+    snapshotRetentionIntervalMs: positiveInteger(
+      env,
+      'SNAPSHOT_RETENTION_INTERVAL_MS',
+      300_000,
+      100,
+      MAX_TIMER_DELAY_MS,
+    ),
+    snapshotRetentionBatchSize: positiveInteger(
+      env,
+      'SNAPSHOT_RETENTION_BATCH_SIZE',
+      100,
+      1,
+      1_000,
+    ),
+    snapshotRetentionCycleTimeoutMs: positiveInteger(
+      env,
+      'SNAPSHOT_RETENTION_CYCLE_TIMEOUT_MS',
+      10_000,
+      100,
+      MAX_TIMER_DELAY_MS,
+    ),
     deadlineMs: positiveInteger(
       env,
       'COLLECTION_DEADLINE_MS',

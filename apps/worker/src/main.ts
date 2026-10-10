@@ -5,6 +5,7 @@ import { AuditTraceConsumer } from './audit/audit-trace.consumer';
 import { CollectionAuditConsumer } from './collection/collection-audit.consumer';
 import { CollectionRunRequestConsumer } from './collection/collection-run-request.consumer';
 import { CollectionScheduleJob } from './collection/collection-schedule.job';
+import { SnapshotRetentionJob } from './collection/snapshot-retention.job';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -37,12 +38,14 @@ async function bootstrap(): Promise<void> {
   const broker = context.get(RabbitMqEventBroker);
   const brokerSupervisor = context.get(BrokerConnectionSupervisor);
   const retention = context.get(DeliveryRetentionJob);
+  const snapshotRetention = context.get(SnapshotRetentionJob);
   await auditConsumer.start();
   await collectionConsumer.start();
   await collectionRunConsumer.start();
   brokerSupervisor.start();
   relay.start();
   retention.start();
+  snapshotRetention.start();
   heartbeat.start();
   collectionSchedule.start();
 
@@ -57,6 +60,7 @@ async function bootstrap(): Promise<void> {
           stopBrokerSupervisor: () => brokerSupervisor.stop(),
           stopRelay: () => relay.stop(),
           stopRetention: () => retention.stop(),
+          stopSnapshotRetention: () => snapshotRetention.stop(),
           stopHeartbeat: () => heartbeat.stop(),
           closeBroker: () => broker.close(),
           closeContext: () => context.close(),

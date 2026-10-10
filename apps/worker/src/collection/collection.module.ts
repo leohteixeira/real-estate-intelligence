@@ -9,6 +9,9 @@ import {
   LISTING_SOURCE,
   OUTBOX_APPEND_PORT,
   RAW_SNAPSHOT_STORE,
+  SNAPSHOT_SANITIZER,
+  SNAPSHOT_LIFECYCLE,
+  ExpireSnapshots,
   RequestDueCollectionRuns,
   SOURCE_REGISTER_REPOSITORY,
   TRANSACTION_RUNNER,
@@ -23,12 +26,17 @@ import {
   type SourceRegisterRepository,
   type TransactionRunner,
   type UuidV7Generator,
+  type SnapshotSanitizer,
+  type SnapshotLifecycle,
+  type SnapshotContentStore,
 } from '@rei/application';
 import {
   PostgresCollectionRunRepository,
   PostgresCollectionScheduleRepository,
   PostgresSourceRegisterRepository,
   S3RawSnapshotStore,
+  CanonicalSnapshotSanitizer,
+  PostgresSnapshotLifecycle,
   SyntheticListingSource,
   SyntheticSaoPauloListingSource,
   type DatabaseConnection,
@@ -43,9 +51,23 @@ import { CollectionScheduleJob } from './collection-schedule.job';
 import { FixtureListingSourceRouter } from './fixture-listing-source-router';
 import { ResilientListingSource } from './resilient-listing-source';
 import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
+import { SnapshotRetentionJob } from './snapshot-retention.job';
 
 @Module({
   providers: [
+    { provide: SNAPSHOT_SANITIZER, useClass: CanonicalSnapshotSanitizer },
+    {
+      provide: SNAPSHOT_LIFECYCLE,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection) => new PostgresSnapshotLifecycle(connection),
+    },
+    {
+      provide: ExpireSnapshots,
+      inject: [SNAPSHOT_LIFECYCLE, RAW_SNAPSHOT_STORE, CLOCK],
+      useFactory: (lifecycle: SnapshotLifecycle, store: SnapshotContentStore, clock: Clock) =>
+        new ExpireSnapshots(lifecycle, store, clock),
+    },
+    SnapshotRetentionJob,
     CollectionAuditConsumer,
     { provide: CLOCK, useValue: { now: (): string => new Date().toISOString() } satisfies Clock },
     {
@@ -64,7 +86,8 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
     },
     {
       provide: S3RawSnapshotStore,
-      useFactory: (): S3RawSnapshotStore => {
+      inject: [SNAPSHOT_LIFECYCLE, CLOCK],
+      useFactory: (lifecycle: SnapshotLifecycle, clock: Clock): S3RawSnapshotStore => {
         const config = readScheduledCollectionConfig(process.env);
         return new S3RawSnapshotStore({
           endpoint: config.objectStoreEndpoint,
@@ -72,6 +95,10 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
           bucket: config.objectStoreBucket,
           accessKeyId: config.objectStoreAccessKeyId,
           secretAccessKey: config.objectStoreSecretAccessKey,
+          lifecycle,
+          clock,
+          reconciliationIntervalMs: config.snapshotRetentionIntervalMs,
+          ...(config.snapshotEncryption ? { encryption: config.snapshotEncryption } : {}),
         });
       },
     },
@@ -109,6 +136,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
         UUID_V7_GENERATOR,
         CLOCK,
         OUTBOX_APPEND_PORT,
+        SNAPSHOT_SANITIZER,
       ],
       useFactory: (
         source: ListingSource,
@@ -119,6 +147,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
         identifiers: UuidV7Generator,
         clock: Clock,
         outbox: OutboxAppendPort,
+        sanitizer: SnapshotSanitizer,
       ): CollectSourceRun =>
         new CollectSourceRun(
           source,
@@ -129,6 +158,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
           identifiers,
           clock,
           outbox,
+          sanitizer,
         ),
     },
     {
@@ -168,7 +198,12 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
     CollectionScheduleJob,
     CollectionRunRequestConsumer,
   ],
-  exports: [CollectionAuditConsumer, CollectionScheduleJob, CollectionRunRequestConsumer],
+  exports: [
+    CollectionAuditConsumer,
+    CollectionScheduleJob,
+    CollectionRunRequestConsumer,
+    SnapshotRetentionJob,
+  ],
 })
 export class CollectionModule implements OnApplicationShutdown {
   public constructor(@Inject(S3RawSnapshotStore) private readonly snapshots: S3RawSnapshotStore) {}

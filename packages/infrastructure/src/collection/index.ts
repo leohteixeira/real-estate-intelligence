@@ -18,6 +18,11 @@ export { PostgresCollectionScheduleRepository } from './postgres-collection-sche
 export { PostgresCollectionFacade } from './postgres-collection.facade.js';
 export { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';
 export { S3RawSnapshotStore } from './s3-raw-snapshot-store.js';
+export { CanonicalSnapshotSanitizer } from './canonical-snapshot-sanitizer.js';
+export { PostgresSnapshotLifecycle } from './postgres-snapshot-lifecycle.js';
+export { InMemorySnapshotLifecycle } from './in-memory-snapshot-lifecycle.js';
+export { SnapshotAeadCodec } from './snapshot-aead-codec.js';
+export type { SnapshotEncryptionConfig } from './snapshot-aead-codec.js';
 export type { S3RawSnapshotStoreConfig } from './s3-raw-snapshot-store.js';
 export {
   SYNTHETIC_LISTING_BYTES,

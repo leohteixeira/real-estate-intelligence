@@ -44,3 +44,5 @@ function settings(dependency: string, source: boolean): CollectionResilienceSett
 
 export const listingSourceResilienceSettings = settings('listing-source', true);
 export const rawSnapshotStoreResilienceSettings = settings('raw-snapshot-store', false);
+export const rawSnapshotReadResilienceSettings = settings('raw-snapshot-read', false);
+export const rawSnapshotDeleteResilienceSettings = settings('raw-snapshot-delete', false);

@@ -7,7 +7,9 @@ export const RAW_SNAPSHOT_STORE = Symbol.for('rei.RawSnapshotStore');
 export interface StoreRawSnapshotInput {
   readonly sourceId: string;
   readonly mediaType: 'application/json';
-  readonly synthetic: true;
+  readonly synthetic: boolean;
+  /** Stable operation/source/listing identity; required for a real acquisition. */
+  readonly acquisitionId?: string;
   readonly bytes: Uint8Array;
 }
 
@@ -25,6 +27,11 @@ export interface RawSnapshotStore {
     signal: AbortSignal,
     deadlineAt?: number,
   ): Promise<StoredRawSnapshot>;
+}
+
+export interface SnapshotContentStore extends RawSnapshotStore {
+  read(objectKey: string, signal: AbortSignal, deadlineAt?: number): Promise<Uint8Array>;
+  delete(objectKey: string, signal: AbortSignal, deadlineAt?: number): Promise<void>;
 }
 
 /** Documents the closed failure type adapters are required to use. */

@@ -4,6 +4,7 @@ export interface WorkerShutdownSteps {
   readonly stopBrokerSupervisor: () => Promise<void>;
   readonly stopRelay: () => Promise<void>;
   readonly stopRetention: () => Promise<void>;
+  readonly stopSnapshotRetention?: () => Promise<void>;
   readonly stopHeartbeat: () => void;
   readonly closeBroker: () => Promise<void>;
   readonly closeContext: () => Promise<void>;
@@ -23,6 +24,7 @@ async function runOrderedShutdown(steps: WorkerShutdownSteps): Promise<void> {
   await steps.stopBrokerSupervisor();
   await steps.stopRelay();
   await steps.stopRetention();
+  await steps.stopSnapshotRetention?.();
   steps.stopHeartbeat();
   await steps.closeBroker();
   await steps.closeContext();

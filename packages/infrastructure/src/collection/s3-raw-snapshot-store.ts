@@ -2,6 +2,7 @@ import {
   BucketAlreadyExists,
   BucketAlreadyOwnedByYou,
   CreateBucketCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
@@ -14,9 +15,20 @@ import {
   type RawSnapshotStore,
   type StoredRawSnapshot,
   type StoreRawSnapshotInput,
+  type SnapshotLifecycle,
+  type SnapshotGeneration,
+  type Clock,
 } from '@rei/application';
-import { parseSha256Hash } from '@rei/domain';
+import {
+  parseSha256Hash,
+  sanitizeSnapshotListing,
+  assertSnapshotIdentifier,
+  isOwnedSyntheticSourceId,
+} from '@rei/domain';
 import { createHash } from 'node:crypto';
+import { Agent as HttpAgent } from 'node:http';
+import { Agent as HttpsAgent } from 'node:https';
+import { SnapshotAeadCodec, type SnapshotEncryptionConfig } from './snapshot-aead-codec.js';
 
 export interface S3RawSnapshotStoreConfig {
   readonly endpoint: string;
@@ -24,6 +36,10 @@ export interface S3RawSnapshotStoreConfig {
   readonly bucket: string;
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
+  readonly encryption?: SnapshotEncryptionConfig;
+  readonly lifecycle?: SnapshotLifecycle;
+  readonly clock?: Clock;
+  readonly reconciliationIntervalMs?: number;
 }
 
 function statusCode(error: unknown): number | undefined {
@@ -111,9 +127,23 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
   readonly #client: S3Client;
   readonly #bucket: string;
   #bucketReady: Promise<void> | undefined;
+  readonly #lifecycle: SnapshotLifecycle | undefined;
+  readonly #codec: SnapshotAeadCodec | undefined;
+  readonly #clock: Clock;
+  readonly #reconciliationIntervalMs: number;
 
   public constructor(config: S3RawSnapshotStoreConfig) {
     this.#bucket = config.bucket;
+    this.#lifecycle = config.lifecycle;
+    this.#codec = config.encryption ? new SnapshotAeadCodec(config.encryption) : undefined;
+    this.#clock = config.clock ?? { now: () => new Date().toISOString() };
+    this.#reconciliationIntervalMs = config.reconciliationIntervalMs ?? 300_000;
+    if (
+      !Number.isSafeInteger(this.#reconciliationIntervalMs) ||
+      this.#reconciliationIntervalMs < 100 ||
+      this.#reconciliationIntervalMs > 2_147_483_647
+    )
+      throw new RangeError('Snapshot reconciliation interval must be a bounded positive timer.');
     this.#client = new S3Client({
       endpoint: config.endpoint,
       region: config.region,
@@ -123,6 +153,12 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
         secretAccessKey: config.secretAccessKey,
       },
       maxAttempts: 1,
+      // A conditional PUT can close its socket on MinIO. Fresh sockets keep a winner read
+      // one-attempt as well, without relying on the SDK's transport retry to recover it.
+      requestHandler: {
+        httpAgent: new HttpAgent({ keepAlive: false }),
+        httpsAgent: new HttpsAgent({ keepAlive: false }),
+      },
     });
   }
 
@@ -178,6 +214,13 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
     signal: AbortSignal,
   ): Promise<StoredRawSnapshot> {
     if (signal.aborted) throw externalFailure(signal.reason, signal);
+    if (!input.synthetic)
+      return this.#storeReal(input, signal).catch((error) => {
+        if (error instanceof ExternalFailure) throw error;
+        throw externalFailure(error, signal);
+      });
+    if (!isOwnedSyntheticSourceId(input.sourceId))
+      throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.store' });
     const digest = createHash('sha256').update(input.bytes).digest('hex');
     const contentHash = parseSha256Hash(`sha256:${digest}`);
     const objectKey = `synthetic/sha256/${digest}.json`;
@@ -249,6 +292,25 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
   /** Reads an immutable object for integrity checks without exposing the provider SDK. */
   public async read(objectKey: string, signal: AbortSignal): Promise<Uint8Array> {
     if (signal.aborted) throw externalFailure(signal.reason, signal, 'raw-snapshot.read');
+    if (objectKey.startsWith('real/')) {
+      const lifecycle = this.#realLifecycle();
+      if (!this.#codec)
+        throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.read' });
+      const result = await lifecycle.withGeneration(objectKey, signal, async (generation) => {
+        this.#assertAccessible(generation, true);
+        const bytes = this.#codec!.decrypt(
+          await this.#readCiphertext(objectKey, signal),
+          generation,
+        );
+        this.#assertAccessible(generation, true);
+        signal.throwIfAborted();
+        return { generation, bytes };
+      });
+      // COMMIT and lease release can cross the deadline or cancellation after the callback.
+      if (signal.aborted) throw externalFailure(signal.reason, signal, 'raw-snapshot.read');
+      this.#assertAccessible(result.generation, true);
+      return result.bytes;
+    }
 
     try {
       const result = await this.#client.send(
@@ -263,6 +325,136 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
       if (error instanceof ExternalFailure) throw error;
       throw externalFailure(error, signal, 'raw-snapshot.read');
     }
+  }
+
+  #realLifecycle(): SnapshotLifecycle {
+    if (!this.#lifecycle)
+      throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.lifecycle' });
+    return this.#lifecycle;
+  }
+
+  #assertAccessible(generation: SnapshotGeneration, requireAvailable: boolean): void {
+    if (
+      generation.deleted ||
+      (requireAvailable && !generation.available) ||
+      Date.parse(this.#clock.now()) >= Date.parse(generation.expiresAt)
+    )
+      throw new ExternalFailure({ kind: 'rejected', operation: 'raw-snapshot.expired' });
+  }
+
+  async #readCiphertext(objectKey: string, signal: AbortSignal): Promise<Uint8Array> {
+    try {
+      const result = await this.#client.send(
+        new GetObjectCommand({ Bucket: this.#bucket, Key: objectKey }),
+        { abortSignal: signal },
+      );
+      if (!result.Body)
+        throw new ExternalFailure({ kind: 'rejected', operation: 'raw-snapshot.read' });
+      const bytes = await result.Body.transformToByteArray();
+      signal.throwIfAborted();
+      return bytes;
+    } catch (error) {
+      if (error instanceof ExternalFailure) throw error;
+      throw externalFailure(error, signal, 'raw-snapshot.read');
+    }
+  }
+
+  async #storeReal(input: StoreRawSnapshotInput, signal: AbortSignal): Promise<StoredRawSnapshot> {
+    const lifecycle = this.#realLifecycle();
+    if (
+      !this.#codec ||
+      !input.acquisitionId ||
+      input.bytes.byteLength === 0 ||
+      input.bytes.byteLength > 1_048_576
+    )
+      throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.store' });
+    try {
+      assertSnapshotIdentifier(input.sourceId);
+      // Reject callers that bypass the application sanitizer; never upload their bytes.
+      const listing = sanitizeSnapshotListing(
+        JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(input.bytes)),
+      );
+      if (!Buffer.from(input.bytes).equals(Buffer.from(JSON.stringify(listing))))
+        throw new TypeError('Snapshot is not canonical sanitized JSON.');
+    } catch {
+      throw new ExternalFailure({ kind: 'rejected', operation: 'raw-snapshot.store' });
+    }
+    const digest = createHash('sha256').update(input.bytes).digest('hex');
+    const contentHash = parseSha256Hash(`sha256:${digest}`);
+    const acquisitionScope = createHash('sha256').update(input.acquisitionId).digest('hex');
+    const objectKey = `real/${acquisitionScope}/sha256/${digest}.aead`;
+    await lifecycle.reserve(
+      {
+        acquisitionScope,
+        sourceId: input.sourceId,
+        objectKey,
+        contentHash,
+        byteLength: input.bytes.byteLength,
+        mediaType: input.mediaType,
+        keyId: this.#codec.keyId,
+        collectedAt: this.#clock.now(),
+      },
+      signal,
+    );
+    return lifecycle.withGeneration(objectKey, signal, async (generation, transaction) => {
+      this.#assertAccessible(generation, false);
+      try {
+        await this.#ensureBucket(signal);
+        const ciphertext = this.#codec!.encrypt(input.bytes, generation);
+        try {
+          await this.#client.send(
+            new PutObjectCommand({
+              Bucket: this.#bucket,
+              Key: objectKey,
+              Body: ciphertext,
+              ContentLength: ciphertext.byteLength,
+              ContentType: 'application/octet-stream',
+              IfNoneMatch: '*',
+              Metadata: { 'rei-content-hash': contentHash, 'rei-key-id': generation.keyId },
+            }),
+            { abortSignal: signal },
+          );
+        } catch (error) {
+          if (!isPreconditionFailure(error)) throw error;
+          this.#codec!.decrypt(await this.#readCiphertext(objectKey, signal), generation);
+        }
+        this.#assertAccessible(generation, false);
+        signal.throwIfAborted();
+        await lifecycle.markAvailable(transaction, objectKey);
+        return {
+          contentHash,
+          objectKey,
+          byteLength: input.bytes.byteLength,
+          mediaType: input.mediaType,
+        };
+      } catch (error) {
+        if (error instanceof ExternalFailure) throw error;
+        throw externalFailure(error, signal);
+      }
+    });
+  }
+
+  /** Only expired real generations are deleted; historical metadata is retained. */
+  public async delete(objectKey: string, signal: AbortSignal): Promise<void> {
+    const lifecycle = this.#realLifecycle();
+    await lifecycle.withGeneration(objectKey, signal, async (generation, transaction) => {
+      if (Date.parse(this.#clock.now()) < Date.parse(generation.expiresAt))
+        throw new ExternalFailure({ kind: 'rejected', operation: 'raw-snapshot.delete' });
+      try {
+        await this.#client.send(new DeleteObjectCommand({ Bucket: this.#bucket, Key: objectKey }), {
+          abortSignal: signal,
+        });
+        signal.throwIfAborted();
+        await lifecycle.markDeleted(
+          transaction,
+          objectKey,
+          new Date(Date.parse(this.#clock.now()) + this.#reconciliationIntervalMs).toISOString(),
+        );
+      } catch (error) {
+        if (error instanceof ExternalFailure) throw error;
+        throw externalFailure(error, signal, 'raw-snapshot.delete');
+      }
+    });
   }
 
   public destroy(): void {

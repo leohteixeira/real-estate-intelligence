@@ -16,7 +16,14 @@ export {
   parseCollectionRunCompleted,
   parseCollectionRunRequested,
   parseCollectionSnapshotParsed,
+  parseCollectedListing,
 } from './collection.events.js';
+export {
+  assertSnapshotIdentifier,
+  maskSnapshotText,
+  sanitizeSnapshotListing,
+  snapshotContactNames,
+} from './snapshot-privacy.js';
 export type {
   CollectedListing,
   CollectedListingAdvertiser,

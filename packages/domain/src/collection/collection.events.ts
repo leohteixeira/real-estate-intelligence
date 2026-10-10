@@ -8,6 +8,7 @@ import {
   type UuidV7,
 } from '../shared/index.js';
 import { parseSha256Hash, type Sha256Hash } from './sha256-hash.js';
+import { maskSnapshotText } from './snapshot-text-privacy.js';
 
 export const COLLECTION_SNAPSHOT_PARSED_TYPE = 'collection.snapshot.parsed' as const;
 export const COLLECTION_RUN_REQUESTED_TYPE = 'collection.run.requested' as const;
@@ -249,14 +250,7 @@ function fingerprints(value: unknown, field: string): readonly string[] {
 
 function maskedDescription(value: unknown): string {
   const parsed = stringValue(value, 'payload.listing.maskedDescription', 20_000);
-  const containsEmail = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(parsed);
-  const containsCpf = /\b\d{3}[\s.]?\d{3}[\s.]?\d{3}[\s-]?\d{2}\b/.test(parsed);
-  const containsPhone = /(?:\+?55\s*)?(?:\(?\d{2}\)?[\s.-]*)?\d{4,5}[\s.-]*\d{4}/.test(parsed);
-  const containsLink =
-    /(?:https?:\/\/|www\.)\S+/i.test(parsed) ||
-    /\b(?:[a-z0-9-]+\.)+[a-z]{2,63}(?:[/?#][^\s]*)?/i.test(parsed);
-  const containsSentinel = /\bunmasked\b/i.test(parsed);
-  if (containsEmail || containsCpf || containsPhone || containsLink || containsSentinel) {
+  if (maskSnapshotText(parsed) !== parsed) {
     return fail(
       'payload.listing.maskedDescription contains unmasked contact data or a link.',
       'payload.listing.maskedDescription',
@@ -332,7 +326,7 @@ function parseAdvertiser(value: unknown): CollectedListingAdvertiser {
   };
 }
 
-function parseListing(value: unknown): CollectedListing {
+export function parseCollectedListing(value: unknown): CollectedListing {
   const parsed = exactRecord(
     value,
     [
@@ -426,7 +420,7 @@ function parseSnapshotPayload(value: unknown): CollectionSnapshotParsedPayload {
         'payload.source.observedAt',
       ),
     },
-    listing: parseListing(parsed.listing),
+    listing: parseCollectedListing(parsed.listing),
   };
 }
 

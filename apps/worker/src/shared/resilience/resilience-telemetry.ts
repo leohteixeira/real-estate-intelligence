@@ -10,6 +10,8 @@ import {
 import {
   listingSourceResilienceSettings,
   rawSnapshotStoreResilienceSettings,
+  rawSnapshotReadResilienceSettings,
+  rawSnapshotDeleteResilienceSettings,
 } from '../../collection/collection-resilience.settings';
 
 const EVENT_TYPES: readonly ResilienceEvent['type'][] = [
@@ -28,7 +30,12 @@ const POLICY_DEPENDENCIES = new Map([
   ...Object.values(eventPublisherResilienceSettings.policies).map(
     (name) => [name, EVENT_PUBLISHER_DEPENDENCY] as const,
   ),
-  ...[listingSourceResilienceSettings, rawSnapshotStoreResilienceSettings].flatMap((settings) =>
+  ...[
+    listingSourceResilienceSettings,
+    rawSnapshotStoreResilienceSettings,
+    rawSnapshotReadResilienceSettings,
+    rawSnapshotDeleteResilienceSettings,
+  ].flatMap((settings) =>
     Object.values(settings.policies).map((name) => [name, settings.dependency] as const),
   ),
 ]);

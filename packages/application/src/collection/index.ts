@@ -50,4 +50,14 @@ export type {
   RawSnapshotStoreFailure,
   StoredRawSnapshot,
   StoreRawSnapshotInput,
+  SnapshotContentStore,
 } from './raw-snapshot-store.port.js';
+export { SNAPSHOT_SANITIZER } from './snapshot-sanitizer.port.js';
+export type { SnapshotSanitizer, SanitizedSnapshot } from './snapshot-sanitizer.port.js';
+export { SNAPSHOT_LIFECYCLE, SNAPSHOT_RETENTION_MS } from './snapshot-lifecycle.port.js';
+export { ExpireSnapshots } from './expire-snapshots.service.js';
+export type {
+  SnapshotGeneration,
+  SnapshotLifecycle,
+  SnapshotRetention,
+} from './snapshot-lifecycle.port.js';

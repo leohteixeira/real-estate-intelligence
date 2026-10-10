@@ -1,10 +1,12 @@
 import {
+  decideSourceEnablement,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
   hashCollectionManifest,
   parseCollectionSourceListingId,
   type TraceContext,
 } from '@rei/domain';
+import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
 import type {
   Clock,
@@ -48,6 +50,7 @@ export class CollectSourceOnce {
     private readonly identifiers: UuidV7Generator,
     private readonly clock: Clock,
     private readonly outbox: OutboxAppendPort,
+    private readonly sanitizer?: SnapshotSanitizer,
   ) {}
 
   public async execute(
@@ -82,7 +85,8 @@ export class CollectSourceOnce {
       registration === null ||
       !registration.enabled ||
       !registration.permissions.collectionAllowed ||
-      registration.category !== 'synthetic-listing'
+      !['synthetic-listing', 'listing'].includes(registration.category) ||
+      !decideSourceEnablement(registration).eligible
     ) {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch' });
     }
@@ -105,7 +109,12 @@ export class CollectSourceOnce {
     if (!page.exhausted || page.documents.length !== 1) {
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
     }
-    const document = page.documents[0]!;
+    const original = page.documents[0]!;
+    const synthetic = registration.category === 'synthetic-listing';
+    if (!synthetic && !this.sanitizer)
+      throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.snapshot.sanitize' });
+    const sanitized = synthetic ? null : this.sanitizer!.sanitize(original);
+    const document = sanitized?.document ?? original;
     if (document.sourceId !== registration.sourceId) {
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
     }
@@ -122,7 +131,8 @@ export class CollectSourceOnce {
       {
         sourceId,
         mediaType: document.mediaType,
-        synthetic: true,
+        synthetic,
+        acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
         bytes: document.bytes,
       },
       signal,
@@ -130,7 +140,8 @@ export class CollectSourceOnce {
     );
 
     signal.throwIfAborted();
-    const listing = await this.source.parse(document, signal);
+    const parsedListing = await this.source.parse(document, signal);
+    const listing = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
     signal.throwIfAborted();
 
     return this.transactions.runInTransaction(async (transaction) => {

@@ -9,6 +9,7 @@ import type {
   StartCollectionRunInput,
   Transaction,
 } from '@rei/application';
+import { ExternalFailure } from '@rei/application';
 import {
   StaleCollectionCheckpointError,
   hydrateCollectionRun,
@@ -67,10 +68,9 @@ const LEGACY_RESULT_QUERY = `
          observation.parsed_event_id::text,
          run.completed_event_id::text,
          observation.content_hash,
-         object.object_key
+         observation.object_key
     FROM collection.collection_run AS run
     JOIN collection.snapshot_observation AS observation ON observation.run_id = run.run_id
-    JOIN collection.raw_object AS object ON object.content_hash = observation.content_hash
    WHERE run.operation_key = $1 AND run.status = 'completed'
 `;
 
@@ -344,10 +344,9 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       }>(
         `SELECT observation.snapshot_id::text, observation.parsed_event_id::text,
                 observation.source_listing_id, observation.source_url, observation.observed_at,
-                observation.content_hash, object.object_key, observation.outcome,
+                observation.content_hash, observation.object_key, observation.outcome,
                 observation.changed, observation.failure_reason
            FROM collection.snapshot_observation AS observation
-           JOIN collection.raw_object AS object ON object.content_hash = observation.content_hash
           WHERE observation.run_id = $1
           ORDER BY observation.source_listing_id`,
         [runId],
@@ -425,43 +424,47 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
     const client = postgresClientFor(transaction, this.connection);
     try {
       for (const observation of input.observations) {
-        await client.query(
-          `INSERT INTO collection.raw_object
+        if (observation.objectKey.startsWith('real/')) {
+          await this.assertRealGeneration(client, observation);
+        } else {
+          await client.query(
+            `INSERT INTO collection.raw_object
              (content_hash, object_key, byte_length, media_type, synthetic)
            VALUES ($1, $2, $3, $4, true)
            ON CONFLICT (content_hash) DO NOTHING`,
-          [
-            observation.contentHash,
-            observation.objectKey,
-            observation.byteLength,
-            observation.mediaType,
-          ],
-        );
-        const objects = await client.query<{
-          object_key: unknown;
-          byte_length: unknown;
-          media_type: unknown;
-          synthetic: unknown;
-        }>(
-          `SELECT object_key, byte_length, media_type, synthetic
+            [
+              observation.contentHash,
+              observation.objectKey,
+              observation.byteLength,
+              observation.mediaType,
+            ],
+          );
+          const objects = await client.query<{
+            object_key: unknown;
+            byte_length: unknown;
+            media_type: unknown;
+            synthetic: unknown;
+          }>(
+            `SELECT object_key, byte_length, media_type, synthetic
              FROM collection.raw_object WHERE content_hash = $1`,
-          [observation.contentHash],
-        );
-        const object = objects[0];
-        if (
-          !object ||
-          object.object_key !== observation.objectKey ||
-          object.byte_length !== observation.byteLength ||
-          object.media_type !== observation.mediaType ||
-          object.synthetic !== true
-        ) {
-          throw new Error('Content hash is already bound to different raw object metadata.');
+            [observation.contentHash],
+          );
+          const object = objects[0];
+          if (
+            !object ||
+            object.object_key !== observation.objectKey ||
+            object.byte_length !== observation.byteLength ||
+            object.media_type !== observation.mediaType ||
+            object.synthetic !== true
+          ) {
+            throw new Error('Content hash is already bound to different raw object metadata.');
+          }
         }
         await client.query(
           `INSERT INTO collection.snapshot_observation
              (snapshot_id, run_id, content_hash, source_listing_id, source_url, observed_at,
-              parsed_event_id, outcome, changed, failure_reason)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+              parsed_event_id, outcome, changed, failure_reason, object_key)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
           [
             observation.snapshotId,
             input.runId,
@@ -473,6 +476,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
             observation.outcome,
             observation.changed,
             observation.failureReason,
+            observation.objectKey,
           ],
         );
       }
@@ -561,38 +565,42 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         return { created: false, result };
       }
 
-      await client.query(
-        `INSERT INTO collection.raw_object
+      if (input.objectKey.startsWith('real/')) {
+        await this.assertRealGeneration(client, input);
+      } else {
+        await client.query(
+          `INSERT INTO collection.raw_object
            (content_hash, object_key, byte_length, media_type, synthetic)
          VALUES ($1, $2, $3, $4, true)
          ON CONFLICT (content_hash) DO NOTHING`,
-        [input.contentHash, input.objectKey, input.byteLength, input.mediaType],
-      );
-      const objects = await client.query<{
-        object_key: unknown;
-        byte_length: unknown;
-        media_type: unknown;
-        synthetic: unknown;
-      }>(
-        `SELECT object_key, byte_length, media_type, synthetic
+          [input.contentHash, input.objectKey, input.byteLength, input.mediaType],
+        );
+        const objects = await client.query<{
+          object_key: unknown;
+          byte_length: unknown;
+          media_type: unknown;
+          synthetic: unknown;
+        }>(
+          `SELECT object_key, byte_length, media_type, synthetic
            FROM collection.raw_object WHERE content_hash = $1`,
-        [input.contentHash],
-      );
-      const object = objects[0];
-      if (
-        !object ||
-        object.object_key !== input.objectKey ||
-        object.byte_length !== input.byteLength ||
-        object.media_type !== input.mediaType ||
-        object.synthetic !== true
-      ) {
-        throw new Error('Content hash is already bound to different raw object metadata.');
+          [input.contentHash],
+        );
+        const object = objects[0];
+        if (
+          !object ||
+          object.object_key !== input.objectKey ||
+          object.byte_length !== input.byteLength ||
+          object.media_type !== input.mediaType ||
+          object.synthetic !== true
+        ) {
+          throw new Error('Content hash is already bound to different raw object metadata.');
+        }
       }
       await client.query(
         `INSERT INTO collection.snapshot_observation
            (snapshot_id, run_id, content_hash, source_listing_id, source_url, observed_at,
-            parsed_event_id, outcome, changed)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'parsed', false)`,
+            parsed_event_id, outcome, changed, object_key)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'parsed', false, $8)`,
         [
           input.snapshotId,
           input.runId,
@@ -601,6 +609,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
           input.sourceUrl,
           input.observedAt,
           input.parsedEventId,
+          input.objectKey,
         ],
       );
       return {
@@ -620,5 +629,38 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
     } catch (error) {
       throw redactConnectionError(error);
     }
+  }
+
+  private async assertRealGeneration(
+    client: Pick<DatabaseClient, 'query'>,
+    input: {
+      readonly objectKey: string;
+      readonly contentHash: string;
+      readonly byteLength: number;
+      readonly mediaType: string;
+    },
+  ): Promise<void> {
+    const rows = await client.query<{
+      content_hash: string;
+      byte_length: number;
+      media_type: string;
+      available: boolean;
+      deleted: boolean;
+      expires_at: Date;
+    }>(
+      'SELECT content_hash, byte_length, media_type, available, deleted, expires_at FROM collection.snapshot_generation WHERE object_key = $1 FOR SHARE',
+      [input.objectKey],
+    );
+    const generation = rows[0];
+    if (
+      !generation ||
+      !generation.available ||
+      generation.deleted ||
+      generation.expires_at.valueOf() <= Date.now() ||
+      generation.content_hash !== input.contentHash ||
+      generation.byte_length !== input.byteLength ||
+      generation.media_type !== input.mediaType
+    )
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.snapshot.commit' });
   }
 }

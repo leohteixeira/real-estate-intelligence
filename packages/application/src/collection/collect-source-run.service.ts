@@ -1,4 +1,5 @@
 import {
+  decideSourceEnablement,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
   StaleCollectionCheckpointError,
@@ -10,6 +11,7 @@ import {
   type TraceContext,
   type SourceHold,
 } from '@rei/domain';
+import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
 import type {
   Clock,
@@ -149,6 +151,7 @@ export class CollectSourceRun {
     private readonly identifiers: UuidV7Generator,
     private readonly clock: Clock,
     private readonly outbox: OutboxAppendPort,
+    private readonly sanitizer?: SnapshotSanitizer,
   ) {}
 
   public async execute(
@@ -172,7 +175,8 @@ export class CollectSourceRun {
       registration === null ||
       (!registration.enabled && registration.hold === null) ||
       !registration.permissions.collectionAllowed ||
-      registration.category !== 'synthetic-listing'
+      !['synthetic-listing', 'listing'].includes(registration.category) ||
+      (registration.hold === null && !decideSourceEnablement(registration).eligible)
     ) {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch-page' });
     }
@@ -207,16 +211,31 @@ export class CollectSourceRun {
         validatePage(page, sourceId, expected.cursor);
 
         const prepared: PreparedObservation[] = [];
-        for (const document of page.documents) {
+        for (const original of page.documents) {
           signal.throwIfAborted();
+          const synthetic = registration.category === 'synthetic-listing';
+          if (!synthetic && !this.sanitizer)
+            throw new ExternalFailure({
+              kind: 'forbidden',
+              operation: 'collection.snapshot.sanitize',
+            });
+          const sanitized = synthetic ? null : this.sanitizer!.sanitize(original);
+          const document = sanitized?.document ?? original;
           const stored = await this.snapshots.store(
-            { sourceId, mediaType: document.mediaType, synthetic: true, bytes: document.bytes },
+            {
+              sourceId,
+              mediaType: document.mediaType,
+              synthetic,
+              bytes: document.bytes,
+              acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
+            },
             signal,
             deadlineAt,
           );
           signal.throwIfAborted();
           try {
-            const listing = await this.source.parse(document, signal);
+            const parsedListing = await this.source.parse(document, signal);
+            const listing = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
             prepared.push({ document, stored, listing, failureReason: null });
           } catch (error) {
             if (error instanceof ExternalFailure && error.kind === 'rejected') {
