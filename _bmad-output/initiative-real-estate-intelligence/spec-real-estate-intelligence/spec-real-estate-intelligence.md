@@ -13,6 +13,9 @@ companions:
   - ../../../specs/adrs/0008-typed-query-routing-with-jev.md
   - ../../../specs/adrs/0009-ai-provider-resilience-policies.md
   - ../../../specs/adrs/0010-durable-ai-runs-and-remote-checkpoints.md
+  - ../../../specs/adrs/0011-bounded-contexts-and-module-layout.md
+  - ../../../specs/adrs/0012-domain-events-and-transactional-outbox.md
+  - ../../../specs/adrs/0013-anti-corruption-layer-and-resilience-for-external-systems.md
 sources:
   - /workspace/docs/real-state-intelligence/real_state_intelligence.md
   - /workspace/docs/real-state-intelligence/plan.md
@@ -387,6 +390,16 @@ authenticated, authorized user, are built ready for that boundary and stay unexp
   `@rei/domain`); vendor SDKs stay in infrastructure adapters and AI SDKs in adapters inside
   `@rei/ai`; no vendor type crosses a port or a public contract; model roles (decision, language,
   embedding, reranker) are swappable behind ports.
+- Business code is divided into the nine bounded contexts of `architecture.md`. A context is the
+  only reader and writer of its PostgreSQL schema, no foreign key crosses a schema, and one context
+  reaches another only through its facade, for a query, or through an event, for a change.
+- An event that leaves a context is written to the outbox in the transaction that changes the
+  aggregate and published afterwards; every consumer is idempotent. Nothing publishes to the broker
+  from inside a request.
+- Every external system (listing sources, object storage, the broker, the AI service, AI providers,
+  Keycloak, open-data files) sits behind a port and an adapter under one resilience composition:
+  one attempt per adapter, retries with capped exponential backoff and jitter for idempotent
+  operations only, a circuit breaker with a named fallback, and a key on every write.
 - The frontend reaches the backend only through the versioned `/api/v1` contract and computes no
   business value; it only formats numbers and dates for the locale.
 - The product separates a public surface from protected operations. Operations, entity-resolution
@@ -409,7 +422,8 @@ authenticated, authorized user, are built ready for that boundary and stay unexp
   accepted, and relevant operations are audit-logged.
 - Accepted ADRs under `specs/adrs/` are normative over `architecture.md`; a material framework,
   persistence, telemetry or toolchain decision needs a new ADR before code. `architecture.md` lists
-  the ADRs that decisions of this spec still owe.
+  the ADRs that decisions of this spec still owe. ADRs 0011 to 0013 hold the three constraints
+  above.
 
 ### Experience
 
