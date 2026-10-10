@@ -83,7 +83,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const request = http.getRequest<Request>();
     const response = http.getResponse<Response<ErrorResponse>>();
-    const exceptionStatus = exception instanceof HttpException ? exception.getStatus() : undefined;
+    const exceptionStatus = getExceptionStatus(exception);
     const status = isHttpErrorStatus(exceptionStatus)
       ? exceptionStatus
       : HttpStatus.INTERNAL_SERVER_ERROR;
@@ -94,7 +94,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
         : INTERNAL_ERROR);
     const requestId = getRequestId(request) ?? randomUUID();
 
-    if (!(exception instanceof HttpException)) {
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error({ event: 'api.unexpected_failure', requestId });
     }
 
@@ -109,5 +109,40 @@ export class ApiExceptionFilter implements ExceptionFilter {
 }
 
 function isHttpErrorStatus(status: number | undefined): status is number {
-  return status !== undefined && status >= 400 && status <= 599;
+  return status !== undefined && Number.isInteger(status) && status >= 400 && status <= 599;
+}
+
+function getExceptionStatus(exception: unknown): number | undefined {
+  if (exception instanceof HttpException) {
+    return exception.getStatus();
+  }
+
+  if (typeof exception !== 'object' || exception === null || !('message' in exception)) {
+    return undefined;
+  }
+
+  if (typeof exception.message !== 'string') {
+    return undefined;
+  }
+
+  const status = 'status' in exception ? exception.status : undefined;
+  const statusCode = 'statusCode' in exception ? exception.statusCode : undefined;
+
+  if (status !== undefined && !isHttpErrorStatusValue(status)) {
+    return undefined;
+  }
+
+  if (statusCode !== undefined && !isHttpErrorStatusValue(statusCode)) {
+    return undefined;
+  }
+
+  if (status !== undefined && statusCode !== undefined && status !== statusCode) {
+    return undefined;
+  }
+
+  return statusCode ?? status;
+}
+
+function isHttpErrorStatusValue(status: unknown): status is number {
+  return typeof status === 'number' && isHttpErrorStatus(status);
 }
