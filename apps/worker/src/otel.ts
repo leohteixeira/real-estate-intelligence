@@ -22,27 +22,35 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 const serviceName = process.env.OTEL_SERVICE_NAME ?? 'real-estate-intelligence-worker';
 const exportEnabled = Boolean(process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim());
 
-const sdk = new NodeSDK({
-  resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: serviceName,
-    [ATTR_SERVICE_VERSION]: process.env.npm_package_version ?? '0.0.0',
-  }),
-  instrumentations: [new HttpInstrumentation(), new PgInstrumentation()],
-  ...(exportEnabled
+export function telemetryExporterConfiguration(enabled: boolean) {
+  return enabled
     ? {
         traceExporter: new OTLPTraceExporter(),
         metricReader: new PeriodicExportingMetricReader({
           exporter: new OTLPMetricExporter(),
         }),
       }
-    : {}),
+    : {
+        // Empty arrays suppress the SDK's implicit OTLP trace, log and metric
+        // exporters when this service has no collector endpoint configured.
+        spanProcessors: [],
+        logRecordProcessors: [],
+        metricReaders: [],
+      };
+}
+
+const sdk = new NodeSDK({
+  resource: resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: serviceName,
+    [ATTR_SERVICE_VERSION]: process.env.npm_package_version ?? '0.0.0',
+  }),
+  instrumentations: [new HttpInstrumentation(), new PgInstrumentation()],
+  ...telemetryExporterConfiguration(exportEnabled),
 });
 
 sdk.start();
 
-const shutdown = (): void => {
-  void sdk.shutdown().finally(() => process.exit(0));
-};
-
-process.once('SIGTERM', shutdown);
-process.once('SIGINT', shutdown);
+/** Called by the worker's single ordered, deadline-bound shutdown path. */
+export async function shutdownTelemetry(): Promise<void> {
+  await sdk.shutdown();
+}
