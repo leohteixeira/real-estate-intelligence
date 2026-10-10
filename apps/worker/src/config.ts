@@ -17,6 +17,20 @@ export interface WorkerConfig {
   readonly retentionBatchSize: number;
 }
 
+export interface CollectionCommandConfig {
+  readonly deadlineMs: number;
+  readonly objectStoreEndpoint: string;
+  readonly objectStoreRegion: string;
+  readonly objectStoreBucket: string;
+  readonly objectStoreAccessKeyId: string;
+  readonly objectStoreSecretAccessKey: string;
+}
+
+export interface WorkerDatabaseConfig {
+  readonly databaseUrl: string;
+  readonly operationTimeoutMs: number;
+}
+
 const DEFAULT_INTERVAL_MS = 30_000;
 const DEFAULT_RELAY_INTERVAL_MS = 1_000;
 const DEFAULT_RELAY_BATCH_SIZE = 25;
@@ -31,6 +45,7 @@ const DEFAULT_INBOX_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
 const DEFAULT_RETENTION_INTERVAL_MS = 5 * 60 * 1_000;
 const DEFAULT_RETENTION_BATCH_SIZE = 1_000;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
+const DEFAULT_COLLECTION_DEADLINE_MS = 30_000;
 
 function positiveInteger(
   env: NodeJS.ProcessEnv,
@@ -48,11 +63,7 @@ function positiveInteger(
 }
 
 export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
-  const databaseUrl = env.DATABASE_URL?.trim();
-
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL is required. See env.example.');
-  }
+  const { databaseUrl, operationTimeoutMs } = readWorkerDatabaseConfig(env);
 
   const rabbitMqUrl = env.RABBITMQ_URL?.trim();
   if (!rabbitMqUrl) {
@@ -67,13 +78,6 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     MAX_TIMER_DELAY_MS,
   );
 
-  const operationTimeoutMs = positiveInteger(
-    env,
-    'WORKER_OPERATION_TIMEOUT_MS',
-    DEFAULT_OPERATION_TIMEOUT_MS,
-    100,
-    MAX_TIMER_DELAY_MS,
-  );
   const shutdownTimeoutMs = positiveInteger(
     env,
     'SHUTDOWN_TIMEOUT_MS',
@@ -177,5 +181,67 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     inboxRetentionMs,
     retentionIntervalMs,
     retentionBatchSize,
+  };
+}
+
+export function readDatabaseUrl(env: NodeJS.ProcessEnv): string {
+  const databaseUrl = env.DATABASE_URL?.trim();
+  if (!databaseUrl) throw new Error('DATABASE_URL is required. See env.example.');
+  return databaseUrl;
+}
+
+export function readWorkerDatabaseConfig(env: NodeJS.ProcessEnv): WorkerDatabaseConfig {
+  return {
+    databaseUrl: readDatabaseUrl(env),
+    operationTimeoutMs: positiveInteger(
+      env,
+      'WORKER_OPERATION_TIMEOUT_MS',
+      DEFAULT_OPERATION_TIMEOUT_MS,
+      100,
+      MAX_TIMER_DELAY_MS,
+    ),
+  };
+}
+
+function required(env: NodeJS.ProcessEnv, name: string): string {
+  const value = env[name]?.trim();
+  if (!value) throw new Error(`${name} is required. See env.example.`);
+  return value;
+}
+
+export function readCollectionCommandConfig(env: NodeJS.ProcessEnv): CollectionCommandConfig {
+  const objectStoreEndpoint = required(env, 'OBJECT_STORE_ENDPOINT');
+  let endpoint: URL;
+  try {
+    endpoint = new URL(objectStoreEndpoint);
+  } catch {
+    throw new Error('OBJECT_STORE_ENDPOINT must be an absolute HTTP(S) URL.');
+  }
+  if (
+    !['http:', 'https:'].includes(endpoint.protocol) ||
+    endpoint.username.length > 0 ||
+    endpoint.password.length > 0
+  ) {
+    throw new Error('OBJECT_STORE_ENDPOINT must be an absolute HTTP(S) URL without credentials.');
+  }
+
+  const objectStoreBucket = required(env, 'OBJECT_STORE_BUCKET');
+  if (!/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/.test(objectStoreBucket)) {
+    throw new Error('OBJECT_STORE_BUCKET must be a valid 3-63 character bucket name.');
+  }
+
+  return {
+    deadlineMs: positiveInteger(
+      env,
+      'COLLECTION_DEADLINE_MS',
+      DEFAULT_COLLECTION_DEADLINE_MS,
+      100,
+      MAX_TIMER_DELAY_MS,
+    ),
+    objectStoreEndpoint: endpoint.toString().replace(/\/$/, ''),
+    objectStoreRegion: required(env, 'OBJECT_STORE_REGION'),
+    objectStoreBucket,
+    objectStoreAccessKeyId: required(env, 'OBJECT_STORE_ACCESS_KEY_ID'),
+    objectStoreSecretAccessKey: required(env, 'OBJECT_STORE_SECRET_ACCESS_KEY'),
   };
 }

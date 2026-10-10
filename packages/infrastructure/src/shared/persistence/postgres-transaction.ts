@@ -41,20 +41,71 @@ export class PostgresTransactionRunner implements TransactionRunner {
 
   public async runInTransaction<TResult>(
     work: (transaction: Transaction) => Promise<TResult>,
+    signal?: AbortSignal,
   ): Promise<TResult> {
-    const client = await this.connection.leaseClient();
+    signal?.throwIfAborted();
+    const lease = this.connection.leaseClient();
+    let removeCheckoutAbort = (): void => {};
+    const checkoutAborted = new Promise<never>((_resolve, reject) => {
+      if (!signal) return;
+      const onAbort = (): void => reject(signal.reason);
+      signal.addEventListener('abort', onAbort, { once: true });
+      removeCheckoutAbort = () => signal.removeEventListener('abort', onAbort);
+    });
+
+    let client: DatabaseClient;
+    try {
+      client = signal ? await Promise.race([lease, checkoutAborted]) : await lease;
+    } catch (error) {
+      if (signal?.aborted) {
+        void lease.then(
+          (lateClient) => lateClient.release(true),
+          () => undefined,
+        );
+        throw signal.reason;
+      }
+      throw redactConnectionError(error);
+    } finally {
+      removeCheckoutAbort();
+    }
+
     const transaction = new PostgresTransaction(this.connection.transactionIdentity(), client);
     let begun = false;
+    let commitAcknowledged = false;
+    let destroyed = false;
+    let removeAbort = (): void => {};
+    const aborted = new Promise<never>((_resolve, reject) => {
+      if (!signal) return;
+      const onAbort = (): void => {
+        if (!destroyed) {
+          destroyed = true;
+          client.release(true);
+        }
+        reject(signal.reason);
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+      removeAbort = () => signal.removeEventListener('abort', onAbort);
+      if (signal.aborted) onAbort();
+    });
+    const abortable = async <T>(operation: Promise<T>): Promise<T> =>
+      signal ? Promise.race([operation, aborted]) : operation;
 
     try {
-      await client.query('BEGIN');
+      signal?.throwIfAborted();
+      await abortable(client.query('BEGIN'));
       begun = true;
-      const result = await work(transaction);
-      await client.query('COMMIT');
+      const result = await abortable(work(transaction));
+      signal?.throwIfAborted();
+      await abortable(client.query('COMMIT'));
+      commitAcknowledged = true;
       transaction.deactivate();
+      if (signal?.aborted) {
+        // PostgreSQL already acknowledged COMMIT, so cancellation cannot prove a rollback.
+        return result;
+      }
       return result;
     } catch (error) {
-      if (begun) {
+      if (begun && !destroyed && !commitAcknowledged) {
         try {
           await client.query('ROLLBACK');
         } catch {
@@ -62,9 +113,11 @@ export class PostgresTransactionRunner implements TransactionRunner {
         }
       }
       transaction.deactivate();
+      if (signal?.aborted) throw signal.reason;
       throw redactConnectionError(error);
     } finally {
-      client.release();
+      removeAbort();
+      if (!destroyed) client.release();
     }
   }
 }

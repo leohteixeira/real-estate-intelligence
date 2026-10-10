@@ -8,7 +8,7 @@ export interface DatabaseClient {
     statement: string,
     parameters?: readonly unknown[],
   ): Promise<readonly TRow[]>;
-  release(): void;
+  release(destroy?: boolean): void;
 }
 
 /**
@@ -137,7 +137,7 @@ export class DatabaseConnection {
           const result = await client.query<TRow>(statement, [...parameters]);
           return result.rows;
         },
-        release: () => client.release(),
+        release: (destroy = false) => client.release(destroy),
       };
     } catch (error) {
       throw redactConnectionError(error);

@@ -17,7 +17,11 @@ services:
       # /var/lib/postgresql/data makes the image refuse to start.
       - postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-realestate}']
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -h 127.0.0.1 -U ${POSTGRES_USER:-realestate} -d ${POSTGRES_DB:-real_estate_intelligence}',
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -134,6 +138,33 @@ services:
       timeout: 3s
       retries: 12
     stop_grace_period: 30s
+
+  # Owner-operated one-shot surface. It is excluded from ordinary `compose up` and never starts
+  # collection implicitly with the long-lived worker.
+  collection-command:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    entrypoint: ['node', '-r', './dist/otel.js', 'dist/collection/collect-synthetic.js']
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
+      WORKER_OPERATION_TIMEOUT_MS: ${WORKER_OPERATION_TIMEOUT_MS:-5000}
+      COLLECTION_DEADLINE_MS: ${COLLECTION_DEADLINE_MS:-30000}
+      OBJECT_STORE_ENDPOINT: http://minio:9000
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION:-us-east-1}
+      OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:-real-estate-snapshots}
+      OBJECT_STORE_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-realestate}
+      OBJECT_STORE_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-realestate}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: real-estate-intelligence-collection-command
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    restart: 'no'
 
   # Deliberately without DATABASE_URL and without object storage credentials:
   # the LangGraph service reaches domain capabilities only through typed tools

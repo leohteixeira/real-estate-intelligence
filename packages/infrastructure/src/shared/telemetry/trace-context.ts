@@ -63,7 +63,7 @@ function completeWithFailure(span: Span, result: 'cancelled' | 'failed' | 'timed
 }
 
 async function runSpan<TResult>(
-  name: 'outbox.append' | 'outbox.publish',
+  name: 'collection.run' | 'outbox.append' | 'outbox.publish',
   kind: SpanKind,
   durableParent: TraceContext | null | undefined,
   signal: AbortSignal | undefined,
@@ -81,6 +81,16 @@ async function runSpan<TResult>(
       span.end();
     }
   });
+}
+
+/** Creates the causal root for one owner-operated collection command. */
+export function runCollectionOperationSpan<TResult>(
+  signal: AbortSignal,
+  work: (traceContext: TraceContext | null) => Promise<TResult>,
+): Promise<TResult> {
+  return runSpan('collection.run', SpanKind.INTERNAL, null, signal, () =>
+    work(activeTraceContext()),
+  );
 }
 
 /** Instruments an append without changing the active transaction context. */

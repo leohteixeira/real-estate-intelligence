@@ -4,9 +4,11 @@ import {
   DATABASE_AVAILABILITY_PROBE,
   INBOX,
   INBOX_RETENTION_PORT,
+  OUTBOX_APPEND_PORT,
   OUTBOX_RELAY_PORT,
   OUTBOX_RETENTION_PORT,
   TRANSACTION_RUNNER,
+  UUID_V7_GENERATOR,
 } from '@rei/application';
 import {
   DatabaseConnection,
@@ -15,11 +17,13 @@ import {
   PostgresInbox,
   PostgresOutbox,
   PostgresTransactionRunner,
+  PostgresUuidV7Generator,
 } from '@rei/infrastructure';
 
-import { readConfig } from './config';
+import { readWorkerDatabaseConfig } from './config';
 
 export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
+const POSTGRES_OUTBOX = Symbol('PostgresOutbox');
 
 @Global()
 @Module({
@@ -28,7 +32,7 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       provide: DATABASE_CONNECTION,
       useFactory: (): DatabaseConnection => {
         const logger = new Logger('DatabaseConnection');
-        const config = readConfig(process.env);
+        const config = readWorkerDatabaseConfig(process.env);
         return new DatabaseConnection(
           config.databaseUrl,
           (error) =>
@@ -39,17 +43,25 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       },
     },
     {
-      provide: OUTBOX_RELAY_PORT,
+      provide: POSTGRES_OUTBOX,
       inject: [DATABASE_CONNECTION],
       useFactory: (connection: DatabaseConnection): PostgresOutbox =>
         new PostgresOutbox(connection),
     },
+    { provide: OUTBOX_APPEND_PORT, useExisting: POSTGRES_OUTBOX },
+    { provide: OUTBOX_RELAY_PORT, useExisting: POSTGRES_OUTBOX },
     { provide: OUTBOX_RETENTION_PORT, useExisting: OUTBOX_RELAY_PORT },
     {
       provide: TRANSACTION_RUNNER,
       inject: [DATABASE_CONNECTION],
       useFactory: (connection: DatabaseConnection): PostgresTransactionRunner =>
         new PostgresTransactionRunner(connection),
+    },
+    {
+      provide: UUID_V7_GENERATOR,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection): PostgresUuidV7Generator =>
+        new PostgresUuidV7Generator(connection),
     },
     {
       provide: INBOX,
@@ -76,7 +88,9 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
   exports: [
     DATABASE_CONNECTION,
     DATABASE_AVAILABILITY_PROBE,
+    OUTBOX_APPEND_PORT,
     TRANSACTION_RUNNER,
+    UUID_V7_GENERATOR,
     OUTBOX_RELAY_PORT,
     OUTBOX_RETENTION_PORT,
     INBOX,

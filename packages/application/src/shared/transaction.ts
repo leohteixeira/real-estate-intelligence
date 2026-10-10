@@ -14,7 +14,7 @@ export type TransactionWork<TResult> = (transaction: Transaction) => Promise<TRe
 
 /** Runs one application operation inside one atomic persistence transaction. */
 export interface TransactionRunner {
-  runInTransaction<TResult>(work: TransactionWork<TResult>): Promise<TResult>;
+  runInTransaction<TResult>(work: TransactionWork<TResult>, signal?: AbortSignal): Promise<TResult>;
 }
 
 export const TRANSACTION_RUNNER = Symbol.for('rei.TransactionRunner');

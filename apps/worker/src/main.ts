@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { RabbitMqEventBroker } from '@rei/infrastructure';
 
 import { AuditTraceConsumer } from './audit/audit-trace.consumer';
+import { CollectionAuditConsumer } from './collection/collection-audit.consumer';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
@@ -28,10 +29,12 @@ async function bootstrap(): Promise<void> {
   const heartbeat = context.get(HeartbeatJob);
   const relay = context.get(OutboxRelayJob);
   const auditConsumer = context.get(AuditTraceConsumer);
+  const collectionConsumer = context.get(CollectionAuditConsumer);
   const broker = context.get(RabbitMqEventBroker);
   const brokerSupervisor = context.get(BrokerConnectionSupervisor);
   const retention = context.get(DeliveryRetentionJob);
   await auditConsumer.start();
+  await collectionConsumer.start();
   brokerSupervisor.start();
   relay.start();
   retention.start();

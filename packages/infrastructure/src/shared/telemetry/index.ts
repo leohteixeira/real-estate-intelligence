@@ -3,6 +3,7 @@ export {
   amqpTraceHeaders,
   assertTraceContextConsistency,
   extractAmqpTraceContext,
+  runCollectionOperationSpan,
   runOutboxAppendSpan,
   runOutboxPublishSpan,
   startMessagingConsumeSpan,

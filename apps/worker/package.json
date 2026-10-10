@@ -6,6 +6,7 @@
     "build": "tsc --build",
     "dev": "tsc --build --watch",
     "start": "node -r ./dist/otel.js dist/main.js",
+    "collect:synthetic": "node -r ./dist/otel.js dist/collection/collect-synthetic.js",
     "typecheck": "tsc --build --force",
     "test": "vitest run --dir src --passWithNoTests"
   },
