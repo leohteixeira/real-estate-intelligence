@@ -8,13 +8,7 @@ import tseslint from 'typescript-eslint';
 // their own copy would drift apart.
 export default tseslint.config(
   {
-    ignores: [
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/coverage/**',
-      '**/.mastra/**',
-      'apps/web/dist/**',
-    ],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', 'apps/web/dist/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -43,7 +37,7 @@ export default tseslint.config(
   {
     // NestJS relies on decorator metadata, so empty constructors carrying only
     // parameter properties are intentional.
-    files: ['apps/api/**/*.ts', 'apps/worker/**/*.ts'],
+    files: ['apps/api/**/*.ts', 'apps/worker/**/*.ts', 'apps/ai/**/*.ts'],
     rules: {
       '@typescript-eslint/no-extraneous-class': 'off',
     },

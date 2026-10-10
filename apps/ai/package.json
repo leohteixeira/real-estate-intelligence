@@ -2,23 +2,31 @@
   "name": "@rei/ai",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json",
-    "bundle": "mastra build",
-    "dev": "mastra dev --port ${AI_PORT:-4111}",
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main.js",
     "check:keys": "node --env-file=../../.env scripts/check-provider-keys.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --dir src --passWithNoTests"
   },
   "dependencies": {
-    "@mastra/core": "1.60.0"
+    "@langchain/core": "1.2.17",
+    "@langchain/langgraph": "1.4.21",
+    "@nestjs/common": "12.1.2",
+    "@nestjs/core": "12.1.2",
+    "@nestjs/platform-express": "12.1.2",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "0.132.1",
+    "@nestjs/cli": "12.0.8",
+    "@nestjs/schematics": "12.0.6",
+    "@nestjs/testing": "12.1.2",
     "@types/node": "24.13.3",
-    "mastra": "1.25.1",
-    "typescript": "5.9.3",
+    "typescript": "6.0.3",
     "vitest": "4.1.11"
   }
 }

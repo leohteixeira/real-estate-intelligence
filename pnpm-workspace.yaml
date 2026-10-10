@@ -4,7 +4,7 @@ packages:
 
 # pnpm blocks dependency build scripts by default. These two are approved
 # explicitly:
-#   esbuild     downloads its own platform binary, needed by the Mastra build
+#   esbuild     downloads its own platform binary, needed by Vite
 #   protobufjs  regenerates its bundled helpers, pulled in by the OTLP exporters
 allowBuilds:
   esbuild: true

@@ -53,8 +53,8 @@ services:
         condition: service_healthy
 
   # Deliberately without DATABASE_URL and without object storage credentials:
-  # Mastra reaches domain capabilities only through typed tools that call the
-  # API's versioned HTTP contract.
+  # the LangGraph service reaches domain capabilities only through typed tools
+  # that call the API's versioned HTTP contract.
   ai:
     build:
       context: .
