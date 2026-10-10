@@ -2,18 +2,16 @@ import 'reflect-metadata';
 
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { API_PREFIX } from '@rei/contracts';
 
 import { AppModule } from './app.module';
 import { readConfig } from './config';
+import { configureApi } from './configure-api';
 
 async function bootstrap(): Promise<void> {
   const config = readConfig(process.env);
   const app = await NestFactory.create(AppModule);
 
-  // Business endpoints live under the versioned prefix; /health and /ready are
-  // operational and stay outside the product contract.
-  app.setGlobalPrefix(API_PREFIX, { exclude: ['health', 'ready'] });
+  configureApi(app);
   app.enableShutdownHooks();
 
   // Bind to every interface so Dev Container port forwarding works.
