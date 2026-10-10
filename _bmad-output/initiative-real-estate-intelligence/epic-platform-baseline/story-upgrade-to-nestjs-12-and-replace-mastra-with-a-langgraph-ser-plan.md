@@ -3,7 +3,7 @@ title: 'Upgrade to NestJS 12 and replace Mastra with a LangGraph service skeleto
 type: 'feature'
 ticket: '1'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'b66830c1b83d1e2b82fb19a10840a9be466fd2a3'
 route: 'full'
 route_source: 'auto'
