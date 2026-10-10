@@ -26,11 +26,13 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | ADRs         | Subject                                                                                |
 | ------------ | -------------------------------------------------------------------------------------- |
 | 0001         | The record itself                                                                      |
-| 0003 to 0006 | Persistence, tests, telemetry, frontend toolchain                                      |
+| 0003 to 0005 | Persistence, tests and telemetry                                                       |
+| 0006         | Superseded frontend toolchain and TypeScript 5.9 decision                              |
 | 0007 to 0010 | AI runtime boundary, typed routing, AI resilience, durable runs (0007 supersedes 0002) |
 | 0011 to 0013 | Bounded contexts and layout, events and outbox, ports and resilience                   |
 | 0014         | Zero Data Retention for every external model route that receives user text             |
 | 0015         | Collected-data allowlist, permissions, snapshots, photographs and suppression          |
+| 0016         | TypeScript 6 toolchain and retained frontend choices (supersedes 0006)                 |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.

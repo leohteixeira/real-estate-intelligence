@@ -5187,7 +5187,7 @@
               unexposed until Keycloak validates a session.
             </li>
             <li>
-              No generated client and no data-fetching library yet (ADR 0006): the contract types
+              No generated client and no data-fetching library yet (ADR 0016): the contract types
               are shared at compile time through <code>@rei/contracts</code>.
             </li>
           </ul>
@@ -8413,7 +8413,7 @@
               <div class="stack-val">
                 <span class="pill">pnpm workspaces</span
                 ><span class="pill">TypeScript project references</span
-                ><span class="pill">Node.js 24</span><span class="pill">TypeScript 5.9</span>
+                ><span class="pill">Node.js 24</span><span class="pill">TypeScript 6.0.3</span>
               </div>
             </div>
             <div class="stack-row">
@@ -8526,11 +8526,10 @@
               </tbody>
             </table>
           </div>
-          <div class="callout warn">
-            <strong>Code today.</strong> The applications still run NestJS 11 and
-            <code>apps/ai</code> still runs Mastra. ADR 0007 moves all three to NestJS 12 and
-            replaces Mastra with LangChain and LangGraph in the first story of the natural-language
-            increment.
+          <div class="callout info">
+            <strong>Code today.</strong> API, worker and AI run NestJS 12 with TypeScript 6.0.3. The
+            isolated AI service exposes dependency-free liveness and a compiled no-op LangGraph
+            graph; it has no agent, model, tool, checkpoint or business endpoint.
           </div>
         </section>
         <section id="decisions">
@@ -8565,8 +8564,8 @@
                 </tr>
                 <tr>
                   <td>0006</td>
-                  <td>React 19, Vite 8, the TypeScript pin</td>
-                  <td><span class="badge ok">accepted</span></td>
+                  <td>React 19, Vite 8 and the former TypeScript 5.9 pin</td>
+                  <td><span class="badge warn">superseded by 0016</span></td>
                 </tr>
                 <tr>
                   <td>0007</td>
@@ -8614,6 +8613,11 @@
                     Collected-data allowlist, source permissions, snapshots and suppression; binds
                     CAP-2, CAP-3, CAP-4, CAP-8 and CAP-28
                   </td>
+                  <td><span class="badge ok">accepted</span></td>
+                </tr>
+                <tr>
+                  <td>0016</td>
+                  <td>TypeScript 6.0.3 and the retained frontend and repository-tooling choices</td>
                   <td><span class="badge ok">accepted</span></td>
                 </tr>
               </tbody>

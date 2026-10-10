@@ -1,6 +1,6 @@
 # ADR 0006 — Frontend toolchain and TypeScript pin
 
-- **Status:** accepted
+- **Status:** superseded by ADR 0016
 - **Date:** 2026-08-20
 
 ## Context

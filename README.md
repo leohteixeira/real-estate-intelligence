@@ -15,16 +15,16 @@ at [`docs/architecture/architecture.html`](docs/architecture/architecture.html).
 
 ## Stack
 
-| Layer       | Choice                                                      |
-| ----------- | ----------------------------------------------------------- |
-| API         | NestJS 11 on Express (port 8200)                            |
-| Worker      | Nest standalone application context                         |
-| AI          | Mastra 1.25 in a separate application (port 4111), no tools |
-| Persistence | PostgreSQL 18 with PostGIS available, `pg` driver, no ORM   |
-| Migrations  | versioned SQL applied by `scripts/migrate.sh`               |
-| Web         | React 19 + Vite 8 + TypeScript 5.9.3 (port 3200)            |
-| Telemetry   | OpenTelemetry Node 0.221, preloaded through `node -r`       |
-| Tests       | Vitest 4                                                    |
+| Layer       | Choice                                                                |
+| ----------- | --------------------------------------------------------------------- |
+| API         | NestJS 12 on Express (port 8200)                                      |
+| Worker      | NestJS 12 standalone application context                              |
+| AI          | NestJS 12 + LangGraph in a separate application (port 4111), no tools |
+| Persistence | PostgreSQL 18 with PostGIS available, `pg` driver, no ORM             |
+| Migrations  | versioned SQL applied by `scripts/migrate.sh`                         |
+| Web         | React 19 + Vite 8 + TypeScript 6.0.3 (port 3200)                      |
+| Telemetry   | OpenTelemetry Node 0.221, preloaded through `node -r`                 |
+| Tests       | Vitest 4                                                              |
 
 The decisions are recorded in [`specs/adrs/`](specs/adrs/).
 
@@ -35,7 +35,7 @@ apps/
 ├── web/       # React frontend
 ├── api/       # NestJS: HTTP and application orchestration
 ├── worker/    # crawling and asynchronous jobs
-└── ai/        # Mastra runtime, isolated
+└── ai/        # NestJS + LangGraph runtime, isolated
 packages/
 ├── domain/          # canonical model and deterministic rules
 ├── application/     # use cases and ports
@@ -119,15 +119,16 @@ mandatory: without it the process still starts, but without instrumentation, bec
 
 ## Endpoints
 
-| Method | Route     | Description                                            |
-| ------ | --------- | ------------------------------------------------------ |
-| `GET`  | `/health` | Liveness. Touches no dependency at all.                |
-| `GET`  | `/ready`  | Readiness. Answers 503 when PostgreSQL does not reply. |
-| —      | `/api/v1` | Versioned contract surface, still empty.               |
+| Service | Method | Route     | Description                                            |
+| ------- | ------ | --------- | ------------------------------------------------------ |
+| API     | `GET`  | `/health` | Liveness. Touches no dependency at all.                |
+| API     | `GET`  | `/ready`  | Readiness. Answers 503 when PostgreSQL does not reply. |
+| API     | —      | `/api/v1` | Versioned contract surface, still empty.               |
+| AI      | `GET`  | `/health` | Dependency-free liveness.                              |
 
 ## Ports
 
-Web 3200, API 8200, Mastra 4111, PostgreSQL 5434, Valkey 6380, MinIO 9100/9101.
+Web 3200, API 8200, AI 4111, PostgreSQL 5434, Valkey 6380, MinIO 9100/9101.
 
 ## Quality
 

@@ -11,7 +11,7 @@
 | 0003 | `pg` driver, no ORM, versioned SQL migrations, extensions enabled by the migration needing them | All persistence                    |
 | 0004 | Vitest as the single runner, hand-written doubles, when integration and e2e tests start         | All tests, CAP-17                  |
 | 0005 | OpenTelemetry with explicit instrumentations, preloaded bootstrap, native NestJS logger         | Every process, CAP-18              |
-| 0006 | React 19, Vite 8, TypeScript 5.9 pin; no Tailwind, router or data-fetching library yet          | CAP-19, CAP-20                     |
+| 0006 | Superseded React 19, Vite 8 and TypeScript 5.9 toolchain decision                               | Superseded by ADR 0016             |
 | 0007 | NestJS 12 for API, worker and AI; LangChain and LangGraph replace Mastra; isolation boundary    | CAP-10 to CAP-18, CAP-25           |
 | 0008 | Typed intent routing with Jev, heuristic fallback, 0.85 gate, taxonomy                          | CAP-11, CAP-12, CAP-17             |
 | 0009 | Resilience policies for AI providers, Zero Data Retention                                       | CAP-15                             |
@@ -21,9 +21,10 @@
 | 0013 | A port and an adapter for every external system, one resilience composition, idempotency keys   | CAP-1, CAP-2, CAP-15               |
 | 0014 | Verified Zero Data Retention for every user-text model route, with fail-closed enforcement      | CAP-10, CAP-15                     |
 | 0015 | Closed collected-data allowlist, source permissions, snapshot lifecycle and suppression         | CAP-2, CAP-3, CAP-4, CAP-8, CAP-28 |
+| 0016 | TypeScript 6.0.3 toolchain; retains the frontend and repository-tooling choices of ADR 0006     | Every TypeScript workspace         |
 
-ADR 0002 is superseded by ADR 0007. ADR 0001 sets the record itself: an accepted ADR is never
-edited, only superseded.
+ADR 0002 is superseded by ADR 0007, and ADR 0006 is superseded by ADR 0016. ADR 0001 sets the
+record itself: an accepted ADR is never edited, only superseded.
 
 `docs/architecture/architecture.html` draws the same architecture, diagram by diagram.
 
@@ -45,8 +46,9 @@ the only broker left this list: ADR 0012 records it.
   `pricePerSquareMeter` in the `market` module.
 - No entities, collectors, comparables, AI tools or business endpoints exist. The other domain
   modules are empty placeholders.
-- API and worker run NestJS 11 and `apps/ai` runs Mastra; ADR 0007 moves all three to NestJS 12
-  and replaces Mastra with LangChain and LangGraph.
+- API, worker and AI run NestJS 12 with TypeScript 6.0.3. The isolated AI service contains a
+  dependency-free health route and a compiled no-op LangGraph graph; it has no agent, model, tool,
+  checkpoint or business endpoint.
 - Compose declares PostgreSQL (PostGIS image, no extension enabled), API, worker, AI and web;
   Valkey and MinIO sit under the `optional` profile and nothing consumes them. There is no broker.
 - `apps/web` renders the landing page only (see `ux.md`).
@@ -659,7 +661,7 @@ Module names are the bounded contexts of ADR 0011.
 | CAP-16         | `ask` in `apps/api`                                                                  | ADR 0010; demo quota                                        |
 | CAP-17         | Datasets and tests beside the adapters                                               | ADR 0004, ADR 0008                                          |
 | CAP-18         | OpenTelemetry bootstrap of each process                                              | ADR 0005, ADR 0010                                          |
-| CAP-19, CAP-20 | `apps/web`                                                                           | ADR 0006; `ux.md`; `apps/web/DESIGN.md`                     |
+| CAP-19, CAP-20 | `apps/web`                                                                           | ADR 0016; `ux.md`; `apps/web/DESIGN.md`                     |
 | CAP-21         | `comparables`                                                                        | Deterministic rules; PostGIS when distance needs it         |
 | CAP-22         | `market`                                                                             | Deterministic rules                                         |
 | CAP-23         | `alerts`                                                                             | Fixed rules, after each collection run; protected surface   |

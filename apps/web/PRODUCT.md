@@ -69,7 +69,7 @@ route and explain; they never produce a number.
   value, listing returned to market.
 - Business rules, metrics, geospatial calculations, comparables and scoring stay in the backend.
 - BRL is the default currency. There is no implicit currency conversion.
-- Frontend toolchain per ADR 0006: React 19, Vite 8, TypeScript 5.9; no Tailwind, no router and no
+- Frontend toolchain per ADR 0016: React 19, Vite 8, TypeScript 6.0.3; no Tailwind, no router and no
   data-fetching library in the current phase.
 - Development uses synthetic datasets or explicitly permitted sources. A real source is enabled
   only after its terms of use, robots policy and licence are reviewed and allow automated

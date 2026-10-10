@@ -1,6 +1,6 @@
 # @rei/ai
 
-Mastra runtime, executed as a separate application on port 4111.
+NestJS 12 service with a LangGraph skeleton, executed as a separate application on port 4111.
 
 ## Boundary rule
 
@@ -24,19 +24,23 @@ searchListings()
 
 ## State
 
-No agent and no tool registered. They land together with the application services each one is
-allowed to call.
+The service exposes dependency-free liveness at `GET /health` and provides one compiled no-op
+LangGraph graph through Nest dependency injection. The graph terminates without external I/O.
+There is no agent, model, tool, checkpoint, business endpoint or telemetry yet.
+
+`AI_PORT` defaults to `4111` and accepts only a decimal port from 1 through 65535. Invalid values
+fail startup with a clear error. The service binds to `0.0.0.0` for container and Dev Container
+port forwarding.
 
 ## Commands
 
 ```bash
 pnpm --filter "@rei/ai" dev      # http://0.0.0.0:4111
-pnpm --filter "@rei/ai" build    # type check
-pnpm --filter "@rei/ai" bundle   # produces .mastra/output for deployment
+pnpm --filter "@rei/ai" typecheck
+pnpm --filter "@rei/ai" test
+pnpm --filter "@rei/ai" build    # emits dist/main.js
+pnpm --filter "@rei/ai" start
 ```
 
-`build` is type checking only. The deployment bundle lives in the separate `bundle` script because
-`mastra build` invokes `npm` internally to generate the `package-lock.json` of the output
-directory, and the workspace CLAUDE.md forbids `npm` in the standard flow. As long as no agent and
-no tool are registered, the bundle adds nothing to `pnpm -r build`. The output goes to `.mastra/`,
-which is ignored by Git.
+Provider-key validation remains explicitly opt-in through `pnpm --filter "@rei/ai" check:keys` and
+is not part of the default test or build flow.
