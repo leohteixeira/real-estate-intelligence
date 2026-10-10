@@ -3,7 +3,7 @@ title: 'Idempotent consumers and delivery guarantees'
 type: 'feature'
 ticket: '4'
 created: '2026-10-10'
-status: 'built'
+status: 'done'
 baseline_revision: '0afabcf36565329d0a44f02927cad51cc27b68f2'
 route: 'full'
 route_source: 'pinned'
@@ -11,7 +11,7 @@ risk: 'high'
 review: 'quick'
 review_source: 'pinned'
 lenses_ran: [quick]
-review_loop_iteration: 1
+review_loop_iteration: 0
 followup_review_recommended: true
 context:
   - 'AGENTS.md'
@@ -28,15 +28,34 @@ deferred: []
 
 ## Intent
 
-**Problem:** The tracer has at-least-once transport but no atomic consumer deduplication, durable relay ownership, reconnectable subscription, or proof that confirmed messages and per-aggregate order survive failures. A duplicate delivery can therefore duplicate the audit effect, and a live broker restart can strand the worker on a closed channel.
+**Problem:** The tracer has at-least-once transport but no atomic consumer deduplication, durable
+relay ownership, reconnectable subscription, or proof that confirmed messages and per-aggregate
+order survive failures. A duplicate delivery can therefore duplicate the audit effect, and a live
+broker restart can strand the worker on a closed channel.
 
-**Approach:** Complete ADR 0012's reusable delivery protocol around the tracer: leased aggregate-head outbox claims, transaction-bound inbox recording, logical consumer queues, reconnectable RabbitMQ topology, and a test-only in-memory publisher. Prove duplicate suppression, broker restart recovery, and aggregate ordering against real PostgreSQL and RabbitMQ.
+**Approach:** Complete ADR 0012's reusable delivery protocol around the tracer: leased
+aggregate-head outbox claims, transaction-bound inbox recording, logical consumer queues,
+reconnectable RabbitMQ topology, and a test-only in-memory publisher. Prove duplicate suppression,
+broker restart recovery, and aggregate ordering against real PostgreSQL and RabbitMQ.
 
 ## Boundaries & Constraints
 
-**Always:** Keep `pg` and `amqplib` types inside infrastructure; run the inbox insert and audit effect on the exact same checked-out transaction; acknowledge only after commit and acknowledge an already-recorded `(consumer_name, event_id)` without repeating the effect. Claim only the earliest unpublished event of each aggregate, use database time for bounded leases, require claim ownership when marking or releasing, publish persistent messages with confirms, and preserve ambiguous outcomes as retryable duplicates. Register one durable queue per stable logical consumer and rebuild every declared binding/consumer after reconnect. Keep adapter calls single-attempt and bounded, use Nest dependency injection and explicit ports, and keep deployed composition on RabbitMQ.
+**Always:** Keep `pg` and `amqplib` types inside infrastructure; run the inbox insert and audit
+effect on the exact same checked-out transaction; acknowledge only after commit and acknowledge an
+already-recorded `(consumer_name, event_id)` without repeating the effect. Claim only the earliest
+unpublished event of each aggregate, use database time for bounded leases, require claim ownership
+when marking or releasing, publish persistent messages with confirms, and preserve ambiguous
+outcomes as retryable duplicates. Register one durable queue per stable logical consumer and
+rebuild every declared binding/consumer after reconnect. Keep adapter calls single-attempt and
+bounded, use Nest dependency injection and explicit ports, and keep deployed composition on
+RabbitMQ.
 
-**Never:** Add retry/backoff/circuit-breaker policy, dead-letter limits, pruning, trace propagation, broker-aware HTTP readiness, business events, cross-schema joins/foreign keys, or VPS/deployment work; those belong to stories 1.5, 1.8, 1.12, and 1.14. Do not expose transaction/vendor handles from infrastructure, couple queue identity to an event type, run an in-memory publisher in API/worker composition, treat RabbitMQ write backpressure as a failed confirm, or promise consumer-side ordering beyond ADR 0012's relay guarantee.
+**Never:** Add retry/backoff/circuit-breaker policy, dead-letter limits, pruning, trace propagation,
+broker-aware HTTP readiness, business events, cross-schema joins/foreign keys, or VPS/deployment
+work; those belong to stories 1.5, 1.8, 1.12, and 1.14. Do not expose transaction/vendor handles
+from infrastructure, couple queue identity to an event type, run an in-memory publisher in
+API/worker composition, treat RabbitMQ write backpressure as a failed confirm, or promise
+consumer-side ordering beyond ADR 0012's relay guarantee.
 
 ## I/O & Edge-Case Matrix
 
@@ -53,36 +72,100 @@ deferred: []
 
 ## Code Map
 
-- `packages/application/src/shared/outbox.ts`, `inbox.ts`, `event-subscriber.ts`, and `event-publisher.ts` -- define vendor-neutral claim ownership, transaction-bound deduplication, logical consumer descriptors, and the shared publisher seam.
-- `packages/application/src/audit/audit-event-log.port.ts` -- make the audit effect transaction-bound so inbox and effect cannot diverge.
-- `packages/infrastructure/src/shared/persistence/` and `packages/infrastructure/src/audit/postgres-audit-event-log.ts` -- implement leased aggregate-head claims and same-client inbox/effect writes.
-- `packages/infrastructure/src/shared/messaging/rabbitmq-event-broker.ts` -- own confirmed publishing, queue-per-consumer topology, generation-safe reconnect, and acknowledgement boundaries.
-- `apps/worker/src/shared/`, `apps/worker/src/audit/`, persistence/messaging modules, configuration, and shutdown -- compose claims, atomic consumption, a reconnect supervisor, and ordered drain.
-- `migrations/0002_platform_create_delivery_guarantees.sql` -- add inbox, idempotency keys, claim ownership, and supporting indexes in the platform block.
-- `integration/audit-tracer.integration.mjs` -- exercise the public tracer and real service failure/recovery paths without cross-schema SQL.
+- `packages/application/src/shared/outbox.ts`, `inbox.ts`, `event-subscriber.ts`, and
+  `event-publisher.ts` -- define vendor-neutral claim ownership, transaction-bound deduplication,
+  logical consumer descriptors, and the shared publisher seam.
+- `packages/application/src/audit/audit-event-log.port.ts` -- make the audit effect
+  transaction-bound so inbox and effect cannot diverge.
+- `packages/infrastructure/src/shared/persistence/` and
+  `packages/infrastructure/src/audit/postgres-audit-event-log.ts` -- implement leased
+  aggregate-head claims and same-client inbox/effect writes.
+- `packages/infrastructure/src/shared/messaging/rabbitmq-event-broker.ts` -- own confirmed
+  publishing, queue-per-consumer topology, generation-safe reconnect, and acknowledgement
+  boundaries.
+- `apps/worker/src/shared/`, `apps/worker/src/audit/`, persistence/messaging modules,
+  configuration, and shutdown -- compose claims, atomic consumption, a reconnect supervisor, and
+  ordered drain.
+- `migrations/0002_platform_create_delivery_guarantees.sql` -- add inbox, idempotency keys, claim
+  ownership, and supporting indexes in the platform block.
+- `integration/audit-tracer.integration.mjs` -- exercise the public tracer and real service
+  failure/recovery paths without cross-schema SQL.
 
 ## Tasks & Acceptance
 
 **Execution:**
 
-- [x] `migrations/0002_platform_create_delivery_guarantees.sql` and migration documentation/tests -- add `platform.inbox` keyed by consumer and UUIDv7 event ID, a bounded generic idempotency-key table with request fingerprint/result reference, nullable outbox claim ID/expiry columns, and partial indexes for aggregate heads, expired claims, and future pruning; support both fresh and upgraded databases without cross-context references.
-- [x] `packages/application/src/shared/`, `packages/application/src/audit/`, exports, and focused tests -- add a transaction-bound inbox port; carry claim ownership through claim/mark/release; describe subscriptions by stable consumer name plus event types; require audit appends to receive the opaque transaction; and cover duplicate, rollback, abort, and invalid-claim cases.
-- [x] `packages/infrastructure/src/shared/persistence/`, `packages/infrastructure/src/audit/`, and real-PostgreSQL tests -- atomically lease only unpublished aggregate heads with `FOR UPDATE SKIP LOCKED`, `clock_timestamp()`, and ownership checks; implement idempotent inbox insertion and audit append through the exact transaction client; release failed claims and recover expired ones.
-- [x] `packages/infrastructure/src/shared/messaging/in-memory-event-publisher.ts`, exports, and unit tests -- provide an ordered, abort-aware publisher test double with readonly snapshots and no deployed provider registration.
-- [x] `packages/infrastructure/src/shared/messaging/rabbitmq-event-broker.ts` and unit tests -- retain persistent confirmed publication/manual acknowledgement while replacing hard-coded tracer topology with one queue per consumer; retain subscription descriptors without requiring a live connection; serialize connection establishment; retire a generation after any failed topology materialization; reject unsupported tracer versions/shapes before invoking the effect; track and boundedly drain the underlying handler even after the acknowledgement timeout elapses; invalidate only the matching connection generation; and restore exchange, bindings, prefetch, and consumers after close/error without reconnecting after explicit shutdown.
-- [x] `packages/infrastructure/src/shared/messaging/rabbitmq-event-broker.ts` and real-broker upgrade tests -- migrate the baseline durable queue `audit.trace-requested.audit` without loss: stop its tracer binding before normal publication can begin, consume its already-confirmed backlog through the `audit.event-log` handler/inbox identity, and prevent future messages from accumulating there while `audit.event-log` becomes the stable queue. Keep this compatibility behavior bounded and idempotent across reconnects.
-- [x] `apps/worker/src/audit/`, `apps/worker/src/shared/`, modules, config, and lifecycle tests -- make `audit.event-log` insert its inbox key and audit row in one transaction; register its durable descriptor successfully even while RabbitMQ is unavailable so the supervisor, relay, heartbeat, signal handlers, and readiness lifecycle still start; process owned claims independently so one aggregate does not prevent other claimed heads; add a bounded periodic connection supervisor; validate claim-lease/reconnect timing against operation and shutdown deadlines; stop the supervisor before draining the relay, broker, persistence, and telemetry.
-- [x] `integration/audit-tracer.integration.mjs`, root scripts, and CI integration wiring -- extend the real PostgreSQL/RabbitMQ proof to force the same event delivery twice and observe one effect, seed and drain a confirmed message from the baseline durable queue without leaving its binding active, restart RabbitMQ while retaining persistent data and the same worker process, and publish interleaved aggregate sequences whose audit observations match relay order; use bounded waits, sanitized diagnostics, independent schema queries, and unconditional cleanup.
-- [x] Root/workspace test scripts, CI, and `docs/testing/coverage.md` -- establish the campaign's first-code-story V8 coverage gate independently per workspace at 80% lines/statements/functions and 75% branches, document only justified declaration/composition/browser exclusions, and keep every Vitest invocation scoped with `--dir src` so generated `dist` suites cannot be discovered.
+- [x] `migrations/0002_platform_create_delivery_guarantees.sql` and migration
+      documentation/tests -- add `platform.inbox` keyed by consumer and UUIDv7 event ID, a bounded
+      generic idempotency-key table with request fingerprint/result reference, nullable outbox claim
+      ID/expiry columns, and partial indexes for aggregate heads, expired claims, and future pruning;
+      support both fresh and upgraded databases without cross-context references.
+- [x] `packages/application/src/shared/`, `packages/application/src/audit/`, exports, and focused
+      tests -- add a transaction-bound inbox port; carry claim ownership through claim/mark/release;
+      describe subscriptions by stable consumer name plus event types; require audit appends to receive
+      the opaque transaction; and cover duplicate, rollback, abort, and invalid-claim cases.
+- [x] `packages/infrastructure/src/shared/persistence/`, `packages/infrastructure/src/audit/`, and
+      real-PostgreSQL tests -- atomically lease only unpublished aggregate heads with
+      `FOR UPDATE SKIP LOCKED`, `clock_timestamp()`, and ownership checks; implement idempotent inbox
+      insertion and audit append through the exact transaction client; release failed claims and
+      recover expired ones.
+- [x] `packages/infrastructure/src/shared/messaging/in-memory-event-publisher.ts`, exports, and unit
+      tests -- provide an ordered, abort-aware publisher test double with readonly snapshots and no
+      deployed provider registration.
+- [x] `packages/infrastructure/src/shared/messaging/rabbitmq-event-broker.ts` and unit tests --
+      retain persistent confirmed publication/manual acknowledgement while replacing hard-coded tracer
+      topology with one queue per consumer; retain subscription descriptors without requiring a live
+      connection; serialize connection establishment; retire a generation after any failed topology
+      materialization; reject unsupported tracer versions/shapes before invoking the effect; track and
+      boundedly drain the underlying handler even after the acknowledgement timeout elapses;
+      invalidate only the matching connection generation; and restore exchange, bindings, prefetch,
+      and consumers after close/error without reconnecting after explicit shutdown.
+- [x] `packages/infrastructure/src/shared/messaging/rabbitmq-event-broker.ts` and real-broker
+      upgrade tests -- migrate the baseline durable queue `audit.trace-requested.audit` without loss:
+      stop its tracer binding before normal publication can begin, consume its already-confirmed
+      backlog through the `audit.event-log` handler/inbox identity, and prevent future messages from
+      accumulating there while `audit.event-log` becomes the stable queue. Keep this compatibility
+      behavior bounded and idempotent across reconnects.
+- [x] `apps/worker/src/audit/`, `apps/worker/src/shared/`, modules, config, and lifecycle tests --
+      make `audit.event-log` insert its inbox key and audit row in one transaction; register its durable
+      descriptor successfully even while RabbitMQ is unavailable so the supervisor, relay, heartbeat,
+      signal handlers, and readiness lifecycle still start; process owned claims independently so one
+      aggregate does not prevent other claimed heads; add a bounded periodic connection supervisor;
+      validate claim-lease/reconnect timing against operation and shutdown deadlines; stop the
+      supervisor before draining the relay, broker, persistence, and telemetry.
+- [x] `integration/audit-tracer.integration.mjs`, root scripts, and CI integration wiring -- extend
+      the real PostgreSQL/RabbitMQ proof to force the same event delivery twice and observe one effect,
+      seed and drain a confirmed message from the baseline durable queue without leaving its binding
+      active, restart RabbitMQ while retaining persistent data and the same worker process, and publish
+      interleaved aggregate sequences whose audit observations match relay order; use bounded waits,
+      sanitized diagnostics, independent schema queries, and unconditional cleanup.
+- [x] Root/workspace test scripts, CI, and `docs/testing/coverage.md` -- establish the campaign's
+      first-code-story V8 coverage gate independently per workspace at 80% lines/statements/functions
+      and 75% branches, document only justified declaration/composition/browser exclusions, and keep
+      every Vitest invocation scoped with `--dir src` so generated `dist` suites cannot be discovered.
 
 **Acceptance Criteria:**
 
-- Given a committed tracer event delivered twice to `audit.event-log`, when both deliveries settle, then exactly one inbox key and one matching audit effect exist, the duplicate is acknowledged, and a forced effect failure commits neither row.
-- Given two relay instances and pending events for repeated and distinct aggregate IDs, when they claim and publish concurrently, then no active claim is owned twice, each aggregate is published in event-ID order, and another aggregate can progress while one head fails or remains leased.
-- Given a persistent confirmed event and a running worker, when RabbitMQ is restarted without restarting that worker, then the worker recreates the logical consumer topology and the event is eventually audited without loss; any duplicate caused by an ambiguous confirm has no duplicate effect.
-- Given an upgraded broker containing the baseline `audit.trace-requested.audit` queue and binding, when the new worker starts, then every queued confirmed tracer event reaches `audit.event-log` exactly once at the effect boundary, the legacy binding no longer receives new events, and no confirmed message is discarded.
-- Given application and generated-declaration inspection, when the build is reviewed, then vendor types remain in infrastructure, the queue/inbox name is the stable consumer identity, and the in-memory publisher has no production provider.
-- Given a fresh Compose project and the complete verification sequence, when migration, unit, integration, lint, typecheck, and build checks run, then every check passes within its configured deadline and the stack is removed afterward.
+- Given a committed tracer event delivered twice to `audit.event-log`, when both deliveries settle,
+  then exactly one inbox key and one matching audit effect exist, the duplicate is acknowledged,
+  and a forced effect failure commits neither row.
+- Given two relay instances and pending events for repeated and distinct aggregate IDs, when they
+  claim and publish concurrently, then no active claim is owned twice, each aggregate is published
+  in event-ID order, and another aggregate can progress while one head fails or remains leased.
+- Given a persistent confirmed event and a running worker, when RabbitMQ is restarted without
+  restarting that worker, then the worker recreates the logical consumer topology and the event is
+  eventually audited without loss; any duplicate caused by an ambiguous confirm has no duplicate
+  effect.
+- Given an upgraded broker containing the baseline `audit.trace-requested.audit` queue and binding,
+  when the new worker starts, then every queued confirmed tracer event reaches `audit.event-log`
+  exactly once at the effect boundary, the legacy binding no longer receives new events, and no
+  confirmed message is discarded.
+- Given application and generated-declaration inspection, when the build is reviewed, then vendor
+  types remain in infrastructure, the queue/inbox name is the stable consumer identity, and the
+  in-memory publisher has no production provider.
+- Given a fresh Compose project and the complete verification sequence, when migration, unit,
+  integration, lint, typecheck, and build checks run, then every check passes within its configured
+  deadline and the stack is removed afterward.
 
 ## Implementation Notes
 
@@ -146,27 +229,76 @@ deferred: []
     ambiguity — the scenario now removes and verifies absence of the stable queue before seeding
     both legacy fixtures and starting the upgraded worker.
 
+### 2026-10-10 — Second follow-up review pass
+
+- verdicts: 2 findings — high 2, medium 0, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` A publisher-only broker generation asserted and unbound the baseline audit
+    queue even though no `audit.event-log` subscription existed, allowing a non-mandatory publish
+    to confirm after removing the only legacy route — the migration handoff must run only when the
+    matching logical consumer is registered, with a publisher-only routing regression.
+  - `[high]` `[patch]` Supervisor shutdown awaited an in-progress reconnect whose sequential
+    bounded topology operations could consume the complete global shutdown deadline before relay,
+    broker, persistence, and telemetry drainage — reconnect establishment must be cancellable or
+    independently bounded on supervisor stop, with a hanging-reconnect shutdown regression.
+
 ## Design Notes
 
-The claim query should atomically select up to the configured batch size from rows whose claim is absent or expired and for which no earlier unpublished row exists for the same aggregate, then assign a database-generated claim ID and expiry. A claim is an ownership lease, not proof of publication: only its owner may mark or release it, and confirm-without-mark remains safely retryable because consumers suppress duplicate effects. The lease must cover the configured worst-case sequential batch (`batch size × operation timeout`, plus the poll margin), or configuration must fail at startup.
+The claim query should atomically select up to the configured batch size from rows whose claim is
+absent or expired and for which no earlier unpublished row exists for the same aggregate, then
+assign a database-generated claim ID and expiry. A claim is an ownership lease, not proof of
+publication: only its owner may mark or release it, and confirm-without-mark remains safely
+retryable because consumers suppress duplicate effects. The lease must cover the configured
+worst-case sequential batch (`batch size × operation timeout`, plus the poll margin), or
+configuration must fail at startup.
 
-RabbitMQ subscriptions are durable declarations, not channel callbacks. `subscribe()` stores each `{ consumerName, eventTypes, handler }` descriptor and succeeds without opening a connection; the worker supervisor owns the first and later bounded `start()` attempts even when RabbitMQ is unavailable or no outbox row is pending. A single-flight connection generation materializes every retained descriptor before becoming live, and any exchange, queue, binding, or consumer failure retires that generation so the next tick retries the whole topology. Matching close/error signals invalidate only that generation. Explicit close first disables reconnection, cancels new deliveries, boundedly drains the underlying handler promises even when their acknowledgement wait has timed out, and then closes the current generation. ADR 0013 still owns retry policy around individual operations.
+RabbitMQ subscriptions are durable declarations, not channel callbacks. `subscribe()` stores each
+`{ consumerName, eventTypes, handler }` descriptor and succeeds without opening a connection; the
+worker supervisor owns the first and later bounded `start()` attempts even when RabbitMQ is
+unavailable or no outbox row is pending. A single-flight connection generation materializes every
+retained descriptor before becoming live, and any exchange, queue, binding, or consumer failure
+retires that generation so the next tick retries the whole topology. Matching close/error signals
+invalidate only that generation. Explicit close first disables reconnection, cancels new
+deliveries, boundedly drains the underlying handler promises even when their acknowledgement wait
+has timed out, and then closes the current generation. ADR 0013 still owns retry policy around
+individual operations.
 
-The baseline tracer queue is durable and therefore part of the upgrade state, even before VPS deployment. On each topology restoration, the adapter must ensure the legacy `audit.trace-requested.audit` binding cannot receive new tracer events before normal publishing resumes, while a separate manual-ack drain consumes any confirmed backlog through the same strict tracer decoder and `audit.event-log` handler. The compatibility path must be safe on a fresh broker, idempotent after a partial migration or reconnect, and must never delete or acknowledge an old message before the inbox/effect transaction commits. The real-service proof seeds the baseline topology first, then starts the upgraded worker and proves both backlog drainage and the absence of future legacy accumulation.
+The baseline tracer queue is durable and therefore part of the upgrade state, even before VPS
+deployment. On each topology restoration, the adapter must ensure the legacy
+`audit.trace-requested.audit` binding cannot receive new tracer events before normal publishing
+resumes, while a separate manual-ack drain consumes any confirmed backlog through the same strict
+tracer decoder and `audit.event-log` handler. The compatibility path must be safe on a fresh
+broker, idempotent after a partial migration or reconnect, and must never delete or acknowledge an
+old message before the inbox/effect transaction commits. The real-service proof seeds the baseline
+topology first, then starts the upgraded worker and proves both backlog drainage and the absence of
+future legacy accumulation.
 
-Generic envelope hydration is not schema acceptance. Before a delivery reaches `AuditTraceConsumer`, the broker must apply the tracer's supported type/version/null-trace/empty-payload decoder and reject unsupported messages without logging their body. Tests must separately cover malformed transport bytes, unsupported schema versions, and effect failures.
+Generic envelope hydration is not schema acceptance. Before a delivery reaches
+`AuditTraceConsumer`, the broker must apply the tracer's supported
+type/version/null-trace/empty-payload decoder and reject unsupported messages without logging their
+body. Tests must separately cover malformed transport bytes, unsupported schema versions, and
+effect failures.
 
-The idempotency-key table is schema foundation only in this story because no public idempotent command exists yet. Do not invent tracer HTTP replay semantics; define reservation/replay behavior with the first owning business endpoint.
+The idempotency-key table is schema foundation only in this story because no public idempotent
+command exists yet. Do not invent tracer HTTP replay semantics; define reservation/replay behavior
+with the first owning business endpoint.
 
 ## Verification
 
 **Commands:**
 
-- `pnpm run lint && pnpm run typecheck && pnpm run test:coverage && pnpm run build` -- all deterministic workspace quality gates and per-workspace coverage thresholds pass, with every Vitest invocation scoped by `--dir src`.
-- `docker compose config --quiet` -- migration, broker persistence, health, and worker timing configuration are valid.
-- `docker compose up --build --detach --wait --wait-timeout 180 && pnpm run test:integration` -- a real stack proves legacy-queue upgrade drainage, duplicate suppression, same-worker restart recovery, and per-aggregate relay order.
-- `docker compose down --volumes --remove-orphans` -- all verification services and persistent test data are removed even after failure.
-- `pnpm why mastra && git diff --check` -- removed runtime remains absent and repository changes contain no whitespace defects.
+- `pnpm run lint && pnpm run typecheck && pnpm run test:coverage && pnpm run build` -- all
+  deterministic workspace quality gates and per-workspace coverage thresholds pass, with every
+  Vitest invocation scoped by `--dir src`.
+- `docker compose config --quiet` -- migration, broker persistence, health, and worker timing
+  configuration are valid.
+- `docker compose up --build --detach --wait --wait-timeout 180 && pnpm run test:integration` -- a
+  real stack proves legacy-queue upgrade drainage, duplicate suppression, same-worker restart
+  recovery, and per-aggregate relay order.
+- `docker compose down --volumes --remove-orphans` -- all verification services and persistent test
+  data are removed even after failure.
+- `pnpm why mastra && git diff --check` -- removed runtime remains absent and repository changes
+  contain no whitespace defects.
 
 ## Auto Run Result
 
@@ -189,6 +321,10 @@ independent per-workspace coverage gates.
 - Unit and real-service integration tests cover atomic rollback, duplicate suppression, stale claim
   ownership, aggregate ordering, same-process broker recovery, baseline queue migration, and the
   pre-upgrade commit-before-ack ambiguity.
+- Publisher-only routing and shutdown-during-reconnect regressions ensure legacy migration cannot
+  remove another consumer's only route and late RabbitMQ resources are closed after cancellation.
+- The Markdown pre-commit command disables configuration globs when linting staged files, keeping
+  the hook strict without rewriting unrelated BMad plans or generated workflow artifacts.
 - The epic and coverage policy mirror owner decision D-003 in English: V8 thresholds apply per
   workspace at 80% lines/statements/functions and 75% branches with justified exclusions only.
 
@@ -201,14 +337,22 @@ Quick pass reported two high and one medium patch: exact-match recovery for an a
 committed before upgrade, bind-before-unbind topology ordering, and a genuinely baseline-only real
 upgrade fixture. All three patches were applied. No finding was rejected or deferred.
 
-**Follow-up review recommendation:** `true`. This pass patched two high and one medium findings.
-The remaining unverified risk is a real concurrent baseline publisher hitting the exact
-bind-before-unbind handoff instant; ordering is enforced by unit tests and the full real upgrade is
-covered, but that precise race is modeled rather than synchronized against a live broker.
+The second follow-up Quick pass reported two high patches. Legacy queue migration had run even on
+a publisher-only broker, which could confirm an unroutable event after removing the baseline route;
+the handoff is now conditional on the exact logical audit subscription. Supervisor shutdown also
+waited for a reconnect that could consume the entire global deadline; establishment is now
+cancellable, late connections and channels are disposed, and shutdown can continue promptly. Both
+patches and their focused regressions were applied. No finding was rejected or deferred.
 
-**Verification:** `pnpm run lint`, workspace type checking, 192 coverage tests, and all workspace
-builds passed. Every workspace cleared the 80/75 coverage gate; the lowest aggregate was
-infrastructure at 87.83% statements, 79.37% branches, 84.41% functions, and 87.97% lines.
+**Follow-up review recommendation:** `true`. This pass patched two high findings. The remaining
+unverified risk is a real concurrent baseline publisher hitting the exact bind-before-unbind
+handoff instant; ordering is enforced by unit tests and the full real upgrade is covered, but that
+precise race is modeled rather than synchronized against a live broker.
+
+**Verification:** `pnpm run lint`, workspace type checking, 197 coverage tests, and all workspace
+builds passed. Every workspace cleared the 80/75 coverage gate; infrastructure reported 88.52%
+statements, 78.65% branches, 86.51% functions, and 88.85% lines, while worker branch coverage was
+77.58% after the cancellation regressions.
 `docker compose config --quiet` passed. A fresh built stack reported PostgreSQL, RabbitMQ, MinIO,
 API, worker, AI, and web healthy; `pnpm run test:integration` passed every delivery-guarantee and
 upgrade scenario; unconditional teardown removed all containers, networks, and persistent volumes.
