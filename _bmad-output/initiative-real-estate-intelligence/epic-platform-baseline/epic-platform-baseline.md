@@ -107,5 +107,8 @@ for it here.
 - Decision: entry 3 is the tracer bullet. Entry 11 precedes every code story because the spec and
   ADR 0007 require the instruction files corrected first; entries 1 and 2 precede the tracer because
   it runs on NestJS 12 and uses the ports of the kernel (2026-10-10).
+- Decision: V8 coverage is enforced independently per workspace at 80% for lines, statements, and
+  functions and at 75% for branches; exclusions are limited to justified generated, declarative,
+  composition-root, and browser-verified visual-shell code (owner, D-003, 2026-10-10).
 - Assumption: this epic owns the structure of the environment example file and of `compose.yaml`;
   the entry of any epic that introduces a setting adds it there.

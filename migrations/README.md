@@ -35,3 +35,9 @@ NNNN_<context>_<description>.sql
 - The `postgis` and `vector` extensions are available in the Compose image but are **not** enabled:
   the migration that needs one of them runs the corresponding `CREATE EXTENSION` and justifies the
   need.
+- `platform.outbox` delivery claims are leases. Database time owns their expiry, and only the
+  current claim identifier may mark a row published or release it.
+- `platform.inbox` records a stable logical consumer name with an event identifier in the same
+  transaction as the consumer effect.
+- `platform.idempotency_key` is only the bounded storage foundation. Reservation and replay rules
+  are defined by the first public command that uses it.
