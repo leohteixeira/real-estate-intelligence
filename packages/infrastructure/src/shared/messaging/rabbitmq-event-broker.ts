@@ -90,21 +90,63 @@ function bounded<TResult>(
   promise: Promise<TResult>,
   timeoutMs: number,
   operation: string,
+  signal?: AbortSignal,
 ): Promise<TResult> {
   return new Promise<TResult>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${operation} timed out.`)), timeoutMs);
+    let settled = false;
+    const cleanup = (): void => {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+    };
+    const resolveOnce = (value: TResult): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+    const rejectOnce = (error: unknown): void => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    const onAbort = (): void => {
+      rejectOnce(
+        signal?.reason instanceof Error ? signal.reason : new Error(`${operation} was aborted.`),
+      );
+    };
+    const timer = setTimeout(() => rejectOnce(new Error(`${operation} timed out.`)), timeoutMs);
     timer.unref();
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (error: unknown) => {
-        clearTimeout(timer);
-        reject(error);
-      },
-    );
+    promise.then(resolveOnce, rejectOnce);
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) onAbort();
   });
+}
+
+async function acquireBounded<TResult>(
+  promise: Promise<TResult>,
+  timeoutMs: number,
+  operation: string,
+  dispose: (resource: TResult) => Promise<unknown>,
+  signal?: AbortSignal,
+): Promise<TResult> {
+  try {
+    return await bounded(promise, timeoutMs, operation, signal);
+  } catch (error) {
+    // A timeout or abort only stops our wait; it cannot cancel amqplib's promise. If the resource
+    // arrives later, close it immediately so a cancelled reconnect cannot leak a connection or
+    // channel after worker shutdown has already continued.
+    void promise
+      .then(async (resource) => {
+        await bounded(
+          Promise.resolve().then(() => dispose(resource)),
+          timeoutMs,
+          `${operation} late resource close`,
+        );
+      })
+      .catch(() => undefined);
+    throw error;
+  }
 }
 
 function plainObject(value: unknown): value is Record<string, unknown> {
@@ -197,18 +239,20 @@ function validateSubscription(subscription: EventSubscription): EventSubscriptio
 export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   #generation: BrokerGeneration | undefined;
   #starting: Promise<void> | undefined;
+  #startController: AbortController | undefined;
   #nextGeneration = 1;
   #closing = false;
   readonly #subscriptions = new Map<string, SubscriptionRecord>();
   readonly #deliveries = new Set<Promise<void>>();
   readonly #handlerWork = new Set<Promise<void>>();
+  readonly #cleanupWork = new Set<Promise<void>>();
 
   public constructor(
     private readonly config: RabbitMqEventBrokerConfig,
     private readonly connector: RabbitConnector = connectRabbit,
   ) {}
 
-  public async start(): Promise<void> {
+  public async start(signal?: AbortSignal): Promise<void> {
     if (this.#closing) {
       throw new Error('RabbitMQ broker is closed.');
     }
@@ -217,9 +261,15 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     }
 
     if (!this.#starting) {
-      const tracked = this.establishGeneration().finally(() => {
+      const controller = new AbortController();
+      const establishmentSignal = signal
+        ? AbortSignal.any([controller.signal, signal])
+        : controller.signal;
+      this.#startController = controller;
+      const tracked = this.establishGeneration(establishmentSignal).finally(() => {
         if (this.#starting === tracked) {
           this.#starting = undefined;
+          this.#startController = undefined;
         }
       });
       this.#starting = tracked;
@@ -227,19 +277,28 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     await this.#starting;
   }
 
-  private async establishGeneration(): Promise<void> {
+  private async establishGeneration(signal?: AbortSignal): Promise<void> {
     let connection: BrokerConnection | undefined;
     let channel: BrokerChannel | undefined;
     try {
-      connection = await bounded(
-        this.connector(this.config.url, { timeout: this.config.operationTimeoutMs }),
+      signal?.throwIfAborted();
+      const connectionPromise = this.connector(this.config.url, {
+        timeout: this.config.operationTimeoutMs,
+      });
+      connection = await acquireBounded(
+        connectionPromise,
         this.config.operationTimeoutMs,
         'RabbitMQ connection',
+        async (lateConnection) => lateConnection.close(),
+        signal,
       );
-      channel = await bounded(
-        connection.createConfirmChannel(),
+      const channelPromise = connection.createConfirmChannel();
+      channel = await acquireBounded(
+        channelPromise,
         this.config.operationTimeoutMs,
         'RabbitMQ channel creation',
+        async (lateChannel) => lateChannel.close(),
+        signal,
       );
       const generation: BrokerGeneration = {
         id: this.#nextGeneration++,
@@ -258,50 +317,69 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         channel.assertExchange(EXCHANGE, 'topic', { durable: true }),
         this.config.operationTimeoutMs,
         'RabbitMQ exchange declaration',
+        signal,
       );
-      await bounded(channel.prefetch(1), this.config.operationTimeoutMs, 'RabbitMQ prefetch');
+      await bounded(
+        channel.prefetch(1),
+        this.config.operationTimeoutMs,
+        'RabbitMQ prefetch',
+        signal,
+      );
 
       // Keep the baseline binding active until every stable queue is declared and bound. This
       // overlap may duplicate a publication, but it prevents an unroutable interval and the inbox
       // makes the duplicate harmless. Consumers start only after the binding handoff completes.
       for (const record of this.#subscriptions.values()) {
-        await this.materializeSubscriptionTopology(generation, record);
-      }
-      await bounded(
-        channel.assertQueue(LEGACY_AUDIT_QUEUE, { durable: true }),
-        this.config.operationTimeoutMs,
-        'RabbitMQ legacy audit queue declaration',
-      );
-      await bounded(
-        channel.unbindQueue(LEGACY_AUDIT_QUEUE, EXCHANGE, AUDIT_TRACE_REQUESTED_TYPE),
-        this.config.operationTimeoutMs,
-        'RabbitMQ legacy audit queue unbinding',
-      );
-      for (const record of this.#subscriptions.values()) {
-        await this.materializeSubscriptionConsumer(generation, record);
+        await this.materializeSubscriptionTopology(generation, record, signal);
       }
       const auditRecord = this.#subscriptions.get(AUDIT_CONSUMER);
-      if (auditRecord?.subscription.eventTypes.includes(AUDIT_TRACE_REQUESTED_TYPE)) {
-        await this.materializeLegacyAuditDrain(generation, auditRecord);
+      const migratesLegacyAudit =
+        auditRecord?.subscription.eventTypes.includes(AUDIT_TRACE_REQUESTED_TYPE) === true;
+      if (migratesLegacyAudit) {
+        await bounded(
+          channel.assertQueue(LEGACY_AUDIT_QUEUE, { durable: true }),
+          this.config.operationTimeoutMs,
+          'RabbitMQ legacy audit queue declaration',
+          signal,
+        );
+        await bounded(
+          channel.unbindQueue(LEGACY_AUDIT_QUEUE, EXCHANGE, AUDIT_TRACE_REQUESTED_TYPE),
+          this.config.operationTimeoutMs,
+          'RabbitMQ legacy audit queue unbinding',
+          signal,
+        );
+      }
+      for (const record of this.#subscriptions.values()) {
+        await this.materializeSubscriptionConsumer(generation, record, signal);
+      }
+      if (migratesLegacyAudit && auditRecord) {
+        await this.materializeLegacyAuditDrain(generation, auditRecord, signal);
       }
       if (generation.invalidated || this.#closing) {
         throw new Error('RabbitMQ connection closed during topology restoration.');
       }
       this.#generation = generation;
     } catch (error) {
-      if (channel) {
-        await bounded(
-          channel.close(),
-          this.config.operationTimeoutMs,
-          'RabbitMQ failed-start channel close',
-        ).catch(() => undefined);
-      }
-      if (connection) {
-        await bounded(
-          connection.close(),
-          this.config.operationTimeoutMs,
-          'RabbitMQ failed-start connection close',
-        ).catch(() => undefined);
+      const cleanup = Promise.allSettled([
+        channel
+          ? bounded(
+              channel.close(),
+              this.config.operationTimeoutMs,
+              'RabbitMQ failed-start channel close',
+            )
+          : Promise.resolve(),
+        connection
+          ? bounded(
+              connection.close(),
+              this.config.operationTimeoutMs,
+              'RabbitMQ failed-start connection close',
+            )
+          : Promise.resolve(),
+      ]).then(() => undefined);
+      if (signal?.aborted) {
+        this.trackCleanup(cleanup);
+      } else {
+        await cleanup;
       }
       throw redactConnectionError(error);
     }
@@ -406,18 +484,21 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   private async materializeSubscriptionTopology(
     generation: BrokerGeneration,
     record: SubscriptionRecord,
+    signal?: AbortSignal,
   ): Promise<void> {
     const { consumerName, eventTypes } = record.subscription;
     await bounded(
       generation.channel.assertQueue(consumerName, { durable: true }),
       this.config.operationTimeoutMs,
       `RabbitMQ queue declaration for ${consumerName}`,
+      signal,
     );
     for (const eventType of eventTypes) {
       await bounded(
         generation.channel.bindQueue(consumerName, EXCHANGE, eventType),
         this.config.operationTimeoutMs,
         `RabbitMQ queue binding for ${consumerName}`,
+        signal,
       );
     }
   }
@@ -425,6 +506,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   private async materializeSubscriptionConsumer(
     generation: BrokerGeneration,
     record: SubscriptionRecord,
+    signal?: AbortSignal,
   ): Promise<void> {
     const { consumerName, eventTypes } = record.subscription;
     if (generation.consumerTags.has(consumerName)) {
@@ -441,6 +523,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       ),
       this.config.operationTimeoutMs,
       `RabbitMQ consumer registration for ${consumerName}`,
+      signal,
     );
     generation.consumerTags.set(consumerName, reply.consumerTag);
   }
@@ -448,6 +531,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   private async materializeLegacyAuditDrain(
     generation: BrokerGeneration,
     record: SubscriptionRecord,
+    signal?: AbortSignal,
   ): Promise<void> {
     const consumerKey = `legacy:${record.subscription.consumerName}`;
     const reply = await bounded(
@@ -466,6 +550,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       ),
       this.config.operationTimeoutMs,
       'RabbitMQ legacy audit consumer registration',
+      signal,
     );
     generation.consumerTags.set(consumerKey, reply.consumerTag);
   }
@@ -513,6 +598,14 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     void delivery.finally(() => this.#deliveries.delete(delivery));
   }
 
+  private trackCleanup(cleanup: Promise<void>): void {
+    this.#cleanupWork.add(cleanup);
+    void cleanup.then(
+      () => this.#cleanupWork.delete(cleanup),
+      () => this.#cleanupWork.delete(cleanup),
+    );
+  }
+
   private async closeGeneration(generation: BrokerGeneration, operation: string): Promise<void> {
     await Promise.allSettled([
       bounded(
@@ -530,6 +623,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
 
   public async close(): Promise<void> {
     this.#closing = true;
+    this.#startController?.abort(new Error('RabbitMQ broker is closing.'));
     await this.#starting?.catch(() => undefined);
     const generation = this.#generation;
     this.#generation = undefined;
@@ -561,6 +655,13 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         generation.connection.close(),
         this.config.operationTimeoutMs,
         'RabbitMQ connection close',
+      ).catch(() => undefined);
+    }
+    if (this.#cleanupWork.size > 0) {
+      await bounded(
+        Promise.allSettled([...this.#cleanupWork]).then(() => undefined),
+        this.config.operationTimeoutMs,
+        'RabbitMQ cancelled-start cleanup drain',
       ).catch(() => undefined);
     }
   }
