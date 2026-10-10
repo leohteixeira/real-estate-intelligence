@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 import { redactConnectionError } from './redact.js';
 
@@ -61,6 +61,67 @@ export class DatabaseConnection {
       return result.rows;
     } catch (error) {
       throw redactConnectionError(error);
+    }
+  }
+
+  /**
+   * Runs maintenance SQL on a disposable lease. Aborting destroys that lease so PostgreSQL
+   * cancels active work; a lease delivered after an already-aborted checkout is destroyed too.
+   */
+  public async queryAbortable<TRow extends object>(
+    statement: string,
+    parameters: readonly unknown[],
+    signal: AbortSignal,
+  ): Promise<TRow[]> {
+    const reason = (): Error =>
+      signal.reason instanceof Error ? signal.reason : new Error('Database query was aborted.');
+    signal.throwIfAborted();
+
+    const checkout = this.#pool.connect();
+    let removeCheckoutAbort = (): void => {};
+    const checkoutAborted = new Promise<never>((_resolve, reject) => {
+      const onAbort = (): void => reject(reason());
+      signal.addEventListener('abort', onAbort, { once: true });
+      removeCheckoutAbort = () => signal.removeEventListener('abort', onAbort);
+    });
+
+    let client: PoolClient;
+    try {
+      client = await Promise.race([checkout, checkoutAborted]);
+    } catch (error) {
+      if (signal.aborted) {
+        void checkout.then(
+          (lateClient) => lateClient.release(true),
+          () => undefined,
+        );
+        throw reason();
+      }
+      throw redactConnectionError(error);
+    } finally {
+      removeCheckoutAbort();
+    }
+
+    let destroyed = false;
+    const onAbort = (): void => {
+      if (!destroyed) {
+        destroyed = true;
+        client.release(true);
+      }
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+
+    try {
+      if (signal.aborted) throw reason();
+      const result = await client.query<TRow>(statement, [...parameters]);
+      if (signal.aborted) throw reason();
+      return result.rows;
+    } catch (error) {
+      if (signal.aborted) throw reason();
+      throw redactConnectionError(error);
+    } finally {
+      signal.removeEventListener('abort', onAbort);
+      if (!destroyed) client.release();
     }
   }
 

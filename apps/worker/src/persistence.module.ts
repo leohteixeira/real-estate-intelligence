@@ -3,7 +3,9 @@ import {
   AUDIT_EVENT_LOG,
   DATABASE_AVAILABILITY_PROBE,
   INBOX,
+  INBOX_RETENTION_PORT,
   OUTBOX_RELAY_PORT,
+  OUTBOX_RETENTION_PORT,
   TRANSACTION_RUNNER,
 } from '@rei/application';
 import {
@@ -42,6 +44,7 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       useFactory: (connection: DatabaseConnection): PostgresOutbox =>
         new PostgresOutbox(connection),
     },
+    { provide: OUTBOX_RETENTION_PORT, useExisting: OUTBOX_RELAY_PORT },
     {
       provide: TRANSACTION_RUNNER,
       inject: [DATABASE_CONNECTION],
@@ -53,6 +56,7 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
       inject: [DATABASE_CONNECTION],
       useFactory: (connection: DatabaseConnection): PostgresInbox => new PostgresInbox(connection),
     },
+    { provide: INBOX_RETENTION_PORT, useExisting: INBOX },
     {
       provide: AUDIT_EVENT_LOG,
       inject: [DATABASE_CONNECTION],
@@ -74,7 +78,9 @@ export const DATABASE_CONNECTION = Symbol.for('rei.DatabaseConnection');
     DATABASE_AVAILABILITY_PROBE,
     TRANSACTION_RUNNER,
     OUTBOX_RELAY_PORT,
+    OUTBOX_RETENTION_PORT,
     INBOX,
+    INBOX_RETENTION_PORT,
     AUDIT_EVENT_LOG,
   ],
 })

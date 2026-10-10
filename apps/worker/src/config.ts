@@ -9,6 +9,12 @@ export interface WorkerConfig {
   readonly reconnectIntervalMs: number;
   readonly operationTimeoutMs: number;
   readonly shutdownTimeoutMs: number;
+  readonly eventDeliveryLimit: number;
+  readonly eventRedeliveryDelayMs: number;
+  readonly outboxRetentionMs: number;
+  readonly inboxRetentionMs: number;
+  readonly retentionIntervalMs: number;
+  readonly retentionBatchSize: number;
 }
 
 const DEFAULT_INTERVAL_MS = 30_000;
@@ -18,6 +24,13 @@ const DEFAULT_CLAIM_LEASE_MS = 130_000;
 const DEFAULT_RECONNECT_INTERVAL_MS = 1_000;
 const DEFAULT_OPERATION_TIMEOUT_MS = 5_000;
 const DEFAULT_SHUTDOWN_TIMEOUT_MS = 15_000;
+const DEFAULT_EVENT_DELIVERY_LIMIT = 5;
+const DEFAULT_EVENT_REDELIVERY_DELAY_MS = 1_000;
+const DEFAULT_OUTBOX_RETENTION_MS = 7 * 24 * 60 * 60 * 1_000;
+const DEFAULT_INBOX_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
+const DEFAULT_RETENTION_INTERVAL_MS = 5 * 60 * 1_000;
+const DEFAULT_RETENTION_BATCH_SIZE = 1_000;
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 function positiveInteger(
   env: NodeJS.ProcessEnv,
@@ -27,7 +40,7 @@ function positiveInteger(
   maximum = Number.MAX_SAFE_INTEGER,
 ): number {
   const raw = env[name]?.trim();
-  const value = raw ? Number.parseInt(raw, 10) : fallback;
+  const value = raw && /^\d+$/.test(raw) ? Number(raw) : raw ? Number.NaN : fallback;
   if (!Number.isInteger(value) || value < minimum || value > maximum) {
     throw new Error(`${name} must be an integer between ${minimum} and ${maximum}.`);
   }
@@ -46,24 +59,27 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     throw new Error('RABBITMQ_URL is required. See env.example.');
   }
 
-  const raw = env.WORKER_INTERVAL_MS?.trim();
-  const intervalMs = raw ? Number.parseInt(raw, 10) : DEFAULT_INTERVAL_MS;
-
-  if (!Number.isInteger(intervalMs) || intervalMs < 1_000) {
-    throw new Error(`WORKER_INTERVAL_MS must be at least 1000, got ${String(raw)}.`);
-  }
+  const intervalMs = positiveInteger(
+    env,
+    'WORKER_INTERVAL_MS',
+    DEFAULT_INTERVAL_MS,
+    1_000,
+    MAX_TIMER_DELAY_MS,
+  );
 
   const operationTimeoutMs = positiveInteger(
     env,
     'WORKER_OPERATION_TIMEOUT_MS',
     DEFAULT_OPERATION_TIMEOUT_MS,
     100,
+    MAX_TIMER_DELAY_MS,
   );
   const shutdownTimeoutMs = positiveInteger(
     env,
     'SHUTDOWN_TIMEOUT_MS',
     DEFAULT_SHUTDOWN_TIMEOUT_MS,
     operationTimeoutMs,
+    MAX_TIMER_DELAY_MS,
   );
 
   const relayIntervalMs = positiveInteger(
@@ -71,6 +87,7 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     'OUTBOX_RELAY_INTERVAL_MS',
     DEFAULT_RELAY_INTERVAL_MS,
     100,
+    MAX_TIMER_DELAY_MS,
   );
   const relayBatchSize = positiveInteger(
     env,
@@ -100,6 +117,50 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     shutdownTimeoutMs,
   );
 
+  const eventDeliveryLimit = positiveInteger(
+    env,
+    'EVENT_DELIVERY_LIMIT',
+    DEFAULT_EVENT_DELIVERY_LIMIT,
+    2,
+    20,
+  );
+  const eventRedeliveryDelayMs = positiveInteger(
+    env,
+    'EVENT_REDELIVERY_DELAY_MS',
+    DEFAULT_EVENT_REDELIVERY_DELAY_MS,
+    100,
+    30_000,
+  );
+  const outboxRetentionMs = positiveInteger(
+    env,
+    'OUTBOX_RETENTION_MS',
+    DEFAULT_OUTBOX_RETENTION_MS,
+    1,
+  );
+  const inboxRetentionMs = positiveInteger(
+    env,
+    'INBOX_RETENTION_MS',
+    DEFAULT_INBOX_RETENTION_MS,
+    outboxRetentionMs,
+  );
+  const retentionIntervalMs = positiveInteger(
+    env,
+    'DELIVERY_RETENTION_INTERVAL_MS',
+    DEFAULT_RETENTION_INTERVAL_MS,
+    100,
+    MAX_TIMER_DELAY_MS,
+  );
+  if (retentionIntervalMs >= outboxRetentionMs || retentionIntervalMs >= inboxRetentionMs) {
+    throw new Error('DELIVERY_RETENTION_INTERVAL_MS must be shorter than both retention periods.');
+  }
+  const retentionBatchSize = positiveInteger(
+    env,
+    'DELIVERY_RETENTION_BATCH_SIZE',
+    DEFAULT_RETENTION_BATCH_SIZE,
+    1,
+    10_000,
+  );
+
   return {
     databaseUrl,
     rabbitMqUrl,
@@ -110,5 +171,11 @@ export function readConfig(env: NodeJS.ProcessEnv): WorkerConfig {
     reconnectIntervalMs,
     operationTimeoutMs,
     shutdownTimeoutMs,
+    eventDeliveryLimit,
+    eventRedeliveryDelayMs,
+    outboxRetentionMs,
+    inboxRetentionMs,
+    retentionIntervalMs,
+    retentionBatchSize,
   };
 }

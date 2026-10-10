@@ -29,5 +29,11 @@ export interface OutboxRelayPort {
   releaseClaim(eventId: UuidV7, claimId: UuidV7): Promise<void>;
 }
 
+/** Bounded maintenance capability for delivery rows that are no longer replayable. */
+export interface OutboxRetentionPort {
+  prunePublished(retentionMs: number, batchSize: number, signal: AbortSignal): Promise<number>;
+}
+
 export const OUTBOX_APPEND_PORT = Symbol.for('rei.OutboxAppendPort');
 export const OUTBOX_RELAY_PORT = Symbol.for('rei.OutboxRelayPort');
+export const OUTBOX_RETENTION_PORT = Symbol.for('rei.OutboxRetentionPort');

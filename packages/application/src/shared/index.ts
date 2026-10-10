@@ -6,10 +6,16 @@ export { EVENT_PUBLISHER } from './event-publisher.js';
 export type { EventPublisher } from './event-publisher.js';
 export { EVENT_SUBSCRIBER } from './event-subscriber.js';
 export type { EventHandler, EventSubscriber, EventSubscription } from './event-subscriber.js';
-export { INBOX } from './inbox.js';
-export type { Inbox } from './inbox.js';
-export { OUTBOX_APPEND_PORT, OUTBOX_RELAY_PORT } from './outbox.js';
-export type { EventEnvelope, OutboxAppendPort, OutboxRelayPort, OutboxRow } from './outbox.js';
+export { INBOX, INBOX_RETENTION_PORT } from './inbox.js';
+export type { Inbox, InboxRetentionPort } from './inbox.js';
+export { OUTBOX_APPEND_PORT, OUTBOX_RELAY_PORT, OUTBOX_RETENTION_PORT } from './outbox.js';
+export type {
+  EventEnvelope,
+  OutboxAppendPort,
+  OutboxRelayPort,
+  OutboxRetentionPort,
+  OutboxRow,
+} from './outbox.js';
 export { Transaction, TRANSACTION_RUNNER } from './transaction.js';
 export type { TransactionRunner, TransactionWork } from './transaction.js';
 export { UUID_V7_GENERATOR } from './uuid-v7-generator.js';

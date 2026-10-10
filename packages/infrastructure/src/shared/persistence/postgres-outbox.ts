@@ -2,6 +2,7 @@ import type {
   EventEnvelope,
   OutboxAppendPort,
   OutboxRelayPort,
+  OutboxRetentionPort,
   OutboxRow,
   Transaction,
 } from '@rei/application';
@@ -84,7 +85,7 @@ const CLAIMED_COLUMNS = `
   claimed.claim_id, claimed.claim_expires_at
 `;
 
-export class PostgresOutbox implements OutboxAppendPort, OutboxRelayPort {
+export class PostgresOutbox implements OutboxAppendPort, OutboxRelayPort, OutboxRetentionPort {
   public constructor(private readonly connection: DatabaseConnection) {}
 
   public async append(transaction: Transaction, events: readonly EventEnvelope[]): Promise<void> {
@@ -197,5 +198,45 @@ export class PostgresOutbox implements OutboxAppendPort, OutboxRelayPort {
     } catch (error) {
       throw redactConnectionError(error);
     }
+  }
+
+  public async prunePublished(
+    retentionMs: number,
+    batchSize: number,
+    signal: AbortSignal,
+  ): Promise<number> {
+    validateRetentionArguments(retentionMs, batchSize);
+    try {
+      const rows = await this.connection.queryAbortable<{ event_id: string }>(
+        `WITH eligible AS (
+           SELECT candidate.event_id
+             FROM platform.outbox AS candidate
+            WHERE candidate.published_at IS NOT NULL
+              AND candidate.published_at < clock_timestamp() - ($1 * interval '1 millisecond')
+            ORDER BY candidate.published_at, candidate.event_id
+            LIMIT $2
+            FOR UPDATE OF candidate SKIP LOCKED
+         )
+         DELETE FROM platform.outbox AS expired
+          USING eligible
+          WHERE expired.event_id = eligible.event_id
+        RETURNING expired.event_id::text`,
+        [retentionMs, batchSize],
+        signal,
+      );
+      return rows.length;
+    } catch (error) {
+      if (signal.aborted) throw error;
+      throw redactConnectionError(error);
+    }
+  }
+}
+
+function validateRetentionArguments(retentionMs: number, batchSize: number): void {
+  if (!Number.isSafeInteger(retentionMs) || retentionMs < 1) {
+    throw new Error('Retention duration must be a positive integer.');
+  }
+  if (!Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 10_000) {
+    throw new Error('Retention batch size must be between 1 and 10000.');
   }
 }

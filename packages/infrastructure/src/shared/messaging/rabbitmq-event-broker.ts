@@ -13,6 +13,7 @@ import {
   type EventPayload,
 } from '@rei/domain';
 import amqp from 'amqplib';
+import { randomUUID } from 'node:crypto';
 
 import { redactConnectionError } from '../persistence/redact.js';
 
@@ -23,20 +24,31 @@ const AUDIT_CONSUMER = 'audit.event-log';
 export interface RabbitMqEventBrokerConfig {
   readonly url: string;
   readonly operationTimeoutMs: number;
+  readonly deliveryLimit?: number;
+  readonly redeliveryDelayMs?: number;
 }
 
 interface BrokerMessage {
   readonly content: Buffer;
+  readonly properties?: {
+    readonly headers?: Record<string, unknown>;
+    readonly correlationId?: string;
+  };
 }
 
 interface BrokerEmitter {
   on(event: 'close', listener: () => void): this;
   on(event: 'error', listener: (error: Error) => void): this;
+  on(event: 'return', listener: (message: BrokerMessage) => void): this;
+  off?(event: 'return', listener: (message: BrokerMessage) => void): this;
 }
 
 interface BrokerChannel extends BrokerEmitter {
   assertExchange(exchange: string, type: string, options: { durable: boolean }): Promise<unknown>;
-  assertQueue(queue: string, options: { durable: boolean }): Promise<unknown>;
+  assertQueue(
+    queue: string,
+    options: { durable: boolean; arguments?: Record<string, unknown> },
+  ): Promise<unknown>;
   bindQueue(queue: string, exchange: string, routingKey: string): Promise<unknown>;
   unbindQueue(queue: string, exchange: string, routingKey: string): Promise<unknown>;
   prefetch(count: number): Promise<unknown>;
@@ -73,6 +85,7 @@ interface BrokerGeneration {
   readonly connection: BrokerConnection;
   readonly channel: BrokerChannel;
   readonly consumerTags: Map<string, string>;
+  readonly controller: AbortController;
   invalidated: boolean;
 }
 
@@ -153,6 +166,29 @@ function plainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function deliveryAttempt(message: BrokerMessage): number {
+  const value = message.properties?.headers?.['x-rei-delivery-attempt'];
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1 ? value : 1;
+}
+
+function abortableDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(
+        signal.reason instanceof Error ? signal.reason : new Error('Retry delay was aborted.'),
+      );
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+    timer.unref();
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
+  });
+}
+
 class HydratedEvent extends DomainEvent<string, EventPayload> {
   public constructor(input: DomainEventInput<string, EventPayload>) {
     super(input);
@@ -221,12 +257,15 @@ export function parseAuditTraceRequestedMessage(content: Buffer): EventEnvelope 
 }
 
 function validateSubscription(subscription: EventSubscription): EventSubscription {
+  const deadLetterQueue = `${subscription.consumerName}.dead-letter`;
   if (
     subscription.consumerName.length < 1 ||
     subscription.consumerName.length > 200 ||
     subscription.eventTypes.length < 1 ||
     new Set(subscription.eventTypes).size !== subscription.eventTypes.length ||
-    subscription.eventTypes.some((eventType) => eventType.length < 1)
+    subscription.eventTypes.some((eventType) => eventType.length < 1) ||
+    Buffer.byteLength(subscription.consumerName, 'utf8') > 255 ||
+    Buffer.byteLength(deadLetterQueue, 'utf8') > 255
   ) {
     throw new Error('RabbitMQ subscription descriptor is invalid.');
   }
@@ -305,6 +344,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         connection,
         channel,
         consumerTags: new Map(),
+        controller: new AbortController(),
         invalidated: false,
       };
       const invalidate = (): void => this.invalidateGeneration(generation);
@@ -387,6 +427,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
 
   private invalidateGeneration(generation: BrokerGeneration): void {
     generation.invalidated = true;
+    generation.controller.abort(new Error('RabbitMQ generation was retired.'));
     generation.consumerTags.clear();
     if (this.#generation === generation) {
       this.#generation = undefined;
@@ -428,6 +469,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         generation.channel.waitForConfirms(),
         this.config.operationTimeoutMs,
         'RabbitMQ publisher confirmation',
+        signal,
       );
     } catch (error) {
       // A failed or timed-out confirm has an ambiguous delivery outcome. Retire this generation
@@ -493,6 +535,15 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       `RabbitMQ queue declaration for ${consumerName}`,
       signal,
     );
+    await bounded(
+      generation.channel.assertQueue(`${consumerName}.dead-letter`, {
+        durable: true,
+        arguments: { 'x-queue-type': 'classic' },
+      }),
+      this.config.operationTimeoutMs,
+      `RabbitMQ dead-letter queue declaration for ${consumerName}`,
+      signal,
+    );
     for (const eventType of eventTypes) {
       await bounded(
         generation.channel.bindQueue(consumerName, EXCHANGE, eventType),
@@ -517,7 +568,14 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         consumerName,
         (message) =>
           this.trackDelivery(
-            this.handleDelivery(generation.channel, message, eventTypes, record.handler),
+            this.handleDelivery(
+              generation,
+              message,
+              consumerName,
+              consumerName,
+              eventTypes,
+              record.handler,
+            ),
           ),
         { noAck: false },
       ),
@@ -540,8 +598,10 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         (message) =>
           this.trackDelivery(
             this.handleDelivery(
-              generation.channel,
+              generation,
               message,
+              LEGACY_AUDIT_QUEUE,
+              record.subscription.consumerName,
               [AUDIT_TRACE_REQUESTED_TYPE],
               record.handler,
             ),
@@ -556,14 +616,18 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   }
 
   private async handleDelivery(
-    channel: BrokerChannel,
+    generation: BrokerGeneration,
     message: BrokerMessage | null,
+    sourceQueue: string,
+    consumerName: string,
     eventTypes: readonly string[],
     handler: EventHandler,
   ): Promise<void> {
     if (message === null) {
       return;
     }
+
+    const attempt = deliveryAttempt(message);
 
     let event: EventEnvelope;
     try {
@@ -575,7 +639,14 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
         event = parseAuditTraceRequestedMessage(message.content);
       }
     } catch {
-      channel.reject(message, false);
+      await this.transferConfirmed(
+        generation,
+        message,
+        `${consumerName}.dead-letter`,
+        attempt,
+        'invalid-envelope',
+      );
+      if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
       return;
     }
 
@@ -587,15 +658,91 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     );
     try {
       await bounded(work, this.config.operationTimeoutMs, 'Event handling');
-      channel.ack(message);
+      if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
     } catch {
-      // Deliberately leave the delivery unacknowledged. Closing the channel requeues it.
+      try {
+        if (attempt < (this.config.deliveryLimit ?? 5)) {
+          await abortableDelay(
+            this.config.redeliveryDelayMs ?? 1_000,
+            generation.controller.signal,
+          );
+          await this.transferConfirmed(
+            generation,
+            message,
+            sourceQueue,
+            attempt + 1,
+            'handler-retry',
+          );
+        } else {
+          await this.transferConfirmed(
+            generation,
+            message,
+            `${consumerName}.dead-letter`,
+            attempt,
+            'delivery-limit',
+          );
+        }
+        if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
+      } catch {
+        // The source stays unsettled. Ambiguous transfer state retires the generation below.
+      }
+    }
+  }
+
+  private async transferConfirmed(
+    generation: BrokerGeneration,
+    message: BrokerMessage,
+    destinationQueue: string,
+    attempt: number,
+    reason: 'handler-retry' | 'delivery-limit' | 'invalid-envelope',
+  ): Promise<void> {
+    const correlationId = randomUUID();
+    let returned = false;
+    const onReturn = (returnedMessage: BrokerMessage): void => {
+      if (returnedMessage.properties?.correlationId === correlationId) returned = true;
+    };
+    generation.channel.on('return', onReturn);
+    try {
+      generation.channel.publish('', destinationQueue, message.content, {
+        persistent: true,
+        mandatory: true,
+        contentType: 'application/json',
+        contentEncoding: 'utf-8',
+        correlationId,
+        headers: {
+          'x-rei-delivery-attempt': attempt,
+          'x-rei-dead-letter-reason': reason,
+        },
+      });
+      await bounded(
+        generation.channel.waitForConfirms(),
+        this.config.operationTimeoutMs,
+        'RabbitMQ delivery transfer confirmation',
+        generation.controller.signal,
+      );
+      if (returned) throw new Error('RabbitMQ delivery transfer was unroutable.');
+      if (
+        generation.invalidated ||
+        (this.#generation !== undefined && this.#generation !== generation) ||
+        this.#closing
+      ) {
+        throw new Error('RabbitMQ generation changed during delivery transfer.');
+      }
+    } catch (error) {
+      this.invalidateGeneration(generation);
+      await this.closeGeneration(generation, 'RabbitMQ failed delivery transfer');
+      throw redactConnectionError(error);
+    } finally {
+      generation.channel.off?.('return', onReturn);
     }
   }
 
   private trackDelivery(delivery: Promise<void>): void {
     this.#deliveries.add(delivery);
-    void delivery.finally(() => this.#deliveries.delete(delivery));
+    void delivery.then(
+      () => this.#deliveries.delete(delivery),
+      () => this.#deliveries.delete(delivery),
+    );
   }
 
   private trackCleanup(cleanup: Promise<void>): void {
@@ -629,6 +776,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     this.#generation = undefined;
 
     if (generation) {
+      generation.controller.abort(new Error('RabbitMQ broker is closing.'));
       for (const consumerTag of generation.consumerTags.values()) {
         await bounded(
           generation.channel.cancel(consumerTag),

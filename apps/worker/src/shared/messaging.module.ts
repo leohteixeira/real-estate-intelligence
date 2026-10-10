@@ -14,6 +14,8 @@ import { readConfig } from '../config';
         return new RabbitMqEventBroker({
           url: config.rabbitMqUrl,
           operationTimeoutMs: config.operationTimeoutMs,
+          deliveryLimit: config.eventDeliveryLimit,
+          redeliveryDelayMs: config.eventRedeliveryDelayMs,
         });
       },
     },

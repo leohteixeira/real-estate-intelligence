@@ -11,6 +11,7 @@ import { WorkerModule } from './worker.module';
 import { HeartbeatJob } from './heartbeat.job';
 import { OutboxRelayJob } from './shared/outbox-relay.job';
 import { BrokerConnectionSupervisor } from './shared/broker-connection-supervisor';
+import { DeliveryRetentionJob } from './shared/delivery-retention.job';
 import { clearWorkerReadiness, markWorkerReady } from './worker-readiness';
 import { shutdownWorker, WorkerShutdownTimeoutError } from './worker-shutdown';
 
@@ -29,9 +30,11 @@ async function bootstrap(): Promise<void> {
   const auditConsumer = context.get(AuditTraceConsumer);
   const broker = context.get(RabbitMqEventBroker);
   const brokerSupervisor = context.get(BrokerConnectionSupervisor);
+  const retention = context.get(DeliveryRetentionJob);
   await auditConsumer.start();
   brokerSupervisor.start();
   relay.start();
+  retention.start();
   heartbeat.start();
 
   let stopping: Promise<void> | undefined;
@@ -43,6 +46,7 @@ async function bootstrap(): Promise<void> {
           clearReadiness: () => clearWorkerReadiness(),
           stopBrokerSupervisor: () => brokerSupervisor.stop(),
           stopRelay: () => relay.stop(),
+          stopRetention: () => retention.stop(),
           stopHeartbeat: () => heartbeat.stop(),
           closeBroker: () => broker.close(),
           closeContext: () => context.close(),
