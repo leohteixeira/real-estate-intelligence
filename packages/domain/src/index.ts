@@ -1,2 +1,2 @@
-export { pricePerSquareMeter, PricePerSquareMeterError } from './market/price-per-square-meter.js';
-export type { PricePerSquareMeterInput } from './market/price-per-square-meter.js';
+export * from './market/index.js';
+export * from './shared/index.js';

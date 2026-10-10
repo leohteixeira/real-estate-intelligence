@@ -6,9 +6,10 @@ SDK or on a data source.
 One folder per bounded context (ADR 0011): `properties`, `market`, `comparables`, `collection`,
 `locations`, `ask`, `alerts`, `audit` and `identity`. Inside a context, one folder per aggregate
 holds its entity, value objects, events and rules, told apart by suffix (`listing.entity.ts`,
-`asking-price.vo.ts`, `listing.events.ts`); `shared/` holds the kernel no context owns. A context
-exports only through its `index.ts` and never imports the internals of another. The folders are
-empty on purpose: the foundation phase does not create entities yet.
+`asking-price.vo.ts`, `listing.events.ts`); `shared/` holds only the context-neutral kernel:
+immutable BRL money, provenance, UUIDv7 validation, serializable domain events and W3C trace
+context. It contains no repository or business-context rule. A context exports only through its
+`index.ts` and never imports the internals of another.
 
 Rules that belong here once implementation starts:
 
