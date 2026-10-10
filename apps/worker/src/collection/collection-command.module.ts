@@ -7,6 +7,7 @@ import {
   LISTING_SOURCE,
   OUTBOX_APPEND_PORT,
   RAW_SNAPSHOT_STORE,
+  SOURCE_REGISTER_REPOSITORY,
   TRANSACTION_RUNNER,
   UUID_V7_GENERATOR,
   type Clock,
@@ -14,11 +15,13 @@ import {
   type ListingSource,
   type OutboxAppendPort,
   type RawSnapshotStore,
+  type SourceRegisterRepository,
   type TransactionRunner,
   type UuidV7Generator,
 } from '@rei/application';
 import {
   PostgresCollectionRunRepository,
+  PostgresSourceRegisterRepository,
   S3RawSnapshotStore,
   SyntheticListingSource,
   type DatabaseConnection,
@@ -52,6 +55,12 @@ import { DATABASE_CONNECTION, PersistenceModule } from '../persistence.module';
     },
     { provide: RAW_SNAPSHOT_STORE, useExisting: S3RawSnapshotStore },
     {
+      provide: SOURCE_REGISTER_REPOSITORY,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection): PostgresSourceRegisterRepository =>
+        new PostgresSourceRegisterRepository(connection),
+    },
+    {
       provide: COLLECTION_RUN_REPOSITORY,
       inject: [DATABASE_CONNECTION],
       useFactory: (connection: DatabaseConnection): PostgresCollectionRunRepository =>
@@ -62,6 +71,7 @@ import { DATABASE_CONNECTION, PersistenceModule } from '../persistence.module';
       inject: [
         LISTING_SOURCE,
         RAW_SNAPSHOT_STORE,
+        SOURCE_REGISTER_REPOSITORY,
         COLLECTION_RUN_REPOSITORY,
         TRANSACTION_RUNNER,
         UUID_V7_GENERATOR,
@@ -71,13 +81,23 @@ import { DATABASE_CONNECTION, PersistenceModule } from '../persistence.module';
       useFactory: (
         source: ListingSource,
         snapshots: RawSnapshotStore,
+        sources: SourceRegisterRepository,
         runs: CollectionRunRepository,
         transactions: TransactionRunner,
         identifiers: UuidV7Generator,
         clock: Clock,
         outbox: OutboxAppendPort,
       ): CollectSourceOnce =>
-        new CollectSourceOnce(source, snapshots, runs, transactions, identifiers, clock, outbox),
+        new CollectSourceOnce(
+          source,
+          snapshots,
+          sources,
+          runs,
+          transactions,
+          identifiers,
+          clock,
+          outbox,
+        ),
     },
   ],
   exports: [CollectSourceOnce],

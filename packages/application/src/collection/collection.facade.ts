@@ -1,4 +1,4 @@
-import type { Sha256Hash, UuidV7 } from '@rei/domain';
+import type { EnabledSourceView, Sha256Hash, UuidV7 } from '@rei/domain';
 
 export const COLLECTION_FACADE = Symbol.for('rei.CollectionFacade');
 
@@ -33,4 +33,5 @@ export interface CollectionFacade {
   getSourcePermissions(sourceId: string): Promise<CollectionSourcePermissions>;
   getRun(runId: string): Promise<CollectionRunView | null>;
   getSnapshotHash(snapshotId: string): Promise<Sha256Hash | null>;
+  listEnabledSources(signal?: AbortSignal): Promise<readonly EnabledSourceView[]>;
 }

@@ -26,14 +26,18 @@ export type SourceLicenceDto =
 export interface EnabledSourceDto {
   readonly sourceId: string;
   readonly displayLabel: string;
-  readonly enabled: boolean;
+  readonly enabled: true;
   readonly permissions: EnabledSourcePermissionsDto;
   readonly licence: SourceLicenceDto;
 }
 
+export interface EnabledSourcesResponse {
+  readonly sources: readonly EnabledSourceDto[];
+}
+
 export const SYNTHETIC_ENABLED_SOURCE: EnabledSourceDto = Object.freeze({
   sourceId: 'synthetic-data',
-  displayLabel: 'Synthetic dataset',
+  displayLabel: 'Labelled synthetic fixture',
   enabled: true,
   permissions: Object.freeze({
     collectionAllowed: true,

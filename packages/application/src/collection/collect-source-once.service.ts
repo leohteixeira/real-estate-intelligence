@@ -22,6 +22,7 @@ import type {
 } from './collection-run.repository.js';
 import type { ListingSource } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
+import type { SourceRegisterRepository } from './source-register.repository.js';
 
 const OPERATION_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 
@@ -49,6 +50,7 @@ export class CollectSourceOnce {
   public constructor(
     private readonly source: ListingSource,
     private readonly snapshots: RawSnapshotStore,
+    private readonly sources: SourceRegisterRepository,
     private readonly runs: CollectionRunRepository,
     private readonly transactions: TransactionRunner,
     private readonly identifiers: UuidV7Generator,
@@ -68,12 +70,12 @@ export class CollectSourceOnce {
     const replay = await this.runs.findByOperationKey(operationKey, signal);
     if (replay) return Object.freeze({ ...replay, replayed: true });
 
-    const registration = await this.runs.findSource(sourceId, signal);
+    const registration = await this.sources.findById(sourceId, signal);
     if (
       registration === null ||
       !registration.enabled ||
-      !registration.collectionAllowed ||
-      !registration.synthetic
+      !registration.permissions.collectionAllowed ||
+      registration.category !== 'synthetic-listing'
     ) {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch' });
     }

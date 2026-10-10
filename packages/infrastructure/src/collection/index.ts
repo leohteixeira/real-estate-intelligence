@@ -11,8 +11,11 @@ export {
   InMemoryCollectionRunRepository,
   InMemoryListingSource,
   InMemoryRawSnapshotStore,
+  InMemorySourceRegisterRepository,
 } from './in-memory-collection.adapters.js';
 export { PostgresCollectionRunRepository } from './postgres-collection-run.repository.js';
+export { PostgresCollectionFacade } from './postgres-collection.facade.js';
+export { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';
 export { S3RawSnapshotStore } from './s3-raw-snapshot-store.js';
 export type { S3RawSnapshotStoreConfig } from './s3-raw-snapshot-store.js';
 export {

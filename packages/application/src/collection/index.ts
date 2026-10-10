@@ -6,14 +6,17 @@ export type {
   CollectionSourcePermissions,
 } from './collection.facade.js';
 export { CollectSourceOnce } from './collect-source-once.service.js';
+export { EnableSource, validateSourceId } from './enable-source.service.js';
+export type { EnableSourceResult } from './enable-source.service.js';
 export { COLLECTION_RUN_REPOSITORY } from './collection-run.repository.js';
 export type {
   CollectionExecutionResult,
   CollectionRunRepository,
-  CollectionSourceRegistration,
   PersistCompletedCollectionInput,
   PersistCompletedCollectionResult,
 } from './collection-run.repository.js';
+export { SOURCE_REGISTER_REPOSITORY } from './source-register.repository.js';
+export type { SourceRegisterRepository } from './source-register.repository.js';
 export { LISTING_SOURCE } from './listing-source.port.js';
 export type {
   ListingSource,

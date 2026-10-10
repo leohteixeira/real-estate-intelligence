@@ -7,6 +7,7 @@
     "dev": "tsc --build --watch",
     "start": "node -r ./dist/otel.js dist/main.js",
     "collect:synthetic": "node -r ./dist/otel.js dist/collection/collect-synthetic.js",
+    "source:enable": "node -r ./dist/otel.js dist/collection/enable-source.js",
     "typecheck": "tsc --build --force",
     "test": "vitest run --dir src --passWithNoTests"
   },

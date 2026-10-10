@@ -1,17 +1,24 @@
 import type {
   CollectionExecutionResult,
   CollectionRunRepository,
-  CollectionSourceRegistration,
   ListingSource,
   PersistCompletedCollectionInput,
   PersistCompletedCollectionResult,
   RawListingDocument,
   RawSnapshotStore,
+  SourceRegisterRepository,
   StoredRawSnapshot,
   StoreRawSnapshotInput,
   Transaction,
 } from '@rei/application';
-import type { CollectedListing } from '@rei/domain';
+import {
+  createSourceRegistration,
+  decideSourceEnablement,
+  toEnabledSourceView,
+  type CollectedListing,
+  type EnabledSourceView,
+  type SourceRegistration,
+} from '@rei/domain';
 import { createHash } from 'node:crypto';
 
 export class InMemoryListingSource implements ListingSource {
@@ -66,21 +73,10 @@ export class InMemoryRawSnapshotStore implements RawSnapshotStore {
 }
 
 export class InMemoryCollectionRunRepository implements CollectionRunRepository {
-  readonly #registrations = new Map<string, CollectionSourceRegistration>();
   readonly #results = new Map<string, CollectionExecutionResult>();
-
-  public constructor(registrations: readonly CollectionSourceRegistration[]) {
-    for (const registration of registrations) {
-      this.#registrations.set(registration.sourceId, Object.freeze({ ...registration }));
-    }
-  }
 
   public async findByOperationKey(operationKey: string): Promise<CollectionExecutionResult | null> {
     return this.#results.get(operationKey) ?? null;
-  }
-
-  public async findSource(sourceId: string): Promise<CollectionSourceRegistration | null> {
-    return this.#registrations.get(sourceId) ?? null;
   }
 
   public async persistCompleted(
@@ -101,5 +97,47 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
     });
     this.#results.set(input.operationKey, result);
     return { created: true, result };
+  }
+}
+
+export class InMemorySourceRegisterRepository implements SourceRegisterRepository {
+  readonly #sources = new Map<string, SourceRegistration>();
+
+  public constructor(sources: readonly SourceRegistration[]) {
+    for (const source of sources) this.#sources.set(source.sourceId, source);
+  }
+
+  public async findById(
+    sourceId: string,
+    signal?: AbortSignal,
+  ): Promise<SourceRegistration | null> {
+    signal?.throwIfAborted();
+    return this.#sources.get(sourceId) ?? null;
+  }
+
+  public async enableAtomically(
+    sourceId: string,
+    enabledAt: string,
+    signal?: AbortSignal,
+  ): Promise<SourceRegistration | null> {
+    signal?.throwIfAborted();
+    const current = this.#sources.get(sourceId);
+    if (!current) return null;
+    if (!decideSourceEnablement(current).eligible) return null;
+    const enabled = current.enabled
+      ? current
+      : createSourceRegistration({ ...current, enabled: true, enabledAt });
+    this.#sources.set(sourceId, enabled);
+    return enabled;
+  }
+
+  public async listEnabled(signal?: AbortSignal): Promise<readonly EnabledSourceView[]> {
+    signal?.throwIfAborted();
+    return Object.freeze(
+      [...this.#sources.values()]
+        .filter((source) => source.enabled)
+        .sort((left, right) => left.sourceId.localeCompare(right.sourceId))
+        .map(toEnabledSourceView),
+    );
   }
 }

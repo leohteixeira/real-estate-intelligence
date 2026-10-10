@@ -1,7 +1,6 @@
 import type {
   CollectionExecutionResult,
   CollectionRunRepository,
-  CollectionSourceRegistration,
   PersistCompletedCollectionInput,
   PersistCompletedCollectionResult,
   Transaction,
@@ -92,49 +91,6 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         return rows[0] ? mapResult(rows[0]) : null;
       }
       return await findWithClient(this.connection, operationKey);
-    } catch (error) {
-      if (signal?.aborted) throw signal.reason;
-      throw redactConnectionError(error);
-    }
-  }
-
-  public async findSource(
-    sourceId: string,
-    signal?: AbortSignal,
-  ): Promise<CollectionSourceRegistration | null> {
-    try {
-      const statement = `SELECT source_id, enabled, collection_allowed, source_kind
-           FROM collection.source_register
-          WHERE source_id = $1`;
-      const rows = signal
-        ? await this.connection.queryAbortable<{
-            source_id: unknown;
-            enabled: unknown;
-            collection_allowed: unknown;
-            source_kind: unknown;
-          }>(statement, [sourceId], signal)
-        : await this.connection.query<{
-            source_id: unknown;
-            enabled: unknown;
-            collection_allowed: unknown;
-            source_kind: unknown;
-          }>(statement, [sourceId]);
-      const row = rows[0];
-      if (!row) return null;
-      if (
-        typeof row.source_id !== 'string' ||
-        typeof row.enabled !== 'boolean' ||
-        typeof row.collection_allowed !== 'boolean' ||
-        typeof row.source_kind !== 'string'
-      ) {
-        throw new Error('PostgreSQL returned a malformed source registration.');
-      }
-      return Object.freeze({
-        sourceId: row.source_id,
-        enabled: row.enabled,
-        collectionAllowed: row.collection_allowed,
-        synthetic: row.source_kind === 'synthetic',
-      });
     } catch (error) {
       if (signal?.aborted) throw signal.reason;
       throw redactConnectionError(error);

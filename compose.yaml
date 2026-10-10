@@ -166,6 +166,24 @@ services:
         condition: service_healthy
     restart: 'no'
 
+  # Database-only operator surface for enabling an already reviewed register entry.
+  source-enable:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    entrypoint: ['node', '-r', './dist/otel.js', 'dist/collection/enable-source.js']
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
+      WORKER_OPERATION_TIMEOUT_MS: ${WORKER_OPERATION_TIMEOUT_MS:-5000}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: real-estate-intelligence-source-enable
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    restart: 'no'
+
   # Deliberately without DATABASE_URL and without object storage credentials:
   # the LangGraph service reaches domain capabilities only through typed tools
   # that call the API's versioned HTTP contract.

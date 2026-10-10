@@ -4,13 +4,6 @@ import type { Transaction } from '../shared/index.js';
 
 export const COLLECTION_RUN_REPOSITORY = Symbol.for('rei.CollectionRunRepository');
 
-export interface CollectionSourceRegistration {
-  readonly sourceId: string;
-  readonly enabled: boolean;
-  readonly collectionAllowed: boolean;
-  readonly synthetic: boolean;
-}
-
 export interface CollectionExecutionResult {
   readonly operationKey: string;
   readonly runId: UuidV7;
@@ -51,7 +44,6 @@ export interface CollectionRunRepository {
     operationKey: string,
     signal?: AbortSignal,
   ): Promise<CollectionExecutionResult | null>;
-  findSource(sourceId: string, signal?: AbortSignal): Promise<CollectionSourceRegistration | null>;
   persistCompleted(
     transaction: Transaction,
     input: PersistCompletedCollectionInput,

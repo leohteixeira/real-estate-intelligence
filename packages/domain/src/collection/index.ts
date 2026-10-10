@@ -33,6 +33,29 @@ export type {
 export { isSha256Hash, parseSha256Hash } from './sha256-hash.js';
 export type { Sha256Hash } from './sha256-hash.js';
 export {
+  SOURCE_ACCESS_METHODS,
+  SOURCE_CATEGORIES,
+  SOURCE_REVIEW_OUTCOMES,
+  createSourceRegistration,
+  decideSourceEnablement,
+  toEnabledSourceView,
+} from './source-registration.js';
+export type {
+  EnabledSourceView,
+  SourceAccessMethod,
+  SourceAccessPolicy,
+  SourceCategory,
+  SourceEnableDecision,
+  SourceEnableRefusalCode,
+  SourceLicence,
+  SourcePermissions,
+  SourceRatePolicy,
+  SourceRegistration,
+  SourceRegistrationInput,
+  SourceReview,
+  SourceReviewOutcome,
+} from './source-registration.js';
+export {
   SYNTHETIC_SAO_PAULO_LISTING_REFERENCES,
   SYNTHETIC_SAO_PAULO_MATCH_LABELS,
 } from './synthetic-sao-paulo.match-labels.js';

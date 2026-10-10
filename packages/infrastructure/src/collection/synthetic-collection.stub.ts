@@ -9,6 +9,7 @@ import {
   CollectionRunCompleted,
   CollectionSnapshotParsed,
   type CollectionEvent,
+  type EnabledSourceView,
   type Sha256Hash,
   type UuidV7,
 } from '@rei/domain';
@@ -146,6 +147,26 @@ export class SyntheticCollectionStub implements CollectionFacade {
 
   public async getSnapshotHash(snapshotId: string): Promise<Sha256Hash | null> {
     return snapshotId === SYNTHETIC_SNAPSHOT_ID ? SYNTHETIC_SNAPSHOT_HASH : null;
+  }
+
+  public async listEnabledSources(): Promise<readonly EnabledSourceView[]> {
+    return Object.freeze([
+      Object.freeze({
+        sourceId: SYNTHETIC_SOURCE_ID,
+        displayLabel: 'Labelled synthetic fixture',
+        enabled: true as const,
+        permissions: Object.freeze({
+          collectionAllowed: true,
+          imageFetchingAllowed: true,
+          listingTextDisplayAllowed: true,
+        }),
+        licence: Object.freeze({
+          status: 'not-applicable' as const,
+          label: 'Synthetic data',
+          url: null,
+        }),
+      }),
+    ]);
   }
 
   /** Publishes in order and never attempts a later event after abort or rejection. */
