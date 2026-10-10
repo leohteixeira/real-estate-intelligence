@@ -42,6 +42,47 @@ describe('serializable values', () => {
     expect(reads).toBe(0);
   });
 
+  it('rejects array subclasses without invoking their polymorphic methods', () => {
+    let mapCalls = 0;
+    class PolymorphicArray extends Array<number> {}
+    Object.defineProperty(PolymorphicArray.prototype, 'map', {
+      value: () => {
+        mapCalls += 1;
+        return [undefined];
+      },
+    });
+    const input = new PolymorphicArray();
+    input.push(1);
+
+    expect(isSerializableValue(input)).toBe(false);
+    expect(mapCalls).toBe(0);
+  });
+
+  it('rejects arrays with symbols or enumerable extra properties', () => {
+    const withExtraProperty = [1] as number[] & { extra?: boolean };
+    withExtraProperty.extra = true;
+    const withSymbol = [1];
+    Object.defineProperty(withSymbol, Symbol('extra'), { value: true, enumerable: true });
+
+    expect(isSerializableValue(withExtraProperty)).toBe(false);
+    expect(isSerializableValue(withSymbol)).toBe(false);
+  });
+
+  it('clones indexed data without invoking an overridden map method', () => {
+    let mapCalls = 0;
+    const input = [1];
+    Object.defineProperty(input, 'map', {
+      value: () => {
+        mapCalls += 1;
+        return [undefined];
+      },
+    });
+
+    expect(isSerializableValue(input)).toBe(true);
+    expect(immutableSerializableValue(input)).toEqual([1]);
+    expect(mapCalls).toBe(0);
+  });
+
   it.each([
     Number.NaN,
     Number.POSITIVE_INFINITY,

@@ -13,7 +13,7 @@ review_source: 'pinned'
 lenses_ran:
   - 'quick'
 review_loop_iteration: 1
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'specs/adrs/0011-bounded-contexts-and-module-layout.md'
   - 'specs/adrs/0012-domain-events-and-transactional-outbox.md'
@@ -83,7 +83,7 @@ deferred: []
 - Added vendor-neutral clock, opaque transaction, transaction runner, event envelope, outbox row, and transaction-bound append contracts under `packages/application/src/shared/`.
 - Moved context-neutral health/version contracts and PostgreSQL plumbing beneath their packages' `shared/` folders while retaining all package-root exports used by API and worker.
 - Kept UUIDv7 generation, SQL outbox storage, trace propagation, broker behavior, and all VPS work deferred to their owning stories. Corrected two stale ADR filenames in this plan after resolving them to the repository's same-number normative ADRs.
-- Verification passed: 83 focused package tests, 122 repository tests, lint, typecheck, build, path inspection, adversarial compiled-code checks, and staged/unstaged diff checks. The existing Vite chunk-size warning remains non-fatal and unrelated.
+- Verification passed: 89 focused package tests, 128 repository tests, lint, typecheck, build, path inspection, adversarial compiled-code checks, and staged/unstaged diff checks. The existing Vite chunk-size warning remains non-fatal and unrelated.
 - The first implementation attempt was reverted after review exposed six missing validation/immutability invariants. Preserve its correct package moves, compatibility barrels, UUIDv7 validation, transaction-bound outbox API, deep cloning, documentation, and focused-test structure while rederiving the hardened kernel.
 
 ## Plan Change Log
@@ -115,6 +115,14 @@ deferred: []
   - `[medium]` `[patch]` `tracestate` parsing accepted CR, LF and non-W3C whitespace around list members while rejecting a valid leading-space value — reproduced against compiled code; parsing now removes only W3C SP/HTAB optional whitespace, rejects the unsafe carriers and accepts a leading-space value whose final character is valid.
   - `[medium]` `[patch]` an enumerable accessor could return a serializable value during validation and `undefined` during cloning — reproduced with a changing getter; validation now rejects accessors through property descriptors without invoking the getter.
   - `[medium]` `[patch]` `isUuidV7` branded uppercase input as canonical — reproduced against compiled code; the type guard now accepts lowercase canonical values only while `parseUuidV7` continues to canonicalize case-insensitive input.
+
+### 2026-10-10 — Follow-up review pass
+
+- verdicts: 3 findings — high 0, medium 3, low 0, false 0, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` accessor-backed domain-event and provenance inputs could change between validation and assignment — reproduced against compiled code; constructors now capture every input field exactly once and use only those snapshots.
+  - `[medium]` `[patch]` accessor-backed trace carriers could pass validation and then store malformed values — reproduced with valid-first/garbage-later getters; both carrier fields are now captured once before validation and construction.
+  - `[medium]` `[patch]` array subclasses could override `map()` and inject `undefined` after validation — reproduced against compiled code; serializable arrays must now be ordinary arrays without symbols or enumerable extra properties and cloning reads indexed data descriptors directly.
 
 ## Design Notes
 
@@ -165,32 +173,37 @@ plumbing now live below their respective shared folders without breaking package
 - Second pass patches: three medium entries. W3C optional whitespace is now parsed without hiding
   unsafe characters, payload accessors are rejected without evaluation, and the UUIDv7 type guard
   preserves its canonical lowercase invariant.
+- Follow-up patches: three medium entries. Durable constructor inputs and trace carriers are now
+  captured exactly once, and array validation/cloning no longer permits polymorphic behavior or
+  extra observable state.
 - Deferred: none. Rejected: none.
-- Patched counts by entry verdict: high 0, medium 3, low 0.
+- Follow-up patched counts by entry verdict: high 0, medium 3, low 0.
 
 ### Follow-up review recommendation
 
-`true`. Three medium review entries required patches, so a focused follow-up should re-audit the
-durable-value validation boundary, especially trace-state grammar and stable JSON graph capture.
+`false`. The follow-up pass patched no high-severity entries, so the work has converged under the
+workflow's follow-up rule.
 
 ### Verification performed
 
-- Focused package suites passed: domain 76, application 3, contracts 1 and infrastructure 3 tests
-  (83 total).
+- Focused package suites passed: domain 82, application 3, contracts 1 and infrastructure 3 tests
+  (89 total).
 - `pnpm run lint` and `pnpm run typecheck` passed for all workspace projects in scope.
-- `pnpm run test` passed 122 tests: domain 76, application 3, contracts 1, infrastructure 3, web 14,
+- `pnpm run test` passed 128 tests: domain 82, application 3, contracts 1, infrastructure 3, web 14,
   AI 9, API 10 and worker 6.
 - `pnpm run build` passed for all workspace projects in scope.
 - Compiled-code adversarial checks confirmed complete event freezing; rejection of malformed names,
   traces, timestamps, URLs, sparse arrays, unsafe `tracestate` whitespace and changing accessors;
   acceptance of a W3C-valid leading-space trace-state value; and canonical UUID parser behavior.
+- Follow-up compiled-code checks confirmed single-read snapshots for events, provenance and trace
+  carriers; rejection of array subclasses and enumerable extra properties; and cloning of ordinary
+  array indexes without invoking an overridden `map()` method.
 - Source-tree inspection confirmed no moved files remain in the old application `ports/`,
   infrastructure `persistence/` or top-level contracts locations.
 - `git diff --check` and `git diff --cached --check` passed.
 
 ### Residual risks
 
-The follow-up review remains recommended because the second pass patched three medium validation
-defects. UUID generation, SQL outbox persistence, trace propagation, brokers and migrations remain
-intentionally deferred to their owning stories. The web build retains its pre-existing non-fatal
-Vite warning for the 536.96 kB `CityScene` chunk.
+No review risk remains open after the follow-up pass. UUID generation, SQL outbox persistence,
+trace propagation, brokers and migrations remain intentionally deferred to their owning stories.
+The web build retains its pre-existing non-fatal Vite warning for the 536.96 kB `CityScene` chunk.

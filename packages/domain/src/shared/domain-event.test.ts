@@ -70,6 +70,35 @@ describe('DomainEvent', () => {
     expect(event.payload.changes[0]?.priceInMinorUnits).toBe(78_500_000);
   });
 
+  it('snapshots accessor-backed event fields before validation', () => {
+    let typeReads = 0;
+    let payloadReads = 0;
+    const changingInput = { ...eventInput } as unknown as Record<string, unknown>;
+    Object.defineProperties(changingInput, {
+      type: {
+        enumerable: true,
+        get: () => {
+          typeReads += 1;
+          return typeReads === 1 ? eventInput.type : 'garbage';
+        },
+      },
+      payload: {
+        enumerable: true,
+        get: () => {
+          payloadReads += 1;
+          return payloadReads === 1 ? eventInput.payload : { unsupported: undefined };
+        },
+      },
+    });
+
+    const event = new ListingPriceChanged(changingInput as unknown as ListingPriceChangedInput);
+
+    expect(event.type).toBe(eventInput.type);
+    expect(event.payload).toEqual(eventInput.payload);
+    expect(typeReads).toBe(1);
+    expect(payloadReads).toBe(1);
+  });
+
   it.each([
     'garbage',
     'Properties.listing.changed',

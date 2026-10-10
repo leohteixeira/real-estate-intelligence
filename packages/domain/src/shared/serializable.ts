@@ -62,7 +62,11 @@ function isSerializableValueAt(value: unknown, ancestors: ReadonlySet<object>): 
 
   const nextAncestors = new Set(ancestors).add(value);
   if (Array.isArray(value)) {
-    return isSerializableDenseArray(value, nextAncestors);
+    return (
+      Object.getPrototypeOf(value) === Array.prototype &&
+      Object.getOwnPropertySymbols(value).length === 0 &&
+      isSerializableDenseArray(value, nextAncestors)
+    );
   }
 
   return (
@@ -93,7 +97,15 @@ export function immutableSerializableValue<TValue extends SerializableValue>(
   value: TValue,
 ): TValue {
   if (Array.isArray(value)) {
-    return Object.freeze(value.map((item) => immutableSerializableValue(item))) as TValue;
+    const clone: SerializableValue[] = [];
+    for (let index = 0; index < value.length; index += 1) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, index);
+      if (descriptor === undefined || !('value' in descriptor)) {
+        throw new TypeError('Serializable arrays must contain only indexed data properties.');
+      }
+      clone.push(immutableSerializableValue(descriptor.value));
+    }
+    return Object.freeze(clone) as TValue;
   }
 
   if (typeof value === 'object' && value !== null) {

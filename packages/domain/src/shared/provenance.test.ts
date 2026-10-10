@@ -23,6 +23,56 @@ describe('Provenance', () => {
     expect(Object.isFrozen(provenance.value.tags)).toBe(true);
   });
 
+  it('snapshots accessor-backed provenance fields before validation', () => {
+    const reads = { value: 0, source: 0, collectedAt: 0, sourceUrl: 0 };
+    const input = {} as {
+      readonly value: { readonly bedrooms: number };
+      readonly source: string;
+      readonly collectedAt: string;
+      readonly sourceUrl: string;
+    };
+    Object.defineProperties(input, {
+      value: {
+        enumerable: true,
+        get: () => {
+          reads.value += 1;
+          return reads.value === 1 ? { bedrooms: 2 } : { unsupported: undefined };
+        },
+      },
+      source: {
+        enumerable: true,
+        get: () => {
+          reads.source += 1;
+          return reads.source === 1 ? 'Synthetic listings' : ' ';
+        },
+      },
+      collectedAt: {
+        enumerable: true,
+        get: () => {
+          reads.collectedAt += 1;
+          return reads.collectedAt === 1 ? '2026-10-10T12:30:00Z' : '0';
+        },
+      },
+      sourceUrl: {
+        enumerable: true,
+        get: () => {
+          reads.sourceUrl += 1;
+          return reads.sourceUrl === 1 ? 'https://example.test/listings/42' : '/relative';
+        },
+      },
+    });
+
+    const provenance = new Provenance(input);
+
+    expect(provenance).toEqual({
+      value: { bedrooms: 2 },
+      source: 'Synthetic listings',
+      collectedAt: '2026-10-10T12:30:00.000Z',
+      sourceUrl: 'https://example.test/listings/42',
+    });
+    expect(reads).toEqual({ value: 1, source: 1, collectedAt: 1, sourceUrl: 1 });
+  });
+
   it.each([
     {
       name: 'empty source',

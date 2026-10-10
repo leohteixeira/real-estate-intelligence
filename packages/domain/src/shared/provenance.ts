@@ -21,29 +21,31 @@ export class Provenance<TValue extends SerializableValue> {
   public readonly sourceUrl: string;
 
   public constructor(input: ProvenanceInput<TValue>) {
-    if (!isSerializableValue(input.value)) {
+    const { value, source, collectedAt, sourceUrl } = input;
+
+    if (!isSerializableValue(value)) {
       throw new DomainValidationError(
         'Provenance value must contain only serializable values.',
         'value',
       );
     }
 
-    if (input.source.trim().length === 0) {
+    if (source.trim().length === 0) {
       throw new DomainValidationError('Provenance source must not be empty.', 'source');
     }
 
     try {
       const NativeUrl = (globalThis as unknown as { readonly URL: new (input: string) => unknown })
         .URL;
-      new NativeUrl(input.sourceUrl);
+      new NativeUrl(sourceUrl);
     } catch {
       throw new DomainValidationError('Provenance sourceUrl must be an absolute URL.', 'sourceUrl');
     }
 
-    this.value = immutableSerializableValue(input.value);
-    this.source = input.source;
-    this.collectedAt = parseRfc3339Timestamp(input.collectedAt, 'collectedAt');
-    this.sourceUrl = input.sourceUrl;
+    this.value = immutableSerializableValue(value);
+    this.source = source;
+    this.collectedAt = parseRfc3339Timestamp(collectedAt, 'collectedAt');
+    this.sourceUrl = sourceUrl;
     Object.freeze(this);
   }
 }

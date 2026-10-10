@@ -81,7 +81,8 @@ function validateTracestate(tracestate: string): void {
 }
 
 export function immutableTraceContext(traceContext: TraceContext): TraceContext {
-  const match = TRACEPARENT_PATTERN.exec(traceContext.traceparent);
+  const { traceparent, tracestate } = traceContext;
+  const match = TRACEPARENT_PATTERN.exec(traceparent);
   if (
     match === null ||
     match[1] === '00000000000000000000000000000000' ||
@@ -93,13 +94,9 @@ export function immutableTraceContext(traceContext: TraceContext): TraceContext 
     );
   }
 
-  if (traceContext.tracestate !== undefined) {
-    validateTracestate(traceContext.tracestate);
+  if (tracestate !== undefined) {
+    validateTracestate(tracestate);
   }
 
-  return Object.freeze(
-    traceContext.tracestate === undefined
-      ? { traceparent: traceContext.traceparent }
-      : { traceparent: traceContext.traceparent, tracestate: traceContext.tracestate },
-  );
+  return Object.freeze(tracestate === undefined ? { traceparent } : { traceparent, tracestate });
 }

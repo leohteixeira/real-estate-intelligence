@@ -25,6 +25,27 @@ describe('W3C trace context', () => {
     expect(immutableTraceContext(input)).toEqual({ traceparent: validTraceparent });
   });
 
+  it('snapshots accessor-backed carrier fields before validation', () => {
+    let traceparentReads = 0;
+    let tracestateReads = 0;
+    const traceContext = {
+      get traceparent(): string {
+        traceparentReads += 1;
+        return traceparentReads === 1 ? validTraceparent : 'garbage';
+      },
+      get tracestate(): string | undefined {
+        tracestateReads += 1;
+        return tracestateReads === 1 ? undefined : 'garbage';
+      },
+    };
+
+    expect(immutableTraceContext(traceContext)).toEqual({
+      traceparent: validTraceparent,
+    });
+    expect(traceparentReads).toBe(1);
+    expect(tracestateReads).toBe(1);
+  });
+
   it('accepts W3C optional whitespace and a leading space in a member value', () => {
     const tracestate = '\tvendor= leading-space\t, other=value ';
 

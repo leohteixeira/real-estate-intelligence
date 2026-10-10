@@ -45,35 +45,36 @@ export abstract class DomainEvent<
   public readonly payload: TPayload;
 
   protected constructor(input: DomainEventInput<TType, TPayload>) {
-    if (!EVENT_TYPE_PATTERN.test(input.type)) {
+    const { eventId, type, version, aggregateId, occurredAt, traceContext, payload } = input;
+
+    if (!EVENT_TYPE_PATTERN.test(type)) {
       throw new DomainValidationError(
         'Domain event type must have three lower-kebab segments.',
         'type',
       );
     }
 
-    if (!Number.isSafeInteger(input.version) || input.version < 1) {
+    if (!Number.isSafeInteger(version) || version < 1) {
       throw new DomainValidationError(
         'Domain event version must be a positive safe integer.',
         'version',
       );
     }
 
-    if (!isSerializableEventPayload(input.payload)) {
+    if (!isSerializableEventPayload(payload)) {
       throw new DomainValidationError(
         'Domain event payload must contain only serializable values.',
         'payload',
       );
     }
 
-    this.eventId = parseUuidV7(input.eventId);
-    this.type = input.type;
-    this.version = input.version;
-    this.aggregateId = parseUuidV7(input.aggregateId);
-    this.occurredAt = parseRfc3339Timestamp(input.occurredAt, 'occurredAt');
-    this.traceContext =
-      input.traceContext === null ? null : immutableTraceContext(input.traceContext);
-    this.payload = immutableSerializableValue(input.payload as EventPayload) as TPayload;
+    this.eventId = parseUuidV7(eventId);
+    this.type = type;
+    this.version = version;
+    this.aggregateId = parseUuidV7(aggregateId);
+    this.occurredAt = parseRfc3339Timestamp(occurredAt, 'occurredAt');
+    this.traceContext = traceContext === null ? null : immutableTraceContext(traceContext);
+    this.payload = immutableSerializableValue(payload as EventPayload) as TPayload;
     Object.freeze(this);
   }
 }
