@@ -61,6 +61,7 @@ interface BrokerChannel extends BrokerEmitter {
     routingKey: string,
     content: Buffer,
     options: Record<string, unknown>,
+    callback?: ConfirmCallback,
   ): boolean;
   waitForConfirms(): Promise<void>;
   consume(
@@ -73,6 +74,8 @@ interface BrokerChannel extends BrokerEmitter {
   cancel(consumerTag: string): Promise<unknown>;
   close(): Promise<void>;
 }
+
+type ConfirmCallback = (error: unknown | null) => void;
 
 interface BrokerConnection extends BrokerEmitter {
   createConfirmChannel(): Promise<BrokerChannel>;
@@ -206,7 +209,7 @@ function plainObject(value: unknown): value is Record<string, unknown> {
 
 function redactRabbitMqConnectionError(error: unknown): Error {
   const redacted = redactConnectionError(error) as Error & { code?: number };
-  if (plainObject(error) && (error.code === 403 || error.code === 530)) {
+  if (plainObject(error) && (error.code === 403 || error.code === 406 || error.code === 530)) {
     redacted.code = error.code;
   }
   return redacted;
@@ -493,52 +496,65 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       }),
     );
 
-    let generation: BrokerGeneration | undefined;
+    let publisherChannel: BrokerChannel | undefined;
     let phase: RabbitMqPublishPhase = 'connection';
     try {
       await this.start(signal);
       signal.throwIfAborted();
-      generation = this.#generation;
+      const generation = this.#generation;
       if (!generation) {
         throw new Error('RabbitMQ connection closed before publication.');
       }
+      const channelPromise = generation.connection.createConfirmChannel();
+      publisherChannel = await acquireBounded(
+        channelPromise,
+        this.config.operationTimeoutMs,
+        'RabbitMQ publisher channel creation',
+        async (lateChannel) => lateChannel.close(),
+        signal,
+      );
+      signal.throwIfAborted();
       // A false return signals stream backpressure, not a rejected publish. The confirm remains
-      // the publication boundary, so waitForConfirms must still decide the outcome.
+      // the publication boundary, so the message-specific callback still decides the outcome.
       phase = 'publish';
-      generation.channel.publish(EXCHANGE, event.type, content, {
-        persistent: true,
-        contentType: 'application/json',
-        contentEncoding: 'utf-8',
-        messageId: event.eventId,
-        type: event.type,
+      let settleConfirm: ConfirmCallback | undefined;
+      const confirm = new Promise<void>((resolve, reject) => {
+        settleConfirm = (error) => (error === null ? resolve() : reject(error));
       });
+      const publisherErrorListener = (error: unknown): void => settleConfirm?.(error);
+      publisherChannel.on('error', publisherErrorListener);
+      publisherChannel.publish(
+        EXCHANGE,
+        event.type,
+        content,
+        {
+          persistent: true,
+          contentType: 'application/json',
+          contentEncoding: 'utf-8',
+          messageId: event.eventId,
+          type: event.type,
+        },
+        settleConfirm,
+      );
       phase = 'confirm';
       await bounded(
-        generation.channel.waitForConfirms(),
+        confirm,
         this.config.operationTimeoutMs,
         'RabbitMQ publisher confirmation',
         signal,
       );
     } catch (error) {
-      // A failed or timed-out confirm has an ambiguous delivery outcome. Retire this generation
-      // so the next supervisor tick rebuilds both publisher and consumer topology instead of
-      // repeatedly using a channel whose confirm state can no longer be trusted.
-      if (generation) {
-        this.invalidateGeneration(generation);
-        await Promise.allSettled([
-          bounded(
-            generation.channel.close(),
-            this.config.operationTimeoutMs,
-            'RabbitMQ failed-publish channel close',
-          ),
-          bounded(
-            generation.connection.close(),
-            this.config.operationTimeoutMs,
-            'RabbitMQ failed-publish connection close',
-          ),
-        ]);
-      }
       throw translateRabbitMqPublisherFailure(error, signal, phase);
+    } finally {
+      if (publisherChannel) {
+        const channel = publisherChannel;
+        const cleanup = bounded(
+          Promise.resolve().then(() => channel.close()),
+          this.config.operationTimeoutMs,
+          'RabbitMQ publisher channel close',
+        ).catch(() => undefined);
+        this.trackCleanup(cleanup);
+      }
     }
   }
 

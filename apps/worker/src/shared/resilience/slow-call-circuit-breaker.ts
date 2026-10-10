@@ -10,7 +10,13 @@ class SlowSuccessfulCall<TResult> extends Error {
   }
 }
 
-/** Adds slow successful logical calls to a public CircuitBreakerPolicy's failure input. */
+class SlowFailedCall extends Error {
+  public constructor(public readonly failure: unknown) {
+    super('The failed logical dependency call crossed its slow-call threshold.');
+  }
+}
+
+/** Adds slow successful and failed logical calls to a CircuitBreakerPolicy's failure input. */
 export class SlowCallCircuitBreaker {
   public readonly policy: CircuitBreakerPolicy;
 
@@ -22,7 +28,8 @@ export class SlowCallCircuitBreaker {
     const recordIf = options.recordIf ?? ((error: unknown) => !isClientError(error));
     this.policy = new CircuitBreakerPolicy({
       ...options,
-      recordIf: (error) => error instanceof SlowSuccessfulCall || recordIf(error),
+      recordIf: (error) =>
+        error instanceof SlowSuccessfulCall || error instanceof SlowFailedCall || recordIf(error),
     });
   }
 
@@ -35,16 +42,25 @@ export class SlowCallCircuitBreaker {
       return await this.policy.execute(
         async ({ signal: attemptSignal }) => {
           const startedAt = this.now();
-          const result = await operation(attemptSignal);
-          if (this.now() - startedAt >= this.slowCallThresholdMs) {
-            throw new SlowSuccessfulCall(result);
+          try {
+            const result = await operation(attemptSignal);
+            if (this.now() - startedAt >= this.slowCallThresholdMs) {
+              throw new SlowSuccessfulCall(result);
+            }
+            return result;
+          } catch (error) {
+            if (error instanceof SlowSuccessfulCall) throw error;
+            if (this.now() - startedAt >= this.slowCallThresholdMs) {
+              throw new SlowFailedCall(error);
+            }
+            throw error;
           }
-          return result;
         },
         { signal, source },
       );
     } catch (error) {
       if (error instanceof SlowSuccessfulCall) return error.result as TResult;
+      if (error instanceof SlowFailedCall) throw error.failure;
       throw error;
     }
   }

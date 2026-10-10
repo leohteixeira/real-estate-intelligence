@@ -65,14 +65,11 @@ export function translateRabbitMqPublisherFailure(
     return new ExternalFailure({ kind: 'unauthorized', operation: 'event-publisher.publish' });
   }
   if (
-    phase === 'publish' &&
-    (replyCode === 311 ||
-      replyCode === 312 ||
-      replyCode === 406 ||
-      code === 311 ||
-      code === 312 ||
-      code === 406 ||
-      code === 'PRECONDITION_FAILED')
+    replyCode === 406 ||
+    code === 406 ||
+    code === 'PRECONDITION_FAILED' ||
+    (phase === 'publish' &&
+      (replyCode === 311 || replyCode === 312 || code === 311 || code === 312))
   ) {
     return new ExternalFailure({ kind: 'rejected', operation: 'event-publisher.publish' });
   }
