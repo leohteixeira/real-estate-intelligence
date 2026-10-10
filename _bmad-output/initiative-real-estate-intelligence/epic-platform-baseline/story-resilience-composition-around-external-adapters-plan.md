@@ -3,7 +3,7 @@ title: 'Resilience composition around external adapters'
 type: 'feature'
 ticket: '5'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '04610af4dfe3fb642e26095a990f97ce9b070ed0'
 route: 'full'
 route_source: 'auto'
