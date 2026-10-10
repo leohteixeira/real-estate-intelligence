@@ -27,9 +27,17 @@ const rabbitManagementUrl =
   process.env.INTEGRATION_RABBITMQ_MANAGEMENT_URL ?? 'http://127.0.0.1:15672';
 const rabbitUser = process.env.INTEGRATION_RABBITMQ_USER ?? 'realestate';
 const rabbitPassword = process.env.INTEGRATION_RABBITMQ_PASSWORD ?? 'realestate';
+const composeProjectName = process.env.INTEGRATION_COMPOSE_PROJECT_NAME?.trim();
 const rabbitVhost = 'real-estate-intelligence';
 const legacyAuditQueue = 'audit.trace-requested.audit';
 const stableAuditQueue = 'audit.event-log';
+const auditDeadLetterQueue = `${stableAuditQueue}.dead-letter`;
+
+function composeArgs(...args) {
+  return composeProjectName
+    ? ['compose', '--project-name', composeProjectName, ...args]
+    : ['compose', ...args];
+}
 
 function assert(condition, message) {
   if (!condition) {
@@ -162,6 +170,43 @@ async function removeQueue(queueName) {
     `RabbitMQ queue deletion failed with HTTP ${response.status}.`,
   );
   await waitFor(`${queueName} to be absent`, async () => !(await queueExists(queueName)));
+}
+
+async function purgeQueue(queueName) {
+  const response = await fetch(
+    `${rabbitManagementUrl}/api/queues/${encodeURIComponent(rabbitVhost)}/${encodeURIComponent(queueName)}/contents`,
+    {
+      method: 'DELETE',
+      headers: { authorization: managementAuthorization() },
+      signal: AbortSignal.timeout(2_000),
+    },
+  );
+  assert(
+    response.status === 204 || response.status === 404,
+    `Queue purge failed with HTTP ${response.status}.`,
+  );
+}
+
+async function peekQueue(queueName) {
+  const response = await fetch(
+    `${rabbitManagementUrl}/api/queues/${encodeURIComponent(rabbitVhost)}/${encodeURIComponent(queueName)}/get`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: managementAuthorization(),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        count: 10,
+        ackmode: 'ack_requeue_true',
+        encoding: 'auto',
+        truncate: 50000,
+      }),
+      signal: AbortSignal.timeout(2_000),
+    },
+  );
+  assert(response.ok, `Queue read failed with HTTP ${response.status}.`);
+  return response.json();
 }
 
 async function waitForAuditEvent(connection, eventId) {
@@ -351,7 +396,7 @@ async function proveDuplicateSuppression(connection, delivered) {
 }
 
 async function proveBrokerRestartRecovery(connection) {
-  const { stdout: workerBefore } = await execute('docker', ['compose', 'ps', '-q', 'worker']);
+  const { stdout: workerBefore } = await execute('docker', composeArgs('ps', '-q', 'worker'));
   assert(workerBefore.trim(), 'Worker container was not running before the broker restart.');
   const outbox = new PostgresOutbox(connection);
   const publisher = new RabbitMqEventBroker({ url: rabbitMqUrl, operationTimeoutMs: 5_000 });
@@ -361,7 +406,7 @@ async function proveBrokerRestartRecovery(connection) {
     // Freeze the existing worker process so a confirmed persistent message remains queued while
     // RabbitMQ restarts. Unpausing the same container then proves topology restoration and durable
     // delivery without substituting a newly started worker process.
-    await execute('docker', ['compose', 'pause', 'worker'], { timeout: 30_000 });
+    await execute('docker', composeArgs('pause', 'worker'), { timeout: 30_000 });
     workerPaused = true;
     const durableEvent = await appendSingleEvent(connection);
     const durableClaim = (await outbox.claimPending(1, 10_000))[0];
@@ -373,12 +418,12 @@ async function proveBrokerRestartRecovery(connection) {
     await outbox.markPublished(durableClaim.eventId, durableClaim.claimId);
     await publisher.close();
 
-    await execute('docker', ['compose', 'restart', 'rabbitmq'], { timeout: 60_000 });
+    await execute('docker', composeArgs('restart', 'rabbitmq'), { timeout: 60_000 });
     await waitFor('RabbitMQ to become healthy after restart', async () => {
       try {
         await execute(
           'docker',
-          ['compose', 'exec', '-T', 'rabbitmq', 'rabbitmq-diagnostics', '-q', 'ping'],
+          composeArgs('exec', '-T', 'rabbitmq', 'rabbitmq-diagnostics', '-q', 'ping'),
           { timeout: 5_000 },
         );
         return true;
@@ -387,15 +432,15 @@ async function proveBrokerRestartRecovery(connection) {
       }
     });
 
-    await execute('docker', ['compose', 'unpause', 'worker'], { timeout: 30_000 });
+    await execute('docker', composeArgs('unpause', 'worker'), { timeout: 30_000 });
     workerPaused = false;
-    const { stdout: workerAfter } = await execute('docker', ['compose', 'ps', '-q', 'worker']);
+    const { stdout: workerAfter } = await execute('docker', composeArgs('ps', '-q', 'worker'));
     assert(workerAfter.trim() === workerBefore.trim(), 'Worker restarted with RabbitMQ.');
     await waitForDeliveredEvent(connection, durableEvent.eventId);
   } finally {
     await publisher.close().catch(() => undefined);
     if (workerPaused) {
-      await execute('docker', ['compose', 'unpause', 'worker'], { timeout: 30_000 }).catch(
+      await execute('docker', composeArgs('unpause', 'worker'), { timeout: 30_000 }).catch(
         () => undefined,
       );
     }
@@ -456,13 +501,13 @@ async function proveAggregateOrder(connection) {
 }
 
 async function stopWorker() {
-  await execute('docker', ['compose', 'stop', '--timeout', '30', 'worker'], { timeout: 45_000 });
+  await execute('docker', composeArgs('stop', '--timeout', '30', 'worker'), { timeout: 45_000 });
 }
 
 async function startWorker() {
-  await execute('docker', ['compose', 'start', 'worker'], { timeout: 45_000 });
+  await execute('docker', composeArgs('start', 'worker'), { timeout: 45_000 });
   await waitFor('the worker to become healthy', async () => {
-    const { stdout: workerId } = await execute('docker', ['compose', 'ps', '-q', 'worker']);
+    const { stdout: workerId } = await execute('docker', composeArgs('ps', '-q', 'worker'));
     if (!workerId.trim()) return false;
     const { stdout: status } = await execute('docker', [
       'inspect',
@@ -714,6 +759,279 @@ async function proveConcurrentRelayClaims(connection) {
   }
 }
 
+async function provePoisonDeadLetter(connection) {
+  const event = await createTraceEvent(connection);
+  const [{ id: conflictingAggregate }] = await connection.query('SELECT uuidv7()::text AS id');
+  await connection.query(
+    `INSERT INTO audit.event_log
+       (event_id, event_type, event_version, aggregate_id, occurred_at, trace_context, payload)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [event.eventId, event.type, event.version, conflictingAggregate, event.occurredAt, null, {}],
+  );
+  await purgeQueue(auditDeadLetterQueue);
+  await connection.query(
+    'DROP FUNCTION IF EXISTS audit.count_integration_poison_attempt() CASCADE',
+  );
+  await connection.query('DROP SEQUENCE IF EXISTS audit.integration_poison_attempt');
+  await connection.query('CREATE SEQUENCE audit.integration_poison_attempt');
+  await connection.query(`
+    CREATE FUNCTION audit.count_integration_poison_attempt()
+    RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    BEGIN
+      PERFORM nextval('audit.integration_poison_attempt');
+      RETURN NEW;
+    END;
+    $$
+  `);
+  await connection.query(`
+    CREATE TRIGGER count_integration_poison_attempt
+    BEFORE INSERT ON audit.event_log
+    FOR EACH ROW
+    EXECUTE FUNCTION audit.count_integration_poison_attempt()
+  `);
+  const publisher = new RabbitMqEventBroker({ url: rabbitMqUrl, operationTimeoutMs: 5_000 });
+  try {
+    await publisher.publish(event, AbortSignal.timeout(5_000));
+    await waitFor('the poison event to reach dead-letter', async () => {
+      const state = await queueState(auditDeadLetterQueue);
+      return state.messages_ready === 1 && state.messages_unacknowledged === 0;
+    });
+    const deadLetterState = await queueState(auditDeadLetterQueue);
+    assert(deadLetterState.type === 'classic', 'Poison dead-letter queue was not classic.');
+    await waitForQueueIdle();
+    const messages = await waitFor('the poison dead letter to be readable', async () => {
+      const available = await peekQueue(auditDeadLetterQueue);
+      return available.length === 1 ? available : undefined;
+    });
+    assert(
+      messages[0]?.properties?.headers?.['x-rei-delivery-attempt'] === 5,
+      'Poison delivery did not preserve the fifth normal attempt.',
+    );
+    const inbox = await connection.query(
+      `SELECT count(*)::integer AS count FROM platform.inbox
+        WHERE consumer_name = $1 AND event_id = $2`,
+      [stableAuditQueue, event.eventId],
+    );
+    const audit = await connection.query(
+      'SELECT aggregate_id::text FROM audit.event_log WHERE event_id = $1',
+      [event.eventId],
+    );
+    assert(inbox[0]?.count === 0, 'Poison delivery committed an inbox marker.');
+    assert(
+      audit[0]?.aggregate_id === conflictingAggregate,
+      'Poison delivery altered the audit effect.',
+    );
+    const attempts = await connection.query(
+      `SELECT last_value::integer AS count, is_called
+         FROM audit.integration_poison_attempt`,
+    );
+    assert(
+      attempts[0]?.is_called === true && attempts[0]?.count === 5,
+      'Poison delivery did not invoke the audit effect exactly five times.',
+    );
+  } finally {
+    await publisher.close().catch(() => undefined);
+    await purgeQueue(auditDeadLetterQueue);
+    await connection.query(
+      'DROP FUNCTION IF EXISTS audit.count_integration_poison_attempt() CASCADE',
+    );
+    await connection.query('DROP SEQUENCE IF EXISTS audit.integration_poison_attempt');
+  }
+}
+
+async function proveAdapterRetrySurvivesRestart(connection) {
+  const queue = 'integration.retry-probe';
+  const deadLetterQueue = `${queue}.dead-letter`;
+  await removeQueue(queue);
+  await removeQueue(deadLetterQueue);
+  const trace = await createTraceEvent(connection);
+  const event = { ...trace, type: 'integration.retry.probe' };
+  let releaseInFlight;
+  let calls = 0;
+  const first = new RabbitMqEventBroker({
+    url: rabbitMqUrl,
+    operationTimeoutMs: 250,
+    deliveryLimit: 5,
+    redeliveryDelayMs: 100,
+  });
+  try {
+    await first.subscribe({ consumerName: queue, eventTypes: [event.type] }, async () => {
+      calls += 1;
+      if (calls === 1) throw new Error('normal retry transfer');
+      await new Promise((resolve) => (releaseInFlight = resolve));
+    });
+    await first.start();
+    await first.publish(event, AbortSignal.timeout(5_000));
+    await waitFor('the adapter-produced retry to become in flight', async () => calls >= 2);
+    await first.close();
+    releaseInFlight?.();
+
+    const resumed = new RabbitMqEventBroker({
+      url: rabbitMqUrl,
+      operationTimeoutMs: 5_000,
+      deliveryLimit: 5,
+      redeliveryDelayMs: 100,
+    });
+    let resumedCalls = 0;
+    try {
+      await resumed.subscribe({ consumerName: queue, eventTypes: [event.type] }, async () => {
+        resumedCalls += 1;
+        throw new Error('continue retry chain');
+      });
+      await resumed.start();
+      await waitFor('the restarted retry chain to dead-letter', async () => {
+        const state = await queueState(deadLetterQueue);
+        return state.messages_ready === 1 && state.messages_unacknowledged === 0;
+      });
+      const messages = await waitFor('the restarted dead letter to be readable', async () => {
+        const available = await peekQueue(deadLetterQueue);
+        return available.length === 1 ? available : undefined;
+      });
+      assert(
+        messages[0]?.properties?.headers?.['x-rei-delivery-attempt'] === 5,
+        'Restarted delivery lost its adapter-produced attempt count.',
+      );
+      assert(resumedCalls === 4, 'Restarted delivery did not resume from attempt two.');
+    } finally {
+      await resumed.close().catch(() => undefined);
+    }
+  } finally {
+    releaseInFlight?.();
+    await first.close().catch(() => undefined);
+    await removeQueue(queue);
+    await removeQueue(deadLetterQueue);
+  }
+}
+
+async function proveActivePruningCancellation(connection) {
+  const marker = `rei-retention-cancel-${Date.now()}`;
+  const controller = new AbortController();
+  const active = connection.queryAbortable(
+    `SELECT pg_sleep(30) /* ${marker} */`,
+    [],
+    controller.signal,
+  );
+  const [{ pid }] = await waitFor('the live retention backend', async () => {
+    const rows = await connection.query(
+      `SELECT pid FROM pg_stat_activity
+        WHERE query LIKE $1 AND pid <> pg_backend_pid()`,
+      [`%${marker}%`],
+    );
+    return rows.length > 0 ? rows : undefined;
+  });
+  controller.abort(new Error('integration shutdown'));
+  await active.then(
+    () => {
+      throw new Error('Cancelled maintenance query unexpectedly completed.');
+    },
+    (error) =>
+      assert(
+        error instanceof Error && error.message === 'integration shutdown',
+        'Abort reason changed.',
+      ),
+  );
+  await waitFor('the cancelled retention backend to disappear', async () => {
+    const rows = await connection.query('SELECT 1 FROM pg_stat_activity WHERE pid = $1', [pid]);
+    return rows.length === 0;
+  });
+  const rows = await connection.query('SELECT 1 AS value');
+  assert(rows[0]?.value === 1, 'The pool was unusable after active-query cancellation.');
+}
+
+async function proveBoundedRetention(connection) {
+  const rows = await connection.query(`SELECT uuidv7()::text AS id FROM generate_series(1, 7)`);
+  const ids = rows.map(({ id }) => id);
+  try {
+    for (const [index, age] of [10, 8, 1].entries()) {
+      await connection.query(
+        `INSERT INTO platform.outbox
+           (event_id, event_type, event_version, aggregate_id, occurred_at, trace_context, payload, published_at)
+         VALUES ($1, 'integration.retention.probe', 1, $1, clock_timestamp(), NULL, '{}',
+                 clock_timestamp() - ($2 * interval '1 day'))`,
+        [ids[index], age],
+      );
+    }
+    await connection.query(
+      `INSERT INTO platform.outbox
+         (event_id, event_type, event_version, aggregate_id, occurred_at, trace_context, payload)
+       VALUES ($1, 'integration.retention.probe', 1, $1, clock_timestamp(), NULL, '{}')`,
+      [ids[3]],
+    );
+    for (const [eventId, age] of [
+      [ids[4], 40],
+      [ids[6], 35],
+      [ids[3], 40],
+      [ids[5], 1],
+    ]) {
+      await connection.query(
+        `INSERT INTO platform.inbox (consumer_name, event_id, received_at)
+         VALUES ('integration.retention', $1, clock_timestamp() - ($2 * interval '1 day'))`,
+        [eventId, age],
+      );
+    }
+
+    const outbox = new PostgresOutbox(connection);
+    const inbox = new PostgresInbox(connection);
+    assert(
+      (await outbox.prunePublished(7 * 86_400_000, 1, AbortSignal.timeout(5_000))) === 1,
+      'Outbox pruning did not honor batch one.',
+    );
+    assert(
+      (await inbox.pruneConsumed(30 * 86_400_000, 1, AbortSignal.timeout(5_000))) === 1,
+      'Inbox pruning did not honor batch one.',
+    );
+    const survivingOutbox = await connection.query(
+      'SELECT event_id::text AS id FROM platform.outbox WHERE event_id = ANY($1::uuid[])',
+      [ids],
+    );
+    assert(
+      !survivingOutbox.some(({ id }) => id === ids[0]),
+      'Oldest published outbox row survived.',
+    );
+    assert(
+      survivingOutbox.some(({ id }) => id === ids[1]),
+      'Pruning exceeded its outbox batch.',
+    );
+    assert(
+      survivingOutbox.some(({ id }) => id === ids[2]),
+      'Fresh outbox row was pruned.',
+    );
+    const protectedInbox = await connection.query(
+      `SELECT event_id::text AS id FROM platform.inbox
+        WHERE consumer_name = 'integration.retention' AND event_id = $1`,
+      [ids[3]],
+    );
+    assert(
+      protectedInbox.length === 1,
+      'Unpublished outbox event did not protect its inbox marker.',
+    );
+    const survivingInbox = await connection.query(
+      `SELECT event_id::text AS id FROM platform.inbox
+        WHERE consumer_name = 'integration.retention' AND event_id = ANY($1::uuid[])`,
+      [[ids[4], ids[5], ids[6]]],
+    );
+    assert(
+      !survivingInbox.some(({ id }) => id === ids[4]),
+      'Oldest eligible inbox marker survived.',
+    );
+    assert(
+      survivingInbox.some(({ id }) => id === ids[6]),
+      'Pruning exceeded its inbox batch.',
+    );
+    assert(
+      survivingInbox.some(({ id }) => id === ids[5]),
+      'Fresh inbox marker was pruned.',
+    );
+  } finally {
+    await connection.query(
+      "DELETE FROM platform.inbox WHERE consumer_name = 'integration.retention'",
+    );
+    await connection.query('DELETE FROM platform.outbox WHERE event_id = ANY($1::uuid[])', [ids]);
+  }
+}
+
 const connection = new DatabaseConnection(databaseUrl);
 try {
   const initialEventId = await postTrace();
@@ -745,6 +1063,10 @@ try {
   await proveBrokerRestartRecovery(connection);
   await proveAggregateOrder(connection);
   await proveConcurrentRelayClaims(connection);
+  await provePoisonDeadLetter(connection);
+  await proveAdapterRetrySurvivesRestart(connection);
+  await proveActivePruningCancellation(connection);
+  await proveBoundedRetention(connection);
   console.log('Audit delivery guarantees integration passed.');
 } finally {
   await connection.close();

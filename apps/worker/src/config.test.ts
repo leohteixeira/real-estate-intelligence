@@ -16,6 +16,12 @@ describe('readConfig', () => {
       reconnectIntervalMs: 1_000,
       operationTimeoutMs: 5_000,
       shutdownTimeoutMs: 15_000,
+      eventDeliveryLimit: 5,
+      eventRedeliveryDelayMs: 1_000,
+      outboxRetentionMs: 604_800_000,
+      inboxRetentionMs: 2_592_000_000,
+      retentionIntervalMs: 300_000,
+      retentionBatchSize: 1_000,
     });
   });
 
@@ -76,5 +82,40 @@ describe('readConfig', () => {
         SHUTDOWN_TIMEOUT_MS: '15000',
       } as NodeJS.ProcessEnv),
     ).toThrow('RABBITMQ_RECONNECT_INTERVAL_MS');
+  });
+
+  it('rejects partial numeric values instead of silently truncating them', () => {
+    expect(() =>
+      readConfig({ ...BASE_ENV, EVENT_DELIVERY_LIMIT: '5oops' } as NodeJS.ProcessEnv),
+    ).toThrow('EVENT_DELIVERY_LIMIT');
+  });
+
+  it('validates delivery and retention policy relationships', () => {
+    expect(() =>
+      readConfig({ ...BASE_ENV, EVENT_DELIVERY_LIMIT: '1' } as NodeJS.ProcessEnv),
+    ).toThrow('EVENT_DELIVERY_LIMIT');
+    expect(() =>
+      readConfig({ ...BASE_ENV, EVENT_REDELIVERY_DELAY_MS: '99' } as NodeJS.ProcessEnv),
+    ).toThrow('EVENT_REDELIVERY_DELAY_MS');
+    expect(() =>
+      readConfig({ ...BASE_ENV, OUTBOX_RETENTION_MS: '1000', INBOX_RETENTION_MS: '999' }),
+    ).toThrow('INBOX_RETENTION_MS');
+    expect(() =>
+      readConfig({
+        ...BASE_ENV,
+        OUTBOX_RETENTION_MS: '1000',
+        INBOX_RETENTION_MS: '2000',
+        DELIVERY_RETENTION_INTERVAL_MS: '1000',
+      }),
+    ).toThrow('DELIVERY_RETENTION_INTERVAL_MS');
+  });
+
+  it('caps every Node timer input at the signed 32-bit maximum', () => {
+    expect(() => readConfig({ ...BASE_ENV, DELIVERY_RETENTION_INTERVAL_MS: '2500000000' })).toThrow(
+      'DELIVERY_RETENTION_INTERVAL_MS',
+    );
+    expect(() => readConfig({ ...BASE_ENV, WORKER_INTERVAL_MS: '2500000000' })).toThrow(
+      'WORKER_INTERVAL_MS',
+    );
   });
 });

@@ -102,6 +102,62 @@ describe('DatabaseConnection', () => {
     expect(release).toHaveBeenCalledOnce();
   });
 
+  it('destroys a late checkout without executing SQL when cancellation wins first', async () => {
+    const query = vi.fn();
+    const release = vi.fn();
+    let resolveClient:
+      | ((client: { query: typeof query; release: typeof release }) => void)
+      | undefined;
+    poolMock.connect.mockImplementation(
+      () => new Promise((resolve) => (resolveClient = resolve as typeof resolveClient)),
+    );
+    const connection = new DatabaseConnection('postgres://db/app');
+    const controller = new AbortController();
+
+    const pending = connection.queryAbortable('SELECT pg_sleep(30)', [], controller.signal);
+    controller.abort(new Error('shutdown'));
+    await expect(pending).rejects.toThrow('shutdown');
+
+    resolveClient!({ query, release });
+    await vi.waitFor(() => expect(release).toHaveBeenCalledWith(true));
+    expect(query).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it('destroys an active maintenance lease and preserves the abort reason', async () => {
+    let rejectQuery: ((error: Error) => void) | undefined;
+    const query = vi.fn(
+      () => new Promise((_resolve, reject) => (rejectQuery = reject as (error: Error) => void)),
+    );
+    const release = vi.fn((destroy?: boolean) => {
+      if (destroy) rejectQuery?.(new Error('socket closed'));
+    });
+    poolMock.connect.mockResolvedValue({ query, release });
+    const connection = new DatabaseConnection('postgres://db/app');
+    const controller = new AbortController();
+
+    const active = connection.queryAbortable('SELECT pg_sleep(30)', [], controller.signal);
+    await vi.waitFor(() => expect(query).toHaveBeenCalledOnce());
+    controller.abort(new Error('shutdown'));
+
+    await expect(active).rejects.toThrow('shutdown');
+    expect(release).toHaveBeenCalledWith(true);
+    expect(release).toHaveBeenCalledOnce();
+  });
+
+  it('returns abortable query rows and normally releases exactly once', async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [{ value: 1 }] });
+    const release = vi.fn();
+    poolMock.connect.mockResolvedValue({ query, release });
+    const connection = new DatabaseConnection('postgres://db/app');
+
+    await expect(
+      connection.queryAbortable<{ value: number }>('SELECT $1', [1], new AbortController().signal),
+    ).resolves.toEqual([{ value: 1 }]);
+    expect(release).toHaveBeenCalledWith();
+    expect(release).toHaveBeenCalledOnce();
+  });
+
   it('keeps a stable transaction identity and closes its pool', async () => {
     const connection = new DatabaseConnection('postgres://db/app');
 

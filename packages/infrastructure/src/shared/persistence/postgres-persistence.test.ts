@@ -201,6 +201,39 @@ describe('PostgreSQL persistence adapters', () => {
     );
   });
 
+  it('prunes one deterministic published outbox batch with database time', async () => {
+    const queryAbortable = vi.fn().mockResolvedValue([{ event_id: 'one' }, { event_id: 'two' }]);
+    const outbox = new PostgresOutbox({ queryAbortable } as unknown as DatabaseConnection);
+    const signal = new AbortController().signal;
+
+    await expect(outbox.prunePublished(604_800_000, 2, signal)).resolves.toBe(2);
+    const [statement, parameters, receivedSignal] = queryAbortable.mock.calls[0]!;
+    expect(statement).toContain('published_at IS NOT NULL');
+    expect(statement).toContain("clock_timestamp() - ($1 * interval '1 millisecond')");
+    expect(statement).toContain('ORDER BY candidate.published_at, candidate.event_id');
+    expect(statement).toContain('FOR UPDATE OF candidate SKIP LOCKED');
+    expect(statement).toContain('DELETE FROM platform.outbox');
+    expect(parameters).toEqual([604_800_000, 2]);
+    expect(receivedSignal).toBe(signal);
+  });
+
+  it('prunes old inbox rows while protecting an unpublished matching outbox event', async () => {
+    const queryAbortable = vi.fn().mockResolvedValue([{ event_id: 'one' }]);
+    const inbox = new PostgresInbox({ queryAbortable } as unknown as DatabaseConnection);
+
+    await expect(inbox.pruneConsumed(2_592_000_000, 1, new AbortController().signal)).resolves.toBe(
+      1,
+    );
+    const statement = String(queryAbortable.mock.calls[0]?.[0]);
+    expect(statement).toContain('pending.event_id = candidate.event_id');
+    expect(statement).toContain('pending.published_at IS NULL');
+    expect(statement).toContain(
+      'ORDER BY candidate.received_at, candidate.consumer_name, candidate.event_id',
+    );
+    expect(statement).toContain('FOR UPDATE OF candidate SKIP LOCKED');
+    expect(statement).toContain('DELETE FROM platform.inbox');
+  });
+
   it('records the inbox key and audit effect through the exact transaction client', async () => {
     const eventId = '0199c8f2-2394-7ba0-8f9e-286378779219' as never;
     const query = vi.fn(async (statement: string) => {

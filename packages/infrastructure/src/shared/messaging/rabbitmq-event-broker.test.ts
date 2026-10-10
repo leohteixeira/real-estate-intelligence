@@ -18,7 +18,7 @@ const subscription: EventSubscription = {
   eventTypes: ['audit.trace.requested'],
 };
 
-type Listener = (...arguments_: never[]) => void;
+type Listener = (...arguments_: unknown[]) => void;
 
 function generationDouble(publishResult = true) {
   const connectionListeners = new Map<string, Listener[]>();
@@ -43,9 +43,17 @@ function generationDouble(publishResult = true) {
     cancel: vi.fn().mockResolvedValue({}),
     close: vi.fn().mockResolvedValue(undefined),
     on: vi.fn(),
+    off: vi.fn(),
   };
   channel.on.mockImplementation((name: string, listener: Listener) => {
     channelListeners.set(name, [...(channelListeners.get(name) ?? []), listener]);
+    return channel;
+  });
+  channel.off.mockImplementation((name: string, listener: Listener) => {
+    channelListeners.set(
+      name,
+      (channelListeners.get(name) ?? []).filter((candidate) => candidate !== listener),
+    );
     return channel;
   });
   const connection = {
@@ -68,20 +76,33 @@ function generationDouble(publishResult = true) {
     emitChannel: (name: 'close' | 'error') => {
       for (const listener of channelListeners.get(name) ?? []) listener();
     },
+    emitReturn: (returned: ReturnType<typeof message>) => {
+      for (const listener of channelListeners.get('return') ?? []) listener(returned);
+    },
   };
 }
 
 function brokerDouble(publishResult = true) {
   const generation = generationDouble(publishResult);
   const broker = new RabbitMqEventBroker(
-    { url: 'amqp://redacted:redacted@broker/vhost', operationTimeoutMs: 1_000 },
+    {
+      url: 'amqp://redacted:redacted@broker/vhost',
+      operationTimeoutMs: 1_000,
+      deliveryLimit: 5,
+      redeliveryDelayMs: 1,
+    },
     async () => generation.connection,
   );
   return { broker, ...generation };
 }
 
-function message() {
-  return { content: Buffer.from(JSON.stringify(event)) };
+function message(attempt?: number) {
+  return {
+    content: Buffer.from(JSON.stringify(event)),
+    ...(attempt === undefined
+      ? {}
+      : { properties: { headers: { 'x-rei-delivery-attempt': attempt } } }),
+  };
 }
 
 describe('parseAuditTraceRequestedMessage', () => {
@@ -113,6 +134,17 @@ describe('RabbitMqEventBroker', () => {
 
     await expect(broker.subscribe(subscription, async () => undefined)).resolves.toBeUndefined();
     expect(connector).not.toHaveBeenCalled();
+    await broker.close();
+  });
+
+  it('rejects a derived dead-letter queue name beyond RabbitMQ byte limits', async () => {
+    const { broker } = brokerDouble();
+    await expect(
+      broker.subscribe(
+        { consumerName: 'é'.repeat(130), eventTypes: ['audit.trace.requested'] },
+        async () => undefined,
+      ),
+    ).rejects.toThrow('subscription descriptor is invalid');
     await broker.close();
   });
 
@@ -269,6 +301,10 @@ describe('RabbitMqEventBroker', () => {
     await broker.start();
 
     expect(channel.assertQueue).toHaveBeenCalledWith('audit.event-log', { durable: true });
+    expect(channel.assertQueue).toHaveBeenCalledWith('audit.event-log.dead-letter', {
+      durable: true,
+      arguments: { 'x-queue-type': 'classic' },
+    });
     expect(channel.bindQueue).toHaveBeenCalledWith(
       'audit.event-log',
       'rei.events',
@@ -378,7 +414,7 @@ describe('RabbitMqEventBroker', () => {
     await broker.close();
   });
 
-  it('leaves a failed effect unacknowledged and rejects malformed deliveries', async () => {
+  it('confirms retries and malformed dead-letter transfers before acknowledging the source', async () => {
     const { broker, channel, delivery } = brokerDouble();
     const handler = vi.fn().mockRejectedValue(new Error('audit unavailable'));
     await broker.subscribe(subscription, handler);
@@ -386,19 +422,164 @@ describe('RabbitMqEventBroker', () => {
 
     delivery()!(message());
     await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
-    expect(channel.ack).not.toHaveBeenCalled();
-    expect(channel.reject).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(channel.ack).toHaveBeenCalledOnce());
+    expect(channel.publish).toHaveBeenCalledWith(
+      '',
+      'audit.event-log',
+      expect.any(Buffer),
+      expect.objectContaining({
+        mandatory: true,
+        persistent: true,
+        headers: expect.objectContaining({ 'x-rei-delivery-attempt': 2 }),
+      }),
+    );
 
     const invalid = { content: Buffer.from('secret malformed body') };
     delivery()!(invalid);
-    await vi.waitFor(() => expect(channel.reject).toHaveBeenCalledWith(invalid, false));
-    expect(handler).toHaveBeenCalledOnce();
-
-    const unsupported = { content: Buffer.from(JSON.stringify({ ...event, version: 2 })) };
-    delivery()!(unsupported);
-    await vi.waitFor(() => expect(channel.reject).toHaveBeenCalledWith(unsupported, false));
+    await vi.waitFor(() => expect(channel.ack).toHaveBeenCalledTimes(2));
+    expect(channel.publish).toHaveBeenCalledWith(
+      '',
+      'audit.event-log.dead-letter',
+      invalid.content,
+      expect.objectContaining({
+        mandatory: true,
+        headers: expect.objectContaining({
+          'x-rei-delivery-attempt': 1,
+          'x-rei-dead-letter-reason': 'invalid-envelope',
+        }),
+      }),
+    );
     expect(handler).toHaveBeenCalledOnce();
     await broker.close();
+  });
+
+  it('performs exactly five normal handler attempts and preserves terminal attempt metadata', async () => {
+    const { broker, channel, delivery } = brokerDouble();
+    const handler = vi.fn().mockRejectedValue(new Error('deterministic conflict'));
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      delivery()!(message(attempt));
+      await vi.waitFor(() => expect(channel.ack).toHaveBeenCalledTimes(attempt));
+    }
+
+    expect(handler).toHaveBeenCalledTimes(5);
+    expect(channel.publish).toHaveBeenLastCalledWith(
+      '',
+      'audit.event-log.dead-letter',
+      expect.any(Buffer),
+      expect.objectContaining({
+        mandatory: true,
+        headers: expect.objectContaining({
+          'x-rei-delivery-attempt': 5,
+          'x-rei-dead-letter-reason': 'delivery-limit',
+        }),
+      }),
+    );
+    await broker.close();
+  });
+
+  it('preserves a valid private attempt on an invalid envelope', async () => {
+    const { broker, channel, delivery } = brokerDouble();
+    const handler = vi.fn();
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+    const invalid = {
+      content: Buffer.from('not-json'),
+      properties: { headers: { 'x-rei-delivery-attempt': 4 } },
+    };
+
+    delivery()!(invalid);
+    await vi.waitFor(() => expect(channel.ack).toHaveBeenCalledOnce());
+
+    expect(channel.publish).toHaveBeenCalledWith(
+      '',
+      'audit.event-log.dead-letter',
+      invalid.content,
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'x-rei-delivery-attempt': 4 }),
+      }),
+    );
+    expect(handler).not.toHaveBeenCalled();
+    await broker.close();
+  });
+
+  it('leaves the source unsettled and retires the generation when a mandatory transfer returns', async () => {
+    const generation = generationDouble();
+    generation.channel.publish.mockImplementation(
+      (_exchange: string, _key: string, content: Buffer, options: Record<string, unknown>) => {
+        generation.emitReturn({
+          content,
+          properties: { correlationId: options.correlationId as string },
+        });
+        return true;
+      },
+    );
+    const broker = new RabbitMqEventBroker(
+      {
+        url: 'amqp://broker/vhost',
+        operationTimeoutMs: 1_000,
+        deliveryLimit: 5,
+        redeliveryDelayMs: 1,
+      },
+      async () => generation.connection,
+    );
+    await broker.subscribe(subscription, vi.fn().mockRejectedValue(new Error('conflict')));
+    await broker.start();
+
+    generation.delivery()!(message());
+    await vi.waitFor(() => expect(generation.channel.close).toHaveBeenCalled());
+
+    expect(generation.channel.ack).not.toHaveBeenCalled();
+    expect(generation.connection.close).toHaveBeenCalled();
+    await broker.close();
+  });
+
+  it('leaves the source unsettled when retry confirmation fails', async () => {
+    const generation = generationDouble();
+    generation.channel.waitForConfirms.mockRejectedValue(new Error('confirm failed'));
+    const broker = new RabbitMqEventBroker(
+      {
+        url: 'amqp://broker/vhost',
+        operationTimeoutMs: 1_000,
+        deliveryLimit: 5,
+        redeliveryDelayMs: 1,
+      },
+      async () => generation.connection,
+    );
+    await broker.subscribe(subscription, vi.fn().mockRejectedValue(new Error('conflict')));
+    await broker.start();
+
+    generation.delivery()!(message());
+    await vi.waitFor(() => expect(generation.channel.close).toHaveBeenCalled());
+
+    expect(generation.channel.ack).not.toHaveBeenCalled();
+    await broker.close();
+  });
+
+  it('aborts an active retry delay during shutdown without acknowledging the source', async () => {
+    const generation = generationDouble();
+    const handler = vi.fn().mockRejectedValue(new Error('conflict'));
+    const broker = new RabbitMqEventBroker(
+      {
+        url: 'amqp://broker/vhost',
+        operationTimeoutMs: 1_000,
+        deliveryLimit: 5,
+        redeliveryDelayMs: 30_000,
+      },
+      async () => generation.connection,
+    );
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+
+    generation.delivery()!(message());
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
+    await expect(broker.close()).resolves.toBeUndefined();
+
+    expect(generation.channel.publish).not.toHaveBeenCalled();
+    expect(generation.channel.ack).not.toHaveBeenCalled();
+    expect(generation.channel.close).toHaveBeenCalledOnce();
   });
 
   it('keeps timed-out underlying handler work in the bounded shutdown drain', async () => {
