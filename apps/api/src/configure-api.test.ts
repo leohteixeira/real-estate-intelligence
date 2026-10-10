@@ -1,6 +1,15 @@
-import { Controller, Get, Logger, type INestApplication } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  InternalServerErrorException,
+  Logger,
+  Post,
+  Req,
+  type INestApplication,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { ErrorResponse } from '@rei/contracts';
+import type { Request } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { configureApi } from './configure-api';
@@ -15,9 +24,24 @@ class FixtureController {
     return { status: 'ok' };
   }
 
+  @Get('request-id')
+  public readRequestId(@Req() request: Request): { readonly requestId: string | null } {
+    return { requestId: request.get(REQUEST_ID_HEADER) ?? null };
+  }
+
+  @Post('payload')
+  public acceptPayload(): { readonly status: 'accepted' } {
+    return { status: 'accepted' };
+  }
+
   @Get('failure')
   public fail(): never {
     throw new Error('DATABASE_URL leaked from /workspace/internal.ts');
+  }
+
+  @Get('nest-failure')
+  public failWithNestException(): never {
+    throw new InternalServerErrorException('secret provider payload');
   }
 }
 
@@ -69,16 +93,35 @@ describe('configureApi', () => {
 
   it('replaces a client-supplied request identifier', async () => {
     const spoofedRequestId = '00000000-0000-4000-8000-000000000000';
-    const response = await fetch(`${baseUrl}/api/v1/does-not-exist`, {
+    const response = await fetch(`${baseUrl}/api/v1/fixture/request-id`, {
       headers: { [REQUEST_ID_HEADER]: spoofedRequestId },
     });
-    const body = (await response.json()) as ErrorResponse;
+    const body = (await response.json()) as { readonly requestId: string };
     const requestId = response.headers.get(REQUEST_ID_HEADER);
 
     expect(requestId).toMatch(UUID_PATTERN);
     expect(requestId).not.toBe(spoofedRequestId);
-    expect(body.error.requestId).toBe(requestId);
+    expect(body.requestId).toBe(requestId);
     expect(JSON.stringify(body)).not.toContain(spoofedRequestId);
+  });
+
+  it('preserves body-parser HTTP status for an oversized JSON request', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/fixture/payload`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ value: 'x'.repeat(101 * 1_024) }),
+    });
+    const body = (await response.json()) as ErrorResponse;
+    const requestId = response.headers.get(REQUEST_ID_HEADER);
+
+    expect(response.status).toBe(413);
+    expect(body).toEqual({
+      error: {
+        code: 'payload_too_large',
+        message: 'The request payload is too large.',
+        requestId,
+      },
+    });
   });
 
   it('hides unexpected exception details behind the internal error envelope', async () => {
@@ -101,5 +144,21 @@ describe('configureApi', () => {
     expect(logError).toHaveBeenCalledWith({ event: 'api.unexpected_failure', requestId });
     expect(JSON.stringify(logError.mock.calls)).not.toContain('DATABASE_URL');
     expect(JSON.stringify(logError.mock.calls)).not.toContain('/workspace/internal.ts');
+  });
+
+  it('records a sanitized event for a Nest 500 exception', async () => {
+    const logError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    const response = await fetch(`${baseUrl}/api/v1/fixture/nest-failure`);
+    const body = (await response.json()) as ErrorResponse;
+    const requestId = response.headers.get(REQUEST_ID_HEADER);
+
+    expect(response.status).toBe(500);
+    expect(body.error).toEqual({
+      code: 'internal_error',
+      message: 'An unexpected error occurred.',
+      requestId,
+    });
+    expect(logError).toHaveBeenCalledWith({ event: 'api.unexpected_failure', requestId });
+    expect(JSON.stringify(logError.mock.calls)).not.toContain('secret provider payload');
   });
 });
