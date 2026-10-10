@@ -3,7 +3,7 @@ title: 'Event tracer from a request to the audit log'
 type: 'feature'
 ticket: '3'
 created: '2026-10-10'
-status: 'built'
+status: 'done'
 baseline_revision: '2394b2ca6e04c21c13eb4b6ec9f5bfee7b082c73'
 route: 'full'
 route_source: 'pinned'
@@ -13,7 +13,7 @@ review_source: 'pinned'
 lenses_ran:
   - 'quick'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - 'AGENTS.md'
   - '_bmad-output/initiative-real-estate-intelligence/spec-real-estate-intelligence/architecture.md'
@@ -97,6 +97,9 @@ deferred: []
   integration job.
 - Added unit and real-service integration coverage for accepted delivery, transaction rollback,
   unconfirmed publishing, failed audit persistence, invalid broker messages, and worker readiness.
+- Added one overall worker shutdown deadline across relay, heartbeat, broker, Nest context, and
+  OpenTelemetry cleanup; disabled implicit exporters when telemetry is not configured so local and
+  Compose shutdown remain deterministic.
 
 ## Plan Change Log
 
@@ -129,6 +132,23 @@ deferred: []
   - `[medium]` `[patch]` Compose's default stop window was shorter than the worker shutdown
     deadline — `stop_grace_period` is now 30 seconds, twice the default application deadline.
 
+### 2026-10-10 — Follow-up review pass
+
+- verdicts: 3 findings — high 0, medium 3, low 0, false 0, maybe-false 0
+- findings:
+  - `[medium]` `[reject]` Carried forward: the active build plan is not
+    Prettier/markdownlint compliant — this is the same confirmed finding from the first pass, and
+    the review workflow forbids editing the plan to satisfy its own review; repository-wide
+    Markdown lint also has unrelated historical/generated failures.
+  - `[medium]` `[patch]` CI diagnostics could fail under `set -e` before the integration cleanup
+    ran — cleanup now preserves the original status, disables recursive exit handling, treats
+    diagnostics as best effort, always removes the Compose project, and exits with the original
+    result.
+  - `[medium]` `[patch]` `SHUTDOWN_TIMEOUT_MS` bounded only the relay rather than the full worker
+    shutdown sequence — one deadline now covers readiness, relay, heartbeat, broker, Nest context,
+    and OpenTelemetry. A real `SIGTERM` regression test exposed an implicit default OTel exporter;
+    disabled telemetry now installs empty exporter sets, and the Compose worker exits with code 0.
+
 ## Design Notes
 
 `POST /api/v1/audit/traces` is an intentionally technical, payload-free tracer rather than a property or collection capability. Its `audit.trace.requested` event uses separate PostgreSQL-generated event and technical trace-request identifiers and is consumed only by the thin audit context. The request proves transactional outbox participation through an explicit rollback test; it does not claim an aggregate business mutation.
@@ -144,6 +164,8 @@ The minimum safe path includes a RabbitMQ confirm before `published_at` and a ma
 - `docker compose up --build --detach --wait --wait-timeout 180 && pnpm run test:integration` -- a fresh real stack proves request → transaction/outbox → RabbitMQ → audit using the same event ID and covers rollback/failure invariants.
 - `docker compose down --volumes --remove-orphans` -- the verification stack is always removed, including after failure.
 - `pnpm why mastra && git diff --check` -- Mastra remains absent and repository changes have no whitespace defects.
+- `docker compose stop worker && docker inspect ...` -- a real `SIGTERM` drains the final worker
+  lifecycle and exits with code 0 within the configured grace window.
 
 ## Auto Run Result
 
@@ -171,14 +193,16 @@ service readiness, and an insufficient Compose shutdown window. It rejected one 
 formatting finding because the mandated review workflow forbids fixing findings by editing the active
 build plan. No item was added to `deferred`.
 
-**Follow-up review recommendation:** `true`. This first formal pass patched three medium entries.
-The specific risk to re-review is the interaction among the new worker readiness marker, ordered
-shutdown, and Compose health behavior, together with the separated context-owned integration queries.
+**Follow-up review recommendation:** `false`. The follow-up pass patched the two new medium findings
+without any high-severity result: CI cleanup is unconditional, and the complete worker lifecycle is
+bounded and proven through a real Compose `SIGTERM`. The carried formatting finding remains rejected
+under the review workflow.
 
-**Verification:** `pnpm run lint`, workspace type checking, 155 tests in 29 files, and all workspace
-builds passed. `docker compose config --quiet` passed. A fresh `docker compose up --build --detach
+**Verification:** `pnpm run lint`, workspace type checking, 159 tests, and all workspace builds
+passed. `docker compose config --quiet` passed. A fresh `docker compose up --build --detach
 --wait --wait-timeout 180` reported PostgreSQL, RabbitMQ, MinIO, API, worker, AI, and web healthy;
-`pnpm run test:integration` passed; teardown removed all containers, networks, and persistent volumes.
+`pnpm run test:integration` passed; a real worker `SIGTERM` exited with code 0; teardown removed all
+containers, networks, and persistent volumes.
 `pnpm why mastra`, staged/unstaged `git diff --check`, and targeted syntax/format checks passed.
 
 **Residual risks:** Generalized multi-relay ownership/deduplication and reconnecting a cached broker
