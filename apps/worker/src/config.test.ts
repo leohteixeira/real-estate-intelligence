@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { readCollectionCommandConfig, readConfig } from './config';
+import { readCollectionCommandConfig, readConfig, readScheduledCollectionConfig } from './config';
 
 const DATABASE_URL = 'postgres://app:app@localhost:5434/app';
 const RABBITMQ_URL = 'amqp://app:app@localhost:5672/app';
@@ -18,6 +18,9 @@ describe('readConfig', () => {
       shutdownTimeoutMs: 15_000,
       eventDeliveryLimit: 5,
       eventRedeliveryDelayMs: 1_000,
+      eventHandlerTimeoutMs: 120_000,
+      brokerDrainTimeoutMs: 10_000,
+      collectionPrefetch: 2,
       outboxRetentionMs: 604_800_000,
       inboxRetentionMs: 2_592_000_000,
       retentionIntervalMs: 300_000,
@@ -151,5 +154,34 @@ describe('readCollectionCommandConfig', () => {
     ['SYNTHETIC_PAGE_DELAY_MS', '30001'],
   ])('rejects invalid %s', (name, value) => {
     expect(() => readCollectionCommandConfig({ ...STORAGE_ENV, [name]: value })).toThrow(name);
+  });
+});
+
+describe('readScheduledCollectionConfig', () => {
+  const STORAGE_ENV = {
+    OBJECT_STORE_ENDPOINT: 'http://localhost:9100',
+    OBJECT_STORE_REGION: 'us-east-1',
+    OBJECT_STORE_BUCKET: 'real-estate-snapshots',
+    OBJECT_STORE_ACCESS_KEY_ID: 'fixture-access-key',
+    OBJECT_STORE_SECRET_ACCESS_KEY: 'fixture-secret-key',
+  } as NodeJS.ProcessEnv;
+
+  it('provides bounded scheduler and collection-run defaults', () => {
+    expect(readScheduledCollectionConfig(STORAGE_ENV)).toMatchObject({
+      pollIntervalMs: 1_000,
+      claimBatchSize: 10,
+      concurrency: 2,
+      runTimeoutMs: 115_000,
+    });
+  });
+
+  it('requires a collection run to fit inside the delivery deadline', () => {
+    expect(() =>
+      readScheduledCollectionConfig({
+        ...STORAGE_ENV,
+        COLLECTION_RUN_TIMEOUT_MS: '5001',
+        EVENT_HANDLER_TIMEOUT_MS: '5000',
+      }),
+    ).toThrow('COLLECTION_RUN_TIMEOUT_MS');
   });
 });

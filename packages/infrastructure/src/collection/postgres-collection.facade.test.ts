@@ -57,6 +57,7 @@ describe('PostgresCollectionFacade', () => {
               completed_at: new Date('2026-10-10T12:00:00Z'),
               observed_count: 2,
               parsed_count: 1,
+              changed_count: 0,
               suppressed_count: 1,
               failed_count: 0,
               manifest_hash: manifestHash,
@@ -75,7 +76,7 @@ describe('PostgresCollectionFacade', () => {
       sourceId: 'synthetic-data',
       startedAt: '2026-10-10T11:59:58.000Z',
       completedAt: '2026-10-10T12:00:00.000Z',
-      counts: { observed: 2, parsed: 1, suppressed: 1, failed: 0 },
+      counts: { observed: 2, parsed: 1, changed: 0, suppressed: 1, failed: 0 },
       observedSourceListingIds: ['SYN-SP-0001', 'SYN-SP-0002'],
       manifestHash,
     });

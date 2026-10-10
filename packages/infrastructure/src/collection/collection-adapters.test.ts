@@ -12,6 +12,7 @@ import {
   StaleCollectionCheckpointError,
   createSourceRegistration,
   type CollectedListing,
+  type Sha256Hash,
 } from '@rei/domain';
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
@@ -193,7 +194,7 @@ describe('in-memory collection adapters', () => {
         cursor: null,
         checkpointedAt: input.completedAt,
       },
-      counts: { observed: 1, parsed: 1, suppressed: 0, failed: 0 },
+      counts: { observed: 1, parsed: 1, changed: 0, suppressed: 0, failed: 0 },
       completedAt: input.completedAt,
       manifestHash: input.manifestHash,
       completedEventId: input.completedEventId,
@@ -232,6 +233,9 @@ describe('in-memory collection adapters', () => {
       objectKey: `synthetic/sha256/${'1'.repeat(64)}.json`,
       byteLength: 10,
       mediaType: 'application/json',
+      outcome: 'parsed',
+      changed: false,
+      failureReason: null,
     } as const;
 
     await expect(repository.loadRunByOperationKey(runInput.operationKey)).resolves.toBeNull();
@@ -322,6 +326,81 @@ describe('in-memory collection adapters', () => {
       objectKey: firstObservation.objectKey,
       replayed: false,
     });
+  });
+
+  it('uses a failed observation from the latest completed run as the change baseline', async () => {
+    const repository = new InMemoryCollectionRunRepository();
+    const transaction = {} as Transaction;
+    const sourceId = 'synthetic-portal-aurora';
+    const sourceListingId = 'AUR-BV-001';
+    const complete = async (
+      runId: Parameters<InMemoryCollectionRunRepository['startOrLoad']>[1]['runId'],
+      operationKey: string,
+      contentHash: Sha256Hash,
+      outcome: 'parsed' | 'failed',
+    ): Promise<void> => {
+      await repository.startOrLoad(transaction, {
+        operationKey,
+        runId,
+        sourceId,
+        startedAt: '2026-10-10T00:00:00.000Z',
+      });
+      await repository.commitPage(transaction, {
+        runId,
+        expectedOrdinal: 0,
+        expectedCursor: null,
+        nextCursor: null,
+        checkpointedAt: '2026-10-10T00:00:01.000Z',
+        observations: [
+          {
+            snapshotId:
+              outcome === 'parsed'
+                ? '0199c8f2-2394-7ba0-8f9e-286378779231'
+                : '0199c8f2-2394-7ba0-8f9e-286378779241',
+            parsedEventId: outcome === 'parsed' ? '0199c8f2-2394-7ba0-8f9e-286378779232' : null,
+            sourceListingId,
+            sourceUrl: 'https://aurora.synthetic.invalid/listings/AUR-BV-001',
+            observedAt: '2026-10-10T00:00:00.000Z',
+            contentHash,
+            objectKey: `synthetic/${contentHash}.json`,
+            byteLength: 10,
+            mediaType: 'application/json',
+            outcome,
+            changed: false,
+            failureReason: outcome === 'failed' ? 'parse-rejected' : null,
+          },
+        ],
+        exhausted: true,
+        completedAt: '2026-10-10T00:00:01.000Z',
+        manifestHash: `sha256:${'f'.repeat(64)}`,
+        completedEventId:
+          outcome === 'parsed'
+            ? '0199c8f2-2394-7ba0-8f9e-286378779233'
+            : '0199c8f2-2394-7ba0-8f9e-286378779243',
+      });
+    };
+
+    await complete(
+      '0199c8f2-2394-7ba0-8f9e-286378779230',
+      'earlier-parsed',
+      `sha256:${'1'.repeat(64)}`,
+      'parsed',
+    );
+    await complete(
+      '0199c8f2-2394-7ba0-8f9e-286378779240',
+      'latest-failed',
+      `sha256:${'2'.repeat(64)}`,
+      'failed',
+    );
+
+    await expect(
+      repository.findLatestCompletedContentHash(
+        transaction,
+        sourceId,
+        '0199c8f2-2394-7ba0-8f9e-286378779250',
+        sourceListingId,
+      ),
+    ).resolves.toBe(`sha256:${'2'.repeat(64)}`);
   });
 });
 

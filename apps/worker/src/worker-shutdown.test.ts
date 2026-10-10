@@ -9,6 +9,7 @@ import {
 function shutdownSteps(overrides: Partial<WorkerShutdownSteps> = {}): WorkerShutdownSteps {
   return {
     clearReadiness: vi.fn().mockResolvedValue(undefined),
+    stopCollectionSchedule: vi.fn().mockResolvedValue(undefined),
     stopBrokerSupervisor: vi.fn().mockResolvedValue(undefined),
     stopRelay: vi.fn().mockResolvedValue(undefined),
     stopRetention: vi.fn().mockResolvedValue(undefined),
@@ -32,6 +33,7 @@ describe('shutdownWorker', () => {
     };
     const steps = shutdownSteps({
       clearReadiness: step('readiness'),
+      stopCollectionSchedule: step('schedule'),
       stopBrokerSupervisor: step('supervisor'),
       stopRelay: step('relay'),
       stopRetention: step('retention'),
@@ -45,6 +47,7 @@ describe('shutdownWorker', () => {
 
     expect(calls).toEqual([
       'readiness',
+      'schedule',
       'supervisor',
       'relay',
       'retention',

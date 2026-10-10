@@ -781,6 +781,21 @@ describe('RabbitMqEventBroker', () => {
     await broker.close();
   });
 
+  it('delivers a plain wire envelope to event-specific subscriber parsers', async () => {
+    const { broker, delivery } = brokerDouble();
+    const handler = vi.fn().mockResolvedValue(undefined);
+    await broker.subscribe(subscription, handler);
+    await broker.start();
+
+    delivery()!(message());
+
+    await vi.waitFor(() => expect(handler).toHaveBeenCalledOnce());
+    const delivered = handler.mock.calls[0]![0];
+    expect(Object.getPrototypeOf(delivered)).toBe(Object.prototype);
+    expect(delivered).toEqual(event);
+    await broker.close();
+  });
+
   it('confirms retries and malformed dead-letter transfers before acknowledging the source', async () => {
     const { broker, channel, delivery } = brokerDouble();
     const handler = vi.fn().mockRejectedValue(new Error('audit unavailable'));

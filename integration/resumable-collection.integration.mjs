@@ -318,6 +318,9 @@ async function proveCheckpointContention(connection) {
   const observation = {
     snapshotId: '0199c8f2-2394-7ba0-8f9e-286378779241',
     parsedEventId: '0199c8f2-2394-7ba0-8f9e-286378779242',
+    outcome: 'parsed',
+    changed: false,
+    failureReason: null,
     sourceListingId: 'BRI-RACE-001',
     sourceUrl: 'https://brisa.synthetic.invalid/listings/BRI-RACE-001',
     observedAt: '2026-10-10T00:00:02.000Z',

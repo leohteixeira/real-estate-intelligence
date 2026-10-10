@@ -135,6 +135,10 @@ class RunRepositoryDouble implements CollectionRunRepository {
     return [...this.observations];
   }
 
+  public async findLatestCompletedContentHash() {
+    return null;
+  }
+
   public async commitPage(_transaction: Transaction, input: CommitCollectionPageInput) {
     if (
       !this.run ||
@@ -145,12 +149,18 @@ class RunRepositoryDouble implements CollectionRunRepository {
       return { committed: false, run: this.run };
     }
     this.observations.push(...input.observations);
+    const parsedDelta = input.observations.filter(({ outcome }) => outcome === 'parsed').length;
+    const changedDelta = input.observations.filter(({ changed }) => changed).length;
+    const failedDelta = input.observations.filter(({ outcome }) => outcome === 'failed').length;
     this.run = advanceCollectionRun(this.run, {
       expectedOrdinal: input.expectedOrdinal,
       expectedCursor: input.expectedCursor,
       nextCursor: input.nextCursor,
       checkpointedAt: input.checkpointedAt,
       observedDelta: input.observations.length,
+      parsedDelta,
+      changedDelta,
+      failedDelta,
       exhausted: input.exhausted,
       ...(input.completedAt === null ? {} : { completedAt: input.completedAt }),
       ...(input.manifestHash === null ? {} : { manifestHash: input.manifestHash }),
@@ -297,6 +307,39 @@ describe('CollectSourceRun', () => {
     expect(context.outbox.append).not.toHaveBeenCalled();
   });
 
+  it('marks a parsed observation changed only when the latest completed hash differs', async () => {
+    const context = fixture([
+      { documents: [document('AUR-BV-001')], nextCursor: null, exhausted: true },
+    ]);
+    vi.spyOn(context.runs, 'findLatestCompletedContentHash').mockResolvedValue(
+      `sha256:${'2'.repeat(64)}` as Sha256Hash,
+    );
+
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'operation-changed',
+        null,
+        new AbortController().signal,
+      ),
+    ).resolves.toMatchObject({
+      observedCount: 1,
+      parsedCount: 1,
+      changedCount: 1,
+      failedCount: 0,
+    });
+
+    expect(context.runs.observations).toEqual([
+      expect.objectContaining({ outcome: 'parsed', changed: true, failureReason: null }),
+    ]);
+    expect(context.runs.findLatestCompletedContentHash).toHaveBeenCalledWith(
+      expect.anything(),
+      'synthetic-portal-aurora',
+      expect.any(String),
+      'AUR-BV-001',
+    );
+  });
+
   it('rejects cross-source operation-key reuse without source work', async () => {
     const context = fixture();
     context.runs.run = createRunningCollectionRun({
@@ -378,6 +421,9 @@ describe('CollectSourceRun', () => {
       observedAt: '2026-10-10T00:00:00.000Z',
       contentHash: HASH,
       objectKey: 'synthetic/sha256/committed.json',
+      outcome: 'parsed',
+      changed: false,
+      failureReason: null,
     });
 
     await expect(
@@ -467,7 +513,7 @@ describe('CollectSourceRun', () => {
     expect(context.outbox.append).not.toHaveBeenCalled();
   });
 
-  it('leaves the checkpoint unchanged when parsing fails after durable raw storage', async () => {
+  it('records a failed observation and advances after deterministic parser rejection', async () => {
     const context = fixture();
     vi.mocked(context.source.parse).mockRejectedValue(
       new ExternalFailure({ kind: 'rejected', operation: 'collection.source.parse' }),
@@ -480,12 +526,34 @@ describe('CollectSourceRun', () => {
         null,
         new AbortController().signal,
       ),
-    ).rejects.toMatchObject({ kind: 'rejected', operation: 'collection.source.parse' });
+    ).resolves.toMatchObject({
+      observedCount: 2,
+      parsedCount: 0,
+      changedCount: 0,
+      failedCount: 2,
+    });
 
-    expect(context.snapshots.store).toHaveBeenCalledOnce();
-    expect(context.runs.run).toMatchObject({ status: 'running', checkpoint: { ordinal: 0 } });
-    expect(context.runs.observations).toEqual([]);
-    expect(context.outbox.append).not.toHaveBeenCalled();
+    expect(context.snapshots.store).toHaveBeenCalledTimes(2);
+    expect(context.runs.run).toMatchObject({
+      status: 'completed',
+      checkpoint: { ordinal: 2 },
+      counts: { observed: 2, parsed: 0, changed: 0, suppressed: 0, failed: 2 },
+    });
+    expect(context.runs.observations).toHaveLength(2);
+    expect(context.runs.observations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parsedEventId: null,
+          outcome: 'failed',
+          changed: false,
+          failureReason: 'parser-rejected',
+        }),
+      ]),
+    );
+    expect(context.batches.map((batch) => batch.map(({ type }) => type))).toEqual([
+      [],
+      ['collection.run.completed'],
+    ]);
   });
 
   it('rolls back the page prefix when its transaction fails after storage and parsing', async () => {
@@ -556,6 +624,9 @@ describe('CollectSourceRun', () => {
       observedAt: '2026-10-09T00:00:00.000Z',
       contentHash: `sha256:${'2'.repeat(64)}` as Sha256Hash,
       objectKey: 'synthetic/sha256/previous.json',
+      outcome: 'parsed',
+      changed: false,
+      failureReason: null,
     });
 
     await expect(

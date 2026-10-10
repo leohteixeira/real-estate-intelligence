@@ -108,7 +108,7 @@ describe('SyntheticCollectionStub', () => {
       sourceId: SYNTHETIC_SOURCE_ID,
       startedAt: '2026-10-10T11:59:00.000Z',
       completedAt: '2026-10-10T12:00:01.000Z',
-      counts: { observed: 1, parsed: 1, suppressed: 0, failed: 0 },
+      counts: { observed: 1, parsed: 1, changed: 0, suppressed: 0, failed: 0 },
       observedSourceListingIds: [SYNTHETIC_SOURCE_LISTING_ID],
       manifestHash: SYNTHETIC_MANIFEST_HASH,
     });

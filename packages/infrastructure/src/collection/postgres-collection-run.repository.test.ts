@@ -48,6 +48,7 @@ const runningRow = {
   completed_at: null,
   observed_count: 1,
   parsed_count: 1,
+  changed_count: 0,
   suppressed_count: 0,
   failed_count: 0,
   manifest_hash: null,
@@ -100,7 +101,7 @@ describe('PostgresCollectionRunRepository', () => {
       status: 'running',
       startedAt: input.startedAt,
       completedAt: null,
-      counts: { observed: 1, parsed: 1, suppressed: 0, failed: 0 },
+      counts: { observed: 1, parsed: 1, changed: 0, suppressed: 0, failed: 0 },
       checkpoint: {
         ordinal: 1,
         cursor: 'fixture:2026-10:1',
@@ -137,6 +138,32 @@ describe('PostgresCollectionRunRepository', () => {
     expect(
       queryAbortable.mock.calls.every(([, , receivedSignal]) => receivedSignal === signal),
     ).toBe(true);
+  });
+
+  it('uses the latest earlier completed observation including a failed parse baseline', async () => {
+    const query = vi.fn(async (statement: string) =>
+      statement === 'BEGIN' || statement === 'COMMIT' ? [] : [{ content_hash: input.contentHash }],
+    );
+    const client = { query, release: vi.fn() } as unknown as DatabaseClient;
+    const database = connectionDouble(client);
+    const repository = new PostgresCollectionRunRepository(database);
+    const runner = new PostgresTransactionRunner(database);
+
+    await expect(
+      runner.runInTransaction((transaction) =>
+        repository.findLatestCompletedContentHash(
+          transaction,
+          'synthetic-portal-aurora',
+          input.runId,
+          input.sourceListingId,
+        ),
+      ),
+    ).resolves.toBe(input.contentHash);
+    const statement = String(query.mock.calls[1]?.[0]);
+    expect(statement).toContain("prior_run.status = 'completed'");
+    expect(statement).not.toContain('observation.outcome');
+    expect(statement).toContain('prior_run.run_id < $2');
+    expect(statement).toContain('ORDER BY prior_run.completed_at DESC');
   });
 
   it('persists run, reusable object metadata, and observation through one transaction client', async () => {
@@ -351,6 +378,9 @@ describe('PostgresCollectionRunRepository', () => {
               objectKey: input.objectKey,
               byteLength: input.byteLength,
               mediaType: input.mediaType,
+              outcome: 'parsed',
+              changed: false,
+              failureReason: null,
             },
           ],
           exhausted: true,
@@ -367,10 +397,10 @@ describe('PostgresCollectionRunRepository', () => {
     const update = query.mock.calls.find(([statement]) =>
       statement.includes('UPDATE collection.collection_run'),
     )?.[0];
-    expect(update).toContain('$7::boolean');
-    expect(update).toContain('$8::timestamptz');
-    expect(update).toContain('$9::text');
-    expect(update).toContain('$10::uuid');
+    expect(update).toContain('$10::boolean');
+    expect(update).toContain('$11::timestamptz');
+    expect(update).toContain('$12::text');
+    expect(update).toContain('$13::uuid');
     expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
   });
 });

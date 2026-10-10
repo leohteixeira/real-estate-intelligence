@@ -17,6 +17,7 @@
     "test:integration": "node integration/audit-tracer.integration.mjs",
     "test:integration:collection": "node integration/synthetic-collection.integration.mjs",
     "test:integration:resumable-collection": "node integration/resumable-collection.integration.mjs",
+    "test:integration:scheduled-collection": "node integration/scheduled-collection.integration.mjs",
     "test:integration:source-register": "node --test integration/source-register-cleanup.test.mjs && node integration/source-register.integration.mjs",
     "typecheck": "pnpm -r typecheck",
     "format": "prettier --write .",
