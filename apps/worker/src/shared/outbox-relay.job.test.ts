@@ -1,4 +1,10 @@
-import type { EventPublisher, OutboxRelayPort, OutboxRow } from '@rei/application';
+import {
+  ExternalFailure,
+  type ExternalFailureKind,
+  type EventPublisher,
+  type OutboxRelayPort,
+  type OutboxRow,
+} from '@rei/application';
 import type { UuidV7 } from '@rei/domain';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -63,6 +69,34 @@ describe('OutboxRelayJob', () => {
 
     expect(outbox.markPublished).not.toHaveBeenCalled();
     expect(outbox.releaseClaim).toHaveBeenCalledWith(event.eventId, event.claimId);
+    await job.stop();
+  });
+
+  it.each<ExternalFailureKind>([
+    'transient',
+    'exhausted',
+    'rejected',
+    'unauthorized',
+    'forbidden',
+    'cancelled',
+  ])('releases the claim and never marks published after terminal %s failure', async (kind) => {
+    const outbox: OutboxRelayPort = {
+      claimPending: vi.fn().mockResolvedValue([event]),
+      markPublished: vi.fn(),
+      releaseClaim: vi.fn(),
+    };
+    const publisher: EventPublisher = {
+      publish: vi
+        .fn()
+        .mockRejectedValue(new ExternalFailure({ kind, operation: 'event-publisher.publish' })),
+    };
+    const job = new OutboxRelayJob(outbox, publisher);
+
+    job.start();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(outbox.releaseClaim).toHaveBeenCalledWith(event.eventId, event.claimId);
+    expect(outbox.markPublished).not.toHaveBeenCalled();
     await job.stop();
   });
 

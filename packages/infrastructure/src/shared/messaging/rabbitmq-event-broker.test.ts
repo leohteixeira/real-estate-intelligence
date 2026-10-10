@@ -179,6 +179,62 @@ describe('RabbitMqEventBroker', () => {
     await broker.close();
   });
 
+  it('keeps shared establishment alive when its first caller cancels', async () => {
+    const generation = generationDouble();
+    let release: (() => void) | undefined;
+    const connector = vi.fn(
+      async () =>
+        new Promise<typeof generation.connection>((resolve) => {
+          release = () => resolve(generation.connection);
+        }),
+    );
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
+      connector,
+    );
+    const firstController = new AbortController();
+
+    const first = broker.start(firstController.signal);
+    const second = broker.start();
+    const firstResult = expect(first).rejects.toThrow('first caller stopped');
+    firstController.abort(new Error('first caller stopped'));
+
+    await firstResult;
+    expect(connector).toHaveBeenCalledOnce();
+    release!();
+    await expect(second).resolves.toBeUndefined();
+    expect(generation.channel.assertExchange).toHaveBeenCalledOnce();
+    await broker.close();
+  });
+
+  it('lets a later caller cancel only its own shared-establishment wait', async () => {
+    const generation = generationDouble();
+    let release: (() => void) | undefined;
+    const connector = vi.fn(
+      async () =>
+        new Promise<typeof generation.connection>((resolve) => {
+          release = () => resolve(generation.connection);
+        }),
+    );
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://broker/vhost', operationTimeoutMs: 1_000 },
+      connector,
+    );
+    const laterController = new AbortController();
+
+    const first = broker.start();
+    const later = broker.start(laterController.signal);
+    const laterResult = expect(later).rejects.toThrow('later caller stopped');
+    laterController.abort(new Error('later caller stopped'));
+
+    await laterResult;
+    expect(connector).toHaveBeenCalledOnce();
+    release!();
+    await expect(first).resolves.toBeUndefined();
+    expect(generation.channel.assertExchange).toHaveBeenCalledOnce();
+    await broker.close();
+  });
+
   it('does not wait for a hanging connection and disposes it if it resolves after close', async () => {
     const generation = generationDouble();
     let resolveConnection: ((connection: typeof generation.connection) => void) | undefined;
@@ -243,6 +299,54 @@ describe('RabbitMqEventBroker', () => {
     await broker.close();
   });
 
+  it('does not publish when the caller cancels as start finishes', async () => {
+    const { broker, channel } = brokerDouble();
+    await broker.start();
+    channel.publish.mockClear();
+    const controller = new AbortController();
+    vi.spyOn(broker, 'start').mockImplementation(async () => {
+      controller.abort(new Error('publication stopped'));
+    });
+
+    await expect(broker.publish(event, controller.signal)).rejects.toMatchObject({
+      kind: 'cancelled',
+    });
+
+    expect(channel.publish).not.toHaveBeenCalled();
+    await broker.close();
+  });
+
+  it('classifies numeric amqplib connector authorization rejection without leaking detail', async () => {
+    const connectorError = Object.assign(
+      new Error('Handshake refused for amqp://user:secret@broker/vhost'),
+      { code: 403, replyText: 'ACCESS_REFUSED user secret' },
+    );
+    const broker = new RabbitMqEventBroker(
+      { url: 'amqp://user:secret@broker/vhost', operationTimeoutMs: 1_000 },
+      async () => Promise.reject(connectorError),
+    );
+
+    const failure = await broker
+      .publish(event, new AbortController().signal)
+      .catch((error: unknown) => error);
+
+    expect(failure).toMatchObject({ kind: 'unauthorized' });
+    expect(failure).toBeInstanceOf(Error);
+    expect((failure as Error).message).not.toMatch(/secret|user|broker|amqp/i);
+    await broker.close();
+  });
+
+  it('maps the amqplib negative-confirm error to a non-retryable rejection', async () => {
+    const { broker, channel } = brokerDouble();
+    channel.waitForConfirms.mockRejectedValueOnce(new Error('message nacked'));
+
+    await expect(broker.publish(event, new AbortController().signal)).rejects.toMatchObject({
+      kind: 'rejected',
+    });
+
+    await broker.close();
+  });
+
   it('preserves the baseline audit route when started without an audit subscription', async () => {
     const generation = generationDouble();
     let legacyRouteBound = true;
@@ -283,9 +387,9 @@ describe('RabbitMqEventBroker', () => {
       connector,
     );
 
-    await expect(broker.publish(event, new AbortController().signal)).rejects.toThrow(
-      'confirm state unknown',
-    );
+    await expect(broker.publish(event, new AbortController().signal)).rejects.toMatchObject({
+      kind: 'transient',
+    });
     await broker.start();
 
     expect(first.channel.close).toHaveBeenCalledOnce();

@@ -3,7 +3,7 @@ import { promisify } from 'node:util';
 
 import amqp from 'amqplib';
 
-import { RequestAuditTrace } from '../packages/application/dist/index.js';
+import { isExternalFailure, RequestAuditTrace } from '../packages/application/dist/index.js';
 import { AuditTraceRequested } from '../packages/domain/dist/index.js';
 import {
   DatabaseConnection,
@@ -450,6 +450,66 @@ async function proveBrokerRestartRecovery(connection) {
   await waitForDeliveredEvent(connection, postRestartEventId);
 }
 
+async function startRabbitMq() {
+  await execute('docker', composeArgs('start', 'rabbitmq'), { timeout: 45_000 });
+  await waitFor('RabbitMQ to become healthy', async () => {
+    try {
+      await execute(
+        'docker',
+        composeArgs('exec', '-T', 'rabbitmq', 'rabbitmq-diagnostics', '-q', 'ping'),
+        { timeout: 5_000 },
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+async function proveBrokerOutageLeavesOutboxRecoverable(connection) {
+  let rabbitStopped = false;
+  let workerStopped = false;
+  let event;
+  try {
+    await execute('docker', composeArgs('stop', '--timeout', '30', 'rabbitmq'), {
+      timeout: 45_000,
+    });
+    rabbitStopped = true;
+    event = await appendSingleEvent(connection);
+
+    // Let the relay observe a real connection failure, then stop it through its normal shutdown
+    // path so any active or queued policy work releases its claim before we inspect persistence.
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    await stopWorker();
+    workerStopped = true;
+    const rows = await connection.query(
+      `SELECT published_at, claim_id::text
+         FROM platform.outbox
+        WHERE event_id = $1`,
+      [event.eventId],
+    );
+    assert(
+      rows[0]?.published_at === null,
+      'Broker outage falsely marked the outbox row published.',
+    );
+    assert(rows[0]?.claim_id === null, 'Broker outage left an unrecoverable outbox claim.');
+
+    await startRabbitMq();
+    rabbitStopped = false;
+    await startWorker();
+    workerStopped = false;
+    assert(event, 'Broker outage fixture was not created.');
+    const delivered = await waitForDeliveredEvent(connection, event.eventId);
+    assert(
+      delivered.outbox.event_id === event.eventId,
+      'Recovered publication changed its event id.',
+    );
+  } finally {
+    if (rabbitStopped) await startRabbitMq().catch(() => undefined);
+    if (workerStopped) await startWorker().catch(() => undefined);
+  }
+}
+
 async function appendOrderedEvents(connection) {
   const transactions = new PostgresTransactionRunner(connection);
   const identifiers = new PostgresUuidV7Generator(connection);
@@ -684,7 +744,7 @@ async function proveConcurrentRelayClaims(connection) {
     try {
       await publishers[failedHead.relayIndex].publish(failedHead.event, aborted);
     } catch (error) {
-      abortObserved = error instanceof Error && error.message === 'forced relay abort';
+      abortObserved = isExternalFailure(error) && error.kind === 'cancelled';
     }
     assert(abortObserved, 'Aborted relay publication unexpectedly succeeded.');
     await relays[failedHead.relayIndex].releaseClaim(
@@ -1061,6 +1121,7 @@ try {
   await proveDuplicateSuppression(connection, delivered);
   await proveLegacyQueueUpgrade(connection);
   await proveBrokerRestartRecovery(connection);
+  await proveBrokerOutageLeavesOutboxRecoverable(connection);
   await proveAggregateOrder(connection);
   await proveConcurrentRelayClaims(connection);
   await provePoisonDeadLetter(connection);
