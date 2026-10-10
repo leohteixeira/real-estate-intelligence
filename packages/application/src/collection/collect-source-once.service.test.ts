@@ -26,6 +26,7 @@ import type {
   PersistCompletedCollectionInput,
 } from './collection-run.repository.js';
 import type { ListingSource, RawListingDocument } from './listing-source.port.js';
+import { ListingSourceAccessRefusal } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
 
@@ -145,6 +146,9 @@ function fixture(
   };
   let persistedInput: PersistCompletedCollectionInput | undefined;
   const sources: SourceRegisterRepository = {
+    holdAtomically: vi.fn(),
+    clearHoldAfterReview: vi.fn(),
+    assertCollectible: vi.fn(async () => undefined),
     findById: vi.fn(async () =>
       createSourceRegistration({
         sourceId: 'synthetic-data',
@@ -167,6 +171,8 @@ function fixture(
     listEnabled: vi.fn(async () => []),
   };
   const runs: CollectionRunRepository = {
+    pause: vi.fn(),
+    resume: vi.fn(),
     findByOperationKey: vi.fn(async () => options.replay ?? null),
     loadRunByOperationKey: vi.fn(async () =>
       options.run === undefined
@@ -241,6 +247,47 @@ function fixture(
 }
 
 describe('CollectSourceOnce', () => {
+  it('applies a durable refusal without inventing a pre-I/O run or snapshot', async () => {
+    const context = fixture();
+    vi.mocked(context.source.fetchPage).mockRejectedValueOnce(
+      new ListingSourceAccessRefusal('login-wall'),
+    );
+    vi.mocked(context.sources.holdAtomically).mockResolvedValueOnce(
+      createSourceRegistration({
+        ...(await context.sources.findById('synthetic-data'))!,
+        enabled: false,
+        enabledAt: null,
+        hold: { reason: 'login-wall', heldAt: '2026-10-10T12:00:00Z' },
+      }),
+    );
+    await expect(
+      context.service.execute(
+        'synthetic-data',
+        'one-shot-block',
+        null,
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ reason: 'login-wall' });
+    expect(context.sources.holdAtomically).toHaveBeenCalledOnce();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+    expect(context.source.parse).not.toHaveBeenCalled();
+    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+    expect(context.events).toEqual([]);
+  });
+
+  it('forwards the absolute operation deadline to acquisition and storage', async () => {
+    const context = fixture();
+    const signal = new AbortController().signal;
+    const deadlineAt = Date.now() + 5_000;
+    await context.service.execute('synthetic-data', 'deadline-proof', null, signal, deadlineAt);
+    expect(context.source.fetchPage).toHaveBeenCalledWith(
+      'synthetic-data',
+      null,
+      signal,
+      deadlineAt,
+    );
+    expect(context.snapshots.store).toHaveBeenCalledWith(expect.any(Object), signal, deadlineAt);
+  });
   it('stores exact bytes before parsing and atomically appends parsed and completed events', async () => {
     const context = fixture();
     const signal = new AbortController().signal;
@@ -260,6 +307,7 @@ describe('CollectSourceOnce', () => {
     expect(context.snapshots.store).toHaveBeenCalledWith(
       expect.objectContaining({ bytes: DOCUMENT.bytes, synthetic: true }),
       expect.any(AbortSignal),
+      undefined,
     );
     expect(context.events[0]?.map((event) => event.type)).toEqual([
       'collection.snapshot.parsed',

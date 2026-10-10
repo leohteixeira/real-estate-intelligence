@@ -100,6 +100,107 @@ describe('SyntheticListingSource', () => {
 });
 
 describe('in-memory collection adapters', () => {
+  it('holds a source until explicit review, preserves the first refusal, and still requires enablement', async () => {
+    const source = createSourceRegistration({
+      sourceId: 'synthetic-data',
+      displayLabel: 'Synthetic fixture',
+      category: 'synthetic-listing',
+      enabled: true,
+      enabledAt: '2026-10-10T00:00:00Z',
+      permissions: {
+        collectionAllowed: true,
+        imageFetchingAllowed: false,
+        listingTextDisplayAllowed: true,
+      },
+      review: { outcome: 'not-required', reviewedAt: null, evidence: 'Fixture.' },
+      access: { method: 'repository-fixture', detail: 'Fixture.' },
+      rate: { status: 'not-applicable', limit: null, windowSeconds: null },
+      licence: { status: 'not-applicable', label: 'Synthetic', url: null },
+    });
+    const repository = new InMemorySourceRegisterRepository([source]);
+    const transaction = {} as Transaction;
+    const hold = { reason: 'block', heldAt: '2026-10-10T12:00:00Z' } as const;
+    await expect(
+      repository.assertCollectible(transaction, source.sourceId),
+    ).resolves.toBeUndefined();
+    await expect(repository.holdAtomically('missing', hold)).resolves.toBeNull();
+    await expect(repository.clearHoldAfterReview('missing', hold.heldAt)).resolves.toBeNull();
+    await expect(repository.holdAtomically(source.sourceId, hold)).resolves.toMatchObject({
+      enabled: false,
+      enabledAt: null,
+      hold,
+    });
+    await expect(
+      repository.holdAtomically(source.sourceId, {
+        reason: 'captcha',
+        heldAt: '2026-10-10T13:00:00Z',
+      }),
+    ).resolves.toMatchObject({ hold });
+    await expect(repository.assertCollectible(transaction, source.sourceId)).rejects.toMatchObject({
+      reason: 'block',
+    });
+    await expect(repository.assertCollectible(transaction, 'missing')).rejects.toThrow(
+      'not collectible',
+    );
+    await expect(repository.enableAtomically(source.sourceId, hold.heldAt)).resolves.toBeNull();
+    await expect(repository.listEnabled()).resolves.toEqual([]);
+    await expect(repository.clearHoldAfterReview(source.sourceId, 'invalid')).rejects.toThrow(
+      'instant',
+    );
+    await expect(
+      repository.clearHoldAfterReview(source.sourceId, '2026-10-10T11:00:00Z'),
+    ).rejects.toThrow('follow');
+    await expect(
+      repository.clearHoldAfterReview(source.sourceId, hold.heldAt),
+    ).resolves.toMatchObject({ enabled: false, hold: null });
+    await expect(repository.assertCollectible(transaction, source.sourceId)).rejects.toThrow(
+      'not collectible',
+    );
+    await repository.clearHoldAfterReview(source.sourceId, hold.heldAt);
+    await repository.enableAtomically(source.sourceId, hold.heldAt);
+    await expect(
+      repository.assertCollectible(transaction, source.sourceId),
+    ).resolves.toBeUndefined();
+    const controller = new AbortController();
+    const reason = new Error('cancel');
+    controller.abort(reason);
+    await expect(repository.holdAtomically(source.sourceId, hold, controller.signal)).rejects.toBe(
+      reason,
+    );
+    await expect(
+      repository.clearHoldAfterReview(source.sourceId, hold.heldAt, controller.signal),
+    ).rejects.toBe(reason);
+  });
+
+  it('pauses without terminal fields and resumes only explicitly using the same run identity', async () => {
+    const repository = new InMemoryCollectionRunRepository();
+    const transaction = {} as Transaction;
+    const run = await repository.startOrLoad(transaction, {
+      operationKey: 'pause-proof',
+      runId: '0199c8f2-2394-7ba0-8f9e-286378779210',
+      sourceId: 'synthetic-data',
+      startedAt: '2026-10-10T00:00:00Z',
+    });
+    const hold = { reason: 'login-wall', heldAt: '2026-10-10T12:00:00Z' } as const;
+    await expect(
+      repository.pause(transaction, '0199c8f2-2394-7ba0-8f9e-286378779299', hold),
+    ).rejects.toThrow('not found');
+    await expect(
+      repository.resume(transaction, '0199c8f2-2394-7ba0-8f9e-286378779299'),
+    ).rejects.toThrow('not found');
+    await expect(repository.resume(transaction, run.runId)).rejects.toThrow('paused');
+    const paused = await repository.pause(transaction, run.runId, hold);
+    expect(paused).toMatchObject({
+      status: 'paused',
+      pause: hold,
+      completedAt: null,
+      completedEventId: null,
+      manifestHash: null,
+    });
+    await expect(repository.pause(transaction, run.runId, hold)).resolves.toEqual(paused);
+    await expect(repository.resume(transaction, run.runId)).resolves.toEqual(run);
+    expect(await repository.findByOperationKey(run.operationKey)).toBeNull();
+  });
   it('clones source and object bytes and deduplicates content-addressed objects', async () => {
     const source = new InMemoryListingSource(DOCUMENT, LISTING);
     const store = new InMemoryRawSnapshotStore();
@@ -184,6 +285,7 @@ describe('in-memory collection adapters', () => {
     expect(replay).toEqual({ created: false, result: first.result });
     expect(await repository.findByOperationKey('operation-1')).toEqual(first.result);
     await expect(repository.loadRunByOperationKey('operation-1')).resolves.toEqual({
+      pause: null,
       operationKey: input.operationKey,
       runId: input.runId,
       sourceId: 'synthetic-data',

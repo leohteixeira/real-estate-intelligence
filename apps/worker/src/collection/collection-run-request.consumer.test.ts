@@ -63,10 +63,11 @@ describe('CollectionRunRequestConsumer', () => {
     const context = fixture();
     await context.consumer.start();
     const deliveryController = new AbortController();
+    const deadlineAt = Date.now() + 1_000;
 
     await context.handler()!(request, {
       signal: deliveryController.signal,
-      deadlineAt: Date.now() + 120_000,
+      deadlineAt,
     });
 
     expect(context.subscriber.subscribe).toHaveBeenCalledWith(
@@ -81,7 +82,11 @@ describe('CollectionRunRequestConsumer', () => {
       expect.any(AbortSignal),
       expect.any(Function),
     );
-    expect(context.service.execute).toHaveBeenCalledWith(request, expect.any(AbortSignal));
+    expect(context.service.execute).toHaveBeenCalledWith(
+      request,
+      expect.any(AbortSignal),
+      deadlineAt,
+    );
     const signal = context.service.execute.mock.calls[0]![1] as AbortSignal;
     deliveryController.abort(new Error('worker stopping'));
     expect(signal.aborted).toBe(true);

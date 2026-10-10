@@ -43,6 +43,9 @@ function fixture(current: SourceRegistration | null) {
       ? source({ ...current, enabled: true, enabledAt: '2026-10-10T12:00:00Z' })
       : null;
   const repository: SourceRegisterRepository = {
+    holdAtomically: vi.fn(),
+    clearHoldAfterReview: vi.fn(),
+    assertCollectible: vi.fn(),
     findById: vi.fn(async () => current),
     enableAtomically: vi.fn(async () => enabled),
     listEnabled: vi.fn(async () => []),

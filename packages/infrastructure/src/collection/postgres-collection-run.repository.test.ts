@@ -40,6 +40,8 @@ const resultRow = {
 };
 
 const runningRow = {
+  pause_reason: null,
+  paused_at: null,
   operation_key: input.operationKey,
   run_id: input.runId,
   source_id: 'synthetic-portal-aurora',
@@ -87,6 +89,85 @@ function connectionDouble(client: DatabaseClient, identity = {}) {
 }
 
 describe('PostgresCollectionRunRepository', () => {
+  const hold = { reason: 'captcha', heldAt: '2026-10-10T12:00:00.000Z' } as const;
+  const pausedRow = {
+    ...runningRow,
+    status: 'paused',
+    pause_reason: 'captcha',
+    paused_at: new Date(hold.heldAt),
+  };
+
+  it.each([pausedRow, completedRow])(
+    'pauses idempotently without changing the prefix or a completed winner',
+    async (fixture) => {
+      const query = vi.fn(async (sql: string) => (sql.startsWith('SELECT') ? [fixture] : []));
+      const database = connectionDouble({ query, release: vi.fn() } as unknown as DatabaseClient);
+      const repository = new PostgresCollectionRunRepository(database);
+      const result = await new PostgresTransactionRunner(database).runInTransaction((transaction) =>
+        repository.pause(transaction, input.runId, hold),
+      );
+      expect(result.status).toBe(fixture.status);
+      expect(result.checkpoint.ordinal).toBe(fixture.checkpoint_ordinal);
+      expect(query.mock.calls[1]?.[0]).toContain("AND status = 'running'");
+    },
+  );
+
+  it.each(['missing', 'running', 'stale', 'success'] as const)(
+    'requires explicit resumable state and guards updates: %s',
+    async (mode) => {
+      const query = vi.fn(async (sql: string) => {
+        if (sql.includes("SET status = 'running'")) return mode === 'stale' ? [] : [runningRow];
+        if (sql.startsWith('SELECT'))
+          return mode === 'missing' ? [] : [mode === 'running' ? runningRow : pausedRow];
+        return [];
+      });
+      const database = connectionDouble({ query, release: vi.fn() } as unknown as DatabaseClient);
+      const repository = new PostgresCollectionRunRepository(database);
+      // This test isolates the run transition; the source-lock contract is independently exercised above.
+      const { PostgresSourceRegisterRepository } =
+        await import('./postgres-source-register.repository.js');
+      const guard = vi
+        .spyOn(PostgresSourceRegisterRepository.prototype, 'assertCollectible')
+        .mockResolvedValue();
+      try {
+        const result = new PostgresTransactionRunner(database).runInTransaction((transaction) =>
+          repository.resume(transaction, input.runId),
+        );
+        if (mode === 'success')
+          await expect(result).resolves.toMatchObject({
+            runId: input.runId,
+            status: 'running',
+            pause: null,
+            checkpoint: { ordinal: 1 },
+          });
+        else if (mode === 'stale')
+          await expect(result).rejects.toThrow(StaleCollectionCheckpointError);
+        else await expect(result).rejects.toThrow('Only a paused run');
+        expect(guard).toHaveBeenCalledTimes(mode === 'success' || mode === 'stale' ? 1 : 0);
+      } finally {
+        guard.mockRestore();
+      }
+    },
+  );
+
+  it('fails a pause for a missing run and rejects incoherent pause metadata', async () => {
+    const query = vi.fn(async () => []);
+    const database = connectionDouble({ query, release: vi.fn() } as unknown as DatabaseClient);
+    await expect(
+      new PostgresTransactionRunner(database).runInTransaction((transaction) =>
+        new PostgresCollectionRunRepository(database).pause(transaction, input.runId, hold),
+      ),
+    ).rejects.toThrow('not found');
+    for (const fixture of [
+      { ...pausedRow, paused_at: null },
+      { ...runningRow, paused_at: new Date() },
+    ]) {
+      const repository = new PostgresCollectionRunRepository({
+        query: vi.fn(async () => [fixture]),
+      } as unknown as DatabaseConnection);
+      await expect(repository.loadRunByOperationKey(input.operationKey)).rejects.toThrow();
+    }
+  });
   it('strictly hydrates a running checkpoint by operation key', async () => {
     const queryAbortable = vi.fn(async () => [runningRow]);
     const signal = new AbortController().signal;
@@ -95,6 +176,7 @@ describe('PostgresCollectionRunRepository', () => {
     } as unknown as DatabaseConnection);
 
     await expect(repository.loadRunByOperationKey(input.operationKey, signal)).resolves.toEqual({
+      pause: null,
       operationKey: input.operationKey,
       runId: input.runId,
       sourceId: 'synthetic-portal-aurora',

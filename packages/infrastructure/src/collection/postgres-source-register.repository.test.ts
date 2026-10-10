@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { DatabaseConnection } from '../shared/persistence/database-connection.js';
+import { PostgresTransactionRunner } from '../shared/persistence/postgres-transaction.js';
 import { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
+    hold_reason: null,
+    held_at: null,
     source_id: 'approved-source',
     source_label: 'Approved source',
     source_category: 'listing',
@@ -29,6 +32,109 @@ function row(overrides: Record<string, unknown> = {}) {
 }
 
 describe('PostgresSourceRegisterRepository', () => {
+  const hold = { reason: 'captcha', heldAt: '2026-10-10T12:00:00.000Z' } as const;
+
+  it.each(['holdAtomically', 'clearHoldAfterReview'] as const)(
+    'persists %s through abortable and ordinary queries, preserving the first hold',
+    async (method) => {
+      const heldRow = row({ hold_reason: 'captcha', held_at: new Date(hold.heldAt) });
+      const query = vi.fn(async () => [method === 'holdAtomically' ? heldRow : row()]);
+      const repository = new PostgresSourceRegisterRepository({
+        query,
+        queryAbortable: query,
+      } as unknown as DatabaseConnection);
+      for (const signal of [undefined, new AbortController().signal]) {
+        const result =
+          method === 'holdAtomically'
+            ? await repository.holdAtomically('approved-source', hold, signal)
+            : await repository.clearHoldAfterReview('approved-source', hold.heldAt, signal);
+        expect(result?.hold).toEqual(method === 'holdAtomically' ? hold : null);
+      }
+      const sql = String(query.mock.calls[0]?.[0]);
+      expect(sql).toContain(
+        method === 'holdAtomically' ? 'COALESCE(hold_reason, $2)' : 'held_at <= $2',
+      );
+      expect(sql).not.toContain('enabled = true');
+    },
+  );
+
+  it.each(['holdAtomically', 'clearHoldAfterReview'] as const)(
+    'handles missing rows, sanitizes failures, and preserves cancellation in %s',
+    async (method) => {
+      const query = vi.fn(async () => [] as unknown[]);
+      const repository = new PostgresSourceRegisterRepository({
+        query,
+        queryAbortable: query,
+      } as unknown as DatabaseConnection);
+      const call = (signal?: AbortSignal) =>
+        method === 'holdAtomically'
+          ? repository.holdAtomically('missing', hold, signal)
+          : repository.clearHoldAfterReview('missing', hold.heldAt, signal);
+      await expect(call()).resolves.toBeNull();
+      await expect(call(new AbortController().signal)).resolves.toBeNull();
+      query.mockRejectedValue(new Error('postgres://secret@private'));
+      await expect(call()).rejects.toThrow('Source register persistence failed.');
+      await expect(call(new AbortController().signal)).rejects.toThrow(
+        'Source register persistence failed.',
+      );
+      const controller = new AbortController();
+      const reason = new Error('cancel');
+      controller.abort(reason);
+      await expect(call(controller.signal)).rejects.toBe(reason);
+    },
+  );
+
+  it.each([
+    { fixture: row({ enabled: true, enabled_at: new Date() }), outcome: 'success' },
+    {
+      fixture: row({ hold_reason: 'captcha', held_at: new Date(hold.heldAt) }),
+      outcome: 'captcha',
+    },
+    { fixture: row(), outcome: 'forbidden' },
+    {
+      fixture: row({ enabled: true, enabled_at: new Date(), collection_allowed: false }),
+      outcome: 'malformed',
+    },
+    { fixture: null, outcome: 'forbidden' },
+    { fixture: row({ held_at: new Date() }), outcome: 'malformed' },
+  ])(
+    'locks the source in the page transaction and fails closed: $outcome',
+    async ({ fixture, outcome }) => {
+      const query = vi.fn(async (sql: string) =>
+        sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK' ? [] : fixture ? [fixture] : [],
+      );
+      const connection = {
+        leaseClient: async () => ({ query, release: vi.fn() }),
+        transactionIdentity: () => connection,
+      } as unknown as DatabaseConnection;
+      const repository = new PostgresSourceRegisterRepository(connection);
+      const result = new PostgresTransactionRunner(connection).runInTransaction((transaction) =>
+        repository.assertCollectible(transaction, 'approved-source'),
+      );
+      if (outcome === 'success') await expect(result).resolves.toBeUndefined();
+      else if (outcome === 'captcha')
+        await expect(result).rejects.toMatchObject({ reason: 'captcha' });
+      else if (outcome === 'malformed')
+        await expect(result).rejects.toThrow('Source register persistence failed.');
+      else await expect(result).rejects.toMatchObject({ kind: 'forbidden' });
+      expect(query.mock.calls[1]?.[0]).toContain('FOR SHARE');
+      expect(query.mock.calls.at(-1)?.[0]).toBe(outcome === 'success' ? 'COMMIT' : 'ROLLBACK');
+    },
+  );
+
+  it.each([
+    { held_at: new Date() },
+    { hold_reason: 'captcha' },
+    { hold_reason: 'vendor-value', held_at: new Date() },
+    { hold_reason: 'captcha', held_at: new Date(), enabled: true, enabled_at: new Date() },
+  ])('rejects malformed hold metadata', async (overrides) => {
+    const repository = new PostgresSourceRegisterRepository({
+      query: vi.fn(async () => [row(overrides)]),
+    } as unknown as DatabaseConnection);
+    await expect(repository.findById('approved-source')).rejects.toThrow(
+      'Source register persistence failed.',
+    );
+  });
   it('hydrates a complete source registration strictly', async () => {
     const query = vi.fn(async () => [row()]);
     const repository = new PostgresSourceRegisterRepository({

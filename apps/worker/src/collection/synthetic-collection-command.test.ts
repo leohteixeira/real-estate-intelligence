@@ -68,6 +68,7 @@ describe('runSyntheticCollectionCommand', () => {
       'operation-1',
       expect.objectContaining({ traceparent: expect.any(String) }),
       expect.any(AbortSignal),
+      expect.any(Number),
     );
     expect(runCollectionOperationSpan).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();

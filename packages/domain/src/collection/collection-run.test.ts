@@ -7,6 +7,8 @@ import {
   createRunningCollectionRun,
   hydrateCollectionRun,
   parseCollectionCheckpointCursor,
+  pauseCollectionRun,
+  resumeCollectionRun,
 } from './collection-run.js';
 
 const RUN_ID = '0199c8f2-2394-7ba0-8f9e-286378779210' as const;
@@ -23,6 +25,34 @@ function running() {
 }
 
 describe('collection run', () => {
+  it('pauses at the committed prefix and resumes explicitly without terminal fields', () => {
+    const prefix = advanceCollectionRun(running(), {
+      expectedOrdinal: 0,
+      expectedCursor: null,
+      nextCursor: 'page:1',
+      checkpointedAt: '2026-10-10T00:00:01.000Z',
+      observedDelta: 1,
+      exhausted: false,
+    });
+    const paused = pauseCollectionRun(prefix, {
+      reason: 'captcha',
+      heldAt: '2026-10-10T00:00:02.000Z',
+    });
+    expect(paused).toMatchObject({
+      status: 'paused',
+      checkpoint: prefix.checkpoint,
+      counts: prefix.counts,
+      completedAt: null,
+      completedEventId: null,
+      manifestHash: null,
+    });
+    expect(resumeCollectionRun(paused)).toEqual(prefix);
+    expect(() =>
+      hydrateCollectionRun({ ...paused, completedAt: '2026-10-10T00:00:03.000Z' }),
+    ).toThrow('terminal');
+    expect(() => hydrateCollectionRun({ ...paused, pause: null })).toThrow('pause reason');
+    expect(() => resumeCollectionRun(prefix)).toThrow('explicitly');
+  });
   it('creates an immutable zero checkpoint running state', () => {
     const run = running();
     expect(run).toMatchObject({

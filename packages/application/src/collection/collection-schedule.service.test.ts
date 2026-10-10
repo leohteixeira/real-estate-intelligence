@@ -49,6 +49,37 @@ function requestEvent(): unknown {
 }
 
 describe('scheduled collection orchestration', () => {
+  it('records a durable paused disposition and releases its matching slot only once on redelivery', async () => {
+    const result = {
+      status: 'paused',
+      operationKey: OPERATION_KEY,
+      sourceId: SOURCE_ID,
+      runId: RUN_ID,
+      observedCount: 1,
+      parsedCount: 1,
+      changedCount: 0,
+      failedCount: 0,
+      manifestHash: null,
+      completedEventId: null,
+      completedAt: null,
+      replayed: true,
+    };
+    const collector = { execute: vi.fn(async () => result) } as unknown as CollectSourceRun;
+    const schedules: CollectionScheduleRepository = {
+      claimDue: vi.fn(),
+      completeMatching: vi.fn(async () => true),
+    };
+    const inbox: Inbox = { record: vi.fn().mockResolvedValueOnce(true).mockResolvedValue(false) };
+    const service = new ConsumeCollectionRunRequest(collector, schedules, transactions(), inbox);
+    await expect(service.execute(requestEvent(), new AbortController().signal)).resolves.toBe(
+      result,
+    );
+    await expect(service.execute(requestEvent(), new AbortController().signal)).resolves.toBe(
+      result,
+    );
+    expect(schedules.completeMatching).toHaveBeenCalledOnce();
+    expect(inbox.record).toHaveBeenCalledTimes(2);
+  });
   it('derives a stable operation key and appends claimed requests in the claim transaction', async () => {
     const claimed = {
       scheduleId: '0199c8f2-2394-7ba0-8f9e-286378779299',

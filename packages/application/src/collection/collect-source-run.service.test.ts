@@ -3,6 +3,9 @@ import {
   advanceCollectionRun,
   createRunningCollectionRun,
   createSourceRegistration,
+  pauseCollectionRun,
+  resumeCollectionRun,
+  type SourceHold,
   type CollectedListing,
   type CollectionRunState,
   type Sha256Hash,
@@ -27,6 +30,7 @@ import type {
   PersistedCollectionObservation,
 } from './collection-run.repository.js';
 import type { ListingSource, RawListingDocument } from './listing-source.port.js';
+import { ListingSourceAccessRefusal } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
 
@@ -87,6 +91,15 @@ function enabledSource() {
 class RunRepositoryDouble implements CollectionRunRepository {
   public run: CollectionRunState | null = null;
   public observations: PersistedCollectionObservation[] = [];
+
+  public async pause(_transaction: Transaction, _runId: UuidV7, hold: SourceHold) {
+    this.run = pauseCollectionRun(this.run!, hold);
+    return this.run;
+  }
+  public async resume() {
+    this.run = resumeCollectionRun(this.run!);
+    return this.run;
+  }
 
   public async findByOperationKey() {
     return null;
@@ -201,6 +214,11 @@ function fixture(
     }),
   };
   const sources: SourceRegisterRepository = {
+    holdAtomically: vi.fn(async (_sourceId, hold) =>
+      createSourceRegistration({ ...enabledSource(), enabled: false, enabledAt: null, hold }),
+    ),
+    clearHoldAfterReview: vi.fn(),
+    assertCollectible: vi.fn(async () => undefined),
     findById: vi.fn(async () => enabledSource()),
     enableAtomically: vi.fn(),
     listEnabled: vi.fn(async () => []),
@@ -250,6 +268,174 @@ function fixture(
 }
 
 describe('CollectSourceRun', () => {
+  it('does not fetch when a paused contender wins start-or-load even after the register is cleared', async () => {
+    const context = fixture();
+    const start = context.runs.startOrLoad.bind(context.runs);
+    vi.spyOn(context.runs, 'startOrLoad').mockImplementationOnce(async (...args) => {
+      const run = await start(...args);
+      context.runs.run = pauseCollectionRun(run, {
+        reason: 'block',
+        heldAt: '2026-10-10T00:00:01Z',
+      });
+      return context.runs.run;
+    });
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'paused-winner',
+        null,
+        new AbortController().signal,
+      ),
+    ).resolves.toMatchObject({ status: 'paused', replayed: true, observedCount: 0 });
+    expect(context.source.fetchPage).not.toHaveBeenCalled();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+  });
+  it('keeps the same absolute operation deadline across all pages and snapshot dependencies', async () => {
+    const context = fixture();
+    const signal = new AbortController().signal;
+    const deadlineAt = Date.now() + 5_000;
+    await context.service.execute(
+      'synthetic-portal-aurora',
+      'deadline-proof',
+      null,
+      signal,
+      deadlineAt,
+    );
+    expect(
+      vi.mocked(context.source.fetchPage).mock.calls.every((call) => call[3] === deadlineAt),
+    ).toBe(true);
+    expect(
+      vi.mocked(context.snapshots.store).mock.calls.every((call) => call[2] === deadlineAt),
+    ).toBe(true);
+  });
+  it('commits the source hold before pausing at page one without completion or further I/O', async () => {
+    const context = fixture();
+    const fetchFirst = vi.mocked(context.source.fetchPage).getMockImplementation()!;
+    vi.mocked(context.source.fetchPage)
+      .mockImplementationOnce(fetchFirst)
+      .mockRejectedValueOnce(new ListingSourceAccessRefusal('captcha'));
+    const ordering: string[] = [];
+    const originalHold = context.sources.holdAtomically;
+    context.sources.holdAtomically = vi.fn(async (...args) => {
+      ordering.push('hold');
+      return originalHold(...args);
+    });
+    const originalPause = context.runs.pause.bind(context.runs);
+    context.runs.pause = async (...args) => {
+      ordering.push('pause');
+      return originalPause(...args);
+    };
+    const result = await context.service.execute(
+      'synthetic-portal-aurora',
+      'blocked',
+      null,
+      new AbortController().signal,
+    );
+    expect(result).toMatchObject({
+      status: 'paused',
+      observedCount: 1,
+      completedAt: null,
+      manifestHash: null,
+    });
+    expect(ordering).toEqual(['hold', 'pause']);
+    expect(context.source.fetchPage).toHaveBeenCalledTimes(2);
+    expect(context.snapshots.store).toHaveBeenCalledOnce();
+    expect(context.runs.run?.checkpoint.ordinal).toBe(1);
+    expect(context.batches.flat().map((event) => event.type)).toEqual([
+      'collection.snapshot.parsed',
+    ]);
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'blocked',
+        null,
+        new AbortController().signal,
+      ),
+    ).resolves.toMatchObject({ status: 'paused', replayed: true });
+    expect(context.source.fetchPage).toHaveBeenCalledTimes(2);
+  });
+
+  it('discards a prepared page when the transaction guard observes a committed hold', async () => {
+    const context = fixture();
+    vi.mocked(context.sources.assertCollectible).mockRejectedValueOnce(
+      new ListingSourceAccessRefusal('block'),
+    );
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'raced',
+        null,
+        new AbortController().signal,
+      ),
+    ).resolves.toMatchObject({ status: 'paused', observedCount: 0 });
+    expect(context.runs.observations).toEqual([]);
+    expect(context.runs.run?.checkpoint.ordinal).toBe(0);
+    expect(context.batches).toEqual([]);
+  });
+
+  it('repairs a hold-first interruption on redelivery without another source request', async () => {
+    const context = fixture();
+    const fetchFirst = vi.mocked(context.source.fetchPage).getMockImplementation()!;
+    vi.mocked(context.source.fetchPage)
+      .mockImplementationOnce(fetchFirst)
+      .mockRejectedValueOnce(new ListingSourceAccessRefusal('block'));
+    const persistHold = context.sources.holdAtomically;
+    context.sources.holdAtomically = async (...args) => {
+      const held = await persistHold(...args);
+      vi.mocked(context.sources.findById).mockResolvedValue(held);
+      return held;
+    };
+    const pause = vi
+      .spyOn(context.runs, 'pause')
+      .mockRejectedValueOnce(new Error('Pause transaction interrupted.'));
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'repair-pause',
+        null,
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('interrupted');
+    expect(context.runs.run).toMatchObject({
+      status: 'running',
+      checkpoint: { ordinal: 1 },
+      completedAt: null,
+    });
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'repair-pause',
+        null,
+        new AbortController().signal,
+      ),
+    ).resolves.toMatchObject({ status: 'paused', observedCount: 1, completedEventId: null });
+    expect(pause).toHaveBeenCalledTimes(2);
+    expect(context.source.fetchPage).toHaveBeenCalledTimes(2);
+    expect(context.snapshots.store).toHaveBeenCalledOnce();
+    expect(context.batches.flat().some((event) => event.type === 'collection.run.completed')).toBe(
+      false,
+    );
+  });
+
+  it('cannot claim durable pause when the source hold did not commit', async () => {
+    const context = fixture();
+    vi.mocked(context.source.fetchPage).mockRejectedValueOnce(
+      new ListingSourceAccessRefusal('captcha'),
+    );
+    vi.mocked(context.sources.holdAtomically).mockResolvedValueOnce(null);
+    const pause = vi.spyOn(context.runs, 'pause');
+    await expect(
+      context.service.execute(
+        'synthetic-portal-aurora',
+        'failed-hold',
+        null,
+        new AbortController().signal,
+      ),
+    ).rejects.toThrow('hold could not be persisted');
+    expect(pause).not.toHaveBeenCalled();
+    expect(context.runs.run?.status).toBe('running');
+    expect(context.batches).toEqual([]);
+  });
   it('starts before fetch, stores before parse, commits each page, and completes canonically', async () => {
     const context = fixture();
     const signal = new AbortController().signal;

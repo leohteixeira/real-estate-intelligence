@@ -37,6 +37,16 @@ function remote(overrides: Partial<SourceRegistrationInput> = {}) {
 }
 
 describe('source registration', () => {
+  it('refuses held enablement before any synthetic or legal shortcut', () => {
+    const held = remote({ hold: { reason: 'login-wall', heldAt: '2026-10-10T00:00:00Z' } });
+    expect(decideSourceEnablement(held)).toEqual({ eligible: false, code: 'source-held' });
+    expect(() =>
+      createSourceRegistration({ ...held, enabled: true, enabledAt: '2026-10-10T00:00:00Z' }),
+    ).toThrow('held');
+    expect(() =>
+      remote({ hold: { reason: 'other' as 'block', heldAt: '2026-10-10T00:00:00Z' } }),
+    ).toThrow('hold');
+  });
   it('allows only the exact four repository-owned fixtures to use the synthetic exception', () => {
     expect(OWNED_SYNTHETIC_SOURCE_IDS).toEqual([
       'synthetic-data',

@@ -7,6 +7,22 @@ import { ResilienceTelemetry, safePolicyAttributes } from './resilience-telemetr
 describe('safePolicyAttributes', () => {
   afterEach(() => vi.restoreAllMocks());
 
+  it.each(['listing-source', 'raw-snapshot-store'])(
+    'maps bounded %s policies without source IDs or raw errors',
+    (dependency) => {
+      const attributes = safePolicyAttributes({
+        type: 'fallback',
+        policy: `${dependency}.${dependency === 'listing-source' ? 'pause-at-checkpoint' : 'redeliver-without-parsing'}`,
+        source: 'source-id cursor URL object key',
+        error: new Error('secret payload'),
+      });
+      expect(attributes?.['dependency.name']).toBe(dependency);
+      expect(JSON.stringify(attributes)).not.toMatch(
+        /cursor|URL|object key|source-id|secret|payload/,
+      );
+    },
+  );
+
   it('keeps only named low-cardinality retry fields', () => {
     const event: ResilienceEvent = {
       type: 'retry',

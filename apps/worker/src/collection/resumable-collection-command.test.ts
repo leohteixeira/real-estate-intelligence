@@ -24,6 +24,7 @@ vi.mock('@rei/infrastructure', async (importOriginal) => {
 });
 
 const RESULT = {
+  status: 'completed',
   operationKey: 'operation-1',
   runId: '0199c8f2-2394-7ba0-8f9e-286378779210',
   sourceId: 'synthetic-portal-aurora',
@@ -74,12 +75,14 @@ describe('runResumableCollectionCommand', () => {
       'operation-1',
       expect.objectContaining({ traceparent: expect.any(String) }),
       expect.any(AbortSignal),
+      expect.any(Number),
     );
     expect(runCollectionOperationSpan).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
     expect(shutdownTelemetry).toHaveBeenCalledOnce();
     const output = String(log.mock.calls[0]?.[0]);
     expect(JSON.parse(output)).toEqual({
+      status: 'completed',
       operationKey: RESULT.operationKey,
       sourceId: RESULT.sourceId,
       runId: RESULT.runId,
@@ -90,6 +93,29 @@ describe('runResumableCollectionCommand', () => {
     });
     expect(output).not.toContain(RESULT.completedEventId);
     expect(output).not.toContain(RESULT.completedAt);
+  });
+
+  it('reports a durable paused disposition without a success manifest or private dependency data', async () => {
+    const paused = {
+      ...RESULT,
+      status: 'paused',
+      manifestHash: null,
+      completedEventId: null,
+      completedAt: null,
+    } as CollectSourceRunResult;
+    const { close } = setup(vi.fn(async () => paused));
+    const log = vi.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    await runResumableCollectionCommand(
+      ['node', 'command', 'synthetic-portal-aurora', 'operation-1'],
+      {},
+    );
+    expect(JSON.parse(String(log.mock.calls[0]?.[0]))).toMatchObject({
+      status: 'paused',
+      manifestHash: null,
+      runId: RESULT.runId,
+    });
+    expect(close).toHaveBeenCalledOnce();
+    expect(String(log.mock.calls[0]?.[0])).not.toMatch(/cursor|url|objectKey|captcha|credentials/i);
   });
 
   it.each([
