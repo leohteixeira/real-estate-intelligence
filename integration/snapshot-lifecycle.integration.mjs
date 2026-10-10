@@ -137,7 +137,7 @@ try {
   const migrations = (await readdir(migrationDirectory))
     .filter((name) => name.endsWith('.sql'))
     .sort();
-  for (const migration of migrations.filter((name) => !name.startsWith('4006_'))) {
+  for (const migration of migrations.filter((name) => !/^400[67]_/.test(name))) {
     await connection.query(await readFile(new URL(migration, migrationDirectory), 'utf8'));
   }
 
@@ -176,6 +176,9 @@ try {
       new URL('4006_collection_add_snapshot_lifecycle.sql', migrationDirectory),
       'utf8',
     ),
+  );
+  await connection.query(
+    await readFile(new URL('4007_collection_add_snapshot_reparse.sql', migrationDirectory), 'utf8'),
   );
   const upgraded = await new PostgresCollectionRunRepository(connection).findByOperationKey(
     'legacy-snapshot',

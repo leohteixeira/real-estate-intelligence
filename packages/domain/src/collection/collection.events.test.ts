@@ -9,6 +9,8 @@ import {
   CollectionListingSuppressed,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  CollectionSnapshotCorrected,
+  parseCollectionSnapshotCorrected,
   parseCollectionEvent,
   parseCollectionListingSuppressed,
   parseCollectionRunCompleted,
@@ -85,6 +87,127 @@ function mutableParsedWire(): MutableWireRecord {
 }
 
 describe('collection event contracts', () => {
+  it('dispatches strict v2 corrections while retaining v1 rejection of empty fingerprints', () => {
+    const original = new CollectionSnapshotParsed(parsedInput());
+    const input = {
+      ...parsedInput(),
+      eventId: '0199c8f2-2394-7ba0-8f9e-286378779213',
+      payload: {
+        ...original.payload,
+        listing: { ...original.payload.listing, imageFingerprints: [] },
+        correction: {
+          kind: 'parser-correction' as const,
+          operationKey: 'reparse-1',
+          parserRevision: 'parser-v2',
+          originalParsedEventId: original.eventId,
+          order: 1,
+        },
+      },
+    };
+    const correction = new CollectionSnapshotCorrected(input);
+    expect(parseCollectionEvent(wire(correction))).toEqual(correction);
+    expect(parseCollectionSnapshotCorrected(wire(correction))).toEqual(correction);
+    expect(correction.payload.run).toEqual(original.payload.run);
+    expect(correction.payload.snapshot).toEqual(original.payload.snapshot);
+    expect(correction.payload.source).toEqual(original.payload.source);
+    expect(Object.isFrozen(correction.payload.correction)).toBe(true);
+    expect(
+      () =>
+        new CollectionSnapshotParsed({
+          ...parsedInput(),
+          payload: {
+            ...original.payload,
+            listing: { ...original.payload.listing, imageFingerprints: [] },
+          },
+        }),
+    ).toThrow(DomainValidationError);
+  });
+  it.each([
+    [
+      'marker',
+      (value: MutableWireRecord) => {
+        nested(value, 'payload', 'correction').kind = 'observation';
+      },
+    ],
+    [
+      'order',
+      (value: MutableWireRecord) => {
+        nested(value, 'payload', 'correction').order = 0;
+      },
+    ],
+    [
+      'revision',
+      (value: MutableWireRecord) => {
+        nested(value, 'payload', 'correction').parserRevision = 'unsafe revision';
+      },
+    ],
+    [
+      'operation',
+      (value: MutableWireRecord) => {
+        nested(value, 'payload', 'correction').operationKey = '';
+      },
+    ],
+    [
+      'original',
+      (value: MutableWireRecord) => {
+        nested(value, 'payload', 'correction').originalParsedEventId = value.eventId;
+      },
+    ],
+    [
+      'canonical-original-identity',
+      (value: MutableWireRecord) => {
+        value.eventId = String(
+          nested(value, 'payload', 'correction').originalParsedEventId,
+        ).toUpperCase();
+      },
+    ],
+    [
+      'aggregate',
+      (value: MutableWireRecord) => {
+        value.aggregateId = RUN_ID;
+      },
+    ],
+    [
+      'extra',
+      (value: MutableWireRecord) => {
+        nested(value, 'payload', 'correction').contact = 'private';
+      },
+    ],
+    [
+      'version',
+      (value: MutableWireRecord) => {
+        value.version = 3;
+      },
+    ],
+    [
+      'unrelated-v2',
+      (value: MutableWireRecord) => {
+        value.type = COLLECTION_RUN_COMPLETED_TYPE;
+      },
+    ],
+  ])('rejects malformed v2 %s', (_label, mutate) => {
+    const input = parsedInput();
+    const value = mutableRecord(
+      wire(
+        new CollectionSnapshotCorrected({
+          ...input,
+          eventId: '0199c8f2-2394-7ba0-8f9e-286378779213',
+          payload: {
+            ...input.payload,
+            correction: {
+              kind: 'parser-correction',
+              operationKey: 'reparse-1',
+              parserRevision: 'parser-v2',
+              originalParsedEventId: '0199c8f2-2394-7ba0-8f9e-286378779212' as UuidV7,
+              order: 1,
+            },
+          },
+        }),
+      ),
+    );
+    mutate(value);
+    expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
+  });
   it('constructs immutable, correlated version-1 events', () => {
     const parsed = new CollectionSnapshotParsed(parsedInput());
     const completed = new CollectionRunCompleted({

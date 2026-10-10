@@ -329,6 +329,7 @@ describe('CollectSourceRun', () => {
     expect(context.source.parse).toHaveBeenCalledWith(safe, expect.any(AbortSignal));
     expect(sanitizeParsed).toHaveBeenCalledWith(LISTING);
     expect(context.runs.observations[0]?.sourceUrl).toBe(safe.sourceUrl);
+    expect(context.runs.observations[0]?.imageFingerprints).toEqual(projected.imageFingerprints);
     expect(context.batches[0]?.[0]?.payload).toMatchObject({ listing: projected });
   });
   it('does not fetch when a paused contender wins start-or-load even after the register is cleared', async () => {

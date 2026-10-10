@@ -17,6 +17,7 @@
     "test:integration": "node integration/audit-tracer.integration.mjs",
     "test:integration:collection": "node integration/synthetic-collection.integration.mjs",
     "test:integration:snapshot-lifecycle": "node integration/snapshot-lifecycle.integration.mjs",
+    "test:integration:snapshot-reparse": "node integration/snapshot-reparse.integration.mjs",
     "test:integration:resumable-collection": "node integration/resumable-collection.integration.mjs",
     "test:integration:scheduled-collection": "node integration/scheduled-collection.integration.mjs",
     "test:integration:collection-resilience": "node integration/collection-resilience.integration.mjs",

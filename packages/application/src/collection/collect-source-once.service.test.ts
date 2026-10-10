@@ -338,6 +338,7 @@ describe('CollectSourceOnce', () => {
       expect(context.source.parse).toHaveBeenCalledWith(safe, expect.any(AbortSignal));
       expect(sanitizeParsed).toHaveBeenCalledWith(LISTING);
       expect(context.persistedInput()?.sourceUrl).toBe(safe.sourceUrl);
+      expect(context.persistedInput()?.imageFingerprints).toEqual(projected.imageFingerprints);
       expect(context.events[0]?.[0]?.payload).toMatchObject({ listing: projected });
     },
   );
