@@ -67,6 +67,15 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 
 ## Notes
 
+- Decision: D-013 requires per-source Retry-After admission across logical calls, remaining
+  delay on canonical failure, a deadline covering initial registry/pending-hold waits, and
+  lifecycle-managed telemetry in both operator roots without duplicate worker subscribers
+  (agent, on the owner's behalf, 2026-10-10).
+- Decision: a source access refusal creates a durable disabled hold, then pauses its run in a
+  separate aggregate transaction; redelivery repairs an interrupted pause before acknowledgement.
+  Ordinary enablement cannot clear a hold, and scheduling checks source eligibility. D-012 records
+  the calibrated local resilience defaults and ADR precedence over skill examples
+  (agent, on the owner's behalf, 2026-10-10).
 - Decision: before authentication, operator actions are commands run by the owner on the server,
   with no HTTP endpoint (owner, 2026-10-10).
 - Decision: the synthetic São Paulo dataset belongs to this epic: labelled matches, one property
