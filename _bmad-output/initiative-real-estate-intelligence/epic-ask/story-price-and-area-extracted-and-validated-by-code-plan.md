@@ -297,6 +297,31 @@ confidence gate, explanation, full checkpoints/quotas or UI as part of this stor
     associated with supported context units; ambiguity refusals and bedroom/year/street
     preservation pass in Domain, with PT/EN real strict-422/no-effect regressions.
 
+### 2026-10-11 — Follow-up review pass
+
+- verdicts: 5 findings — high 4, medium 1, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Explicit square miles and milhas quadradas still became m² — Main
+    independently reproduced both examples through Domain, Market and Ask; each called the
+    repository with area 68. Added the demonstrated spellings to the bounded unit refusal guard
+    and Domain/real public strict-422, unchanged-count regressions.
+  - `[high]` `[patch]` Explicit pesos and Swiss francs still defaulted to BRL — Main reproduced
+    all three PT/EN examples through canonical validation and one repository call each. Added
+    bounded foreign-name association without treating ordinary Swiss/peso prose as currency;
+    Domain and real no-effect refusal regressions cover the reported inputs.
+  - `[high]` `[patch]` Unsupported billion/bilhões scales silently admitted ten BRL — Main
+    independently reproduced both examples as 1,000 minor units through Ask persistence.
+    The bounded scale check now refuses those whole stated values as invalid_price; supported
+    thousand/million/k forms remain unchanged, with Domain and real no-effect regressions.
+  - `[high]` `[patch]` Competing values joined by vs selected the first price/area — Main
+    reproduced both examples as accepted canonical values with repository calls. Extended the
+    existing bounded coordination set; Domain and real public ambiguity regressions cover
+    both roles, while the accepted-context table preserves unrelated bedroom numbers.
+  - `[medium]` `[patch]` Portuguese há incorrectly triggered the hectare guard — Main reproduced
+    the exact valid question as unsupported_area_unit through Market and Ask, with no repository
+    call. Associated ambiguous ha with an area measurement; actual ha/hectares remain refused.
+    Domain and actual public 202-to-completed evidence cover the reported bedroom context.
+
 ## Independent Verification and Matrix Audit
 
 - Main read the complete staged 3,515-line baseline diff, including every new file, at
@@ -481,7 +506,7 @@ calls no model and opens no UI, VPS, provider or real-source surface.
 - `packages/domain/src/market/index.ts`
   — Export the pure extraction capability.
 - `packages/domain/src/market/price-input-extraction.test.ts`
-  — Cover 96 PT/EN accepted and adversarial extraction cases.
+  — Cover 111 PT/EN accepted and adversarial extraction cases.
 - `packages/domain/src/market/price-input-extraction.ts`
   — Parse bounded PT/EN whole tokens with exact money and finite refusals.
 - `packages/infrastructure/src/ask/ask-run.pg-repository.test.ts`
@@ -503,33 +528,52 @@ calls no model and opens no UI, VPS, provider or real-source surface.
 
 ### Review and follow-up
 
-The pinned Quick lens reported three verified high findings, all routed to minimal patches:
+The first pinned Quick lens reported three verified high findings, all routed to minimal patches:
 unsupported explicit units, foreign currency references separated by words, and competing
 coordinated values. Patched counts: high 3, medium 0, low 0. Nothing was deferred or rejected.
 The same implementation agent added 12 genuine failing refusal regressions, five accepted-context
 regressions and corresponding real public no-effect regressions, then fixed the bounded guards.
 Main read the complete repaired 3,619-line snapshot and independently repeated every gate.
+Those first-pass results are historical; the latest verification below follows the second repairs.
 
-Follow-up review is recommended: true. Specific unverified risk: novel associations around
-unsupported units, foreign currency references and coordinated candidates could still admit an
-incorrect canonical financial input despite these new passing regressions. A fresh context-free
-Quick review must assess that risk before the outer orchestrator marks the story done.
+A fresh context-free follow-up Quick lens reported five additional findings. Main independently
+reproduced all ten reported examples through Domain, canonical Market validation and Ask admission.
+Verdicts: high 4, medium 1; patched counts: high 4, medium 1, low 0. Nothing was deferred or rejected.
+The same implementation agent added 11 refusal and four acceptance cases; genuine RED was
+10 failed/101 passed in `/tmp/rei-ask-text-implementation/review-two-domain-red.log`, then GREEN
+111 passed in `review-two-domain-green.log`. Its edited real integration file passed two tests,
+exit 0, 174.76 seconds in `review-two-text-integration.log`, including strict no-effect refusals,
+actual acceptance/completion of the Portuguese bedroom context and unchanged terminal/upgrade proof.
+Main read every incremental source/test change and rewrote the full baseline snapshot at
+`/tmp/rei-ask-text-main-52hIQ4/story-full-followup-patched.diff` (3,863 lines before final notes).
+The immutable intent block is byte-identical to the previously committed plan.
+
+Follow-up review remains recommended: true. This follow-up pass patched four high entries.
+Specific unverified risk: combinations of multiword foreign-currency modifiers and scale/unit
+associations outside the demonstrated regression forms could still admit an unscaled numeric
+prefix, while the newly contextual ha guard could misassociate nearby unrelated numbers.
+A fresh context-free Quick pass must trace those pre-persistence boundaries before the outer
+orchestrator marks the story done; passing this finite table does not establish exhaustive refusal.
 
 ### Final verification
 
 All evidence is under `/tmp/rei-ask-text-main-52hIQ4/`, with final-source logs prefixed
-`post-review-`. Focused Domain/Application/Contracts: 96/30/47 tests, exit 0. Root lint,
-typecheck, unit and build: exit 0; unit total 1,728 across all eight workspaces. Root coverage:
+`followup-review-`. Focused Domain/Application/Contracts: 111/30/47 tests, exit 0. Root lint,
+typecheck, unit and build: exit 0; unit total 1,743 across all eight workspaces. Root coverage:
 exit 0 with unchanged 80 statements/lines/functions and 75 branches floors in every workspace.
 Final percentages (statements/branches/functions/lines): web 100/100/100/100; Contracts
-94.79/94.64/98.01/96.94; Domain 95.07/90.91/100/95.73; AI 97.30/88.46/92.06/98.37;
+94.79/94.64/98.01/96.94; Domain 95.09/90.83/100/95.75; AI 97.30/88.46/92.06/98.37;
 Application 91.95/86.54/98.58/93.65; Infrastructure 85.07/80.11/89.59/87.02; API
 93.31/86.12/97.91/94.65; worker 94.42/84.77/91.52/95.66.
 
-Final focused real-service campaign: four files/seven tests, exit 0, 206.90 seconds. Final full
-`pnpm run test:integration`: 26 files/46 tests, exit 0, 972.84 seconds, starting 12:40:11 UTC.
-Campaigns ran serially without skips. Exact-owned Prettier, seven owned Markdown files and both
-working/index whitespace checks pass. Root Markdown remains exit 1 with exactly 1,377 pre-existing
+Final focused real-service campaign: four files/seven tests, exit 0, 210.01 seconds. Final full
+`pnpm run test:integration`: 26 files/46 tests, exit 0, 969.92 seconds.
+Campaigns ran serially without skips. Prettier checks all 45 supported-format baseline paths;
+its first invocation including SQL exited 2 because no SQL parser is configured, not because
+of a formatting defect. Migration 6002 retains passing migration-convention, whitespace and
+real populated-upgrade checks. Supported-path Prettier, all seven owned Markdown files and
+working/index whitespace pass, exit 0. Logs are `followup-review-prettier-supported.log` and
+`followup-review-markdown-owned.log`. Root Markdown remains exit 1 with exactly 1,377 pre-existing
 errors, all in ignored generated `_bmad/render/` snapshots, zero outside them; no suppression,
 coverage reduction or hook bypass. Expected negative-path API errors and snapshot-retention
 warnings do not replace the passing Vitest assertions and final command exit.
@@ -542,4 +586,5 @@ No product-source changes followed this final-source verification. Production/VP
 stories remain blocked for the owner; this build does not authorize or claim their completion.
 Final container/volume inventories contain no owned fixture resources, including Ryuk;
 unrelated portfolio resources were preserved. Exact cleanup evidence is in the
-`post-review-final-container-inventory.log` and `post-review-final-volume-inventory.log` files.
+`followup-review-final-container-inventory.log` and
+`followup-review-final-volume-inventory.log` files.
