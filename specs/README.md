@@ -33,6 +33,9 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0014         | Zero Data Retention for every external model route that receives user text             |
 | 0015         | Collected-data allowlist, permissions, snapshots, photographs and suppression          |
 | 0016         | TypeScript 6 toolchain and retained frontend choices (supersedes 0006)                 |
+| 0017 to 0020 | Delivery retention, snapshot retention/reconciliation, and typed Vitest integration    |
+| 0021         | Event-fed Market median and explicit staged read provenance                            |
+| 0022         | Causal property membership and complete Market price facts                             |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.

@@ -96,3 +96,10 @@ of CAP-22, not recorded sale figures (CAP-33).
   contracts, neighbours and series retain their strict guarantees. Full property reassignment,
   other metrics, real counts/neighbours, series, completion tracking and suppression remain
   their respective stories (agent, on the owner's behalf, 2026-10-11).
+- Decision: D-042 and ADR 0022 add causal Properties v2 contracts with independent listing-state
+  and assignment revisions, full removed-member routing and validated snapshot minima. Market
+  preserves v1 listing compatibility and permanent evidence, rejects causally ambiguous v1
+  property events through dead letters, and atomically maintains one minimum/tombstone fact per
+  property without reading Properties SQL. Out-of-order merge/split, replay and removed-member
+  reappearance must converge through real-service HTTP journeys; the entity-resolution producer
+  remains its own story (agent, on the owner's behalf, 2026-10-11).

@@ -10,7 +10,7 @@ pnpm run test:integration:list
 pnpm run test:integration
 ```
 
-The full command builds compiled applications once, then discovers all seventeen campaigns plus
+The full command builds compiled applications once, then discovers all eighteen campaigns plus
 cleanup/support tests. Files run serially; a campaign can deliberately exercise simultaneous
 writers or four parallel brokers. Test and hook deadlines are bounded, and empty discovery fails.
 Fixture probes in `integration/fixtures/` and compiled tests under `dist/` are not discovered.
@@ -21,6 +21,7 @@ For an individual campaign, build first, then select its existing focused alias:
 pnpm run build
 pnpm run test:integration:market
 pnpm run test:integration:market-median
+pnpm run test:integration:market-price-facts
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
 pnpm run test:integration:audit
@@ -35,6 +36,14 @@ resumable-collection, scheduled-collection and collection-resilience. To target 
 ```bash
 pnpm exec vitest run --config vitest.integration.config.ts integration/support
 ```
+
+The price-facts campaign upgrades populated Market v1 history without rewriting evidence, then
+uses the actual outbox, RabbitMQ subscriber, PostgreSQL projection and place overview HTTP to
+exercise all eight causal event families. It checks merge/split destinations for removed members,
+independent revision frontiers, reverse-first delivery, inbox-expiry/restart replay, bounded dead
+letters, an injected SQL minimum failure, concurrent reads and sanitized invalid-data errors.
+Its reverse-first phase truncates only its owned fixture's Market projection after preserving
+the expected durable snapshot; foreign projects and volumes remain outside its lifecycle.
 
 ## Strict TypeScript checking
 

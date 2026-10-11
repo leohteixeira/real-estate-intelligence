@@ -105,14 +105,36 @@ For property A with listings `10000 / 10` and `15000 / 10` centavos/m², and pro
 Known places without eligible facts return `state: 'insufficient-data'`, null value and zero
 records, with no prepared median fallback. Asking prices are never recorded sale prices.
 
-The worker subscribes to all five public `properties.listing.*` lifecycle events: created,
-price-changed, description-changed, removed and reappeared. Each delivery validates the strict
-public event, then records normalized evidence and conditionally advances Market's revision
-frontier in the same transaction as its inbox marker. Permanent event identity and listing/revision
-fences survive inbox expiry and worker restarts. Exact business replays are harmless; changed
-identity, changed revision content or immutable listing identity conflicts reject and roll back.
-Correlation context is excluded from business identity. Lower revisions remain evidence without
-regressing current facts. Property merge/split assignment belongs to the later story.
+The worker subscribes to all eight public Properties event families: listing created, price-changed,
+description-changed, removed and reappeared, plus property asking-price-changed, merged and split.
+[ADR 0022](../../specs/adrs/0022-causal-property-price-facts.md) defines their causal v2 contract.
+Listing v1 producers remain supported with assignment revision zero. Property v1 events retain
+strict public parsing but are rejected into the bounded dead-letter route because they lack causal
+metadata. No production merge/split emitter or live entity resolution is introduced here.
+
+Every v2 listing carries positive safe-integer `revision` and nonnegative safe-integer
+`assignmentRevision`. A v2 property payload carries complete `listingStates`, including removed
+members, each containing `{ listing, revision, assignmentRevision }`. Asking-price snapshots derive
+`current` from those declared states; `previous` is historical evidence. Merge/split states describe
+before-membership, and every member has an assignment containing `listingId`, `fromPropertyId`,
+`toPropertyId`, `fromAssignmentRevision` and consecutive `assignmentRevision`. Snapshots validate
+minimum price, selected listing, place, area, provenance, ties, cardinality and member conservation.
+Result identifiers may retain a predecessor identity. Removed members retain their declared
+destination and contribute there when they reappear.
+
+Market stores normalized event envelopes, immutable causal state and assignment evidence, and
+independent highest state/membership frontiers. State identity excludes only property identity;
+source and source-listing identity remain fixed. A late v1 listing can advance state but cannot
+undo a later assignment. Event identifiers are fenced across families; listing-event and property
+aggregate revisions are fenced separately. A snapshot's state reference is not another listing
+event. Identical business replays are harmless, including changed trace context, after inbox expiry
+and restart. Conflicting event, revision, source or causal-key content rolls back atomically.
+
+One Market writer lock serializes evidence, membership, property minima and inbox effects in the
+same transaction. Each effective property retains one selected active listing or an explicit
+null tombstone. Reads retrieve those facts in one coherent Market-only statement and then apply
+geography and area eligibility. The additive 2002 migration backfills all retained v1 state history,
+assignment zero and property minima while preserving the original 2001 evidence unchanged.
 
 ## Neighbours and monthly series
 
@@ -180,12 +202,15 @@ Build first, then run the focused campaigns:
 ```bash
 pnpm run build
 pnpm run test:integration:market-median
+pnpm run test:integration:market-price-facts
 pnpm run test:integration:market
 ```
 
 The median campaign uses owned PostgreSQL, RabbitMQ, S3-compatible storage, worker and API
 services to verify event publication, acquisition-driven changes, replay beyond inbox retention,
 restart, revision ordering, lifecycle eligibility, conflicts, cancellation and read failures.
+The price-facts campaign additionally proves populated v1 upgrade, all eight causal families,
+removed-member merge/split routing, reverse-first convergence, bounded rejection and SQL rollback.
 The contracts campaign preserves all twenty scopes, prepared neighbours/series, parser/error
 states, detached results and exact database snapshots before/after GETs. The full gate is
 `pnpm run test:integration`; unit, lint, strict TypeScript and unchanged coverage floors also apply.
