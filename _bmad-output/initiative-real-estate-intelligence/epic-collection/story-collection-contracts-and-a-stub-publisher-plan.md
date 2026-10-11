@@ -3,7 +3,7 @@ title: 'Collection contracts and a stub publisher'
 type: 'feature'
 ticket: '1'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '01286ba2dbd7d4e5776ec70f8b0b3535ff31df02'
 route: 'full'
 route_source: 'pinned'
@@ -409,6 +409,20 @@ _bmad-output/initiative-real-estate-intelligence/epic-collection/story-collectio
   variable or deferred finding was added. This workflow ends as `built`, with independent review
   converged; the initiative controller may accept the verified artifact next. No later ticket
   was started in this invocation, and VPS-dependent work remains owner-controlled.
+
+### 2026-10-11 — Initiative controller acceptance
+
+- **Acceptance:** The controller accepts the verified D-047 repair and marks story 2.1 `done`.
+  Independent Quick review converged with no findings and `followup_review_recommended: false`.
+  This is acceptance of the existing artifact, not another build or review loop.
+- **Evidence:** The recorded root gates, unchanged coverage floors, 1,895 unit tests and all
+  50 real-service integration/API E2E tests passed on the accepted implementation. The six
+  original intent matrix rows passed; isolated cleanup preserved all 13 pre-existing containers
+  and 13 volumes. Commits `af24c21`, `94cfaea` and `b6b68ca` record implementation, regression
+  tests and the accepted decision respectively. No runtime change follows from this acceptance.
+- **Preservation:** The baseline and immutable intent contract remain unchanged. No additional
+  owner decision, configuration variable or deferred finding is introduced. Real-source
+  enablement, future perceptual computation and owner-blocked VPS stories remain out of scope.
 
 ### 2026-10-11 — Second follow-up verification
 
