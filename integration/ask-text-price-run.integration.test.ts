@@ -202,6 +202,9 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Between 785000 and 900000 reais, area 68 m2', 'ambiguous_price'],
         ['Entre 785000 e 900000 reais, área 68 m2', 'ambiguous_price', 'pt-BR'],
         ['Between 785 thousand and 900 thousand BRL, area 68 m2', 'ambiguous_price'],
+        ['Price 785000, between 68 and 70 thousand m2', 'ambiguous_area'],
+        ['Price 785000, between 0.068 thousand and 0.07 thousand square meters', 'ambiguous_area'],
+        ['Preço 785000, entre 0,068 mil e 0,070 mil metros quadrados', 'ambiguous_area', 'pt-BR'],
         ['Price 1e6, area 68 m2', 'invalid_price'],
         ['Price 10 billion BRL, area 68 m2', 'invalid_price'],
         ['Preço 10 bilhões de reais, área 68 m2', 'invalid_price', 'pt-BR'],
@@ -225,6 +228,7 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Preço 785000 francos suíços, área 68 m2', 'unsupported_currency', 'pt-BR'],
         ['Price 785000 yen, area 68 m2', 'unsupported_currency'],
         ['Price 785000 rupees, area 68 m2', 'unsupported_currency'],
+        ['Price 785000 in Turkish lira, area 68 m2', 'unsupported_currency'],
         ['CHF R$ 785000, area 68 m2', 'unsupported_currency'],
         ['Price 10 RUB, area 68 m2', 'unsupported_currency'],
         ['Price 10, currency BTC, area 68 m2', 'unsupported_currency'],
@@ -242,6 +246,9 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Price 785000, area 68 sqft', 'unsupported_area_unit'],
         ['Price 785000, area 68 cm³', 'unsupported_area_unit'],
         ['Price 785000, area 68 cubic meters', 'unsupported_area_unit'],
+        ['Price 785000, area 68 meters', 'unsupported_area_unit'],
+        ['Price 785000, area 68 meter', 'unsupported_area_unit'],
+        ['Price 785000, area 68 m', 'unsupported_area_unit'],
         ['Preço 785000, área 68 ha', 'unsupported_area_unit', 'pt-BR'],
         ['Price 785000, area ha 68', 'unsupported_area_unit'],
         ['Price 0.01, area 1000000 m2', 'unsafe_result'],
@@ -338,11 +345,18 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ).toEqual([{ events: 3, receipts: 1, inbox: 1, terminals: 1 }]);
       }
       const contextQueries = [
-        'Preço 785000, área 68 m², há 2 quartos',
-        'Preço 785000, área 68, há 2 quartos',
-      ];
-      for (const contextQuery of contextQueries) {
-        const contextual = await create({ ...golden, threadId: pt.threadId, query: contextQuery });
+        ['Preço 785000, área 68 m², há 2 quartos', 'pt-BR'],
+        ['Preço 785000, área 68, há 2 quartos', 'pt-BR'],
+        ['Price 785000, 3 bedrooms, area 68 m2', 'en'],
+        ['Price 785000, 2026 year, area 68 m2', 'en'],
+      ] as const;
+      for (const [contextQuery, locale] of contextQueries) {
+        const contextual = await create({
+          ...golden,
+          threadId: pt.threadId,
+          query: contextQuery,
+          locale,
+        });
         expect((await snapshot(contextual.runId)).originalInputs).toEqual(inputs);
         const contextualStream = await requestHttp(
           `${api}/api/v1/runs/${contextual.runId}/events`,
@@ -500,7 +514,7 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
       for (const value of [
         golden.query,
         english.query,
-        ...contextQueries,
+        ...contextQueries.map(([query]) => query),
         token,
         dispatchSecret,
         capability,
