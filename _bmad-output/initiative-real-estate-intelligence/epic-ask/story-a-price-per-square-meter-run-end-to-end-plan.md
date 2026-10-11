@@ -3,7 +3,7 @@ title: 'A price-per-square-meter run end to end'
 type: 'feature'
 ticket: '2'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: '3b86404cf3e4f674980739bcc6800eaded71a362'
 route: 'full'
 route_source: 'auto'
@@ -508,9 +508,10 @@ in `integration/ask-price-run.integration.test.ts`.
 
 ## Auto Run Result
 
-Status: built. Implementation, independent review, all local gates and the complete post-repair
+Status: done. Implementation, independent review, all local gates and the complete post-repair
 real-service suite passed. Source, tests and documentation are finalized as separate normal-hook
-commits; outer ticket orchestration owns the subsequent done transition.
+commits. The outer orchestrator verified the evidence and recorded the done transition on
+2026-10-11 under the owner's unattended execution mandate.
 
 ### Implemented change
 
@@ -747,6 +748,14 @@ regressions now pass on real services. No specific unverified risk remains from 
 Full integration independently passed after those repairs; it was not replaced by focused checks.
 
 ### Verification and residual scope
+
+The verified implementation is committed as `dadfff15b41035cb1383e77e4bcc66a80ffed77a`
+(source), `f173e1d1624b527691eace3ab724405143c4e713` (tests) and
+`3b1314598131ce72612b2e1516b77a0e1d6795c1` (documentation). The outer orchestrator confirmed
+the clean worktree and exact 98-path change set before closure. Root lint, typecheck, unit tests
+and build were repeated successfully after the credential-free unit-fixture hook repair;
+the complete real-service suite remains valid because that repair changed no production source
+or integration campaign. Closure changes only this plan, not the tested product.
 
 Completed command outcomes, logs, coverage and the 15-row matrix audit appear in `Verification`
 and `Post-repair parent verification` above. The complete suite passed 25 files and 44 cases
