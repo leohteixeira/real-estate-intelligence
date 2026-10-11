@@ -1,6 +1,8 @@
 import type { CollectionFacade, PropertiesFacade } from '@rei/application';
 import type {
   ListingResponse,
+  ListingDetail,
+  Property,
   PageQuery,
   PropertyResponse,
   ReductionsResponse,
@@ -15,7 +17,10 @@ import type { PostgresListingHistoryRepository } from './postgres-listing-histor
 export class PersistedPropertiesFacade implements PropertiesFacade {
   public constructor(
     private readonly repository: Pick<PostgresPropertyRepository, 'getProperty' | 'getListing'>,
-    private readonly collection: Pick<CollectionFacade, 'getSourcePermissions'>,
+    private readonly collection: Pick<
+      CollectionFacade,
+      'getSourcePermissions' | 'getSnapshotMetadata'
+    >,
     private readonly prepared: PropertiesFacade,
     private readonly history?: Pick<PostgresListingHistoryRepository, 'getState'>,
   ) {}
@@ -27,23 +32,58 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
   }
   public async getProperty(id: string): Promise<PropertyResponse | null> {
     const property = await this.repository.getProperty(id);
-    if (!property) return this.prepared.getProperty(id);
-    const rights = await this.collection.getSourcePermissions(property.provenance.sourceId);
-    return projectInitialProperty(
-      property,
-      rights.listingTextDisplayAllowed,
-      (await this.history?.getState(property.listingId)) ?? null,
-    );
+    if (property) return this.projectPersisted(property);
+    const response = await this.prepared.getProperty(id);
+    if (!response) return null;
+    return {
+      ...response,
+      property: {
+        ...response.property,
+        listings: await Promise.all(
+          response.property.listings.map((listing) => this.applyRights(listing)),
+        ),
+      },
+    };
   }
   public async getListing(id: string): Promise<ListingResponse | null> {
     const property = await this.repository.getListing(id);
-    if (!property) return this.prepared.getListing(id);
-    const rights = await this.collection.getSourcePermissions(property.provenance.sourceId);
-    const response = projectInitialProperty(
-      property,
-      rights.listingTextDisplayAllowed,
-      (await this.history?.getState(property.listingId)) ?? null,
-    );
+    if (!property) {
+      const response = await this.prepared.getListing(id);
+      return response ? { ...response, listing: await this.applyRights(response.listing) } : null;
+    }
+    const response = await this.projectPersisted(property);
     return { metadata: response.metadata, listing: response.property.listings[0]! };
+  }
+
+  private async projectPersisted(property: Property): Promise<PropertyResponse> {
+    const state = (await this.history?.getState(property.listingId)) ?? null;
+    const projected = projectInitialProperty(property, true, state);
+    const listing = projected.property.listings[0]!;
+    const snapshot = await this.collection.getSnapshotMetadata(listing.provenance);
+    return {
+      ...projected,
+      property: {
+        ...projected.property,
+        listings: [await this.applyRights({ ...listing, snapshot })],
+      },
+    };
+  }
+
+  private async applyRights(listing: ListingDetail): Promise<ListingDetail> {
+    const rights = await this.collection.getSourcePermissions(listing.source.sourceId);
+    if (rights.listingTextDisplayAllowed || listing.description.permission === 'denied')
+      return structuredClone(listing);
+    const changedAt = [
+      ...new Set([
+        ...listing.description.versions.slice(1).map((version) => version.effectiveAt),
+        ...listing.history
+          .filter((entry) => entry.type === 'description-changed')
+          .map((entry) => entry.effectiveAt),
+      ]),
+    ].sort((a, b) => Date.parse(a) - Date.parse(b));
+    return structuredClone({
+      ...listing,
+      description: { permission: 'denied', changedAt, sourceUrl: listing.description.sourceUrl },
+    });
   }
 }

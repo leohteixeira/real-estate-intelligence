@@ -7,6 +7,8 @@ export type {
   CollectionRunCounts,
   CollectionRunView,
   CollectionSourcePermissions,
+  CollectionSnapshotProvenance,
+  CollectionSnapshotMetadata,
 } from './collection.facade.js';
 export { CollectSourceOnce } from './collect-source-once.service.js';
 export { ReparseSnapshot } from './reparse-snapshot.service.js';

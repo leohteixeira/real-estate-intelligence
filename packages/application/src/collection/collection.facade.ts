@@ -31,6 +31,23 @@ export interface CollectionRunView {
   readonly manifestHash: Sha256Hash;
 }
 
+/** Original acquisition identity supplied by the consumer; never an object location. */
+export interface CollectionSnapshotProvenance {
+  readonly sourceId: string;
+  readonly sourceListingId: string;
+  readonly sourceUrl: string;
+  readonly runId: string;
+  readonly snapshotId: string;
+  readonly contentHash: string;
+  readonly observedAt: string;
+}
+
+export interface CollectionSnapshotMetadata {
+  readonly availability: 'available' | 'expired' | 'unavailable';
+  readonly collectedAt: string;
+  readonly expiresAt: string | null;
+}
+
 /** Consumer-owned read boundary for collection facts that do not belong in events. */
 export interface CollectionFacade {
   /** Verifies the full canonical publication and its still-current original authority. */
@@ -38,6 +55,8 @@ export interface CollectionFacade {
   getSourcePermissions(sourceId: string): Promise<CollectionSourcePermissions>;
   getRun(runId: string): Promise<CollectionRunView | null>;
   getSnapshotHash(snapshotId: string): Promise<Sha256Hash | null>;
+  /** Durable confirmed reference only; absent or mismatched evidence is unavailable. */
+  getSnapshotMetadata(expected: CollectionSnapshotProvenance): Promise<CollectionSnapshotMetadata>;
   listEnabledSources(signal?: AbortSignal): Promise<readonly EnabledSourceView[]>;
 }
 

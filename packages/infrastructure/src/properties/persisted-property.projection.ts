@@ -14,6 +14,7 @@ export function projectInitialProperty(
   property: Property,
   textAllowed: boolean,
   state: ListingChronologyState | null = null,
+  snapshot?: ListingDetail['snapshot'],
 ): PropertyResponse {
   const latest = state?.acquisitions.at(-1);
   const initial = latest
@@ -105,7 +106,7 @@ export function projectInitialProperty(
     pricePerSquareMeter: price,
     pricePerSquareMeterFormula: 'askingPriceMinorUnits / areaSquareMeters',
     provenance,
-    snapshot: { availability: 'available', collectedAt: observedAt, expiresAt: null },
+    snapshot: snapshot ?? { availability: 'unavailable', collectedAt: observedAt, expiresAt: null },
     collectionCount: dated.length,
     firstCollectedAt,
     lastCollectedAt: observedAt,
@@ -123,7 +124,14 @@ export function projectInitialProperty(
         }
       : {
           permission: 'denied',
-          changedAt: versions.slice(1).map((version) => version.effectiveAt),
+          changedAt: [
+            ...new Set([
+              ...versions.slice(1).map((version) => version.effectiveAt),
+              ...history
+                .filter((entry) => entry.type === 'description-changed')
+                .map((entry) => entry.effectiveAt),
+            ]),
+          ].sort((a, b) => Date.parse(a) - Date.parse(b)),
           sourceUrl: provenance.sourceUrl,
         },
     history,

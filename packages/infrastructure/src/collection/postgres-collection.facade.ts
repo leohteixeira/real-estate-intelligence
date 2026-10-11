@@ -7,7 +7,11 @@ import type {
   SourceRegisterRepository,
   ParsedCollectionEvent,
   Transaction,
+  Clock,
+  CollectionSnapshotProvenance,
+  CollectionSnapshotMetadata,
 } from '@rei/application';
+import { SNAPSHOT_RETENTION_MS } from '@rei/application';
 import {
   parseSha256Hash,
   parseUuidV7,
@@ -28,6 +32,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
   public constructor(
     private readonly connection: DatabaseConnection,
     private readonly sources: SourceRegisterRepository,
+    private readonly clock: Clock = { now: () => new Date().toISOString() },
   ) {}
 
   public async verifyCompletedEvent(
@@ -336,6 +341,97 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
     if (typeof value !== 'string')
       throw new Error('Collection persistence returned a malformed hash.');
     return parseSha256Hash(value);
+  }
+
+  public async getSnapshotMetadata(
+    expected: CollectionSnapshotProvenance,
+  ): Promise<CollectionSnapshotMetadata> {
+    const unavailable: CollectionSnapshotMetadata = {
+      availability: 'unavailable',
+      collectedAt: expected.observedAt,
+      expiresAt: null,
+    };
+    const rows = await this.connection.query<{
+      source_id: string;
+      source_listing_id: string;
+      source_url: string;
+      run_id: string;
+      snapshot_id: string;
+      content_hash: string;
+      observed_at: Date;
+      synthetic: boolean | null;
+      raw_hash: string | null;
+      generation_source_id: string | null;
+      generation_hash: string | null;
+      collected_at: Date | null;
+      expires_at: Date | null;
+      available: boolean | null;
+      deleted: boolean | null;
+    }>(
+      `SELECT run.source_id, observation.source_listing_id, observation.source_url,
+        run.run_id::text, observation.snapshot_id::text, observation.content_hash, observation.observed_at,
+        raw.synthetic, raw.content_hash AS raw_hash,
+        generation.source_id AS generation_source_id, generation.content_hash AS generation_hash,
+        generation.collected_at, generation.expires_at, generation.available, generation.deleted
+       FROM collection.snapshot_observation observation
+       JOIN collection.collection_run run ON run.run_id=observation.run_id
+       JOIN collection.snapshot_content content ON content.content_hash=observation.content_hash
+       LEFT JOIN collection.raw_object raw ON raw.object_key=observation.object_key
+         AND raw.content_hash=observation.content_hash AND raw.synthetic
+       LEFT JOIN collection.snapshot_generation generation ON generation.object_key=observation.object_key
+       WHERE observation.snapshot_id=$1 AND run.run_id=$2 AND run.source_id=$3
+         AND observation.source_listing_id=$4 AND observation.source_url=$5
+         AND observation.content_hash=$6 AND observation.observed_at=$7
+         AND observation.outcome='parsed' AND run.status='completed'`,
+      [
+        expected.snapshotId,
+        expected.runId,
+        expected.sourceId,
+        expected.sourceListingId,
+        expected.sourceUrl,
+        expected.contentHash,
+        expected.observedAt,
+      ],
+    );
+    const row = rows[0];
+    if (
+      !row ||
+      row.source_id !== expected.sourceId ||
+      row.source_listing_id !== expected.sourceListingId ||
+      row.source_url !== expected.sourceUrl ||
+      row.run_id !== expected.runId ||
+      row.snapshot_id !== expected.snapshotId ||
+      row.content_hash !== expected.contentHash ||
+      !(row.observed_at instanceof Date) ||
+      row.observed_at.getTime() !== Date.parse(expected.observedAt)
+    )
+      return unavailable;
+    if (row.synthetic === true && row.raw_hash === expected.contentHash)
+      return {
+        availability: 'available',
+        collectedAt: row.observed_at.toISOString(),
+        expiresAt: null,
+      };
+    if (
+      row.generation_source_id !== expected.sourceId ||
+      row.generation_hash !== expected.contentHash ||
+      !(row.collected_at instanceof Date) ||
+      !(row.expires_at instanceof Date) ||
+      row.expires_at.getTime() - row.collected_at.getTime() !== SNAPSHOT_RETENTION_MS
+    )
+      return unavailable;
+    const now = Date.parse(this.clock.now());
+    if (!Number.isFinite(now)) return unavailable;
+    return {
+      availability:
+        now >= row.expires_at.getTime()
+          ? 'expired'
+          : row.available === true && row.deleted === false
+            ? 'available'
+            : 'unavailable',
+      collectedAt: row.collected_at.toISOString(),
+      expiresAt: row.expires_at.toISOString(),
+    };
   }
 
   public listEnabledSources(signal?: AbortSignal): Promise<readonly EnabledSourceView[]> {

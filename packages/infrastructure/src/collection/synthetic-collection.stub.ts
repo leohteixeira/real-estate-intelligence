@@ -2,6 +2,8 @@ import type {
   CollectionFacade,
   CollectionRunView,
   CollectionSourcePermissions,
+  CollectionSnapshotProvenance,
+  CollectionSnapshotMetadata,
   EventPublisher,
 } from '@rei/application';
 import {
@@ -150,6 +152,13 @@ export class SyntheticCollectionStub implements CollectionFacade {
 
   public async getSnapshotHash(snapshotId: string): Promise<Sha256Hash | null> {
     return snapshotId === SYNTHETIC_SNAPSHOT_ID ? SYNTHETIC_SNAPSHOT_HASH : null;
+  }
+
+  public async getSnapshotMetadata(
+    expected: CollectionSnapshotProvenance,
+  ): Promise<CollectionSnapshotMetadata> {
+    // This publication fake has no committed lifecycle evidence.
+    return { availability: 'unavailable', collectedAt: expected.observedAt, expiresAt: null };
   }
 
   public async listEnabledSources(): Promise<readonly EnabledSourceView[]> {
