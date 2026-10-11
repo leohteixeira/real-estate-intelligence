@@ -317,6 +317,11 @@ function fixture(
     }),
     getRun: async () => null,
     getSnapshotHash: async () => null,
+    getSnapshotMetadata: async (expected) => ({
+      availability: 'unavailable',
+      collectedAt: expected.observedAt,
+      expiresAt: null,
+    }),
     listEnabledSources: async () => [],
   };
   const outbox = {

@@ -7,6 +7,32 @@ import { PostgresCollectionFacade } from './postgres-collection.facade.js';
 const runId = '0199c8f2-2394-7ba0-8f9e-286378779210';
 const snapshotId = '0199c8f2-2394-7ba0-8f9e-286378779211';
 const manifestHash = `sha256:${'1'.repeat(64)}`;
+const expected = {
+  sourceId: 'synthetic-data',
+  sourceListingId: 'SYN-SP-0001',
+  sourceUrl: 'https://synthetic.invalid/listings/SYN-SP-0001',
+  runId,
+  snapshotId,
+  contentHash: manifestHash,
+  observedAt: '2026-10-10T12:00:00.000Z',
+};
+const reference = {
+  source_id: expected.sourceId,
+  source_listing_id: expected.sourceListingId,
+  source_url: expected.sourceUrl,
+  run_id: runId,
+  snapshot_id: snapshotId,
+  content_hash: manifestHash,
+  observed_at: new Date(expected.observedAt),
+  synthetic: true,
+  raw_hash: manifestHash,
+  generation_source_id: null,
+  generation_hash: null,
+  collected_at: null,
+  expires_at: null,
+  available: null,
+  deleted: null,
+};
 
 function sources(overrides: Partial<SourceRegisterRepository> = {}): SourceRegisterRepository {
   return {
@@ -18,6 +44,98 @@ function sources(overrides: Partial<SourceRegisterRepository> = {}): SourceRegis
 }
 
 describe('PostgresCollectionFacade', () => {
+  it('exposes only exact committed synthetic metadata and defaults missing or foreign references to unavailable', async () => {
+    const query = vi.fn(async () => [reference]);
+    const facade = new PostgresCollectionFacade(
+      { query } as unknown as DatabaseConnection,
+      sources(),
+    );
+    await expect(facade.getSnapshotMetadata(expected)).resolves.toEqual({
+      availability: 'available',
+      collectedAt: expected.observedAt,
+      expiresAt: null,
+    });
+    expect(query.mock.calls[0]?.[0]).toContain('collection.snapshot_observation');
+    for (const [field, value] of Object.entries({
+      source_id: 'foreign',
+      source_listing_id: 'foreign',
+      source_url: 'https://foreign.invalid',
+      run_id: 'foreign',
+      snapshot_id: 'foreign',
+      content_hash: `sha256:${'2'.repeat(64)}`,
+      observed_at: new Date('2026-10-09T12:00:00Z'),
+      raw_hash: null,
+      synthetic: false,
+    })) {
+      query.mockResolvedValue([{ ...reference, [field]: value }]);
+      await expect(facade.getSnapshotMetadata(expected)).resolves.toEqual({
+        availability: 'unavailable',
+        collectedAt: expected.observedAt,
+        expiresAt: null,
+      });
+    }
+    query.mockResolvedValue([]);
+    await expect(facade.getSnapshotMetadata(expected)).resolves.toEqual({
+      availability: 'unavailable',
+      collectedAt: expected.observedAt,
+      expiresAt: null,
+    });
+    query.mockRejectedValue(new Error('Database unavailable.'));
+    await expect(facade.getSnapshotMetadata(expected)).rejects.toThrow('Database unavailable.');
+  });
+  it('uses confirmed matching real generations and fails closed exactly at fixed expiry independently of deletion', async () => {
+    const collectedAt = '2026-10-10T12:00:01.000Z',
+      expiresAt = '2026-11-09T12:00:01.000Z';
+    const real = {
+      ...reference,
+      synthetic: null,
+      raw_hash: null,
+      generation_source_id: expected.sourceId,
+      generation_hash: expected.contentHash,
+      collected_at: new Date(collectedAt),
+      expires_at: new Date(expiresAt),
+      available: true,
+      deleted: false,
+    };
+    const query = vi.fn(async () => [real]);
+    let now = '2026-11-09T12:00:00.999Z';
+    const facade = new PostgresCollectionFacade(
+      { query } as unknown as DatabaseConnection,
+      sources(),
+      { now: () => now },
+    );
+    await expect(facade.getSnapshotMetadata(expected)).resolves.toEqual({
+      availability: 'available',
+      collectedAt,
+      expiresAt,
+    });
+    for (const replacement of [
+      { available: false },
+      { deleted: true },
+      { generation_source_id: 'foreign' },
+      { generation_hash: `sha256:${'2'.repeat(64)}` },
+      { expires_at: new Date('2026-11-10T12:00:01Z') },
+    ]) {
+      query.mockResolvedValue([{ ...real, ...replacement }]);
+      expect((await facade.getSnapshotMetadata(expected)).availability).toBe('unavailable');
+    }
+    query.mockResolvedValue([real]);
+    now = 'invalid-clock';
+    await expect(facade.getSnapshotMetadata(expected)).resolves.toEqual({
+      availability: 'unavailable',
+      collectedAt: expected.observedAt,
+      expiresAt: null,
+    });
+    for (now of [expiresAt, '2026-11-09T12:00:01.001Z']) {
+      await expect(facade.getSnapshotMetadata(expected)).resolves.toEqual({
+        availability: 'expired',
+        collectedAt,
+        expiresAt,
+      });
+    }
+    query.mockResolvedValue([{ ...real, available: false, deleted: true }]);
+    expect((await facade.getSnapshotMetadata(expected)).availability).toBe('expired');
+  });
   it('returns independent source permissions and denies unknown sources by default', async () => {
     const findById = vi.fn(async (sourceId: string) =>
       sourceId === 'known-source'

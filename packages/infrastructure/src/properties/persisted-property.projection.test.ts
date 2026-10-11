@@ -147,7 +147,14 @@ describe('persisted initial detail and composite facade', () => {
     }));
     const facade = new PersistedPropertiesFacade(
       repository,
-      { getSourcePermissions: rights },
+      {
+        getSourcePermissions: rights,
+        getSnapshotMetadata: async (expected) => ({
+          availability: 'unavailable',
+          collectedAt: expected.observedAt,
+          expiresAt: null,
+        }),
+      },
       new SyntheticPropertiesAdapter(),
     );
     expect(
@@ -181,6 +188,11 @@ describe('persisted initial detail and composite facade', () => {
     const facade = new PersistedPropertiesFacade(
       { getProperty: async () => null, getListing: async () => null },
       {
+        getSnapshotMetadata: async (expected) => ({
+          availability: 'unavailable',
+          collectedAt: expected.observedAt,
+          expiresAt: null,
+        }),
         getSourcePermissions: async () => {
           throw new Error('Unused.');
         },

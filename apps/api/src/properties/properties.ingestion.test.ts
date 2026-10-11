@@ -69,7 +69,14 @@ describe('persisted initial property through production Nest HTTP wiring', () =>
             : [],
       })
       .overrideProvider(COLLECTION_FACADE)
-      .useValue({ getSourcePermissions: rights })
+      .useValue({
+        getSourcePermissions: rights,
+        getSnapshotMetadata: async (expected: Property['provenance']) => ({
+          availability: 'unavailable',
+          collectedAt: expected.observedAt,
+          expiresAt: null,
+        }),
+      })
       .compile();
     app = module.createNestApplication();
     configureApi(app);

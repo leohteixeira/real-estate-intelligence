@@ -29,6 +29,24 @@ function objectKeys(value: unknown): readonly string[] {
 }
 
 describe('SyntheticCollectionStub', () => {
+  it('never claims durable availability for publication-only fixture evidence', async () => {
+    const stub = new SyntheticCollectionStub(new InMemoryEventPublisher());
+    await expect(
+      stub.getSnapshotMetadata({
+        sourceId: SYNTHETIC_SOURCE_ID,
+        sourceListingId: SYNTHETIC_SOURCE_LISTING_ID,
+        sourceUrl: 'https://synthetic.invalid/listings/SYN-SP-0001',
+        runId: SYNTHETIC_RUN_ID,
+        snapshotId: SYNTHETIC_SNAPSHOT_ID,
+        contentHash: SYNTHETIC_SNAPSHOT_HASH,
+        observedAt: '2026-10-10T11:59:59.000Z',
+      }),
+    ).resolves.toEqual({
+      availability: 'unavailable',
+      collectedAt: '2026-10-10T11:59:59.000Z',
+      expiresAt: null,
+    });
+  });
   it('publishes one parsed, completed, and suppressed fact through a JSON test consumer', async () => {
     const publisher = new InMemoryEventPublisher();
     const stub = new SyntheticCollectionStub(publisher);
