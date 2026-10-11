@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DomainValidationError } from '../shared/index.js';
 import {
   assertSnapshotIdentifier,
   maskSnapshotText,
@@ -38,6 +39,36 @@ const fixture = {
 };
 
 describe('snapshot privacy projection', () => {
+  it.each([
+    'Rua Exemplo, apartamento AB',
+    'Rua Exemplo, apto AB',
+    'Rua Exemplo, bloco Azul',
+    'Rua Exemplo, bloco B12',
+    'Rua Exemplo, complemento: cobertura',
+    'Rua Exemplo 123 fundos',
+    'Rua Exemplo; apto AB',
+    'Rua Exemplo, unidade',
+  ])('rejects explicit unit or complement street text at the snapshot boundary: %s', (street) => {
+    expect(() =>
+      sanitizeSnapshotListing({
+        ...fixture,
+        location: { ...fixture.location, street },
+        imageFingerprints: [`sha256:${'a'.repeat(64)}`],
+      }),
+    ).toThrow(DomainValidationError);
+  });
+  it.each(['Rua Exemplo 123', 'Rua dos Apartamentos', 'Avenida Bloco Novo', 'Rua dos Fundos'])(
+    'preserves ordinary street names and door numbers at the snapshot boundary: %s',
+    (street) => {
+      expect(
+        sanitizeSnapshotListing({
+          ...fixture,
+          location: { ...fixture.location, street },
+          imageFingerprints: [`sha256:${'a'.repeat(64)}`],
+        }).location.street,
+      ).toBe(street);
+    },
+  );
   it('removes forbidden fields and masks contacts and known names across permitted text deterministically', () => {
     const result = sanitizeSnapshotListing(fixture);
     const text = JSON.stringify(result);

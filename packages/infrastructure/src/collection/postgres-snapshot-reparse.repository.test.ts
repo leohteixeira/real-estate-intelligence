@@ -120,8 +120,8 @@ describe('snapshot reparse evidence', () => {
     const { bytes, observation } = fixture();
     expect(verifySnapshotReparseBytes(observation, bytes)).toEqual([]);
     expect(
-      verifySnapshotReparseBytes({ ...observation, imageFingerprints: ['trusted'] }, bytes),
-    ).toEqual(['trusted']);
+      verifySnapshotReparseBytes({ ...observation, imageFingerprints: ['fixture:trusted'] }, bytes),
+    ).toEqual(['fixture:trusted']);
   });
   it.each([
     {},

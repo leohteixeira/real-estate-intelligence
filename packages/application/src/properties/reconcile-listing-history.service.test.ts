@@ -70,7 +70,7 @@ function fact(n: number, price = 100, description = 'Original description.') {
         listedAt: date(1),
         advertiser: { type: 'private', agencyName: null },
         maskedDescription: description,
-        imageFingerprints: ['owned-fingerprint'],
+        imageFingerprints: ['fixture:owned-fingerprint'],
       },
     },
   });

@@ -114,6 +114,79 @@ describe('collection event contracts', () => {
     expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
   });
 
+  it('rejects a complete XML-declared SVG encoded as base64url without echoing its bytes', () => {
+    const value = mutableParsedWire();
+    nested(value, 'payload', 'listing').imageFingerprints = [
+      'PD94bWwgdmVyc2lvbj0iMS4wIj8-PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9InJlZCIvPjwvc3ZnPg',
+    ];
+    expect(() => parseCollectionEvent(wire(value))).toThrow(
+      new DomainValidationError(
+        'payload.listing.imageFingerprints[0] must be a SHA-256 hash or a prepared synthetic fingerprint.',
+        'payload.listing.imageFingerprints[0]',
+      ),
+    );
+  });
+
+  it.each([
+    'arbitrary-token',
+    'owned-fingerprint',
+    'trusted',
+    `sha256:${'g'.repeat(64)}`,
+    `sha256:${'A'.repeat(64)}`,
+    `SHA256:${'a'.repeat(64)}`,
+    `sha256:${'a'.repeat(63)}`,
+    `sha256:${'a'.repeat(65)}`,
+    'fixture',
+    'synthetic',
+    'fixture:',
+    'fixture::v1',
+    'fixture:UPPERCASE',
+    `fixture:${'a'.repeat(33)}`,
+    `synthetic${':a'.repeat(9)}`,
+    null,
+    42,
+    { fingerprint: 'fixture:v1' },
+  ])('rejects an unrecognized fingerprint representation: %j', (fingerprint) => {
+    const value = mutableParsedWire();
+    nested(value, 'payload', 'listing').imageFingerprints = [fingerprint];
+    expect(() => parseCollectionEvent(wire(value))).toThrow(DomainValidationError);
+  });
+
+  it.each([
+    HASH,
+    'fixture-fingerprint:v1:synthetic-001',
+    'fixture:v1',
+    'synthetic-fingerprint',
+    'fixture-history-fingerprint',
+    `fixture:${'a'.repeat(32)}`,
+    `synthetic${':a'.repeat(8)}`,
+  ])('preserves a recognized fingerprint through JSON byte-for-byte: %s', (fingerprint) => {
+    const value = mutableParsedWire();
+    nested(value, 'payload', 'listing').imageFingerprints = [fingerprint];
+    const event = parseCollectionEvent(wire(value));
+    expect(event).toBeInstanceOf(CollectionSnapshotParsed);
+    if (!(event instanceof CollectionSnapshotParsed)) throw new TypeError('Expected parsed event.');
+    expect(event.payload.listing.imageFingerprints).toEqual([fingerprint]);
+    expect(Object.isFrozen(event.payload.listing.imageFingerprints)).toBe(true);
+  });
+
+  it('preserves the fingerprint array maximum and rejects duplicates or overflow', () => {
+    const fingerprints = Array.from({ length: 100 }, (_, index) => `fixture:${index}`);
+    const value = mutableParsedWire();
+    nested(value, 'payload', 'listing').imageFingerprints = fingerprints;
+    const event = parseCollectionEvent(wire(value));
+    if (!(event instanceof CollectionSnapshotParsed)) throw new TypeError('Expected parsed event.');
+    expect(event.payload.listing.imageFingerprints).toEqual(fingerprints);
+
+    for (const invalid of [
+      [...fingerprints, 'fixture:100'],
+      ['fixture:v1', 'fixture:v1'],
+    ]) {
+      nested(value, 'payload', 'listing').imageFingerprints = invalid;
+      expect(() => parseCollectionEvent(wire(value))).toThrow(DomainValidationError);
+    }
+  });
+
   it.each([
     'Rua Exemplo, apartamento 123',
     'Rua Exemplo, apto. 123',
@@ -122,10 +195,18 @@ describe('collection event contracts', () => {
     'Rua Exemplo, bloco A',
     'Rua Exemplo 123, fundos',
     'Rua Exemplo, ap 12',
+    'Rua Exemplo, apartamento AB',
+    'Rua Exemplo, apto AB',
+    'Rua Exemplo, bloco Azul',
+    'Rua Exemplo, bloco B12',
+    'Rua Exemplo, complemento: cobertura',
+    'Rua Exemplo 123 fundos',
+    'Rua Exemplo; apto AB',
+    'Rua Exemplo, unidade',
   ])('rejects unit or complement details embedded in the street: %s', (street) => {
     const value = mutableParsedWire();
     nested(value, 'payload', 'listing', 'location').street = street;
-    expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
+    expect(() => parseCollectionEvent(wire(value))).toThrow(DomainValidationError);
   });
 
   it.each(['Rua Exemplo 123', 'Rua dos Apartamentos', 'Avenida Bloco Novo', 'Rua dos Fundos'])(
