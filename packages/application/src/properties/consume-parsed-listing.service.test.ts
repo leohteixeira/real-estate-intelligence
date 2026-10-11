@@ -180,6 +180,53 @@ function fixture(
 }
 
 describe('ConsumeParsedListing atomic initial ingestion', () => {
+  it('verifies and stores original feature bytes before composing normalized values', async () => {
+    const f = fixture();
+    const original = new CollectionSnapshotParsed({
+      ...event,
+      payload: {
+        ...event.payload,
+        listing: { ...event.payload.listing, features: [' Pool ', 'POOL', 'Cafe\u0301'] },
+      },
+    });
+    const before = JSON.stringify(original);
+    f.evidence.set(original.eventId, original);
+    await f.service.execute({ ...original }, f.controller.signal);
+    expect(JSON.stringify(f.state().facts[0]!.event)).toBe(before);
+    expect(JSON.stringify(f.state().properties[0]!.initial)).toBe(before);
+    expect(f.state().properties[0]!.normalized.features.map((feature) => feature.value)).toEqual([
+      'pool',
+      'café',
+    ]);
+    expect(f.state().properties[0]!.normalized.features[0]!.collectedAt).toBe(
+      original.payload.source.observedAt,
+    );
+    const changed = {
+      ...original,
+      payload: {
+        ...original.payload,
+        listing: { ...original.payload.listing, features: ['pool', 'café'] },
+      },
+    };
+    await expect(f.service.execute(changed, f.controller.signal)).rejects.toThrow();
+    expect(f.state().facts).toHaveLength(1);
+  });
+  it.each(['   ', 'İ'.repeat(100)])(
+    'rolls back all effects when a verified feature cannot normalize (%s)',
+    async (feature) => {
+      const f = fixture();
+      const original = new CollectionSnapshotParsed({
+        ...event,
+        payload: { ...event.payload, listing: { ...event.payload.listing, features: [feature] } },
+      });
+      f.evidence.set(original.eventId, original);
+      await expect(f.service.execute({ ...original }, f.controller.signal)).rejects.toThrow(
+        'normalized listing feature',
+      );
+      expect(f.geographyCalls).toHaveLength(1);
+      expect(f.state()).toEqual({ inbox: [], facts: [], properties: [], outbox: [] });
+    },
+  );
   it('resolves only verified geography through the exact evidence transaction scope', async () => {
     const f = fixture();
     await f.service.execute({ ...event }, f.controller.signal);
@@ -259,6 +306,9 @@ describe('ConsumeParsedListing atomic initial ingestion', () => {
       'pending-correction',
     ]);
     expect(f.state().properties[0]!.initial.eventId).toBe(event.eventId);
+    expect(f.state().properties[0]!.normalized.askingPriceMinorUnits.value).toBe(
+      event.payload.listing.askingPriceMinorUnits,
+    );
     expect(f.state().properties).toHaveLength(1);
     expect(f.state().outbox).toHaveLength(1);
   });
@@ -300,6 +350,24 @@ describe('ConsumeParsedListing atomic initial ingestion', () => {
       { ...event, extra: true },
       { ...event, version: 3 },
       { ...event, type: 'collection.run.completed' },
+      {
+        ...event,
+        payload: { ...event.payload, listing: { ...event.payload.listing, bedrooms: undefined } },
+      },
+      {
+        ...event,
+        payload: {
+          ...event.payload,
+          listing: { ...event.payload.listing, maskedDescription: 'Email test@example.invalid' },
+        },
+      },
+      {
+        ...event,
+        payload: {
+          ...event.payload,
+          listing: { ...event.payload.listing, contactName: 'Someone' },
+        },
+      },
       { ...event, occurredAt: '2026-10-10T12:02:00.000Z' },
       {
         ...event,

@@ -5,7 +5,7 @@ import { createServer } from 'node:net';
 import { promisify } from 'node:util';
 import amqp from 'amqplib';
 import { CollectSourceOnce, ConsumeParsedListing } from '../packages/application/dist/index.js';
-import { parseCollectionEvent } from '../packages/domain/dist/index.js';
+import { parseCollectionEvent, Property } from '../packages/domain/dist/index.js';
 import {
   parsePropertyResponse,
   parseListingResponse,
@@ -570,8 +570,263 @@ try {
     historicalListing.listing.provenance.contentHash,
     historicalWire.payload.snapshot.contentHash,
   );
+
+  // This separately labelled local fixture is synthetic. Source-shaped contact/photo fields
+  // exist in memory only; the adapter uses the shared sanitizer before returning any bytes.
+  const realShapedId = 'SYN-REAL-SHAPED-LOCAL';
+  const realShapedDocument = {
+    sourceId: 'synthetic-data',
+    sourceListingId: realShapedId,
+    sourceUrl: `https://synthetic.invalid/listings/${realShapedId}?email=fixture@example.invalid#contact`,
+    observedAt: '2026-10-10T10:30:00.000Z',
+    mediaType: 'application/json',
+    bytes: new TextEncoder().encode(
+      JSON.stringify({
+        ...JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES)),
+        bedrooms: 0,
+        bathrooms: 0,
+        parkingSpaces: 0,
+        features: [' Pool ', 'POOL', 'Cafe\u0301', 'CAFÉ', ' Unknown\t amenity '],
+        location: {
+          city: 'São Paulo',
+          stateCode: 'SP',
+          neighborhood: 'Bela Vista',
+          street: 'Avenida Exemplo',
+          unitNumber: '42',
+          complement: 'Private unit',
+        },
+        advertiser: {
+          type: 'agency',
+          agencyName: 'Owned Synthetic Realty',
+          contactName: 'Fixture Person Alpha',
+          individualCreci: 'CRECI 12345-F',
+        },
+        contact: {
+          name: 'Fixture Person Alpha',
+          phone: '(11) 99999-1111',
+          email: 'fixture@example.invalid',
+          cpf: '123.456.789-01',
+        },
+        photos: ['https://fixture.invalid/person-photo.jpg'],
+        photograph: 'in-memory-photo-marker',
+        maskedDescription:
+          'Local real-shaped synthetic fixture. Fixture Person Alpha; (11) 99999-1111; fixture@example.invalid; 123.456.789-01; https://fixture.invalid/contact; CRECI 12345-F.',
+        imageFingerprints: [`sha256:${'b'.repeat(64)}`],
+      }),
+    ),
+  };
+  const sanitizer = new CanonicalSnapshotSanitizer();
+  const sanitizedFixture = sanitizer.sanitize(realShapedDocument).document;
+  const sanitizedText = new TextDecoder().decode(sanitizedFixture.bytes);
+  const canonicalFixture = JSON.parse(sanitizedText);
+  const forbidden =
+    /Fixture Person Alpha|99999-1111|fixture@example|123\.456\.789-01|12345-F|unitNumber|complement|contactName|individualCreci|"contact"|"phone"|"email"|"cpf"|"photos"|"photograph"|person-photo|in-memory-photo/;
+  assert(!forbidden.test(sanitizedText));
+  assert.equal(sanitizedFixture.sourceUrl, `https://synthetic.invalid/listings/${realShapedId}`);
+  assert.equal(canonicalFixture.maskedDescription.match(/\[REDACTED\]/g).length, 6);
+  assert.deepEqual(
+    Object.keys(canonicalFixture).sort(),
+    Object.keys(original.payload.listing).sort(),
+  );
+  assert.deepEqual(Object.keys(canonicalFixture.location).sort(), [
+    'city',
+    'neighborhood',
+    'stateCode',
+    'street',
+  ]);
+  assert.deepEqual(Object.keys(canonicalFixture.advertiser).sort(), ['agencyName', 'type']);
+  assert.throws(() =>
+    sanitizer.sanitize({
+      ...realShapedDocument,
+      sourceUrl: 'https://fixture.invalid/contact/fixture@example.invalid',
+    }),
+  );
+  assert.throws(() =>
+    sanitizer.sanitize({ ...realShapedDocument, bytes: new TextEncoder().encode('{}') }),
+  );
+  const localRealShapedSource = {
+    fetchPage: async (_sourceId, cursor) => ({
+      documents: cursor === null ? [sanitizer.sanitize(realShapedDocument).document] : [],
+      nextCursor: null,
+      exhausted: true,
+    }),
+    parse: (document, cancellation) => productionSource.parse(document, cancellation),
+  };
+  const realShaped = await collector(localRealShapedSource).execute(
+    'synthetic-data',
+    'ingest-real-shaped-local',
+    null,
+    signal(),
+  );
+  await waitFor(
+    'local real-shaped normalized listing',
+    async () => (await counts()).properties === historicalBaseline.properties + 1,
+  );
+  const realShapedBaseline = {
+    properties: historicalBaseline.properties + 1,
+    listings: historicalBaseline.listings + 1,
+    facts: historicalBaseline.facts + 1,
+    inbox: historicalBaseline.inbox + 1,
+    creations: historicalBaseline.creations + 1,
+  };
+  await stable(realShapedBaseline);
+  const realShapedWire = await evidence(realShaped.parsedEventId);
+  const originalEvidence = JSON.stringify(realShapedWire);
+  assert.deepEqual(realShapedWire.payload.listing, canonicalFixture);
+  assert.equal(
+    Buffer.from(await store.read(realShaped.objectKey, signal())).toString(),
+    sanitizedText,
+  );
+  const realShapedRow = (
+    await connection.query(
+      `SELECT listing.property_id::text, listing.listing_id::text, listing.asking_price_minor_units::text,
+      listing.currency, listing.area_square_meters::text, property.resolved_place, fact.event
+      FROM properties.listing AS listing JOIN properties.property AS property ON property.property_id=listing.property_id
+      JOIN properties.incoming_fact AS fact ON fact.event_id=property.initial_event_id WHERE listing.source_listing_id=$1`,
+      [realShapedId],
+    )
+  )[0];
+  assert.deepEqual(realShapedRow.event, realShapedWire);
+  assert.equal(realShapedRow.asking_price_minor_units, '78500000');
+  assert.equal(realShapedRow.currency, 'BRL');
+  assert.equal(Number(realShapedRow.area_square_meters), 82.5);
+  const model = new Property(
+    realShapedRow.property_id,
+    realShapedRow.listing_id,
+    realShapedRow.event,
+    realShapedRow.resolved_place,
+  ).normalized;
+  for (const value of [
+    model.propertyType,
+    model.askingPriceMinorUnits,
+    model.currency,
+    model.areaSquareMeters,
+    model.bedrooms,
+    model.bathrooms,
+    model.parkingSpaces,
+    ...model.features,
+    ...Object.values(model.location),
+    model.listedAt,
+    ...Object.values(model.advertiser),
+    model.maskedDescription,
+    ...model.imageFingerprints,
+    model.sourceId,
+    model.sourceListingId,
+    model.sourceUrl,
+    model.observedAt,
+  ]) {
+    assert.equal(value.source, realShapedWire.payload.source.sourceId);
+    assert.equal(value.sourceUrl, sanitizedFixture.sourceUrl);
+    assert.equal(value.collectedAt, sanitizedFixture.observedAt);
+  }
+  const realShapedDetail = await get(
+    `properties/${realShapedRow.property_id}`,
+    parsePropertyResponse,
+  );
+  const realShapedListing = (
+    await get(`listings/${realShapedRow.listing_id}`, parseListingResponse)
+  ).listing;
+  assert.deepEqual(realShapedListing, realShapedDetail.property.listings[0]);
+  assert.deepEqual(realShapedListing.features, ['pool', 'café', 'unknown amenity']);
+  assert.deepEqual(
+    realShapedDetail.property.featureAgreement.map((row) => row.feature),
+    realShapedListing.features,
+  );
+  assert.deepEqual(
+    [realShapedListing.bedrooms, realShapedListing.bathrooms, realShapedListing.parkingSpaces],
+    [0, 0, 0],
+  );
+  assert.equal(realShapedListing.propertyType, model.propertyType.value);
+  assert.equal(realShapedListing.askingPriceMinorUnits, model.askingPriceMinorUnits.value);
+  assert.equal(realShapedListing.areaSquareMeters, model.areaSquareMeters.value);
+  assert.equal(realShapedListing.street, model.location.street.value);
+  assert.equal(realShapedListing.publishedNeighborhood, model.location.neighborhood.value);
+  assert.equal(realShapedListing.description.current, canonicalFixture.maskedDescription);
+  assert.deepEqual(realShapedListing.fieldEffectiveAt, {
+    askingPrice: sanitizedFixture.observedAt,
+    description: sanitizedFixture.observedAt,
+    attributes: sanitizedFixture.observedAt,
+  });
+  assert.deepEqual(realShapedListing.provenance, model.provenance);
+  assert.notEqual(realShapedWire.occurredAt, realShapedListing.provenance.observedAt);
+  const downstream = await connection.query(
+    'SELECT event_type, payload FROM platform.outbox WHERE event_id=$1 OR (event_type=$2 AND aggregate_id=$3)',
+    [realShaped.parsedEventId, 'properties.listing.created', realShapedRow.listing_id],
+  );
+  assert.equal(
+    downstream.filter((row) => row.event_type === 'properties.listing.created').length,
+    1,
+  );
+  assert(
+    !forbidden.test(
+      JSON.stringify([
+        realShapedRow,
+        realShapedWire,
+        downstream,
+        realShapedDetail,
+        realShapedListing,
+      ]),
+    ),
+  );
+  assert(!/imageFingerprint/.test(JSON.stringify(realShapedDetail)));
+  for (const listingChange of [
+    { contactName: 'Forbidden Person' },
+    { photos: [] },
+    { maskedDescription: 'Contact fixture@example.invalid' },
+  ]) {
+    await rejected(publisher, {
+      ...realShapedWire,
+      payload: {
+        ...realShapedWire.payload,
+        listing: { ...realShapedWire.payload.listing, ...listingChange },
+      },
+    });
+    await stable(realShapedBaseline);
+  }
+  await connection.query('DELETE FROM platform.inbox WHERE consumer_name=$1 AND event_id=$2', [
+    queue,
+    realShapedWire.eventId,
+  ]);
+  await compose('restart', 'worker', 'api');
+  await compose('up', '--detach', '--wait', 'worker', 'api');
+  await Promise.all(Array.from({ length: 4 }, () => publisher.publish(realShapedWire, signal())));
+  await waitFor(
+    'local fixture inbox after restart and expiry',
+    async () => (await counts()).inbox === realShapedBaseline.inbox,
+  );
+  await stable(realShapedBaseline);
+  assert.deepEqual(
+    await get(`properties/${realShapedRow.property_id}`, parsePropertyResponse),
+    realShapedDetail,
+  );
+  assert.deepEqual(
+    (await get(`listings/${realShapedRow.listing_id}`, parseListingResponse)).listing,
+    realShapedListing,
+  );
+  assert.equal(JSON.stringify(await evidence(realShapedWire.eventId)), originalEvidence);
+  assert.deepEqual(
+    (await new PostgresPropertyRepository(connection).getListing(realShapedRow.listing_id))
+      .normalized,
+    model,
+  );
+  await connection.query(
+    "UPDATE collection.source_register SET listing_text_display_allowed=false WHERE source_id='synthetic-data'",
+  );
+  for (const [path, parser] of [
+    [`properties/${realShapedRow.property_id}`, parsePropertyResponse],
+    [`listings/${realShapedRow.listing_id}`, parseListingResponse],
+  ]) {
+    const denied = await get(path, parser);
+    assert(!/Local real-shaped|"current"|"versions"|"text"|excerpt/.test(JSON.stringify(denied)));
+    const listing = denied.listing ?? denied.property.listings[0];
+    assert.deepEqual(listing.provenance, model.provenance);
+    assert.deepEqual(listing.fieldEffectiveAt, realShapedListing.fieldEffectiveAt);
+  }
+  await connection.query(
+    "UPDATE collection.source_register SET listing_text_display_allowed=true WHERE source_id='synthetic-data'",
+  );
   console.log(
-    'Properties ingestion passed: production collection/evidence/broker/worker/HTTP, six-crumb block resolution, historical five-crumb replay/restart compatibility, rollback/retry, concurrency/inbox expiry/restart, immutable pending v1/v2, authority/mutation/address rejection, current rights and prepared isolation.',
+    'Properties ingestion passed: production collection/evidence/broker/worker/HTTP, local real-shaped synthetic allowlist/masking/normalization and per-value provenance, six-crumb block resolution, historical five-crumb replay/restart compatibility, rollback/retry, concurrency/inbox expiry/restart, immutable pending v1/v2, authority/mutation/address rejection, current rights and prepared isolation.',
   );
 } catch (error) {
   await compose('logs', '--no-color', '--tail', '100', 'worker', 'api', 'migrations')

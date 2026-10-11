@@ -38,7 +38,10 @@ describe('persisted initial property through production Nest HTTP wiring', () =>
           sourceUrl: 'https://synthetic.invalid/listings/SYN-SP-0001',
           observedAt: '2026-10-10T11:59:59.000Z',
         },
-        listing: JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES)),
+        listing: {
+          ...JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES)),
+          features: [' Pool ', 'POOL', 'Cafe\u0301', 'Unknown\t amenity'],
+        },
       },
     });
     property = new Property(
@@ -89,6 +92,34 @@ describe('persisted initial property through production Nest HTTP wiring', () =>
     expect(listing.status).toBe(200);
     expect(parseListingResponse(await listing.json()).listing).toEqual(detail.property.listings[0]);
     expect(detail.property.listings[0]!.provenance).toEqual(property.provenance);
+    expect(detail.property.listings[0]!.features).toEqual(['pool', 'café', 'unknown amenity']);
+    expect(detail.property.featureAgreement.map((agreement) => agreement.feature)).toEqual([
+      'pool',
+      'café',
+      'unknown amenity',
+    ]);
+    expect(detail.property.listings[0]!.fieldEffectiveAt).toEqual({
+      askingPrice: property.normalized.askingPriceMinorUnits.collectedAt,
+      description: property.normalized.maskedDescription.collectedAt,
+      attributes: property.normalized.propertyType.collectedAt,
+    });
+    for (const value of [
+      property.normalized.propertyType,
+      property.normalized.askingPriceMinorUnits,
+      property.normalized.areaSquareMeters,
+      property.normalized.bedrooms,
+      property.normalized.bathrooms,
+      property.normalized.parkingSpaces,
+      ...property.normalized.features,
+      ...Object.values(property.normalized.location),
+      property.normalized.maskedDescription,
+    ]) {
+      expect(detail.property.listings[0]!.provenance).toMatchObject({
+        sourceId: value.source,
+        sourceUrl: value.sourceUrl,
+        observedAt: value.collectedAt,
+      });
+    }
     expect(detail.property.preparedEvidence.productionMatchScore).toBeNull();
   });
   it('revokes text independently on both endpoints and keeps provenance', async () => {
@@ -106,6 +137,12 @@ describe('persisted initial property through production Nest HTTP wiring', () =>
         /Bright synthetic|"current"|"versions"|"text"|excerpt/,
       );
       expect(JSON.stringify(json)).toContain(property.provenance.contentHash);
+      const listing = path.startsWith('properties')
+        ? parsePropertyResponse(json).property.listings[0]!
+        : parseListingResponse(json).listing;
+      expect(listing.fieldEffectiveAt.description).toBe(
+        property.normalized.maskedDescription.collectedAt,
+      );
       if (path.startsWith('properties')) parsePropertyResponse(json);
       else parseListingResponse(json);
     }

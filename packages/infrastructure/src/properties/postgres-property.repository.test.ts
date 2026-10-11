@@ -8,13 +8,14 @@ import { fixtureId, initialEvent, initialProperty } from './property.test-fixtur
 describe('PostgresPropertyRepository', () => {
   it('scopes every mutation to its own active pool transaction and own schema', async () => {
     const property = await initialProperty();
-    const query = vi.fn(async (sql: string) =>
-      sql.includes('SELECT property_id')
+    const query = vi.fn(async (sql: string, params?: readonly unknown[]) => {
+      void params;
+      return sql.includes('SELECT property_id')
         ? [{ property_id: property.propertyId }]
         : sql.includes('SELECT event_id')
           ? [{ event_id: initialEvent.eventId }]
-          : [],
-    );
+          : [];
+    });
     const identity = {};
     const connection = {
       transactionIdentity: () => identity,
@@ -34,6 +35,18 @@ describe('PostgresPropertyRepository', () => {
     });
     expect(query.mock.calls.map(([sql]) => sql).join('\n')).not.toMatch(/collection\.|locations\./);
     expect(query.mock.calls.at(-1)![0]).toBe('COMMIT');
+    const listingWrite = query.mock.calls.find(([sql]) =>
+      sql.startsWith('INSERT INTO properties.listing'),
+    )!;
+    expect(listingWrite[1]!.slice(4)).toEqual([
+      property.normalized.askingPriceMinorUnits.value,
+      property.normalized.currency.value,
+      property.normalized.areaSquareMeters.value,
+    ]);
+    const factWrite = query.mock.calls.find(([sql]) =>
+      sql.startsWith('INSERT INTO properties.incoming_fact'),
+    )!;
+    expect(factWrite[1]![5]).toBe(JSON.stringify(initialEvent));
     await expect(repository.hasFact(scope!, initialEvent.eventId)).rejects.toThrow('inactive');
     await expect(repository.hasFact({} as Transaction, initialEvent.eventId)).rejects.toThrow(
       'own PostgreSQL',
@@ -53,6 +66,9 @@ describe('PostgresPropertyRepository', () => {
     const repository = new PostgresPropertyRepository({ query } as unknown as DatabaseConnection);
     expect((await repository.getProperty(property.propertyId))!.initial).toEqual(initialEvent);
     expect((await repository.getListing(property.listingId))!.propertyId).toBe(property.propertyId);
+    expect((await repository.getProperty(property.propertyId))!.normalized).toEqual(
+      property.normalized,
+    );
     expect(await repository.getProperty(fixtureId(999))).toBeNull();
     await expect(repository.getListing('bad')).rejects.toThrow();
     query.mockResolvedValue([{ ...row, event: { ...initialEvent, extra: true } }]);

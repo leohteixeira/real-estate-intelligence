@@ -71,6 +71,29 @@ describe('initial Property aggregate', () => {
     expect(creation.payload.listing.provenance).toEqual(property.provenance);
     expect(creation.payload.listing.placeId).toBe('district');
   });
+  it('normalizes its owned view without changing the original event or published address', () => {
+    const original = {
+      ...event,
+      payload: {
+        ...event.payload,
+        listing: { ...event.payload.listing, features: [' Pool ', 'POOL', 'Unknown\t amenity'] },
+      },
+    };
+    const before = JSON.stringify(original);
+    const property = new Property(id(10), id(11), original, refs);
+    expect(JSON.stringify(property.initial)).toBe(before);
+    expect(JSON.stringify(original)).toBe(before);
+    expect(property.normalized.features.map((feature) => feature.value)).toEqual([
+      'pool',
+      'unknown amenity',
+    ]);
+    expect(property.normalized.location.street.value).toBe('Avenida Exemplo');
+    expect(property.resolved.place.name.en).toBe('District');
+    expect(property.normalized.areaSquareMeters.collectedAt).toBe(event.payload.source.observedAt);
+    expect(property.creationEvent(id(12))).toEqual(
+      new Property(id(10), id(11), event, refs).creationEvent(id(12)),
+    );
+  });
   it('rejects overlapping identities, noncanonical input and invented place hierarchies', () => {
     expect(() => new Property(id(10), id(10), event, refs)).toThrow();
     expect(() => new Property(id(10), id(11), { ...event, extra: true }, refs)).toThrow();

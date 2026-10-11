@@ -10,6 +10,48 @@ import { PersistedPropertiesFacade } from './persisted-properties.facade.js';
 import { fixtureId, initialEvent, initialProperty } from './property.test-fixture.js';
 
 describe('persisted initial detail and composite facade', () => {
+  it('projects normalized features and inherited per-value provenance with acquisition effective dates', async () => {
+    const original = await initialProperty();
+    const property = new Property(
+      original.propertyId,
+      original.listingId,
+      {
+        ...initialEvent,
+        payload: {
+          ...initialEvent.payload,
+          listing: {
+            ...initialEvent.payload.listing,
+            features: [' Pool ', 'POOL', 'Unknown\t amenity'],
+            bedrooms: 0,
+            bathrooms: 0,
+            parkingSpaces: 0,
+          },
+        },
+      },
+      original.resolved,
+    );
+    const response = parsePropertyResponse(projectInitialProperty(property, true));
+    const listing = response.property.listings[0]!;
+    expect(listing.features).toEqual(['pool', 'unknown amenity']);
+    expect(response.property.featureAgreement.map((agreement) => agreement.feature)).toEqual(
+      listing.features,
+    );
+    expect([listing.bedrooms, listing.bathrooms, listing.parkingSpaces]).toEqual([0, 0, 0]);
+    expect(listing.street).toBe(property.normalized.location.street.value);
+    expect(listing.provenance.sourceId).toBe(property.normalized.propertyType.source);
+    expect(listing.provenance.sourceUrl).toBe(property.normalized.features[0]!.sourceUrl);
+    expect(listing.fieldEffectiveAt).toEqual({
+      askingPrice: property.normalized.askingPriceMinorUnits.collectedAt,
+      description: property.normalized.maskedDescription.collectedAt,
+      attributes: property.normalized.features[0]!.collectedAt,
+    });
+    expect(listing.provenance.observedAt).not.toBe(initialEvent.occurredAt);
+    expect(property.initial.payload.listing.features).toEqual([
+      ' Pool ',
+      'POOL',
+      'Unknown\t amenity',
+    ]);
+  });
   it.each([
     {
       label: 'unsafe result',
