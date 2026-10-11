@@ -1,14 +1,25 @@
-import { parsePropertiesEvent, type PropertiesEvent } from '@rei/domain';
+import {
+  parsePropertiesEvent,
+  parsePropertiesEventV2,
+  PropertiesEventV2,
+  type PropertiesEvent,
+} from '@rei/domain';
 import { ExternalFailure, type Inbox, type TransactionRunner } from '../shared/index.js';
 import {
   MARKET_LISTING_EVENT_TYPES,
-  type MarketListingEvent,
   type MarketPriceFactsProjectionPort,
+  type MarketPriceFactsEvent,
 } from './market-price-facts.port.js';
 
 export const MARKET_LISTING_CONSUMER = 'market.listing-price-facts';
-function isListingEvent(event: PropertiesEvent): event is MarketListingEvent {
-  return MARKET_LISTING_EVENT_TYPES.some((type) => type === event.type);
+function isAcceptedEvent(
+  event: PropertiesEvent | PropertiesEventV2,
+): event is MarketPriceFactsEvent {
+  return (
+    event instanceof PropertiesEventV2 ||
+    (event.type.startsWith('properties.listing.') &&
+      MARKET_LISTING_EVENT_TYPES.some((type) => type === event.type))
+  );
 }
 export class ConsumeMarketListing {
   public constructor(
@@ -18,8 +29,14 @@ export class ConsumeMarketListing {
   ) {}
   public async execute(untrusted: unknown, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
-    const event = parsePropertiesEvent(untrusted);
-    if (!isListingEvent(event))
+    const event =
+      typeof untrusted === 'object' &&
+      untrusted !== null &&
+      'version' in untrusted &&
+      untrusted.version === 2
+        ? parsePropertiesEventV2(untrusted)
+        : parsePropertiesEvent(untrusted);
+    if (!isAcceptedEvent(event))
       throw new ExternalFailure({ kind: 'rejected', operation: MARKET_LISTING_CONSUMER });
     await this.transactions.runInTransaction(async (transaction) => {
       await this.facts.project(transaction, event);

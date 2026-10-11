@@ -175,7 +175,7 @@ function provenance(value: unknown): ListingProvenance {
     observedAt: date(p.observedAt),
   };
 }
-function listingFact(value: unknown): ListingFact {
+export function parseListingFact(value: unknown): ListingFact {
   const p = record(value, [
     'listingId',
     'propertyId',
@@ -219,7 +219,7 @@ function listingFact(value: unknown): ListingFact {
     fail();
   return result;
 }
-function minimumFact(value: unknown): MinimumAskingPriceFact {
+export function parseMinimumAskingPriceFact(value: unknown): MinimumAskingPriceFact {
   const p = record(value, [
     'propertyId',
     'placeId',
@@ -282,7 +282,7 @@ function payload<T extends PropertiesEventType>(
   const effectiveAt = date(p.effectiveAt);
   if (effectiveAt > occurredAt) fail();
   if (listing) {
-    const fact = listingFact(p.listing);
+    const fact = parseListingFact(p.listing);
     if (
       fact.listingId !== aggregateId ||
       fact.effectiveAt !== effectiveAt ||
@@ -302,8 +302,8 @@ function payload<T extends PropertiesEventType>(
         fail();
     }
   } else if (type === 'properties.property.asking-price-changed') {
-    const previous = minimumFact(p.previous);
-    const current = minimumFact(p.current);
+    const previous = parseMinimumAskingPriceFact(p.previous);
+    const current = parseMinimumAskingPriceFact(p.current);
     if (
       previous.propertyId !== aggregateId ||
       current.propertyId !== aggregateId ||
@@ -322,8 +322,8 @@ function payload<T extends PropertiesEventType>(
       p.assignments.length === 0
     )
       fail();
-    const previous = p.previous.map(minimumFact);
-    const resulting = p.resulting.map(minimumFact);
+    const previous = p.previous.map(parseMinimumAskingPriceFact);
+    const resulting = p.resulting.map(parseMinimumAskingPriceFact);
     if (
       [...previous, ...resulting].some(
         (fact) => fact.provenance && fact.provenance.observedAt > effectiveAt,
@@ -371,7 +371,7 @@ function payload<T extends PropertiesEventType>(
       )
     )
       fail();
-    const listingFacts = p.listingFacts.map(listingFact);
+    const listingFacts = p.listingFacts.map(parseListingFact);
     if (
       listingFacts.length !== beforeActive.length ||
       new Set(listingFacts.map((fact) => fact.listingId)).size !== listingFacts.length ||
