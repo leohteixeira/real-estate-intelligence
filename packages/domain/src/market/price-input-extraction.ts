@@ -28,6 +28,7 @@ const scales: Readonly<Record<string, bigint>> = {
   milhao: 1000000n,
   milhoes: 1000000n,
 };
+const unsupportedScales = new Set(['billion', 'billions', 'bilhao', 'bilhoes']);
 const priceLabels = new Set(['price', 'preco', 'valor']);
 const areaLabels = new Set(['area']);
 const currencies = new Set(['r$', 'brl', 'reais', 'real']);
@@ -35,6 +36,7 @@ const currencyLabels = new Set(['currency', 'moeda']);
 const currencyPrepositions = new Set(['in', 'em']);
 const currencyQuoteWords = new Set(['quoted', 'cotado', 'cotada']);
 const currencyCodeWords = new Set(['try', 'all', 'mad', 'top']);
+const foreignCurrencyNames = new Set(['peso', 'pesos', 'franc', 'francs']);
 // Known foreign markers are meaningful beside a numeric mention or explicit declaration,
 // not an arbitrary uppercase word elsewhere in the question.
 const foreignCurrencyCodes = new Set(
@@ -52,7 +54,7 @@ const foreignCurrencyCodes = new Set(
 );
 const squareUnits = new Set(['m2', 'm²']);
 const rangeWords = new Set(['to', 'a', 'ate', 'or', 'ou']);
-const coordinationWords = new Set(['and', 'e']);
+const coordinationWords = new Set(['and', 'e', 'vs']);
 const contextNumberUnits = new Set([
   'bedroom',
   'bedrooms',
@@ -84,9 +86,12 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
   const tokens = originalTokens.map((token) => token.toLowerCase());
   const hasCurrencyReference = (index: number) => {
     let previous = index - 1;
-    if (!currencyPrepositions.has(tokens[previous] ?? '')) return false;
-    previous--;
-    if (currencyQuoteWords.has(tokens[previous] ?? '')) previous--;
+    const hasModifier = tokens[previous] === 'swiss';
+    if (hasModifier) previous--;
+    if (currencyPrepositions.has(tokens[previous] ?? '')) {
+      previous--;
+      if (currencyQuoteWords.has(tokens[previous] ?? '')) previous--;
+    } else if (!hasModifier) return false;
     return (
       /^[+−.,\d-]/.test(tokens[previous] ?? '') ||
       (scales[tokens[previous] ?? ''] !== undefined &&
@@ -97,8 +102,9 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
     tokens.some((token, index) =>
       currencyLabels.has(token)
         ? !currencies.has(tokens[index + 1] ?? '')
-        : foreignCurrencyCodes.has(token) &&
-          (!currencyCodeWords.has(token) || originalTokens[index] === token.toUpperCase()) &&
+        : (foreignCurrencyNames.has(token) ||
+            (foreignCurrencyCodes.has(token) &&
+              (!currencyCodeWords.has(token) || originalTokens[index] === token.toUpperCase()))) &&
           (/^[+−.,\d-]/.test(tokens[index - 1] ?? '') ||
             /^[+−.,\d-]/.test(tokens[index + 1] ?? '') ||
             priceLabels.has(tokens[index - 1] ?? '') ||
@@ -136,47 +142,55 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
   )
     return refused('unsupported_currency');
   if (
-    tokens.some((token) =>
-      [
-        'ft',
-        'ft2',
-        'ft²',
-        'feet',
-        'foot',
-        'pe',
-        'pes',
-        'hectare',
-        'hectares',
-        'ha',
-        'acre',
-        'acres',
-        'yd',
-        'yd2',
-        'yd²',
-        'yard',
-        'yards',
-        'km',
-        'km2',
-        'km²',
-        'kilometer',
-        'kilometers',
-        'kilometre',
-        'kilometres',
-        'quilometro',
-        'quilometros',
-        'm3',
-        'm³',
-        'cm',
-        'cm2',
-        'cm²',
-        'mm',
-        'mm2',
-        'mm²',
-        'inch',
-        'inches',
-        'in2',
-        'in²',
-      ].includes(token),
+    tokens.some(
+      (token, index) =>
+        [
+          'ft',
+          'ft2',
+          'ft²',
+          'feet',
+          'foot',
+          'pe',
+          'pes',
+          'hectare',
+          'hectares',
+          'acre',
+          'acres',
+          'mile',
+          'miles',
+          'milha',
+          'milhas',
+          'yd',
+          'yd2',
+          'yd²',
+          'yard',
+          'yards',
+          'km',
+          'km2',
+          'km²',
+          'kilometer',
+          'kilometers',
+          'kilometre',
+          'kilometres',
+          'quilometro',
+          'quilometros',
+          'm3',
+          'm³',
+          'cm',
+          'cm2',
+          'cm²',
+          'mm',
+          'mm2',
+          'mm²',
+          'inch',
+          'inches',
+          'in2',
+          'in²',
+        ].includes(token) ||
+        (token === 'ha' &&
+          (/^[+−.,\d-]/.test(tokens[index - 1] ?? '') ||
+            (areaLabels.has(tokens[index - 1] ?? '') &&
+              /^[+−.,\d-]/.test(tokens[index + 1] ?? '')))),
     )
   )
     return refused('unsupported_area_unit');
@@ -200,7 +214,9 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
     let afterIndex = index + 1;
     const scale = attachedScale ? 1000n : (scales[tokens[afterIndex] ?? ''] ?? 1n);
     if (scale !== 1n && !attachedScale) afterIndex++;
-    const invalidScale = scales[tokens[afterIndex] ?? ''] !== undefined;
+    const invalidScale =
+      scales[tokens[afterIndex] ?? ''] !== undefined ||
+      unsupportedScales.has(tokens[afterIndex] ?? '');
     const price =
       priceLabels.has(before) || currencies.has(before) || currencies.has(tokens[afterIndex] ?? '');
     const area = areaLabels.has(before) || isAreaUnit(afterIndex);
