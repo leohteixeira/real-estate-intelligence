@@ -10,7 +10,7 @@ pnpm run test:integration:list
 pnpm run test:integration
 ```
 
-The full command builds compiled applications once, then discovers all nineteen campaigns plus
+The full command builds compiled applications once, then discovers all twenty campaigns plus
 cleanup/support tests. Files run serially; a campaign can deliberately exercise simultaneous writers
 or four parallel brokers. Test and hook deadlines are bounded, and empty discovery fails. Fixture
 probes in `integration/fixtures/` and compiled tests under `dist/` are not discovered.
@@ -23,6 +23,7 @@ pnpm run test:integration:market
 pnpm run test:integration:market-median
 pnpm run test:integration:market-price-facts
 pnpm run test:integration:ask
+pnpm run test:integration:run-executor
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
 pnpm run test:integration:audit
@@ -53,6 +54,15 @@ run/thread and reaches an explicit edited-confirmation terminal. Both use the pr
 PostgreSQL/migrations/API images and compare every owned table count/content digest before and
 after: no Ask table, retained caller text, outbox write or live AI execution is added. See the
 [Ask API reference](../api/ask.md) for the prepared-only contract and replay limitations.
+
+The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
+campaign against the production AI image, and a production worker-command E2E journey resolving
+the Nest `RUN_EXECUTOR` port and traversing the real no-op graph. Each owns PostgreSQL, migrations,
+API and AI fixtures, generates fresh internal authority, verifies no token/question logging or AI
+infrastructure credentials, and compares every SQL digest and public Ask catalogue before/after.
+The worker command uses bounded stdin and the production worker image without DB/broker modules;
+wrong or absent authority fails categorically. Shared exact-label teardown verifies foreign Docker
+containers and volumes survive. See [the RunExecutor reference](../api/run-executor.md).
 
 ## Strict TypeScript checking
 

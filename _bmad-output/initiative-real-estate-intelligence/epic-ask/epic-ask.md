@@ -81,3 +81,13 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   shapes, not live POST handlers or quota counters. No arbitrary visitor text, model call, SQL
   write, outbox event or production durability is introduced. D-012 and ADR 0020 override the
   skill's Prisma/NX/Jest examples (agent, on the owner's behalf, 2026-10-11).
+- Decision: D-044 introduces the authenticated worker-to-AI `RunExecutor` hop at
+  `POST /internal/v1/runs/execute`. Its explicit `foundation` step actually traverses the existing
+  no-op LangGraph and returns correlated `foundation-executed` evidence, not an analysis result
+  or public terminal state. A worker one-shot command uses the same production DI port; durable
+  dispatch, tools, providers and checkpoints remain their later stories. Missing internal token
+  disables execution without breaking collection startup; only worker and AI receive the token,
+  with ephemeral fixture configuration and no fixed secret or `.env` edit. Single-attempt HTTP,
+  strict contracts, fixed destination/no redirects, bounded cancellation and ADR-ordered named
+  policies protect the hop. Existing public Ask previews remain read-only and non-live
+  (agent, on the owner's behalf, 2026-10-11).
