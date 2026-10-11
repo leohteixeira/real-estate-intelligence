@@ -3,7 +3,7 @@
 The seven read endpoints below are a versioned, synthetic contract surface. Property and listing
 detail query persisted owned-synthetic listing history first, then use prepared fallback for
 existing fixture IDs. Place navigation reads a persisted synthetic reference; property search,
-counts and reductions remain prepared. No read starts
+and counts remain prepared; largest reductions query persisted original market effects. No read starts
 collection, publishes events, resolves entities or calculates market figures. The prepared fixture
 is the unchanged collection replay: five prepared properties, nine listing identities and thirteen
 monthly observations from October 2025 through October 2026. Supplementary permission, expiry and missing-value
@@ -169,7 +169,7 @@ Reference geography is fixture-only and persisted in the owned `locations` schem
 `SYN-SP-0001` observations on Avenida Exemplo resolve to
 `sao-paulo-bela-vista-avenida-exemplo-fictional-block`, with six crumbs. Existing five-crumb initial
 property snapshots remain immutable and readable after replay or restart. Persisted property
-records do not enter prepared search, place counts or reductions.
+records do not enter prepared search or place counts. They alone supply production reductions.
 
 The worker job uses `LISTING_HISTORY_BATCH_SIZE` (1–100, default 25),
 `LISTING_HISTORY_INTERVAL_MS` (at least 100, default 250), and `LISTING_HISTORY_TIMEOUT_MS`
@@ -213,9 +213,9 @@ persisted, logged or added to canonical events. Collection still supplies no num
 
 All place reads use PostgreSQL and fail closed with the standard sanitized error response if
 persistence is unavailable; there is no prepared-memory fallback. Supplementary IDs are valid
-prepared search/reduction scopes with empty results, but the five-property projection and its
-original eighteen-place counts are unchanged. No public place writes, new business events,
-geometry/PostGIS activation or real-source processing are introduced.
+prepared search scopes with empty results and persisted reduction scopes, but the five-property
+projection and its original eighteen-place counts are unchanged. No public place writes, new
+business events, geometry/PostGIS activation or real-source processing are introduced.
 
 ## Endpoints
 
@@ -284,18 +284,38 @@ later requests. A malformed cursor or one copied to a different scope, filter, s
 endpoint returns `400`. `nextCursor: null` marks the last page. The cursor is an opaque navigation
 token, not an authorization or tamper-proof security token. `totalItems` is the full matching count.
 
-Reductions select each property's latest strictly negative minimum-active-asking-price change through
-`asOf`. There is at most one row per property, ordered by positive `reductionPercent` descending,
-then property ID ascending. The originating selected listing is linked by `listingId` and provenance.
+Reductions use `fixtureVersion: "persisted-synthetic-reductions-v1"` and `dataMode: "synthetic-stub"`.
+Each actual persisted Property currently owns one Listing, without physical-property matching or
+catalog grouping. The endpoint selects its latest strictly negative original `price-changed` effect
+by effective date through `asOf`; canonical history position resolves equal dates. Later price
+increases and removals do not discard that historical reduction. There is no 30-day or active-only
+filter. Rows sort by exact positive percentage descending, then Property ID ascending. The selected
+Listing is linked by `listingId` and original provenance.
 The backend computes signed `changePercent = (currentMinorUnits - previousMinorUnits) /
 previousMinorUnits * 100` on every property price-history item and `reductionPercent = -changePercent`
 on reductions. Clients format those facts without recalculating them.
 
-Santana illustrates the distinction: its property minimum changes from 67000000 to 65500000
-centavos (about 2.2388%), although the selected Brisa listing changes from 68000000 to 65500000.
-The fixture has four property reduction rows: Tatuapé, Bela Vista, Santana and Vila Mariana in that
-order. Vila Mariana's minimum rises while its cheaper listing is absent, then falls when that
-listing returns. None of these asking-price changes records a sale or a market appreciation metric.
+Registered self-and-descendant geography determines scope, including all six levels and the two
+supplementary blocks. Membership and returned `place` use the newest dated acquisition's eligible
+corrected geography. Corrections can therefore move a row between places, but cannot rewrite its
+original previous/current amounts, effective date or provenance, or manufacture a reduction from
+adjacent corrected values. Legacy acquisition backfill likewise invents no pre-creation effects.
+For example, a corrected current price of 72000000 can coexist with an original recorded reduction
+of 80000000 → 70000000; the ranking still reports that original effect.
+
+`asOf` is the maximum authentic original-acquisition or market-effect date across the whole scoped
+set, including unchanged, nonreducing and initial-only Properties. Correction receipt times never
+advance it. A known scope with no Properties uses the injected current clock and returns an empty
+page; unknown scopes return `404`. Database failures return sanitized `500`, never prepared rows.
+Persisted cursors bind the endpoint, place and page size, but are live navigation tokens: they do
+not freeze a dataset snapshot, so new facts can change membership, totals and offsets between pages.
+
+Collecting all 39 original catalog runs yields 115 acquisitions and three actual Properties with
+recorded reductions: Brisa Santana (68000000 → 65500000), Cobalto Tatuapé (95000000 → 92000000),
+then Aurora Bela Vista (80000000 → 78000000). The separate prepared adapter retains four grouped
+examples for its own tests; production does not mix them with persisted rows or invent a drop when
+an unchanged listing returns. None of these asking-price changes records a sale or a market
+appreciation metric.
 
 ## Response models and public validators
 

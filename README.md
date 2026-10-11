@@ -19,7 +19,8 @@ Both are version 1, accepted as an engineering baseline by the agent on the owne
 > Current state: **synthetic contract foundation**. Collection plumbing and deterministic synthetic
 > replay exist. Verified owned-synthetic parsed events now persist an initial single-listing Property
 > and Listing, served through the detail routes. Locations persists twenty synthetic reference places;
-> property search, counts and reductions remain the unchanged prepared fixtures.
+> property search and counts remain the unchanged prepared fixtures; place reductions read
+> actual persisted Properties' original negative price effects, without matching/grouping.
 > Real-source processing, production matching, full history, market figures and comparables
 > are not enabled.
 

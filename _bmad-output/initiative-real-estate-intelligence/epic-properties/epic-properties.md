@@ -83,6 +83,15 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   Prove genuine synthetic collection separately from an explicitly labelled owner-repository
   historical encrypted fixture; do not weaken ingestion authority or enable a real source
   (agent, on the owner's behalf, 2026-10-11).
+- Decision: D-037 replaces production reductions with persisted-only market history, with no
+  prepared fallback or labelled matching. Select one latest negative minimum-price effect per
+  actual Property through asOf, by effective date then canonical order, with positive percentage
+  descending and property ID ties. Current one-listing Properties remain unresolved; corrections
+  and legacy backfill without effects never fabricate repricing, and later rises/removals do not
+  erase earlier reductions. Use current dated/corrected geography and registered descendant IDs
+  through Locations, with no foreign SQL. Preserve DTOs, explicit persisted synthetic metadata,
+  strict live-projection cursors and empty/failed-read behavior; search/counts stay separate
+  (agent, on the owner's behalf, 2026-10-11).
 
 - Decision: D-033 preserves authentic Removed completedAt and the frozen v1 temporal guard by
   selecting the latest authenticated original observedAt/snapshotId at or before that completion,
