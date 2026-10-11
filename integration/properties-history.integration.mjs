@@ -10,7 +10,11 @@ import {
   ReparseSnapshot,
 } from '../packages/application/dist/index.js';
 import { parseCollectionEvent } from '../packages/domain/dist/index.js';
-import { parsePropertyResponse, parseListingResponse } from '../packages/contracts/dist/index.js';
+import {
+  parsePropertyResponse,
+  parseListingResponse,
+  parseReductionsResponse,
+} from '../packages/contracts/dist/index.js';
 import {
   DatabaseConnection,
   PostgresCollectionRunRepository,
@@ -26,6 +30,8 @@ import {
   SyntheticListingSource,
   SYNTHETIC_SAO_PAULO_DATASET,
   PostgresSnapshotReparseRepository,
+  syntheticPlaces,
+  supplementaryPlaces,
 } from '../packages/infrastructure/dist/index.js';
 
 const run = promisify(execFile);
@@ -282,6 +288,131 @@ try {
     }
   }
   assert.equal(acquisitions, 115);
+  // Independent HTTP-detail oracle: immutable effects, not corrected current asking prices.
+  const registeredPlaces = [...syntheticPlaces(), ...supplementaryPlaces()];
+  const reductions = (place = 'sao-paulo', query = '') =>
+    get(`places/${place}/largest-reductions${query}`, parseReductionsResponse);
+  const assertRankings = async () => {
+    const rows = await connection.query(
+      'SELECT listing_id::text FROM properties.listing ORDER BY listing_id',
+    );
+    const details = [];
+    for (const row of rows)
+      details.push((await get(`listings/${row.listing_id}`, parseListingResponse)).listing);
+    for (const place of registeredPlaces) {
+      const scope = registeredPlaces
+        .filter((item) => item.breadcrumbs.some((crumb) => crumb.id === place.id))
+        .map((item) => item.id);
+      const scoped = details.filter((item) => scope.includes(item.place.id));
+      const expected = scoped
+        .flatMap((listing) => {
+          let effect;
+          for (const item of listing.history)
+            if (
+              item.type === 'price-changed' &&
+              item.currentMinorUnits < item.previousMinorUnits &&
+              (!effect || item.effectiveAt >= effect.effectiveAt)
+            )
+              effect = item;
+          return effect
+            ? [
+                {
+                  propertyId: listing.propertyId,
+                  listingId: listing.id,
+                  place: listing.place,
+                  effectiveAt: effect.effectiveAt,
+                  previousMinorUnits: effect.previousMinorUnits,
+                  currentMinorUnits: effect.currentMinorUnits,
+                  reductionPercent:
+                    ((effect.previousMinorUnits - effect.currentMinorUnits) /
+                      effect.previousMinorUnits) *
+                    100,
+                  provenance: effect.provenance,
+                },
+              ]
+            : [];
+        })
+        .sort((a, b) => {
+          const difference =
+            BigInt(b.previousMinorUnits - b.currentMinorUnits) * BigInt(a.previousMinorUnits) -
+            BigInt(a.previousMinorUnits - a.currentMinorUnits) * BigInt(b.previousMinorUnits);
+          return difference > 0n
+            ? 1
+            : difference < 0n
+              ? -1
+              : a.propertyId.localeCompare(b.propertyId);
+        });
+      const full = await reductions(place.id);
+      assert.equal(full.totalItems, expected.length, place.id);
+      assert.deepEqual(full.items, expected.slice(0, 20), place.id);
+      assert.equal(full.metadata.fixtureVersion, 'persisted-synthetic-reductions-v1');
+      assert.equal(full.metadata.dataMode, 'synthetic-stub');
+      if (scoped.length)
+        assert.equal(
+          full.metadata.asOf,
+          scoped
+            .flatMap((item) => [
+              item.lastCollectedAt,
+              ...item.history.map((effect) => effect.effectiveAt),
+            ])
+            .sort()
+            .at(-1),
+        );
+      for (const size of [1, 20]) {
+        const paged = [];
+        let cursor;
+        do {
+          const page = await reductions(
+            place.id,
+            `?pageSize=${size}${cursor ? `&cursor=${cursor}` : ''}`,
+          );
+          assert.equal(page.totalItems, expected.length);
+          paged.push(...page.items);
+          cursor = page.nextCursor;
+        } while (cursor);
+        assert.deepEqual(paged, expected, `${place.id}/${size}`);
+      }
+    }
+    return reductions();
+  };
+  const catalogRanking = await assertRankings();
+  assert.equal(
+    catalogRanking.totalItems,
+    3,
+    'Only three actual identities have original drops, not four prepared groups.',
+  );
+  assert.deepEqual(
+    catalogRanking.items.map((item) => [item.previousMinorUnits, item.currentMinorUnits]),
+    [
+      [68000000, 65500000],
+      [95000000, 92000000],
+      [80000000, 78000000],
+    ],
+  );
+  const firstPage = await reductions('sao-paulo', '?pageSize=1');
+  assert(firstPage.nextCursor);
+  for (const path of [
+    `places/sao-paulo/largest-reductions?pageSize=20&cursor=${firstPage.nextCursor}`,
+    `places/brazil/largest-reductions?pageSize=1&cursor=${firstPage.nextCursor}`,
+    `properties?pageSize=1&cursor=${firstPage.nextCursor}`,
+    'places/sao-paulo/largest-reductions?cursor=invalid',
+    'places/sao-paulo/largest-reductions?pageSize=1&pageSize=1',
+    'places/sao-paulo/largest-reductions?extra=value',
+  ]) {
+    const response = await fetch(`http://127.0.0.1:${api}/api/v1/${path}`, { signal: signal() });
+    assert.equal(response.status, 400, path);
+    const error = await response.json();
+    assert(error.error.requestId);
+    assert(!JSON.stringify(error).includes(firstPage.nextCursor));
+  }
+  assert.equal(
+    (
+      await fetch(`http://127.0.0.1:${api}/api/v1/places/unknown/largest-reductions`, {
+        signal: signal(),
+      })
+    ).status,
+    404,
+  );
   const document = (day, listing) => ({
     sourceId: 'synthetic-data',
     sourceListingId: 'OWNED-FIVE-TYPES',
@@ -345,7 +476,14 @@ try {
             askingPriceMinorUnits: price,
             maskedDescription: description,
             ...(invalidGeography
-              ? { location: { ...listing.location, street: 'Unknown correction street' } }
+              ? {
+                  location: {
+                    ...listing.location,
+                    ...(typeof invalidGeography === 'object'
+                      ? invalidGeography
+                      : { street: 'Unknown correction street' }),
+                  },
+                }
               : {}),
           };
         },
@@ -363,6 +501,11 @@ try {
       [focused.listing_id],
     ),
   );
+  const originalFocusedRanking = (await reductions()).items.find(
+    (item) => item.propertyId === focused.property_id,
+  );
+  assert.equal(originalFocusedRanking.previousMinorUnits, first.askingPriceMinorUnits);
+  assert.equal(originalFocusedRanking.currentMinorUnits, price.askingPriceMinorUnits);
   const focusedSnapshots = await connection.query(
     "SELECT snapshot_id::text FROM collection.snapshot_observation WHERE source_listing_id='OWNED-FIVE-TYPES' ORDER BY observed_at,snapshot_id",
   );
@@ -415,6 +558,11 @@ try {
   assert.equal(focusedResponse.listing.collectionCount, 4);
   assert.equal(focusedResponse.listing.provenance.snapshotId, focusedSnapshots.at(-1).snapshot_id);
   assert.equal(focusedResponse.listing.description.current, 'Owned higher-order corrected text.');
+  assert.deepEqual(
+    (await reductions()).items.find((item) => item.propertyId === focused.property_id),
+    originalFocusedRanking,
+  );
+  assert.equal((await reductions()).metadata.asOf, '2027-01-05T12:00:00.000Z');
   assert.equal(
     JSON.stringify(
       await connection.query(
@@ -1655,6 +1803,7 @@ try {
       'SELECT event FROM properties.listing_event ORDER BY listing_id,revision',
     ),
   );
+  const beforeReplayRanking = await assertRankings();
   await connection.query(
     "DELETE FROM platform.inbox WHERE consumer_name IN ('properties.parsed-listing','properties.completed-run')",
   );
@@ -1683,6 +1832,7 @@ try {
     ),
     immutableEffects,
   );
+  assert.deepEqual(await reductions(), beforeReplayRanking);
   assert.deepEqual(
     await get(`listings/${focused.listing_id}`, parseListingResponse),
     focusedResponse,
@@ -2046,6 +2196,7 @@ try {
       'SELECT event FROM properties.listing_event ORDER BY listing_id,revision',
     ),
   );
+  const beforeAdmissionReplayRanking = await assertRankings();
   const admissionOriginals = await connection.query(
     'SELECT event FROM collection.parsed_event_evidence ORDER BY event_id DESC',
   );
@@ -2078,6 +2229,7 @@ try {
     ),
     admissionEffects,
   );
+  assert.deepEqual(await reductions(), beforeAdmissionReplayRanking);
   for (const item of admissionResponses) {
     assert.deepEqual(await get(`listings/${item.listing_id}`, parseListingResponse), item.response);
     assert.deepEqual(
@@ -2085,6 +2237,109 @@ try {
       item.response.listing,
     );
   }
+  // A latest eligible correction changes scope only; immutable price effect remains original.
+  const focusedBeforeMove = (await reductions()).items.find(
+    (item) => item.propertyId === focused.property_id,
+  );
+  const newestFocused = (
+    await connection.query(
+      "SELECT snapshot_id::text FROM collection.snapshot_observation WHERE source_listing_id='OWNED-FIVE-TYPES' ORDER BY observed_at DESC,snapshot_id DESC LIMIT 1",
+    )
+  )[0];
+  instant = '2040-01-01T12:00:00.000Z';
+  await reparse(
+    newestFocused.snapshot_id,
+    'ranking-current-geography',
+    400000,
+    'Owned moved geography correction.',
+    { neighborhood: 'Vila Mariana', street: 'Rua Cenário Um' },
+  );
+  await waitFor('corrected ranking geography', async () =>
+    (await reductions('sao-paulo-vila-mariana')).items.some(
+      (item) => item.propertyId === focused.property_id,
+    ),
+  );
+  const moved = (await reductions()).items.find((item) => item.propertyId === focused.property_id);
+  assert.deepEqual({ ...moved, place: focusedBeforeMove.place }, focusedBeforeMove);
+  assert(
+    !(await reductions('sao-paulo-bela-vista')).items.some(
+      (item) => item.propertyId === focused.property_id,
+    ),
+  );
+  assert(
+    (await reductions()).metadata.asOf < instant,
+    'Correction receipt time cannot advance authentic asOf.',
+  );
+  // Genuine focused acquisitions cover exact percentage ties and canonical equal-date drops
+  // amid date regressions, a later increase, an unchanged observation and final removal.
+  const rankIdentities = ['OWNED-RANK-TIE-A', 'OWNED-RANK-TIE-B', 'OWNED-RANK-DATED'];
+  for (const [index, [day, amount]] of [
+    [1, 1000000],
+    [9, 500000],
+    [12, 450000],
+    [10, 400000],
+    [12, 380000],
+    [13, 800000],
+  ].entries()) {
+    const documents = rankIdentities.map((identity, position) => ({
+      sourceId: 'synthetic-data',
+      sourceListingId: identity,
+      sourceUrl: `https://synthetic.invalid/listings/${identity.toLowerCase()}`,
+      observedAt: `2038-01-${String(position === 2 ? day : index + 1).padStart(2, '0')}T12:00:00.000Z`,
+      mediaType: 'application/json',
+      bytes: new TextEncoder().encode(
+        JSON.stringify({
+          ...first,
+          askingPriceMinorUnits: position === 2 ? amount : index === 0 ? 1000000 : 800000,
+        }),
+      ),
+    }));
+    await collect(
+      'synthetic-data',
+      `owned-ranking-${index}`,
+      documents,
+      `2039-01-0${index + 1}T12:00:00.000Z`,
+    );
+  }
+  await collect('synthetic-data', 'owned-ranking-removal', [], '2039-01-07T12:00:00.000Z');
+  await waitFor(
+    'genuine ranking scenarios removed',
+    async () =>
+      (
+        await connection.query(
+          "SELECT count(*)::integer AS count FROM properties.listing_current current JOIN properties.listing listing USING(listing_id) WHERE listing.source_listing_id=ANY($1::text[]) AND current.state->>'status'='removed'",
+          [rankIdentities],
+        )
+      )[0].count === 3,
+  );
+  const rankRows = (await reductions()).items.filter((item) =>
+    rankIdentities.includes(item.provenance.sourceListingId),
+  );
+  assert.equal(rankRows.length, 3);
+  const tied = rankRows.filter((item) => item.provenance.sourceListingId !== 'OWNED-RANK-DATED');
+  assert(tied.every((item) => item.reductionPercent === 20));
+  assert.deepEqual(
+    tied.map((item) => item.propertyId),
+    tied.map((item) => item.propertyId).sort(),
+  );
+  const dated = rankRows.find((item) => item.provenance.sourceListingId === 'OWNED-RANK-DATED');
+  assert.equal(dated.effectiveAt, '2038-01-12T12:00:00.000Z');
+  assert.equal(dated.previousMinorUnits, 400000);
+  assert.equal(dated.currentMinorUnits, 380000);
+  assert.equal((await reductions()).metadata.asOf, '2039-01-07T12:00:01.000Z');
+  const beforeDatabaseRestart = await assertRankings();
+  await compose('stop', 'postgres');
+  const failedRead = await fetch(
+    `http://127.0.0.1:${api}/api/v1/places/sao-paulo/largest-reductions`,
+    { signal: signal() },
+  );
+  assert.equal(failedRead.status, 500);
+  const failedBody = await failedRead.json();
+  assert(failedBody.error.requestId);
+  assert(!JSON.stringify(failedBody).includes(fixture.password));
+  assert(!('items' in failedBody));
+  await compose('up', '--detach', '--wait', 'postgres');
+  assert.deepEqual(await reductions(), beforeDatabaseRestart);
   console.log(
     'Properties history passed: 39 genuine catalog runs, 115 acquisitions, exactly 18 immutable catalog market events, five-type journey, acquisition dates/provenance/revisions/lifelines, historical/current highest-order corrections, correction-first receipt/completion-first missing-original recovery, both-entry transactional admission races, tied starts, authentic one-shot replay, restart/replay and current privacy.',
   );

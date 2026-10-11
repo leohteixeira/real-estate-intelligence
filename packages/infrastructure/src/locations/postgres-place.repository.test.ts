@@ -43,6 +43,20 @@ function fixture() {
   };
 }
 describe('SQL-backed Locations reference', () => {
+  it('reads registered self and descendants in one owned-schema query, including missing and failed scopes', async () => {
+    const query = vi.fn(async () => [{ id: 'brazil' }, { id: 'supplementary-block' }]);
+    const facade = new PostgresLocationsFacade({ query } as unknown as DatabaseConnection);
+    expect(await facade.registeredScopeIds('brazil')).toEqual(['brazil', 'supplementary-block']);
+    expect(query).toHaveBeenCalledTimes(1);
+    const [sql, parameters] = query.mock.calls[0]! as unknown as [string, unknown[]];
+    expect(sql).toContain('WITH RECURSIVE scope');
+    expect(sql).not.toMatch(/(?:properties|collection|platform)\./);
+    expect(parameters).toEqual(['brazil']);
+    query.mockResolvedValueOnce([]);
+    expect(await facade.registeredScopeIds('unknown')).toBeNull();
+    query.mockRejectedValueOnce(new Error('Unavailable'));
+    await expect(facade.registeredScopeIds('brazil')).rejects.toThrow('Unavailable');
+  });
   it('uses the existing lease and rejects foreign, inactive and non-PostgreSQL scopes', async () => {
     const address = {
       city: 'São Paulo',

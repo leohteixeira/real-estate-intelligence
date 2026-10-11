@@ -183,7 +183,7 @@ describe('persisted initial detail and composite facade', () => {
     );
     await expect(facade.getListing(property.listingId)).rejects.toThrow('Dependency unavailable.');
   });
-  it('delegates missing detail, search and reductions without blending ingested facts', async () => {
+  it('delegates missing detail and search without blending ingested facts', async () => {
     const prepared = new SyntheticPropertiesAdapter();
     const facade = new PersistedPropertiesFacade(
       { getProperty: async () => null, getListing: async () => null },
@@ -203,8 +203,5 @@ describe('persisted initial detail and composite facade', () => {
     expect(await facade.getListing(fixtureId(999))).toBeNull();
     const search = { pageSize: 20, sort: 'lowest-price-per-square-meter' } as const;
     expect(await facade.search(search)).toEqual(await prepared.search(search));
-    expect(await facade.largestReductions('sao-paulo', { pageSize: 20 })).toEqual(
-      await prepared.largestReductions('sao-paulo', { pageSize: 20 }),
-    );
   });
 });

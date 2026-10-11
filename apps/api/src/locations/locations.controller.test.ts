@@ -19,6 +19,11 @@ describe('persisted Locations production module HTTP contract', () => {
   const query = vi.fn(async (sql: string, parameters: readonly unknown[] = []) => {
     if (unavailable) throw new Error('Owned fixture database unavailable');
     if (sql.includes('locations.reference_metadata')) return [SYNTHETIC_READ_METADATA];
+    if (sql.includes('FROM properties.property')) return [];
+    if (sql.includes('SELECT public_id AS id FROM scope'))
+      return places
+        .filter((place) => place.breadcrumbs.some((crumb) => crumb.id === parameters[0]))
+        .map((place) => ({ id: place.id }));
     const selected = sql.includes('p.parent_id IS NULL')
       ? places.filter((place) => place.parentId === null)
       : sql.includes('p.parent_id = (SELECT')

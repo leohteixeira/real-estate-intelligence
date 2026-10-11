@@ -6,7 +6,11 @@ import { createServer } from 'node:net';
 import { promisify } from 'node:util';
 import { CollectSourceOnce, ReparseSnapshot } from '../packages/application/dist/index.js';
 import { parseCollectionEvent, Property } from '../packages/domain/dist/index.js';
-import { parsePropertyResponse, parseListingResponse } from '../packages/contracts/dist/index.js';
+import {
+  parsePropertyResponse,
+  parseListingResponse,
+  parseReductionsResponse,
+} from '../packages/contracts/dist/index.js';
 import {
   DatabaseConnection,
   PostgresCollectionRunRepository,
@@ -23,6 +27,7 @@ import {
   PostgresCollectionFacade,
   PostgresLocationsFacade,
   PostgresSnapshotReparseRepository,
+  PostgresPropertyReductionsRepository,
 } from '../packages/infrastructure/dist/index.js';
 
 const run = promisify(execFile);
@@ -352,6 +357,12 @@ try {
     ),
   );
   for (const file of upgrades) await applySql(file);
+  const initialCandidates = await new PostgresPropertyReductionsRepository(
+    connection,
+  ).readCandidates(await new PostgresLocationsFacade(connection).registeredScopeIds('sao-paulo'));
+  assert.equal(initialCandidates.length, 2);
+  assert(initialCandidates.every((candidate) => candidate.priceChanges.length === 0));
+  assert(initialCandidates.every((candidate) => candidate.asOf.startsWith('2028-01-01T')));
   assert.equal(
     (
       await connection.query(
@@ -374,6 +385,20 @@ try {
   );
   assert.equal(response.status, 'active');
   assert.equal(response.askingPriceMinorUnits, first.askingPriceMinorUnits - 100000);
+  const reductions = () => get('places/sao-paulo/largest-reductions', parseReductionsResponse);
+  const recoveredRanking = await reductions();
+  assert.equal(recoveredRanking.metadata.fixtureVersion, 'persisted-synthetic-reductions-v1');
+  assert.equal(recoveredRanking.metadata.asOf, '2028-01-03T12:00:00.000Z');
+  assert.equal(recoveredRanking.totalItems, 1);
+  assert.equal(recoveredRanking.items[0].propertyId, property.propertyId);
+  assert.equal(recoveredRanking.items[0].listingId, property.listingId);
+  assert.equal(recoveredRanking.items[0].previousMinorUnits, first.askingPriceMinorUnits);
+  assert.equal(recoveredRanking.items[0].currentMinorUnits, first.askingPriceMinorUnits - 100000);
+  assert.equal(recoveredRanking.items[0].effectiveAt, '2028-01-02T12:00:00.000Z');
+  assert.deepEqual(
+    recoveredRanking.items[0].provenance,
+    response.history.find((item) => item.type === 'price-changed').provenance,
+  );
   assert.equal(
     (await get(`properties/${property.propertyId}`, parsePropertyResponse)).property.listings[0]
       .collectionCount,
@@ -482,6 +507,11 @@ try {
     response.description.versions[0].text,
     'Owned corrected earlier-than-creation text.',
   );
+  assert.deepEqual(
+    await reductions(),
+    recoveredRanking,
+    'Legacy backfill and its correction invent no negative effect or receipt-time asOf.',
+  );
   assert.equal(
     JSON.stringify(
       await connection.query('SELECT event FROM properties.listing_event ORDER BY revision'),
@@ -512,6 +542,11 @@ try {
   response = (await get(`listings/${property.listingId}`, parseListingResponse)).listing;
   assert.equal(response.collectionCount, 4);
   assert.equal(response.status, 'active');
+  assert.deepEqual(
+    await reductions(),
+    recoveredRanking,
+    'Restart/reverse replay preserves original reductions.',
+  );
   assert.equal(
     (
       await connection.query(
@@ -561,6 +596,12 @@ try {
     ['created', 'price-changed', 'description-changed', 'price-changed'],
   );
   assert.equal(response.status, 'active');
+  const newRanking = await reductions();
+  assert.equal(newRanking.totalItems, 1);
+  assert.equal(newRanking.metadata.asOf, '2028-01-04T12:00:00.000Z');
+  assert.equal(newRanking.items[0].previousMinorUnits, first.askingPriceMinorUnits - 100000);
+  assert.equal(newRanking.items[0].currentMinorUnits, first.askingPriceMinorUnits - 200000);
+  assert.equal(newRanking.items[0].effectiveAt, '2028-01-04T12:00:00.000Z');
   assert.equal(
     JSON.stringify(
       await connection.query(

@@ -73,6 +73,13 @@ function fixture() {
     block: null,
   });
   const repository: PlaceRepository = {
+    registeredScopeIds: vi.fn(async (id) =>
+      id === 'brazil'
+        ? ['brazil', ...candidates.map((place) => place.detail.id)]
+        : candidates.some((place) => place.detail.id === id)
+          ? [id]
+          : null,
+    ),
     metadata: vi.fn(async () => metadata),
     roots: vi.fn(async () => [root]),
     findById: vi.fn(
@@ -98,6 +105,19 @@ function fixture() {
   };
 }
 describe('Locations queries through the read port', () => {
+  it('delegates registered scope without count/detail hydration and detaches it', async () => {
+    const f = fixture();
+    const scope = (await f.service.registeredScopeIds('brazil'))!;
+    expect(scope).toContain(rows[6][3]);
+    expect(await f.service.registeredScopeIds(rows[6][3])).toEqual([rows[6][3]]);
+    expect(await f.service.registeredScopeIds('unknown')).toBeNull();
+    expect(f.repository.findById).not.toHaveBeenCalled();
+    scope.pop();
+    expect((await f.service.registeredScopeIds('brazil'))!).toHaveLength(8);
+    await expect(f.service.registeredScopeIds('BAD')).rejects.toThrow('Invalid place');
+    vi.mocked(f.repository.registeredScopeIds).mockRejectedValueOnce(new Error('Unavailable'));
+    await expect(f.service.registeredScopeIds('brazil')).rejects.toThrow('Unavailable');
+  });
   const published = [
     rows[0],
     rows[1],

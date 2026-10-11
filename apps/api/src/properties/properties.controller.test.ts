@@ -80,8 +80,10 @@ describe('production properties and locations module HTTP contract', () => {
     const reductions = parseReductionsResponse(
       await get(`places/${neighborhood.id}/largest-reductions`),
     );
-    expect(reductions.items[0]!.propertyId).toBe(property.property.summary.id);
-    expect(reductions.items[0]!.currentMinorUnits).toBe(78000000);
+    expect(reductions.items).toEqual([]);
+    expect(reductions.totalItems).toBe(0);
+    expect(reductions.nextCursor).toBeNull();
+    expect(reductions.metadata.fixtureVersion).toBe('persisted-synthetic-reductions-v1');
     expect(property.property.priceChanges).toHaveLength(2);
     expect(JSON.stringify(property)).not.toMatch(
       /unitNumber|contact|phone|email|photo|imageFingerprint|fingerprint/,
@@ -238,27 +240,16 @@ describe('production properties and locations module HTTP contract', () => {
     });
     expect(property.priceChanges.map((change) => change.changePercent)).toEqual([-200 / 82, -2.5]);
     const reductions = parseReductionsResponse(await get('places/sao-paulo/largest-reductions'));
-    expect(reductions.items.map((row) => row.propertyId)).toEqual(
-      [5, 1, 3, 4].map(syntheticReadId),
-    );
-    expect(new Set(reductions.items.map((row) => row.propertyId)).size).toBe(4);
-    const santana = reductions.items.find((row) => row.propertyId === syntheticReadId(3))!;
-    expect(santana.previousMinorUnits).toBe(67000000);
-    expect(santana.currentMinorUnits).toBe(65500000);
-    expect(santana.reductionPercent).toBeCloseTo(150 / 67);
-    let cursor: string | null = null;
-    const ids = [];
-    do {
+    expect(reductions.items).toEqual([]);
+    expect(reductions.totalItems).toBe(0);
+    for (const pageSize of [1, 20]) {
       const page = parseReductionsResponse(
-        await get(
-          `places/sao-paulo/largest-reductions?pageSize=1${cursor ? `&cursor=${cursor}` : ''}`,
-        ),
+        await get(`places/sao-paulo/largest-reductions?pageSize=${pageSize}`),
       );
-      expect(page.totalItems).toBe(4);
-      ids.push(page.items[0]!.propertyId);
-      cursor = page.nextCursor;
-    } while (cursor);
-    expect(ids).toEqual(reductions.items.map((row) => row.propertyId));
+      expect(page.items).toEqual([]);
+      expect(page.nextCursor).toBeNull();
+      expect(page.totalItems).toBe(0);
+    }
   });
   it.each([
     'unknown=secret',

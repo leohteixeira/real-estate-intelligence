@@ -8,6 +8,20 @@ import {
 } from './synthetic-locations.adapter.js';
 describe('synthetic locations read facade', () => {
   const adapter = new SyntheticLocationsAdapter();
+  it('returns detached registered self/descendant scope IDs at every level including supplementary blocks', async () => {
+    const places = [...syntheticPlaces(), ...supplementaryPlaces()];
+    for (const place of places) {
+      const expected = places
+        .filter((item) => item.breadcrumbs.some((crumb) => crumb.id === place.id))
+        .map((item) => item.id)
+        .sort();
+      const ids = await adapter.registeredScopeIds(place.id);
+      expect(ids).toEqual(expected);
+      Reflect.set(ids!, '0', 'changed');
+      expect(await adapter.registeredScopeIds(place.id)).toEqual(expected);
+    }
+    expect(await adapter.registeredScopeIds('unknown')).toBeNull();
+  });
   it('exposes city, five zones, bilingual crumbs, counts and registered symmetric adjacency', async () => {
     const roots = await adapter.roots();
     expect(roots.items[0]!.id).toBe('brazil');

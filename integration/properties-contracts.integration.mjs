@@ -69,7 +69,10 @@ async function get(path, parser) {
   assert.equal(response.status, 200, path);
   const body = parser(await response.json());
   assert.equal(body.metadata.dataMode, 'synthetic-stub');
-  assert.equal(body.metadata.asOf, '2026-10-01T12:00:00.000Z');
+  if (parser === parseReductionsResponse) {
+    assert.equal(body.metadata.fixtureVersion, 'persisted-synthetic-reductions-v1');
+    assert(Number.isFinite(Date.parse(body.metadata.asOf)));
+  } else assert.equal(body.metadata.asOf, '2026-10-01T12:00:00.000Z');
   return body;
 }
 const failureIds = new Set();
@@ -193,7 +196,9 @@ try {
     assert.deepEqual(listing.listing, grouped);
   }
   const reductions = await get(`places/${placeId}/largest-reductions`, parseReductionsResponse);
-  assert.equal(reductions.items[0].propertyId, property.property.summary.id);
+  assert.deepEqual(reductions.items, []);
+  assert.equal(reductions.totalItems, 0);
+  assert.equal(reductions.nextCursor, null);
   const filterCases = [
     ['propertyType=house', 1],
     ['minAskingPrice=78000000&maxAskingPrice=78000000', 1],
@@ -293,35 +298,17 @@ try {
     [],
   );
   const allReductions = await get('places/sao-paulo/largest-reductions', parseReductionsResponse);
-  assert.deepEqual(
-    allReductions.items.map((row) => row.propertyId),
-    [5, 1, 3, 4].map(syntheticReadId),
-  );
-  assert.equal(new Set(allReductions.items.map((row) => row.propertyId)).size, 4);
-  const santana = allReductions.items.find((row) => row.propertyId === syntheticReadId(3));
-  assert.equal(santana.previousMinorUnits, 67000000);
-  assert.equal(santana.currentMinorUnits, 65500000);
-  assert.equal(santana.reductionPercent, (1500000 / 67000000) * 100);
-  const santanaListing = (await get(`listings/${santana.listingId}`, parseListingResponse)).listing;
-  assert.equal(
-    santanaListing.history.find((entry) => entry.type === 'price-changed').previousMinorUnits,
-    68000000,
-  );
-  const reductionIds = [];
-  let reductionCursor;
-  do {
+  assert.deepEqual(allReductions.items, []);
+  assert.equal(allReductions.totalItems, 0);
+  for (const pageSize of [1, 20]) {
     const page = await get(
-      `places/sao-paulo/largest-reductions?pageSize=1${reductionCursor ? `&cursor=${reductionCursor}` : ''}`,
+      `places/sao-paulo/largest-reductions?pageSize=${pageSize}`,
       parseReductionsResponse,
     );
-    assert.equal(page.totalItems, 4);
-    reductionIds.push(page.items[0].propertyId);
-    reductionCursor = page.nextCursor;
-  } while (reductionCursor);
-  assert.deepEqual(
-    reductionIds,
-    allReductions.items.map((row) => row.propertyId),
-  );
+    assert.equal(page.totalItems, 0);
+    assert.deepEqual(page.items, []);
+    assert.equal(page.nextCursor, null);
+  }
   const invalidQueries = [
     'unknown=secret',
     'propertyType=boat',

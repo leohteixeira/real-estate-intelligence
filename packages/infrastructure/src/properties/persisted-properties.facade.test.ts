@@ -11,6 +11,40 @@ import { projectInitialProperty } from './persisted-property.projection.js';
 import { fixtureId, initialEvent, initialProperty } from './property.test-fixture.js';
 
 describe('listing provenance and current text permissions', () => {
+  it('delegates reductions only to the persisted query, including empty and failed reads', async () => {
+    const prepared = new SyntheticPropertiesAdapter();
+    const preparedReductions = vi.spyOn(prepared, 'largestReductions');
+    const execute = vi.fn(async () => ({
+      metadata: {
+        dataMode: 'synthetic-stub' as const,
+        fixtureVersion: 'persisted-synthetic-reductions-v1',
+        asOf: '2026-10-11T12:00:00.000Z',
+      },
+      items: [],
+      nextCursor: null,
+      totalItems: 0,
+    }));
+    const facade = new PersistedPropertiesFacade(
+      { getProperty: async () => null, getListing: async () => null },
+      { getSourcePermissions: vi.fn(), getSnapshotMetadata: vi.fn() },
+      prepared,
+      undefined,
+      { execute },
+    );
+    expect((await facade.largestReductions('brazil', {}))!.totalItems).toBe(0);
+    expect(execute).toHaveBeenCalledWith('brazil', {});
+    execute.mockRejectedValueOnce(new Error('Read unavailable'));
+    await expect(facade.largestReductions('brazil', {})).rejects.toThrow('Read unavailable');
+    expect(preparedReductions).not.toHaveBeenCalled();
+    const unwired = new PersistedPropertiesFacade(
+      { getProperty: async () => null, getListing: async () => null },
+      { getSourcePermissions: vi.fn(), getSnapshotMetadata: vi.fn() },
+      prepared,
+    );
+    expect(() => unwired.largestReductions('brazil', {})).toThrow(
+      'Persisted reductions query is unavailable',
+    );
+  });
   it('gates every prepared source independently, restores stored text and never fabricates denied text', async () => {
     const prepared = new SyntheticPropertiesAdapter();
     const propertyId = '0199a3e0-0000-7000-8000-000000000001';

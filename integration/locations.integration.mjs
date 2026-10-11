@@ -70,7 +70,10 @@ async function get(path, parser) {
   requests++;
   assert.equal(response.status, 200, path);
   const body = parser(await response.json());
-  assert.deepEqual(body.metadata, SYNTHETIC_READ_METADATA);
+  if (parser === parseReductionsResponse) {
+    assert.equal(body.metadata.fixtureVersion, 'persisted-synthetic-reductions-v1');
+    assert.equal(body.metadata.dataMode, 'synthetic-stub');
+  } else assert.deepEqual(body.metadata, SYNTHETIC_READ_METADATA);
   return body;
 }
 async function error(path, status, prefixed = true) {
@@ -93,6 +96,26 @@ async function error(path, status, prefixed = true) {
 let connection;
 try {
   await Promise.all(reservations.map((server) => new Promise((resolve) => server.close(resolve))));
+  // Compiled CommonJS composition must work in either import order, not only AppModule's order.
+  for (const order of [
+    ['properties', 'locations'],
+    ['locations', 'properties'],
+  ]) {
+    await run(
+      process.execPath,
+      [
+        '-r',
+        './apps/api/node_modules/reflect-metadata',
+        '-e',
+        `
+      const assert = require('node:assert/strict');
+      const modules = ${JSON.stringify(order)}.map(context => require('./apps/api/dist/' + context + '/' + context + '.module.js')[context === 'properties' ? 'PropertiesModule' : 'LocationsModule']);
+      for (const module of modules) assert(Reflect.getMetadata('imports', module).every(Boolean), 'Undefined module import from a circular barrel');
+    `,
+      ],
+      { cwd: new URL('..', import.meta.url), timeout: 10000 },
+    );
+  }
   console.log(`Starting isolated Locations campaign ${project}.`);
   await compose('up', '--detach', '--build', '--wait', 'postgres', 'migrations', 'api');
   const url = new URL(`postgres://127.0.0.1:${postgresPort}/${fixture.database}`);
@@ -133,9 +156,21 @@ try {
   await error('places', 404, false);
   for (const place of expected) {
     assert.deepEqual((await facade.getPlace(place.id)).place, place);
+    assert.deepEqual(
+      await facade.registeredScopeIds(place.id),
+      expected
+        .filter((child) => child.breadcrumbs.some((crumb) => crumb.id === place.id))
+        .map((child) => child.id)
+        .sort(),
+    );
+    const empty = await get(`places/${place.id}/largest-reductions`, parseReductionsResponse);
+    assert.deepEqual(empty.items, []);
+    assert.equal(empty.totalItems, 0);
+    assert.equal(empty.nextCursor, null);
     for (const neighbor of place.adjacentPlaceIds)
       assert((await facade.getPlace(neighbor)).place.adjacentPlaceIds.includes(place.id));
   }
+  assert.equal(await facade.registeredScopeIds('unknown-place'), null);
   for (const block of supplementaryPlaces()) {
     assert.equal(block.propertyCount, 0);
     const search = await get(`properties?placeId=${block.id}`, parseSearchResponse);
