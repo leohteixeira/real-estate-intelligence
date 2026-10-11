@@ -253,12 +253,14 @@ export function parseImageFingerprints(value: unknown, allowEmpty = true): reado
   const result = value.map((item, index) => {
     const itemField = `${field}[${index}]`;
     const fingerprint = stringValue(item, itemField, 1_000);
-    // Identifier characters alone also admit unpadded/base64url image payloads.
     if (
-      !/^[a-z0-9][a-z0-9:_-]*$/i.test(fingerprint) ||
-      /^(?:iVBORw0KGgo|R0lGOD|PHN2Zy)/.test(fingerprint)
+      !/^sha256:[a-f0-9]{64}$/.test(fingerprint) &&
+      !/^(?:fixture|synthetic)(?:[-:][a-z0-9]{1,32}){1,8}$/.test(fingerprint)
     ) {
-      return fail(`${itemField} must be an opaque fingerprint identifier.`, itemField);
+      return fail(
+        `${itemField} must be a SHA-256 hash or a prepared synthetic fingerprint.`,
+        itemField,
+      );
     }
     return fingerprint;
   });
@@ -310,7 +312,10 @@ function parseLocation(value: unknown): CollectedListingLocation {
     /\b(?:apartamento|apto|apt|ap|apartment|unit|unidade|sala|conjunto|cj|bloco|block|complemento|complement)\b\.?\s*(?:n[º°o.]?|#|:|-)?\s*(?:\d|[a-z]\b)/iu.test(
       street,
     ) ||
-    /[,;]\s*fundos\b/iu.test(street)
+    /[,;]\s*(?:apartamento|apto|apt|ap|apartment|unit|unidade|sala|conjunto|cj|bloco|block|complemento|complement|fundos)\b/iu.test(
+      street,
+    ) ||
+    /\b\d+\s+fundos\b/iu.test(street)
   ) {
     return fail(
       'payload.listing.location.street contains unit or complement details.',
