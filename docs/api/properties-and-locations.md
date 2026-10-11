@@ -46,6 +46,32 @@ listing request. Denied text omits current text, versions and excerpts while pre
 a failed permission lookup returns a sanitized failure, never a permissive response. Only masked,
 allowlisted canonical facts are stored; contact, unit/complement and photograph data are excluded.
 
+Properties derives an immutable normalized listing only after verification of the original
+Collection publication. Each allowed value carries the original `sourceId`, sanitized `sourceUrl`
+and acquisition `observedAt` as its collection time; run, snapshot and content hash remain audit
+provenance. Required type, BRL centavos, decimal square meters and integer room/parking counts
+retain their canonical values, including explicit zero counts. No missing value is replaced with
+zero, and no attribute is inferred from description text. Collection accepts its existing six
+types; the prepared search contract's `studio` option does not widen ingestion.
+
+Feature normalization applies NFC, trims leading/trailing whitespace, collapses repeated
+whitespace to one space and uses locale-independent lowercase. NFC is reapplied after lowercase,
+before length validation and deduplication, because case conversion can reintroduce decomposed
+Unicode sequences. Duplicate normalized features are
+removed in first-occurrence order. Unknown valid features remain; there is no semantic dictionary
+or translation. Each normalized feature must be nonempty and at most 100 characters. Empty arrays
+remain empty. An invalid normalized value rejects the transaction without committing inbox, fact,
+entity or creation effects. The exact received event and its evidence/hash are never rewritten.
+
+The existing HTTP keys are unchanged. Listing `provenance` supplies the common source, URL and
+collection time inherited by every displayed attribute and feature; `fieldEffectiveAt.askingPrice`,
+`.description` and `.attributes` supply their effective dates, anchored to the initial acquisition.
+Published address values retain that source provenance. The separately resolved `place` and
+`breadcrumbs` are synthetic reference geography, with no claim that their coordinates came from
+the listing source. Normalized values are reconstructed from the immutable initial fact and
+resolved reference after restart, without an additional normalized SQL column. Later observations
+and corrections remain pending and do not replace this initial-only truth.
+
 Reference geography is fixture-only and persisted in the owned `locations` schema. New
 `SYN-SP-0001` observations on Avenida Exemplo resolve to
 `sao-paulo-bela-vista-avenida-exemplo-fictional-block`, with six crumbs. Existing five-crumb initial
@@ -344,3 +370,14 @@ every ECMAScript trim character, while valid 200-character names remain readable
 collection → RabbitMQ → worker → Property/Listing HTTP, plus historical five-crumb replay/restart
 compatibility. Both use unique owned projects, dynamic ports, disabled env-file loading and exact
 container/volume cleanup.
+
+The ingestion campaign also uses a separately labelled local real-shaped synthetic adapter on
+the existing owned `synthetic-data` source with a distinct listing identity. Its in-memory input
+contains artificial contact, individual CRECI, unit/complement and photo fields. Before returning
+canonical bytes to Collection, it runs the shared sanitizer to drop those fields, mask permitted
+text and remove URL query/fragment data. The campaign checks sanitized snapshot bytes, immutable
+SQL facts and publication evidence, creation outbox facts, normalized detail and feature agreement,
+per-value provenance, current denied text rights, and replay after restart/inbox expiry. This
+fixture neither enables a real source nor claims general recognition of person names in arbitrary
+prose; known structured contact names are masked deterministically. Prepared source bytes,
+catalogs and labels remain unchanged.

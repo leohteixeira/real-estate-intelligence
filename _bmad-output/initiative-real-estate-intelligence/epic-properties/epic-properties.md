@@ -130,3 +130,14 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   missing legacy evidence fails closed rather than being invented. Properties never reads foreign
   tables or depends on outbox retention. Re-run affected collection/reparse journeys
   (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-026 introduces a Properties-owned immutable per-value normalization model using
+  kernel Provenance, original sanitized source URL and acquisition observedAt. Preserve validated
+  numeric/type values; normalize features with NFC, trimmed/collapsed whitespace and locale-free
+  lowercase, deduplicating in first-occurrence order without semantic aliases or unknown-value
+  dropping. Reject empty/out-of-bounds normalized features. Reconstruct from immutable persisted
+  facts and resolved geography without redundant storage or rewriting Collection evidence. Existing
+  HTTP fields inherit their common listing provenance and retain field-effective dates; frozen
+  Collection v1/v2 and read DTOs remain unchanged. Reuse shared privacy sanitation and prove a
+  local real-shaped fixture through synthetic collection, storage, broker, worker, SQL and HTTP.
+  No real-source authority, model, new endpoint, history application or VPS action is introduced
+  (agent, on the owner's behalf, 2026-10-10).
