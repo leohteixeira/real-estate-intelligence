@@ -3,7 +3,7 @@ title: 'Properties contracts and stub endpoints'
 type: 'feature'
 ticket: '1'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '25120e5129e3b20f53980a74de71c8389ec2ae98'
 route: 'full'
 route_source: 'auto'
@@ -22,6 +22,32 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 3.1 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/properties-contracts.integration.test.ts` passed strict public endpoint/fixture
+contract checks. The contracts and production-module HTTP unit suites also passed; later
+persisted-only reductions do not restore the obsolete prepared production fallback.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`28d5ed903ee207124e66a82d74c049ee671f2889`,
+`2e59761c7006bed69d14a3778f798c7babf4ceb2`,
+`23eb5eb174a06f8f45ca1540d704d1ec59625841`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

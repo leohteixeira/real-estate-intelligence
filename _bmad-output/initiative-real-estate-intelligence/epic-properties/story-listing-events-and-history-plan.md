@@ -3,7 +3,7 @@ title: 'Listing events and history'
 type: 'feature'
 ticket: '5'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '557364dc67e8f1b10fe108d3d48245b4a02f9af5'
 route: 'full'
 route_source: 'auto'
@@ -23,6 +23,33 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 3.5 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+Both `integration/properties-history.integration.test.ts` and
+`integration/properties-history-upgrade.integration.test.ts` passed ordered created, price,
+description, removal and reappearance history, previous values, replay/recovery and genuine
+schema-upgrade assertions. Historical generated-Markdown failures remain disclosed below.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`d9ebd4ce493a0174f7c8790d9896100df2ff5383`,
+`1abb3b3e714dc331bf3fd41fd60464d7aabc6480`,
+`983db6a66dc2633f844489aa582057c32b7918bc`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

@@ -3,7 +3,7 @@ title: 'Normalization with the field allowlist'
 type: 'feature'
 ticket: '4'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'e781800bc9bdd03c9e1712d2a7432d8711d8a56c'
 route: 'full'
 route_source: 'auto'
@@ -21,6 +21,32 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 3.4 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/properties-ingestion.integration.test.ts` passed the real-shaped local fixture's
+normalization, field allowlist, masked text, no-contact/no-photo storage and per-field provenance
+journey. The normalized-listing domain and projection unit suites also passed.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`8b5ed66cac52bc96fbb370900839a271db888cdf`,
+`28da1d65c80c20265ea21fb36d0b66bf4ea2091b`,
+`557364dc67e8f1b10fe108d3d48245b4a02f9af5`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

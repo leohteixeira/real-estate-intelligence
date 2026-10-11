@@ -3,7 +3,7 @@ title: 'Place hierarchy of São Paulo'
 type: 'feature'
 ticket: '3'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'ddaf51ae2c08bb560b87d154f08d100e94d89a07'
 route: 'full'
 route_source: 'auto'
@@ -22,6 +22,32 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 3.3 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/locations.integration.test.ts` and the ingestion campaign passed persisted
+six-level hierarchy/address/zone resolution and unit/complement exclusion assertions. Geometry
+remains explicitly synthetic; no real geocoding outcome is claimed.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`98858dd93d660d2b524decd8e54bec097b2cb884`,
+`6059c73df97db2b66b551ffb6662d61505ce12c7`,
+`e781800bc9bdd03c9e1712d2a7432d8711d8a56c`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

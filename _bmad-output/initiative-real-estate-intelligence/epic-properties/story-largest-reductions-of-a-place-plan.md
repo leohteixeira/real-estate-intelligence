@@ -3,7 +3,7 @@ title: 'Largest reductions of a place'
 type: 'feature'
 ticket: '11'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: '8e7a0a60ce27bb23b2edb49dfcbdf4d0e4c7ec5a'
 route: 'full'
 route_source: 'auto'
@@ -23,6 +23,32 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 3.11 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+The properties history and genuine-upgrade campaigns, Locations scope campaign and properties
+contract campaign passed persisted reduction ranking, previous values, scope, ties and paging.
+The largest-reductions domain/application suites also passed.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`02cf760717cad83d95ed65d3110806cd8a17c760`,
+`9d6f290bb54c307ad4fc487e65c0ca92597a4a02`,
+`7738135d2d76d7d8fd749d4609d93aeaf1d4a06d`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

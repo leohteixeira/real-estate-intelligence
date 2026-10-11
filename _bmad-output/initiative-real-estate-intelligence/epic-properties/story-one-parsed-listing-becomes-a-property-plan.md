@@ -3,7 +3,7 @@ title: 'One parsed listing becomes a property'
 type: 'feature'
 ticket: '2'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '23eb5eb174a06f8f45ca1540d704d1ec59625841'
 route: 'full'
 route_source: 'auto'
@@ -22,6 +22,31 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 3.2 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/properties-ingestion.integration.test.ts` passed the genuine collection,
+snapshot/outbox/broker/worker, persisted property/listing and public provenance journey.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`84b1e47b6841e7aea8b800984c33f3a43d329b4e`,
+`28ea46bb7af84cbef97d4023fe55ce64376dce0d`,
+`ddaf51ae2c08bb560b87d154f08d100e94d89a07`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 
