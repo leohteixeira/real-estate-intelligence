@@ -3,7 +3,7 @@ title: 'Run contracts and a stub stream'
 type: 'feature'
 ticket: '1'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: '3b2d87d76bc4a8f311b9fe30ddf475d66200f08f'
 route: 'full'
 route_source: 'auto'
