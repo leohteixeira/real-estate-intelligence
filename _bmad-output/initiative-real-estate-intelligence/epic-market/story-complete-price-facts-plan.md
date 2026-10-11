@@ -3,7 +3,7 @@ title: 'Complete price facts'
 type: 'feature'
 ticket: '3'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: 'f6f9a99e603ca60771f7b8455025a1cc6f059919'
 route: 'full'
 route_source: 'auto'
@@ -422,3 +422,13 @@ The context-wide writer lock is the accepted MVP throughput trade-off. Ambiguous
 events deliberately reject; the production Properties v2 emitter/entity resolver is outside this
 story. Fixtures remain local and synthetic; no VPS, deployment, real source, push, environment
 file change or public UI work was performed. VPS-dependent stories remain owner-blocked.
+
+### Orchestrator acceptance
+
+The build workflow halted successfully with `built`, a clean working copy and all 21 reviewed
+paths committed after the canonical baseline. Implementation, tests and documentation were
+committed separately as `58dafd2`, `ff68958` and `4948cff`; normal pre-commit and commit-message
+hooks passed without modification or bypass. The orchestrator then marked epic-market ticket 3
+(`4.3`) `done` through the repository ticket store after checking the accepted fixture, complete
+verification evidence and review triage. This closes this story only, not the initiative or any
+VPS-dependent story. No push or branch change was performed.
