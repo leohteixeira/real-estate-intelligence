@@ -1,8 +1,9 @@
-# Structured Ask price tracer reference
+# Ask price tracer reference
 
 The `structured-price-v1` mode is a real persisted Ask run, separate from the
 [prepared fixture API](ask.md). It calculates BRL centavos per square metre from explicit inputs.
-It does not extract numbers from prose, invoke a model, confirm edits, enforce visitor quota or
+The separate `text-price-v1` mode extracts and validates explicit price/area mentions deterministically.
+Neither mode invokes a model, confirms edits, enforces visitor quota or
 save graph checkpoints. See [ADR 0023](../../specs/adrs/0023-structured-ask-tracer-and-scoped-authority.md).
 
 ## Public routes and authority
@@ -62,9 +63,70 @@ outbox event commit together. A retry reuses the prepared thread.
 
 ## Execution and persisted history
 
+### Text admission
+
+`GET /api/v1/ask/text-price-capabilities` reports the same configuration-only availability with
+`mode: "text-price-v1"`. Text creation uses the same strong Bearer, idempotency key and run route:
+
+```json
+{
+  "mode": "text-price-v1",
+  "threadId": null,
+  "placeId": null,
+  "query": "What is the price per square meter for BRL 785,000.00 and 68 square meters?",
+  "locale": "en"
+}
+```
+
+All five fields are required; `inputs` and unknown fields are rejected with 400. Text queries are
+nonblank, at most 16,000 characters and exclude ASCII control characters. Success returns 202
+with the same four acceptance fields, but text mode. Market extracts and validates before any
+thread/run/outbox preparation. A well-formed request with unusable inputs returns exactly:
+
+```json
+{
+  "mode": "text-price-v1",
+  "code": "price_input_refused",
+  "reason": "missing_area"
+}
+```
+
+This 422 response creates no persisted effects and does not echo the question. Reasons are closed:
+`missing_price`, `missing_area`, `ambiguous_price`, `ambiguous_area`, `invalid_price`,
+`invalid_area`, `unsupported_currency`, `unsupported_area_unit`, `unsafe_result`.
+
+Grammar v1 associates digit tokens with `price`/`preço`/`valor`, BRL markers (`BRL`, `R$`,
+`real`/`reais`), `area`/`área`, or square-metre units (`m2`, `m²`, `square meters`/`metres`,
+`metros quadrados`). Explicit price labels default to BRL. Unrelated bedroom/street/year numbers
+are ignored. EN uses comma grouping and decimal point; PT uses point grouping and decimal comma.
+Grouping must be complete. Unsigned positive digits and unambiguous `k`, `mil`, `thousand`,
+`million`/`millions`, `milhão`/`milhões` scales are supported; exact BigInt scaling precedes safe
+centavo conversion. Sub-cent prices, signs, exponents, malformed numeric fragments, repeated scales,
+multiple candidates and ranges are refused. Foreign currency codes beside a price/numeric mention
+(including CHF/RUB/BTC), explicit `currency`/`moeda` declarations other than BRL, bare `$` and
+non-square-metre units are refused, not converted. Unrelated uppercase words are not currency
+markers. Numeric area and rounded result retain the same Market bounds as structured inputs.
+
+The PT question `Qual é o preço por metro quadrado de um imóvel de R$ 785.000,00 com 68 m²?`
+and the EN question above retain identical inputs and produce 1,154,412 centavos/m². Immutable
+fingerprints include mode, exact question, locale and normalized inputs: changing wording while
+keeping the numbers, or substituting structured mode, conflicts under the same key.
+
+Text execution actually traverses `START → validatedInputs → priceTool → END`; structured
+execution retains `fixedDecision → priceTool`. Text snapshots use `basis: "text-price-v1"` and
+decision `source: "validated-text-v1"`. The validation node is not a model decision or confidence
+claim. A thread containing both kinds reports `basis: "mixed-price-v1"`; each run keeps its own
+basis. Both branches share the same fixed Market tool, fenced grants, receipt, durable SSE and
+authorization. Prepared examples stay separate and non-live. Jev, confidence gates, explanations,
+editable confirmations, quotas, graph checkpoints and UI are not part of text admission.
+
+### Durable execution
+
 The API owns Ask lifecycle SQL. A production RabbitMQ worker dispatches the retained requested
 event through bounded authenticated API calls. A 30-second fenced claim serializes active work per
-thread. Busy admission waits are cancellable and bounded separately from the ten-second active
+thread. Busy retry hints are at most one second so a completed sibling does not leave another
+run waiting for its old lease expiry. Busy admission waits are cancellable and bounded separately
+from the ten-second active
 execution/commit budget. Replacement invalidates the previous execution and tool grant.
 
 The AI receives an ephemeral scoped grant and traverses the actual
@@ -108,6 +170,7 @@ headers closes the connection without inventing a business terminal; reconnect r
 | 403    | Wrong owner, dispatch identity, execution or tool scope                 |
 | 404    | Authorized missing read view                                            |
 | 409    | Same idempotency key with different immutable request                   |
+| 422    | Valid text contract with refused price/area extraction or arithmetic    |
 | 503    | Admission disabled or transactional/dependency operation unavailable    |
 
 Public errors use sanitized API envelopes and server-generated request identifiers. Tokens, queries,

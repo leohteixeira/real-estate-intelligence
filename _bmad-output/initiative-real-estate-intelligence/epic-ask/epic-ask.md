@@ -91,6 +91,15 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   strict contracts, fixed destination/no redirects, bounded cancellation and ADR-ordered named
   policies protect the hop. Existing public Ask previews remain read-only and non-live
   (agent, on the owner's behalf, 2026-10-11).
+- Decision: D-046 / ADR 0024 adds `text-price-v1` admission through the Market facade's
+  deterministic PT/EN extractor, exact BRL normalization and typed 422 refusals before new
+  persistence. Accepted text, locale, mode and canonical inputs bind replay and scoped grants.
+  Text runs and mixed threads have truthful closed provenance; additive SQL preserves structured
+  history. Only the existing fixed `price-per-square-meter` HTTP tool remains executable. This
+  specialized text-input tracer does not claim Jev routing, its confidence gate, model explanation,
+  full checkpoints or UI; those remain the subsequent increments. D-012 and ADR 0020 override
+  Nest skill stack examples; the owner mandate overrides interactive planning defaults
+  (agent, on the owner's behalf, 2026-10-11).
 - Decision: D-045 / ADR 0023 opens the real `structured-price-v1` tracer: caller-known strong
   thread capability, fingerprinted replay, API-owned queued state/event/outbox and claim/terminal
   writes, worker consumption through event-scoped dispatch proofs, fixed-decision LangGraph and

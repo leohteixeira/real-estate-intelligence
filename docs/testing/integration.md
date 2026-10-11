@@ -24,6 +24,7 @@ pnpm run test:integration:market-median
 pnpm run test:integration:market-price-facts
 pnpm run test:integration:ask
 pnpm run test:integration:ask-tracer
+pnpm run test:integration:ask-text-price
 pnpm run test:integration:run-executor
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
@@ -66,6 +67,15 @@ durable terminal SSE and API restart recovery. Pruning delivery/idempotency reco
 a result even with AI stopped; a new run with unavailable AI reaches a safe failed terminal.
 It uses Vitest, strict TypeScript, Supertest and the same Testcontainers fixture/teardown standard.
 See [the structured tracer reference](../api/ask-tracer.md).
+
+The text-price campaign (`integration/ask-text-price-run.integration.test.ts`) submits only prose
+in PT and EN, then proves equal canonical inputs, exact completed SSE results through the real
+worker/graph/Market tool, finite no-effect refusals, immutable replay and mixed-thread ownership.
+It attacks operation/input/execution/grant scope, exercises expired-claim recovery and checks
+sanitized runtime logs. Its second owned PostgreSQL fixture applies 6001, populates structured
+history/events/receipts/outbox, applies additive 6002 and compares exact document digests before
+executing a text run in that legacy thread. Malicious SQL basis/source/input/unknown-key changes
+must still fail. No historical migration is edited or historical evidence rewritten.
 
 The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
 campaign against the production AI image, and a production worker-command E2E journey resolving
