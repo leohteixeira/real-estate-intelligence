@@ -6,8 +6,8 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import type { RawListingDocument, Transaction } from '@rei/application';
-import { ExternalFailure } from '@rei/application';
+import type { OutboxAppendPort, RawListingDocument, Transaction } from '@rei/application';
+import { CollectSourceOnce, ExternalFailure } from '@rei/application';
 import {
   StaleCollectionCheckpointError,
   createSourceRegistration,
@@ -100,6 +100,180 @@ describe('SyntheticListingSource', () => {
 });
 
 describe('in-memory collection adapters', () => {
+  it('replays authentic completion when another caller wins after a genuine empty lookup', async () => {
+    let enterLookup!: () => void;
+    let releaseLookup!: () => void;
+    const entered = new Promise<void>((resolve) => {
+      enterLookup = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      releaseLookup = resolve;
+    });
+    class HeldLookup extends InMemoryCollectionRunRepository {
+      private first = true;
+      public override async loadRunByOperationKey(operationKey: string) {
+        const result = await super.loadRunByOperationKey(operationKey);
+        if (this.first) {
+          this.first = false;
+          expect(result).toBeNull();
+          enterLookup();
+          await held;
+        }
+        return result;
+      }
+    }
+    const repository = new HeldLookup();
+    const source = new InMemoryListingSource(DOCUMENT, LISTING);
+    const fetch = vi.spyOn(source, 'fetchPage');
+    const parse = vi.spyOn(source, 'parse');
+    const store = new InMemoryRawSnapshotStore();
+    const storing = vi.spyOn(store, 'store');
+    const register = new InMemorySourceRegisterRepository([
+      createSourceRegistration({
+        sourceId: 'synthetic-data',
+        displayLabel: 'Owned replay fixture',
+        category: 'synthetic-listing',
+        enabled: true,
+        enabledAt: '2026-10-10T00:00:00Z',
+        permissions: {
+          collectionAllowed: true,
+          imageFetchingAllowed: false,
+          listingTextDisplayAllowed: true,
+        },
+        review: { outcome: 'not-required', reviewedAt: null, evidence: 'Owned fixture.' },
+        access: { method: 'repository-fixture', detail: 'Owned fixture.' },
+        rate: { status: 'not-applicable', limit: null, windowSeconds: null },
+        licence: { status: 'not-applicable', label: 'Synthetic', url: null },
+      }),
+    ]);
+    const ids = [
+      '0199c8f2-2394-7ba0-8f9e-286378779210',
+      '0199c8f2-2394-7ba0-8f9e-286378779211',
+      '0199c8f2-2394-7ba0-8f9e-286378779212',
+      '0199c8f2-2394-7ba0-8f9e-286378779213',
+    ] as const;
+    let next = 0;
+    const generate = vi.fn(async () => ids[next++]!);
+    const append = vi.fn<OutboxAppendPort['append']>(async () => undefined);
+    const service = new CollectSourceOnce(
+      source,
+      store,
+      register,
+      repository,
+      { runInTransaction: async (work) => work({} as Transaction) },
+      { generate },
+      { now: () => DOCUMENT.observedAt },
+      { append },
+    );
+    const first = service.execute(
+      'synthetic-data',
+      'owned-replay-race',
+      null,
+      new AbortController().signal,
+    );
+    await entered;
+    const winner = await service.execute(
+      'synthetic-data',
+      'owned-replay-race',
+      null,
+      new AbortController().signal,
+    );
+    releaseLookup();
+    await expect(first).resolves.toEqual({ ...winner, replayed: true });
+    expect(winner.replayed).toBe(false);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(storing).toHaveBeenCalledTimes(1);
+    expect(generate).toHaveBeenCalledTimes(4);
+    expect(append).toHaveBeenCalledTimes(1);
+    expect(append.mock.calls[0]?.[1]).toHaveLength(2);
+    expect(repository.parsedEvidence).toHaveLength(1);
+    expect(repository.completedEvidence).toHaveLength(1);
+  });
+  it('cancels an admission wait promptly without letting the following caller overtake the owner', async () => {
+    const repository = new InMemoryCollectionRunRepository();
+    const transaction = {} as Transaction;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const first = repository.withSourceAdmission(transaction, 'synthetic-data', async () => gate);
+    const controller = new AbortController();
+    const refusedWork = vi.fn(async () => undefined);
+    const second = repository.withSourceAdmission(
+      transaction,
+      'synthetic-data',
+      refusedWork,
+      controller.signal,
+    );
+    controller.abort(new Error('owned cancellation'));
+    await expect(second).rejects.toThrow('owned cancellation');
+    let thirdEntered = false;
+    const third = repository.withSourceAdmission(transaction, 'synthetic-data', async () => {
+      thirdEntered = true;
+    });
+    await Promise.resolve();
+    expect(thirdEntered).toBe(false);
+    expect(refusedWork).not.toHaveBeenCalled();
+    release();
+    await first;
+    await third;
+    expect(thirdEntered).toBe(true);
+    await expect(
+      repository.withSourceAdmission(transaction, 'synthetic-data', refusedWork, controller.signal),
+    ).rejects.toThrow('owned cancellation');
+    const active = new AbortController();
+    await expect(
+      repository.withSourceAdmission(transaction, 'synthetic-data', async () => 1, active.signal),
+    ).resolves.toBe(1);
+  });
+  it('serializes source admission, preserves its frontier and releases after refusal', async () => {
+    const repository = new InMemoryCollectionRunRepository();
+    const transaction = {} as Transaction;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let admitted = false;
+    const first = repository.withSourceAdmission(
+      transaction,
+      'synthetic-data',
+      async (frontier) => {
+        expect(frontier).toBeNull();
+        await repository.startOrLoad(transaction, {
+          operationKey: 'owned-admission-1',
+          sourceId: 'synthetic-data',
+          startedAt: '2026-10-10T12:00:00.000Z',
+          runId: '0199c8f2-2394-7ba0-8f9e-286378779210',
+        });
+        await gate;
+      },
+    );
+    const second = repository.withSourceAdmission(
+      transaction,
+      'synthetic-data',
+      async (frontier) => {
+        admitted = true;
+        expect(frontier?.runId).toBe('0199c8f2-2394-7ba0-8f9e-286378779210');
+        throw new Error('owned refusal');
+      },
+    );
+    await Promise.resolve();
+    expect(admitted).toBe(false);
+    release();
+    await first;
+    await expect(second).rejects.toThrow('owned refusal');
+    await expect(
+      repository.withSourceAdmission(
+        transaction,
+        'synthetic-data',
+        async (frontier) => frontier?.startedAt,
+      ),
+    ).resolves.toBe('2026-10-10T12:00:00.000Z');
+    await expect(
+      repository.loadRunByOperationKeyInTransaction(transaction, 'owned-admission-1'),
+    ).resolves.toMatchObject({ operationKey: 'owned-admission-1' });
+  });
   it('holds a source until explicit review, preserves the first refusal, and still requires enablement', async () => {
     const source = createSourceRegistration({
       sourceId: 'synthetic-data',

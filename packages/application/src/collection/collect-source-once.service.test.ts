@@ -173,9 +173,13 @@ function fixture(
     listEnabled: vi.fn(async () => []),
   };
   const runs: CollectionRunRepository = {
+    loadRunByOperationKeyInTransaction: vi.fn(async () => options.run ?? null),
+    withSourceAdmission: vi.fn(async (_transaction, _sourceId, work) => work(null)),
+    appendCompletedEvidence: vi.fn(async () => undefined),
     appendParsedEvidence: vi.fn(async () => {
       calls.push('evidence');
     }),
+    fail: vi.fn(),
     pause: vi.fn(),
     resume: vi.fn(),
     findByOperationKey: vi.fn(async () => options.replay ?? null),
@@ -186,7 +190,10 @@ function fixture(
           : null
         : options.run,
     ),
-    startOrLoad: vi.fn(),
+    startOrLoad: vi.fn(async (_transaction, input) => {
+      calls.push('start');
+      return options.run ?? createRunningCollectionRun(input);
+    }),
     listObservations: vi.fn(),
     lockRunForPage: vi.fn(),
     commitPage: vi.fn(),
@@ -255,6 +262,145 @@ function fixture(
 }
 
 describe('CollectSourceOnce', () => {
+  it('replays a concurrent completion after an empty initial lookup without external work', async () => {
+    const context = fixture({ replay: result() });
+    vi.mocked(context.runs.loadRunByOperationKey).mockResolvedValueOnce(null);
+    vi.mocked(context.runs.loadRunByOperationKeyInTransaction).mockResolvedValue(completedRun());
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).resolves.toEqual({ ...result(), replayed: true });
+    expect(context.source.fetchPage).not.toHaveBeenCalled();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+    expect(context.source.parse).not.toHaveBeenCalled();
+    expect(context.runs.startOrLoad).not.toHaveBeenCalled();
+    expect(context.outbox.append).not.toHaveBeenCalled();
+  });
+
+  it('rejects an incompatible completion discovered at admission', async () => {
+    const context = fixture({ replay: result() });
+    vi.mocked(context.runs.loadRunByOperationKey).mockResolvedValueOnce(null);
+    vi.mocked(context.runs.loadRunByOperationKeyInTransaction).mockResolvedValue(
+      completedRun('synthetic-data', 2),
+    );
+    await expect(
+      context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
+    ).rejects.toMatchObject({ kind: 'rejected' });
+    expect(context.source.fetchPage).not.toHaveBeenCalled();
+  });
+  it.each(['source', 'storage'] as const)(
+    'recovers a combined command timeout during %s even when mapped to cancelled',
+    async (dependency) => {
+      const context = fixture();
+      const shutdown = new AbortController();
+      const combined = AbortSignal.any([shutdown.signal, AbortSignal.timeout(15)]);
+      const interrupted = async () => {
+        await new Promise<void>((resolve) => setTimeout(resolve, 30));
+        expect(combined.aborted).toBe(true);
+        throw new ExternalFailure({ kind: 'cancelled', operation: dependency });
+      };
+      if (dependency === 'source')
+        vi.mocked(context.source.fetchPage).mockImplementationOnce(interrupted);
+      else vi.mocked(context.snapshots.store).mockImplementationOnce(interrupted);
+      await expect(
+        context.service.execute('synthetic-data', 'operation-1', null, combined),
+      ).rejects.toMatchObject({ kind: 'cancelled' });
+      expect(context.runs.fail).not.toHaveBeenCalled();
+      expect(context.runs.appendParsedEvidence).not.toHaveBeenCalled();
+      expect(context.runs.appendCompletedEvidence).not.toHaveBeenCalled();
+      const boundary = createRunningCollectionRun(
+        vi.mocked(context.runs.startOrLoad).mock.calls[0]![1],
+      );
+      vi.mocked(context.runs.loadRunByOperationKey).mockResolvedValue(boundary);
+      vi.mocked(context.runs.loadRunByOperationKeyInTransaction).mockResolvedValue(boundary);
+      await context.service.execute(
+        'synthetic-data',
+        'operation-1',
+        null,
+        new AbortController().signal,
+      );
+      expect(context.persistedInput()).toMatchObject({
+        runId: boundary.runId,
+        startedAt: boundary.startedAt,
+      });
+      expect(context.runs.appendCompletedEvidence).toHaveBeenCalledOnce();
+    },
+  );
+  it('terminates a deterministic refusal without original or complete publications', async () => {
+    const context = fixture();
+    vi.mocked(context.source.fetchPage).mockResolvedValue({
+      documents: [],
+      nextCursor: null,
+      exhausted: true,
+    });
+    await expect(
+      context.service.execute('synthetic-data', 'owned-empty', null, new AbortController().signal),
+    ).rejects.toMatchObject({ kind: 'rejected' });
+    expect(context.runs.fail).toHaveBeenCalledWith(context.transaction, IDS[0]);
+    expect(context.runs.appendParsedEvidence).not.toHaveBeenCalled();
+    expect(context.runs.appendCompletedEvidence).not.toHaveBeenCalled();
+    expect(context.outbox.append).not.toHaveBeenCalled();
+  });
+  it('persists terminal cleanup with an independent bounded signal after request cancellation', async () => {
+    const context = fixture();
+    const controller = new AbortController();
+    vi.mocked(context.source.fetchPage).mockImplementation(async () => {
+      controller.abort(new Error('owned request cancellation'));
+      controller.signal.throwIfAborted();
+      throw new Error('unreachable');
+    });
+    await expect(
+      context.service.execute('synthetic-data', 'owned-cancelled', null, controller.signal),
+    ).rejects.toThrow('owned request cancellation');
+    expect(context.runs.fail).toHaveBeenCalledOnce();
+    const cleanupSignal = vi.mocked(context.transactions.runInTransaction).mock.calls.at(-1)?.[1];
+    expect(cleanupSignal).not.toBe(controller.signal);
+    expect(cleanupSignal?.aborted).toBe(false);
+    expect(context.outbox.append).not.toHaveBeenCalled();
+  });
+  it('resumes an interrupted same-source boundary with the original run ID and start time', async () => {
+    const run = createRunningCollectionRun({
+      operationKey: 'operation-1',
+      runId: IDS[0],
+      sourceId: 'synthetic-data',
+      startedAt: '2026-10-09T11:59:58.000Z',
+    });
+    const context = fixture({ run });
+    await context.service.execute(
+      'synthetic-data',
+      'operation-1',
+      null,
+      new AbortController().signal,
+    );
+    expect(context.persistedInput()).toMatchObject({ runId: run.runId, startedAt: run.startedAt });
+    expect(context.calls.indexOf('start')).toBeLessThan(context.calls.indexOf('fetch'));
+  });
+  it('registers chronology while acquisition is held and before storage or parsing', async () => {
+    const context = fixture();
+    let release!: () => void;
+    let entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const fetched = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    vi.mocked(context.source.fetchPage).mockImplementation(async () => {
+      entered();
+      await held;
+      return { documents: [DOCUMENT], nextCursor: null, exhausted: true };
+    });
+    const execution = context.service.execute(
+      'synthetic-data',
+      'held-once',
+      null,
+      new AbortController().signal,
+    );
+    await fetched;
+    expect(context.runs.startOrLoad).toHaveBeenCalledOnce();
+    expect(context.snapshots.store).not.toHaveBeenCalled();
+    release();
+    await execution;
+  });
   it.each(['success', 'rejected', 'missing'] as const)(
     'enforces the application privacy seam for a real category: %s',
     async (outcome) => {
@@ -346,7 +492,7 @@ describe('CollectSourceOnce', () => {
       expect(context.events[0]?.[0]?.payload).toMatchObject({ listing: projected });
     },
   );
-  it('applies a durable refusal without inventing a pre-I/O run or snapshot', async () => {
+  it('persists the pre-I/O run and pauses it on a durable source refusal without snapshots', async () => {
     const context = fixture();
     vi.mocked(context.source.fetchPage).mockRejectedValueOnce(
       new ListingSourceAccessRefusal('login-wall'),
@@ -370,7 +516,8 @@ describe('CollectSourceOnce', () => {
     expect(context.sources.holdAtomically).toHaveBeenCalledOnce();
     expect(context.snapshots.store).not.toHaveBeenCalled();
     expect(context.source.parse).not.toHaveBeenCalled();
-    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+    expect(context.runs.startOrLoad).toHaveBeenCalledOnce();
+    expect(context.runs.pause).toHaveBeenCalledOnce();
     expect(context.events).toEqual([]);
   });
 
@@ -403,6 +550,8 @@ describe('CollectSourceOnce', () => {
       signal,
     );
     expect(context.calls).toEqual([
+      'transaction',
+      'start',
       'fetch',
       'store',
       'parse',
@@ -466,15 +615,6 @@ describe('CollectSourceOnce', () => {
     ],
     ['completed cross-source', completedRun('synthetic-portal-aurora')],
     ['completed multi-observation', completedRun('synthetic-data', 2)],
-    [
-      'running same-source',
-      createRunningCollectionRun({
-        operationKey: 'operation-1',
-        runId: IDS[0],
-        sourceId: 'synthetic-data',
-        startedAt: '2026-10-10T11:59:58.000Z',
-      }),
-    ],
   ])('rejects an existing %s operation before source or storage work', async (_name, run) => {
     const context = fixture({ run });
 
@@ -504,7 +644,8 @@ describe('CollectSourceOnce', () => {
 
     expect(context.snapshots.store).not.toHaveBeenCalled();
     expect(context.source.parse).not.toHaveBeenCalled();
-    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+    expect(context.runs.startOrLoad).toHaveBeenCalledOnce();
+    expect(context.runs.persistCompleted).not.toHaveBeenCalled();
   });
 
   it('refuses a disabled or unknown source before fetching or creating an artifact', async () => {
@@ -517,7 +658,7 @@ describe('CollectSourceOnce', () => {
     expect(context.snapshots.store).not.toHaveBeenCalled();
   });
 
-  it('does not parse or open a transaction when raw storage fails', async () => {
+  it('keeps a retryable pre-I/O boundary and does not parse or complete when storage fails', async () => {
     const context = fixture();
     vi.mocked(context.snapshots.store).mockRejectedValue(
       new ExternalFailure({ kind: 'transient', operation: 'raw-snapshot.store' }),
@@ -527,7 +668,9 @@ describe('CollectSourceOnce', () => {
       context.service.execute('synthetic-data', 'operation-1', null, new AbortController().signal),
     ).rejects.toMatchObject({ kind: 'transient', operation: 'raw-snapshot.store' });
     expect(context.source.parse).not.toHaveBeenCalled();
-    expect(context.transactions.runInTransaction).not.toHaveBeenCalled();
+    expect(context.runs.startOrLoad).toHaveBeenCalledOnce();
+    expect(context.runs.persistCompleted).not.toHaveBeenCalled();
+    expect(context.runs.fail).not.toHaveBeenCalled();
   });
 
   it('propagates a database failure after storage without publishing outside the transaction', async () => {

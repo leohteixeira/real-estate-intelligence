@@ -17,6 +17,38 @@ function connectionDouble(client: DatabaseClient, identity = {}) {
 }
 
 describe('PostgreSQL persistence adapters', () => {
+  it('reads retained publications through the exact shared transaction and returns missing evidence as null', async () => {
+    const envelope = {
+      event_id: '0199c8f2-2394-7000-8000-000000000001',
+      event_type: 'properties.listing.created',
+      event_version: 1,
+      aggregate_id: '0199c8f2-2394-7000-8000-000000000002',
+      occurred_at: new Date('2026-10-10T12:00:00.000Z'),
+      trace_context: null,
+      payload: { genuine: true },
+    };
+    let available = true;
+    const query = vi.fn(async (sql: string) =>
+      sql.includes('FROM platform.outbox') && available ? [envelope] : [],
+    );
+    const connection = connectionDouble({ query, release: vi.fn() } as unknown as DatabaseClient);
+    const outbox = new PostgresOutbox(connection);
+    await new PostgresTransactionRunner(connection).runInTransaction(async (tx) => {
+      expect(await outbox.find(tx, envelope.aggregate_id, envelope.event_type)).toEqual({
+        eventId: envelope.event_id,
+        type: envelope.event_type,
+        version: 1,
+        aggregateId: envelope.aggregate_id,
+        occurredAt: envelope.occurred_at.toISOString(),
+        traceContext: null,
+        payload: envelope.payload,
+      });
+      available = false;
+      expect(await outbox.find(tx, envelope.aggregate_id, envelope.event_type)).toBeNull();
+    });
+    expect(query.mock.calls[1]?.[0]).toContain('ORDER BY event_id LIMIT 1');
+    expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
+  });
   it('does not query PostgreSQL when the availability check is already aborted', async () => {
     const query = vi.fn();
     const controller = new AbortController();

@@ -3,6 +3,7 @@ import {
   CollectionSnapshotParsed,
   CollectionSnapshotCorrected,
   parseUuidV7,
+  NormalizedListing,
   type Property,
   type ResolvedPropertyPlace,
 } from '@rei/domain';
@@ -79,7 +80,6 @@ function fixture(
 ) {
   let state: State = { inbox: [], facts: [], properties: [], outbox: [] };
   let serial = Promise.resolve();
-  let nextId = 100;
   const controller = new AbortController();
   const evidence = new Map<string, ParsedListingFact>([[event.eventId, event]]);
   const geographyCalls: { address: unknown; transaction: Transaction | undefined }[] = [];
@@ -160,13 +160,7 @@ function fixture(
         return true;
       },
     },
-    {
-      append: async (tx, events) => {
-        (tx as Scope).state.outbox.push(...events);
-        checkpoint('outbox');
-      },
-    },
-    { generate: async () => id(nextId++) },
+    { enqueue: async () => checkpoint('enqueue') },
   );
   return {
     service,
@@ -179,7 +173,7 @@ function fixture(
   };
 }
 
-describe('ConsumeParsedListing atomic initial ingestion', () => {
+describe('ConsumeParsedListing atomic durable receipt', () => {
   it('verifies and stores original feature bytes before composing normalized values', async () => {
     const f = fixture();
     const original = new CollectionSnapshotParsed({
@@ -193,12 +187,11 @@ describe('ConsumeParsedListing atomic initial ingestion', () => {
     f.evidence.set(original.eventId, original);
     await f.service.execute({ ...original }, f.controller.signal);
     expect(JSON.stringify(f.state().facts[0]!.event)).toBe(before);
-    expect(JSON.stringify(f.state().properties[0]!.initial)).toBe(before);
-    expect(f.state().properties[0]!.normalized.features.map((feature) => feature.value)).toEqual([
-      'pool',
-      'café',
-    ]);
-    expect(f.state().properties[0]!.normalized.features[0]!.collectedAt).toBe(
+    expect(f.state().properties).toEqual([]);
+    expect(
+      new NormalizedListing(f.state().facts[0]!.event).features.map((feature) => feature.value),
+    ).toEqual(['pool', 'café']);
+    expect(new NormalizedListing(f.state().facts[0]!.event).features[0]!.collectedAt).toBe(
       original.payload.source.observedAt,
     );
     const changed = {
@@ -244,15 +237,12 @@ describe('ConsumeParsedListing atomic initial ingestion', () => {
     await Promise.all(
       Array.from({ length: 8 }, () => f.service.execute({ ...event }, f.controller.signal)),
     );
-    const original = f.state().properties[0];
     f.state().inbox.length = 0;
     await f.service.execute({ ...event }, f.controller.signal);
-    expect(f.state().properties).toEqual([original]);
-    expect(f.state().facts.map((fact) => fact.disposition)).toEqual(['initial']);
+    expect(f.state().properties).toEqual([]);
+    expect(f.state().facts.map((fact) => fact.disposition)).toEqual(['pending-history']);
     expect(f.state().inbox).toHaveLength(1);
-    expect(f.state().outbox.map((outgoing) => outgoing.type)).toEqual([
-      'properties.listing.created',
-    ]);
+    expect(f.state().outbox).toEqual([]);
   });
   it('durably stages v2 first and later observations without altering the initial view', async () => {
     const f = fixture();
@@ -301,18 +291,47 @@ describe('ConsumeParsedListing atomic initial ingestion', () => {
     await f.service.execute({ ...laterCorrection }, f.controller.signal);
     expect(f.state().facts.map((fact) => fact.disposition)).toEqual([
       'pending-correction',
-      'initial',
+      'pending-history',
       'pending-history',
       'pending-correction',
     ]);
-    expect(f.state().properties[0]!.initial.eventId).toBe(event.eventId);
-    expect(f.state().properties[0]!.normalized.askingPriceMinorUnits.value).toBe(
+    expect(f.state().facts[1]!.event.eventId).toBe(event.eventId);
+    expect(new NormalizedListing(f.state().facts[1]!.event).askingPriceMinorUnits.value).toBe(
       event.payload.listing.askingPriceMinorUnits,
     );
-    expect(f.state().properties).toHaveLength(1);
-    expect(f.state().outbox).toHaveLength(1);
+    expect(f.state().properties).toHaveLength(0);
+    expect(f.state().outbox).toHaveLength(0);
   });
-  it.each(['inbox', 'fact', 'entity', 'outbox'])(
+  it('retains an authenticated correction before Properties geography validation', async () => {
+    const f = fixture({ unknownAddress: true });
+    const correction = new CollectionSnapshotCorrected({
+      eventId: id(4),
+      aggregateId: event.aggregateId,
+      occurredAt: '2026-10-10T14:00:00.000Z',
+      payload: {
+        ...event.payload,
+        listing: {
+          ...event.payload.listing,
+          location: { ...event.payload.listing.location, street: 'Unknown correction street' },
+        },
+        correction: {
+          kind: 'parser-correction',
+          operationKey: 'invalid-geography',
+          parserRevision: 'v2',
+          originalParsedEventId: event.eventId,
+          order: 1,
+        },
+      },
+    });
+    f.evidence.set(correction.eventId, correction);
+    await f.service.execute({ ...correction }, f.controller.signal);
+    expect(f.geographyCalls).toEqual([]);
+    expect(f.state().facts).toEqual([{ event: correction, disposition: 'pending-correction' }]);
+    expect(f.state().inbox).toEqual([correction.eventId]);
+    expect(f.state().properties).toEqual([]);
+    expect(f.state().outbox).toEqual([]);
+  });
+  it.each(['inbox', 'enqueue', 'fact'])(
     'rolls back failure after %s and permits a clean retry',
     async (failure) => {
       const f = fixture({ failure });
@@ -322,20 +341,17 @@ describe('ConsumeParsedListing atomic initial ingestion', () => {
       expect(f.state()).toEqual({ inbox: [], facts: [], properties: [], outbox: [] });
       delete f.options.failure;
       await f.service.execute({ ...event }, f.controller.signal);
-      expect(f.state().properties).toHaveLength(1);
-      expect(f.state().outbox).toHaveLength(1);
+      expect(f.state().properties).toHaveLength(0);
+      expect(f.state().outbox).toHaveLength(0);
     },
   );
-  it.each(['inbox', 'fact', 'entity', 'outbox'])(
-    'rolls back cancellation after %s',
-    async (cancel) => {
-      const f = fixture({ cancel });
-      await expect(f.service.execute({ ...event }, f.controller.signal)).rejects.toThrow(
-        'Injected cancellation.',
-      );
-      expect(f.state()).toEqual({ inbox: [], facts: [], properties: [], outbox: [] });
-    },
-  );
+  it.each(['inbox', 'enqueue', 'fact'])('rolls back cancellation after %s', async (cancel) => {
+    const f = fixture({ cancel });
+    await expect(f.service.execute({ ...event }, f.controller.signal)).rejects.toThrow(
+      'Injected cancellation.',
+    );
+    expect(f.state()).toEqual({ inbox: [], facts: [], properties: [], outbox: [] });
+  });
   it.each([{ refuse: true }, { unknownAddress: true }])(
     'refuses unverified evidence or unknown geography before effects (%j)',
     async (options) => {

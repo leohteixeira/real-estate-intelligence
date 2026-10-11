@@ -61,6 +61,7 @@ vi.mock('../persistence.module', async () => {
     database,
     ports.DATABASE_AVAILABILITY_PROBE,
     ports.OUTBOX_APPEND_PORT,
+    ports.RETAINED_PUBLICATION_READER,
     ports.TRANSACTION_RUNNER,
     ports.UUID_V7_GENERATOR,
     ports.OUTBOX_RELAY_PORT,

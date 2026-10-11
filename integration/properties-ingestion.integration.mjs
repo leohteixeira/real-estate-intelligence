@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:net';
 import { promisify } from 'node:util';
 import amqp from 'amqplib';
-import { CollectSourceOnce, ConsumeParsedListing } from '../packages/application/dist/index.js';
+import { CollectSourceOnce } from '../packages/application/dist/index.js';
 import { parseCollectionEvent, Property } from '../packages/domain/dist/index.js';
 import {
   parsePropertyResponse,
@@ -16,7 +16,6 @@ import {
   CanonicalSnapshotSanitizer,
   DatabaseConnection,
   PostgresCollectionRunRepository,
-  PostgresCollectionFacade,
   PostgresInbox,
   PostgresPropertyRepository,
   PostgresSourceRegisterRepository,
@@ -275,12 +274,11 @@ try {
   const collected = await collector().execute('synthetic-data', 'ingest-initial', null, signal());
   const original = await evidence(collected.parsedEventId);
   parseCollectionEvent(original);
-  deadLetters++;
   await waitFor(
-    'injected insertion failure to dead-letter',
-    async () => (await queueState(`${queue}.dead-letter`))?.messages_ready >= deadLetters,
+    'durable receipt while listing effect repeatedly fails',
+    async () => (await counts()).facts === 1,
   );
-  await stable({ properties: 0, listings: 0, facts: 0, inbox: 0, creations: 0 });
+  await stable({ properties: 0, listings: 0, facts: 1, inbox: 1, creations: 0 });
   await connection.query('DROP TRIGGER integration_fail_listing ON properties.listing');
   await connection.query('DROP FUNCTION properties.integration_fail_listing()');
   console.log('Rollback and bounded delivery verified; retrying the genuine canonical event.');
@@ -290,7 +288,7 @@ try {
   const identity = (
     await connection.query('SELECT property_id::text, listing_id::text FROM properties.listing')
   )[0];
-  const detail = await get(`properties/${identity.property_id}`, parsePropertyResponse);
+  let detail = await get(`properties/${identity.property_id}`, parsePropertyResponse);
   const listing = await get(`listings/${identity.listing_id}`, parseListingResponse);
   assert.deepEqual(listing.listing, detail.property.listings[0]);
   assert.notEqual(identity.property_id, identity.listing_id);
@@ -358,7 +356,17 @@ try {
     )[0].disposition,
     'pending-history',
   );
-  assert.deepEqual(await get(`properties/${identity.property_id}`, parsePropertyResponse), detail);
+  await waitFor(
+    'completed unchanged acquisition',
+    async () =>
+      (await get(`properties/${identity.property_id}`, parsePropertyResponse)).property.listings[0]
+        .collectionCount === 2,
+  );
+  detail = await get(`properties/${identity.property_id}`, parsePropertyResponse);
+  assert.deepEqual(
+    detail.property.listings[0].history.map((item) => item.type),
+    ['created'],
+  );
   const laterBaseline = { ...baseline, facts: 2, inbox: 2 };
   await stable(laterBaseline);
 
@@ -461,8 +469,11 @@ try {
   assert.equal(parseCollectionEvent(corrected).version, 2);
   console.log('Production reparse published canonical v2 evidence before the delayed v1.');
   await compose('up', '--detach', '--wait', 'worker');
-  await waitFor('v2-first pending correction', async () => (await counts()).facts === 3);
-  await stable({ ...laterBaseline, facts: 3, inbox: 3 });
+  await waitFor('completion recovers unpublished original and applies correction', async () => {
+    const current = await counts();
+    return current.properties === 2 && current.facts === 4 && current.inbox === 3;
+  });
+  await stable({ properties: 2, listings: 2, facts: 4, inbox: 3, creations: 2 });
   assert.equal(
     (
       await connection.query(
@@ -473,7 +484,10 @@ try {
     'pending-correction',
   );
   await publisher.publish(secondWire, signal());
-  await waitFor('later original v1 creation', async () => (await counts()).properties === 2);
+  await waitFor(
+    'later original v1 receipt without duplicate creation',
+    async () => (await counts()).inbox === 4,
+  );
   await stable({ properties: 2, listings: 2, facts: 4, inbox: 4, creations: 2 });
   const secondIdentity = (
     await connection.query(
@@ -524,16 +538,24 @@ try {
     signal(),
   );
   const historicalWire = await evidence(historical.parsedEventId);
-  const historicalConsumer = new ConsumeParsedListing(
-    new PostgresCollectionFacade(connection, new PostgresSourceRegisterRepository(connection)),
-    new SyntheticLocationsAdapter(),
-    new PostgresPropertyRepository(connection),
-    new PostgresTransactionRunner(connection),
-    new PostgresInbox(connection),
-    new PostgresOutbox(connection),
-    new PostgresUuidV7Generator(connection),
-  );
-  await historicalConsumer.execute(historicalWire, signal());
+  // Seed only the authentic previous SQL shape, not an alternate ingestion algorithm.
+  await new PostgresTransactionRunner(connection).runInTransaction(async (tx) => {
+    const repository = new PostgresPropertyRepository(connection);
+    const ids = new PostgresUuidV7Generator(connection);
+    const property = new Property(
+      await ids.generate(tx),
+      await ids.generate(tx),
+      historicalWire,
+      await new SyntheticLocationsAdapter().resolveFixtureAddress(
+        historicalWire.payload.listing.location,
+      ),
+    );
+    await repository.appendFact(tx, parseCollectionEvent(historicalWire), 'initial');
+    await repository.create(tx, property);
+    await new PostgresInbox(connection).record(tx, queue, historicalWire.eventId);
+    const created = property.creationEvent(await ids.generate(tx));
+    await new PostgresOutbox(connection).append(tx, [created]);
+  }, signal());
   const historicalIdentity = (
     await connection.query(
       "SELECT property_id::text, listing_id::text FROM properties.listing WHERE source_listing_id='SYN-HISTORICAL'",
@@ -552,9 +574,22 @@ try {
   await publisher.publish(historicalWire, signal());
   await drained();
   await stable(historicalBaseline);
+  const upgradedHistorical = await get(
+    `properties/${historicalIdentity.property_id}`,
+    parsePropertyResponse,
+  );
   assert.deepEqual(
-    await get(`properties/${historicalIdentity.property_id}`, parsePropertyResponse),
-    historicalDetail,
+    upgradedHistorical.property.summary.place,
+    historicalDetail.property.summary.place,
+  );
+  assert.deepEqual(
+    upgradedHistorical.property.summary.breadcrumbs,
+    historicalDetail.property.summary.breadcrumbs,
+  );
+  assert.equal(upgradedHistorical.property.listings[0].collectionCount, 1);
+  assert.deepEqual(
+    upgradedHistorical.property.listings[0].history.map((item) => item.type),
+    ['created'],
   );
   const historicalListing = await get(
     `listings/${historicalIdentity.listing_id}`,
@@ -826,7 +861,7 @@ try {
     "UPDATE collection.source_register SET listing_text_display_allowed=true WHERE source_id='synthetic-data'",
   );
   console.log(
-    'Properties ingestion passed: production collection/evidence/broker/worker/HTTP, local real-shaped synthetic allowlist/masking/normalization and per-value provenance, six-crumb block resolution, historical five-crumb replay/restart compatibility, rollback/retry, concurrency/inbox expiry/restart, immutable pending v1/v2, authority/mutation/address rejection, current rights and prepared isolation.',
+    'Properties ingestion passed: production collection/evidence/broker/worker/HTTP, local real-shaped synthetic allowlist/masking/normalization and per-value provenance, six-crumb block resolution, historical five-crumb replay/restart compatibility, rollback/retry, concurrency/inbox expiry/restart, immutable originals and corrected current values, authority/mutation/address rejection, current rights and prepared isolation.',
   );
 } catch (error) {
   await compose('logs', '--no-color', '--tail', '100', 'worker', 'api', 'migrations')

@@ -90,6 +90,23 @@ function enabledSource() {
 }
 
 class RunRepositoryDouble implements CollectionRunRepository {
+  public loadRunByOperationKeyInTransaction(_transaction: Transaction, operationKey: string) {
+    return this.loadRunByOperationKey(operationKey);
+  }
+  public async withSourceAdmission<TResult>(
+    _transaction: Transaction,
+    _sourceId: string,
+    work: (frontier: Pick<CollectionRunState, 'startedAt' | 'runId'> | null) => Promise<TResult>,
+  ): Promise<TResult> {
+    return work(null);
+  }
+  public readonly completedEvidence: import('@rei/domain').CollectionRunCompleted[] = [];
+  public async appendCompletedEvidence(
+    _transaction: Transaction,
+    event: import('@rei/domain').CollectionRunCompleted,
+  ) {
+    this.completedEvidence.push(event);
+  }
   public readonly parsedEvidence: import('./parsed-event-evidence.port.js').ParsedCollectionEvent[] =
     [];
   public async appendParsedEvidence(
@@ -99,6 +116,9 @@ class RunRepositoryDouble implements CollectionRunRepository {
     this.parsedEvidence.push(...events);
   }
   public run: CollectionRunState | null = null;
+  public async fail(): Promise<CollectionRunState> {
+    throw new Error('One-shot failure must not be used.');
+  }
   public observations: PersistedCollectionObservation[] = [];
 
   public async pause(_transaction: Transaction, _runId: UuidV7, hold: SourceHold) {

@@ -5,6 +5,7 @@ import {
   StaleCollectionCheckpointError,
   advanceCollectionRun,
   createRunningCollectionRun,
+  failCollectionRun,
   hydrateCollectionRun,
   parseCollectionCheckpointCursor,
   pauseCollectionRun,
@@ -25,6 +26,28 @@ function running() {
 }
 
 describe('collection run', () => {
+  it('fails a running boundary without losing ownership or fabricating completion and never replaces success', () => {
+    const original = running();
+    const failed = failCollectionRun(original);
+    expect(failed).toEqual({ ...original, status: 'failed' });
+    expect(() =>
+      hydrateCollectionRun({ ...failed, completedAt: '2026-10-10T00:00:03.000Z' }),
+    ).toThrow('terminal');
+    expect(() => resumeCollectionRun(failed)).toThrow('explicitly');
+    const completed = advanceCollectionRun(original, {
+      expectedOrdinal: 0,
+      expectedCursor: null,
+      nextCursor: null,
+      checkpointedAt: '2026-10-10T00:00:01.000Z',
+      observedDelta: 0,
+      exhausted: true,
+      completedAt: '2026-10-10T00:00:01.000Z',
+      manifestHash: MANIFEST,
+      completedEventId: COMPLETED_EVENT_ID,
+    });
+    expect(failCollectionRun(completed)).toBe(completed);
+    expect(failCollectionRun(failed)).toBe(failed);
+  });
   it('pauses at the committed prefix and resumes explicitly without terminal fields', () => {
     const prefix = advanceCollectionRun(running(), {
       expectedOrdinal: 0,
