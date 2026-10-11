@@ -253,8 +253,11 @@ export function parseImageFingerprints(value: unknown, allowEmpty = true): reado
   const result = value.map((item, index) => {
     const itemField = `${field}[${index}]`;
     const fingerprint = stringValue(item, itemField, 1_000);
-    // Opaque tokens; URL, data-URI and base64 punctuation cannot carry media here.
-    if (!/^[a-z0-9][a-z0-9:_-]*$/i.test(fingerprint)) {
+    // Identifier characters alone also admit unpadded/base64url image payloads.
+    if (
+      !/^[a-z0-9][a-z0-9:_-]*$/i.test(fingerprint) ||
+      /^(?:iVBORw0KGgo|R0lGOD|PHN2Zy)/.test(fingerprint)
+    ) {
       return fail(`${itemField} must be an opaque fingerprint identifier.`, itemField);
     }
     return fingerprint;
@@ -304,9 +307,10 @@ function parseLocation(value: unknown): CollectedListingLocation {
   }
   const street = maskedText(parsed.street, 'payload.listing.location.street', 300);
   if (
-    /\b(?:apartamento|apto\.?|apt\.?|apartment|unit|unidade|sala|conjunto|cj\.?|bloco|block|complemento|complement)\s*(?:n[º°o.]?|#|:|-)?\s*\d/iu.test(
+    /\b(?:apartamento|apto|apt|ap|apartment|unit|unidade|sala|conjunto|cj|bloco|block|complemento|complement)\b\.?\s*(?:n[º°o.]?|#|:|-)?\s*(?:\d|[a-z]\b)/iu.test(
       street,
-    )
+    ) ||
+    /[,;]\s*fundos\b/iu.test(street)
   ) {
     return fail(
       'payload.listing.location.street contains unit or complement details.',
@@ -440,7 +444,7 @@ function parseSnapshotPayload(
     },
     source: {
       sourceId: sourceId(source.sourceId, 'payload.source.sourceId'),
-      sourceListingId: stringValue(source.sourceListingId, 'payload.source.sourceListingId', 300),
+      sourceListingId: maskedText(source.sourceListingId, 'payload.source.sourceListingId', 300),
       sourceUrl: absoluteHttpUrl(source.sourceUrl, 'payload.source.sourceUrl'),
       observedAt: parseRfc3339Timestamp(
         stringValue(source.observedAt, 'payload.source.observedAt'),
@@ -503,7 +507,7 @@ function parseSuppressedPayload(value: unknown): CollectionListingSuppressedPayl
   const parsed = exactRecord(value, ['sourceId', 'sourceListingId'], 'payload');
   return {
     sourceId: sourceId(parsed.sourceId, 'payload.sourceId'),
-    sourceListingId: stringValue(parsed.sourceListingId, 'payload.sourceListingId', 300),
+    sourceListingId: maskedText(parsed.sourceListingId, 'payload.sourceListingId', 300),
   };
 }
 
