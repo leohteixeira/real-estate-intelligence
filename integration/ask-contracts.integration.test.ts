@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { execa } from 'execa';
 import { expect, test } from 'vitest';
 import {
@@ -93,7 +93,15 @@ async function withAskFixture(work: (base: string) => Promise<void>): Promise<vo
       url.password = settings.POSTGRES_PASSWORD;
       connection = new DatabaseConnection(url.toString());
       const before = await databaseState(connection);
-      expect(before.some((table) => table.schema === 'ask')).toBe(false);
+      expect(before.filter((table) => table.schema === 'ask').map((table) => table.table)).toEqual([
+        'run',
+        'run_event',
+        'thread',
+        'tool_receipt',
+      ]);
+      expect(
+        before.filter((table) => table.schema === 'ask').every((table) => table.count === 0),
+      ).toBe(true);
       expect(
         before.find((table) => table.schema === 'platform' && table.table === 'outbox')?.count,
       ).toBe(0);
@@ -286,11 +294,7 @@ test('Ask contracts: seven production API SSE journeys, authority, replay and ze
         ...headers,
         'Last-Event-ID': cursor,
       });
-    for (const path of [
-      '/runs',
-      `/runs/${fixture.runId}/confirm`,
-      `/runs/${fixture.runId}/cancel`,
-    ]) {
+    for (const path of [`/runs/${fixture.runId}/confirm`, `/runs/${fixture.runId}/cancel`]) {
       const response = await requestHttp(`${base}/api/v1${path}`, {
         method: 'POST',
         headers: { ...headers, 'Idempotency-Key': fixture.runId },
@@ -300,6 +304,29 @@ test('Ask contracts: seven production API SSE journeys, authority, replay and ze
       expect(await response.json()).toMatchObject({ error: { code: 'not_found' } });
       expect(JSON.stringify(await response.json())).not.toContain('private caller question');
     }
+    const disabled = await requestHttp(`${base}/api/v1/runs`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${randomBytes(32).toString('base64url')}`,
+        'Idempotency-Key': randomUUID(),
+      },
+      body: {
+        mode: 'structured-price-v1',
+        threadId: null,
+        placeId: null,
+        query: 'private caller question',
+        locale: 'en',
+        inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
+      },
+    });
+    expect(disabled.status).toBe(503);
+    expect(await disabled.json()).toMatchObject({ error: { code: 'service_unavailable' } });
+    const fixtureCannotCreate = await requestHttp(`${base}/api/v1/runs`, {
+      method: 'POST',
+      headers: { ...headers, 'Idempotency-Key': randomUUID() },
+      body: { query: 'private caller question' },
+    });
+    expect(fixtureCannotCreate.status).toBe(401);
     const create = {
       threadId: null,
       placeId: null,

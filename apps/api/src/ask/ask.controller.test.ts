@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { ASK_FACADE, type AskFacade } from '@rei/application';
+import { ASK_FACADE, ASK_LIVE_FACADE, type AskFacade } from '@rei/application';
 import { assertAskPreview } from '@rei/domain';
 import {
   parseAskAvailability,
@@ -14,6 +14,7 @@ import { concat, from, lastValueFrom, Observable, throwError, toArray } from 'rx
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { configureApi } from '../configure-api';
 import { AskModule } from './ask.module';
+import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 import { askBearerCapability, askPreviewStream } from './ask.controller';
 
 function transport(text: string): AskProgressEvent[] {
@@ -52,7 +53,12 @@ describe('AskModule actual HTTP and finite SSE', () => {
   });
   let app: INestApplication, base: string, facade: AskFacade;
   beforeAll(async () => {
-    const module = await Test.createTestingModule({ imports: [AskModule] }).compile();
+    const module = await Test.createTestingModule({ imports: [AskModule] })
+      .overrideProvider(DATABASE_CONNECTION)
+      .useValue({ close: vi.fn() })
+      .overrideProvider(ASK_LIVE_FACADE)
+      .useValue({ run: async () => null, thread: async () => null })
+      .compile();
     facade = module.get(ASK_FACADE);
     app = module.createNestApplication();
     configureApi(app);
@@ -204,7 +210,7 @@ describe('AskModule actual HTTP and finite SSE', () => {
       spy.mockRestore();
     }
   });
-  it('has no POST runtime handlers for reserved command shapes', async () => {
+  it('requires authority for structured creation while confirmation and cancellation remain reserved', async () => {
     const item = (await facade.catalogue()).items[0]!;
     for (const path of ['/runs', `/runs/${item.runId}/confirm`, `/runs/${item.runId}/cancel`]) {
       const response = await fetch(`${base}/api/v1${path}`, {
@@ -212,7 +218,7 @@ describe('AskModule actual HTTP and finite SSE', () => {
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.runId },
         body: JSON.stringify({ query: 'caller private text' }),
       });
-      expect(response.status).toBe(404);
+      expect(response.status).toBe(path === '/runs' ? 401 : 404);
       expect(await response.text()).not.toContain('caller private text');
     }
   });

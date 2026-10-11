@@ -3,6 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { readConfig } from './config';
 
 describe('readConfig', () => {
+  it('validates a fixed API origin and configurable tracer budget bounded by worker execution', () => {
+    expect(
+      readConfig({ API_BASE_URL: 'http://api.internal:8200', ASK_TRACER_DEADLINE_MS: '4500' }),
+    ).toEqual({ port: 4111, apiBaseUrl: 'http://api.internal:8200', tracerDeadlineMs: 4500 });
+    for (const API_BASE_URL of [
+      'file:///tmp/tool',
+      'https://user:secret@api.internal',
+      'https://api.internal/path',
+      'https://api.internal/?target=evil',
+      'invalid',
+    ])
+      expect(() => readConfig({ API_BASE_URL })).toThrow('Invalid AI tool configuration.');
+    for (const ASK_TRACER_DEADLINE_MS of ['99', '10001', '-1', 'Infinity', '', '4500x'])
+      expect(() => readConfig({ ASK_TRACER_DEADLINE_MS })).toThrow('Invalid AI tracer deadline.');
+  });
   it('uses port 4111 when AI_PORT is absent', () => {
     expect(readConfig({})).toEqual({ port: 4111 });
   });
