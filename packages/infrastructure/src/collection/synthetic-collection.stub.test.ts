@@ -4,6 +4,7 @@ import {
   COLLECTION_RUN_COMPLETED_TYPE,
   COLLECTION_SNAPSHOT_PARSED_TYPE,
   parseCollectionEvent,
+  hashCollectionManifest,
 } from '@rei/domain';
 import { describe, expect, it } from 'vitest';
 
@@ -89,6 +90,12 @@ describe('SyntheticCollectionStub', () => {
     expect(parsed.payload.listing.imageFingerprints).toHaveLength(1);
     expect(completed.aggregateId).toBe(SYNTHETIC_RUN_ID);
     expect(completed.payload.manifestHash).toBe(SYNTHETIC_MANIFEST_HASH);
+    const run = await stub.getRun(completed.aggregateId);
+    expect(run).not.toBeNull();
+    if (run === null) throw new Error('The completed fixture must resolve to its run manifest.');
+    expect(completed.payload.manifestHash).toBe(
+      hashCollectionManifest(run.observedSourceListingIds),
+    );
     expect(suppressed.payload).toEqual({
       sourceId: SYNTHETIC_SOURCE_ID,
       sourceListingId: SYNTHETIC_SOURCE_LISTING_ID,

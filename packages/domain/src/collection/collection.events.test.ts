@@ -87,6 +87,50 @@ function mutableParsedWire(): MutableWireRecord {
 }
 
 describe('collection event contracts', () => {
+  it.each(['features', 'city', 'neighborhood', 'street', 'agencyName'])(
+    'rejects contact data carried by the allowed %s field',
+    (field) => {
+      const value = mutableParsedWire();
+      const listing = nested(value, 'payload', 'listing');
+      if (field === 'features') listing.features = ['person@example.test'];
+      else if (field === 'agencyName')
+        nested(listing, 'advertiser').agencyName = 'person@example.test';
+      else nested(listing, 'location')[field] = 'person@example.test';
+      expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
+    },
+  );
+
+  it.each([
+    'https://images.example.test/portrait.jpg',
+    'data:image/png;base64,iVBORw0KGgo=',
+    '/9j/4AAQSkZJRgABAQAAAQABAAD=',
+    'person@example.test',
+  ])('rejects raw image or contact content in fingerprints: %s', (fingerprint) => {
+    const value = mutableParsedWire();
+    nested(value, 'payload', 'listing').imageFingerprints = [fingerprint];
+    expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
+  });
+
+  it.each([
+    'Rua Exemplo, apartamento 123',
+    'Rua Exemplo, apto. 123',
+    'Example Street, unit #123',
+    'Rua Exemplo, complemento: 123',
+  ])('rejects unit or complement details embedded in the street: %s', (street) => {
+    const value = mutableParsedWire();
+    nested(value, 'payload', 'listing', 'location').street = street;
+    expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
+  });
+
+  it.each(['Rua Exemplo 123', 'Rua dos Apartamentos', 'Avenida Bloco Novo'])(
+    'retains source street text without unit details: %s',
+    (street) => {
+      const value = mutableParsedWire();
+      nested(value, 'payload', 'listing', 'location').street = street;
+      expect(parseCollectionSnapshotParsed(value).payload.listing.location.street).toBe(street);
+    },
+  );
+
   it('dispatches strict v2 corrections while retaining v1 rejection of empty fingerprints', () => {
     const original = new CollectionSnapshotParsed(parsedInput());
     const input = {
