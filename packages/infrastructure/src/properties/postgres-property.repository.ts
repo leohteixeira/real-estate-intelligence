@@ -70,7 +70,7 @@ export class PostgresPropertyRepository implements PropertyRepository {
       [property.propertyId, property.initial.eventId, JSON.stringify(property.resolved)],
     );
     const { sourceId, sourceListingId } = property.provenance;
-    const listing = property.initial.payload.listing;
+    const listing = property.normalized;
     await client.query(
       `INSERT INTO properties.listing (listing_id, property_id, source_id, source_listing_id, asking_price_minor_units, currency, area_square_meters)
       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -79,9 +79,9 @@ export class PostgresPropertyRepository implements PropertyRepository {
         property.propertyId,
         sourceId,
         sourceListingId,
-        listing.askingPriceMinorUnits,
-        listing.currency,
-        listing.areaSquareMeters,
+        listing.askingPriceMinorUnits.value,
+        listing.currency.value,
+        listing.areaSquareMeters.value,
       ],
     );
   }

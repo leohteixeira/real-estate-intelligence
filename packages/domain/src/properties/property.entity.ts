@@ -3,6 +3,7 @@ import type { PlaceRef } from '../locations/index.js';
 import { DomainValidationError, parseUuidV7, type UuidV7 } from '../shared/index.js';
 import { PropertiesEvent } from './properties.events.js';
 import type { ListingProvenance } from './properties.read.types.js';
+import { NormalizedListing } from './listing/normalized-listing.vo.js';
 
 /** A resolved fixture address is reference geography, never inferred entity matching. */
 export interface ResolvedPropertyPlace {
@@ -31,6 +32,7 @@ export class Property {
   public readonly initial: CollectionSnapshotParsed;
   public readonly resolved: ResolvedPropertyPlace;
   public readonly provenance: ListingProvenance;
+  public readonly normalized: NormalizedListing;
 
   public constructor(
     propertyId: string,
@@ -61,13 +63,13 @@ export class Property {
     )
       throw new DomainValidationError('Invalid resolved place hierarchy.', 'place');
     this.resolved = Object.freeze({ place, breadcrumbs: Object.freeze(breadcrumbs) });
-    const { source, run, snapshot } = this.initial.payload;
-    this.provenance = Object.freeze({ ...source, ...run, ...snapshot });
+    this.normalized = new NormalizedListing(this.initial);
+    this.provenance = this.normalized.provenance;
     Object.freeze(this);
   }
 
   public creationEvent(eventId: string): PropertiesEvent<'properties.listing.created'> {
-    const listing = this.initial.payload.listing;
+    const listing = this.normalized;
     const effectiveAt = this.provenance.observedAt;
     return new PropertiesEvent('properties.listing.created', {
       eventId,
@@ -83,11 +85,11 @@ export class Property {
           sourceId: this.provenance.sourceId,
           sourceListingId: this.provenance.sourceListingId,
           placeId: this.resolved.place.id,
-          propertyType: listing.propertyType,
-          areaSquareMeters: listing.areaSquareMeters,
+          propertyType: listing.propertyType.value,
+          areaSquareMeters: listing.areaSquareMeters.value,
           status: 'active',
-          askingPriceMinorUnits: listing.askingPriceMinorUnits,
-          currency: 'BRL',
+          askingPriceMinorUnits: listing.askingPriceMinorUnits.value,
+          currency: listing.currency.value,
           effectiveAt,
           provenance: this.provenance,
         },

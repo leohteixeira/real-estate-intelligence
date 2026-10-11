@@ -8,13 +8,13 @@ import {
 
 /** The metadata clock and all effective dates refer to the original observation. */
 export function projectInitialProperty(property: Property, textAllowed: boolean): PropertyResponse {
-  const initial = property.initial.payload.listing;
+  const initial = property.normalized;
   const { provenance } = property;
   const observedAt = provenance.observedAt;
   const label = 'Persisted initial synthetic observation; history and matching pending';
   const calculatedPrice = pricePerSquareMeter({
-    priceInCents: initial.askingPriceMinorUnits,
-    areaInSquareMeters: initial.areaSquareMeters,
+    priceInCents: initial.askingPriceMinorUnits.value,
+    areaInSquareMeters: initial.areaSquareMeters.value,
   });
   const price =
     Number.isSafeInteger(calculatedPrice) && calculatedPrice > 0 ? calculatedPrice : null;
@@ -30,17 +30,17 @@ export function projectInitialProperty(property: Property, textAllowed: boolean)
     },
     position: 1,
     status: 'active',
-    propertyType: initial.propertyType,
+    propertyType: initial.propertyType.value,
     place: property.resolved.place,
-    publishedNeighborhood: initial.location.neighborhood,
-    street: initial.location.street,
-    areaSquareMeters: initial.areaSquareMeters,
-    bedrooms: initial.bedrooms,
-    bathrooms: initial.bathrooms,
-    parkingSpaces: initial.parkingSpaces,
-    features: initial.features,
-    askingPriceMinorUnits: initial.askingPriceMinorUnits,
-    currency: 'BRL',
+    publishedNeighborhood: initial.location.neighborhood.value,
+    street: initial.location.street.value,
+    areaSquareMeters: initial.areaSquareMeters.value,
+    bedrooms: initial.bedrooms.value,
+    bathrooms: initial.bathrooms.value,
+    parkingSpaces: initial.parkingSpaces.value,
+    features: initial.features.map((feature) => feature.value),
+    askingPriceMinorUnits: initial.askingPriceMinorUnits.value,
+    currency: initial.currency.value,
     pricePerSquareMeter: price,
     pricePerSquareMeterFormula: 'askingPriceMinorUnits / areaSquareMeters',
     provenance,
@@ -52,12 +52,12 @@ export function projectInitialProperty(property: Property, textAllowed: boolean)
     description: textAllowed
       ? {
           permission: 'allowed',
-          current: initial.maskedDescription,
+          current: initial.maskedDescription.value,
           versions: [
             {
               effectiveAt: observedAt,
-              text: initial.maskedDescription,
-              contentHash: `sha256:${createHash('sha256').update(initial.maskedDescription).digest('hex')}`,
+              text: initial.maskedDescription.value,
+              contentHash: `sha256:${createHash('sha256').update(initial.maskedDescription.value).digest('hex')}`,
             },
           ],
           sourceUrl: provenance.sourceUrl,
@@ -76,23 +76,23 @@ export function projectInitialProperty(property: Property, textAllowed: boolean)
       summary: {
         id: property.propertyId,
         fixtureLabel: label,
-        propertyType: initial.propertyType,
+        propertyType: initial.propertyType.value,
         place: property.resolved.place,
         breadcrumbs: property.resolved.breadcrumbs,
-        areaSquareMeters: initial.areaSquareMeters,
-        bedrooms: initial.bedrooms,
-        bathrooms: initial.bathrooms,
-        parkingSpaces: initial.parkingSpaces,
+        areaSquareMeters: initial.areaSquareMeters.value,
+        bedrooms: initial.bedrooms.value,
+        bathrooms: initial.bathrooms.value,
+        parkingSpaces: initial.parkingSpaces.value,
         askingPrice: {
-          minorUnits: initial.askingPriceMinorUnits,
-          currency: 'BRL',
+          minorUnits: initial.askingPriceMinorUnits.value,
+          currency: initial.currency.value,
           listingId: property.listingId,
           provenance,
         },
         pricePerSquareMeter: price,
         timeOnMarketDays: Math.max(
           0,
-          Math.floor((Date.parse(observedAt) - Date.parse(initial.listedAt)) / 86_400_000),
+          Math.floor((Date.parse(observedAt) - Date.parse(initial.listedAt.value)) / 86_400_000),
         ),
         firstCollectedAt: observedAt,
         lastCollectedAt: observedAt,
@@ -107,7 +107,7 @@ export function projectInitialProperty(property: Property, textAllowed: boolean)
       priceChanges: [],
       sourceAgreement: [],
       featureAgreement: initial.features.map((feature) => ({
-        feature,
+        feature: feature.value,
         reportingCount: 1,
         reportingPercent: 100,
         listingIds: [property.listingId],
