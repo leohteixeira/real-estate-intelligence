@@ -190,6 +190,7 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Price 10 or 20, area 68 m2', 'ambiguous_price'],
         ['Price 10, area 68-70 m2', 'ambiguous_area'],
         ['Price 10 and 20, area 68 m2', 'ambiguous_price'],
+        ['Price 785000, area 68 m², price is 900000', 'ambiguous_price'],
         ['Preço 10 e 20, área 68 m2', 'ambiguous_price', 'pt-BR'],
         ['Price 785000, area 68 m² and 70', 'ambiguous_area'],
         ['Preço 785000, área 68 m² e 70', 'ambiguous_area', 'pt-BR'],
@@ -218,6 +219,8 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Price 10 thousand CHF, area 68 m2', 'unsupported_currency'],
         ['Price 785000 in CHF, area 68 m2', 'unsupported_currency'],
         ['Price BRL 785000 quoted in CHF, area 68 m2', 'unsupported_currency'],
+        ['Price 785000 BRL quoted in CHF, area 68 m2', 'unsupported_currency'],
+        ['Price 785000, currency BRL and CHF, area 68 m2', 'unsupported_currency'],
         ['Preço 785000 em CHF, área 68 m2', 'unsupported_currency', 'pt-BR'],
         ['Preço BRL 785000 cotado em CHF, área 68 m2', 'unsupported_currency', 'pt-BR'],
         ['Price 785000 pesos, area 68 m2', 'unsupported_currency'],
@@ -249,6 +252,8 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Price 785000, area 68 meters', 'unsupported_area_unit'],
         ['Price 785000, area 68 meter', 'unsupported_area_unit'],
         ['Price 785000, area 68 m', 'unsupported_area_unit'],
+        ['Preço 785000, área 68 metros', 'unsupported_area_unit', 'pt-BR'],
+        ['Price 785000, area 68 dm²', 'unsupported_area_unit'],
         ['Preço 785000, área 68 ha', 'unsupported_area_unit', 'pt-BR'],
         ['Price 785000, area ha 68', 'unsupported_area_unit'],
         ['Price 0.01, area 1000000 m2', 'unsafe_result'],
@@ -349,6 +354,8 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         ['Preço 785000, área 68, há 2 quartos', 'pt-BR'],
         ['Price 785000, 3 bedrooms, area 68 m2', 'en'],
         ['Price 785000, 2026 year, area 68 m2', 'en'],
+        ['Price 785000, area 68 m2, 10 meters from street 42', 'en'],
+        ['Street 42 is 10 meters away: price 785000, area 68 m2', 'en'],
       ] as const;
       for (const [contextQuery, locale] of contextQueries) {
         const contextual = await create({

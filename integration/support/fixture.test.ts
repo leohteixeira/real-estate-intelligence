@@ -1,8 +1,42 @@
+import getPort from 'get-port';
 import { Wait } from 'testcontainers';
 import type { OneShotStartupCheckStrategy } from 'testcontainers/build/wait-strategies/one-shot-startup-startegy.js';
 import { expect, test, vi } from 'vitest';
 import type { Command, ComposeBuilder } from './fixture.ts';
-import { cleanupAll, ComposeFixture, preserveCleanup } from './fixture.ts';
+import {
+  allocatePorts,
+  availablePort,
+  cleanupAll,
+  ComposeFixture,
+  preserveCleanup,
+} from './fixture.ts';
+
+vi.mock('get-port', () => ({ default: vi.fn() }));
+
+test('allocated fixture ports probe the wildcard address used by Compose', async () => {
+  const getPortMock = vi.mocked(getPort).mockReset();
+  getPortMock.mockResolvedValueOnce(48011).mockResolvedValueOnce(48012);
+  await expect(allocatePorts(2)).resolves.toEqual([48011, 48012]);
+  expect(getPortMock.mock.calls).toEqual([[{ host: '0.0.0.0' }], [{ host: '0.0.0.0' }]]);
+});
+
+test('an automatically available fixture port probes the Compose wildcard address', async () => {
+  const getPortMock = vi.mocked(getPort).mockReset().mockResolvedValueOnce(48013);
+  await expect(availablePort()).resolves.toBe(48013);
+  expect(getPortMock).toHaveBeenCalledExactlyOnceWith({ host: '0.0.0.0', port: undefined });
+});
+
+test('an explicitly requested fixture port probes the Compose wildcard address', async () => {
+  const getPortMock = vi.mocked(getPort).mockReset().mockResolvedValueOnce(48014);
+  await expect(availablePort(48014)).resolves.toBe(48014);
+  expect(getPortMock).toHaveBeenCalledExactlyOnceWith({ host: '0.0.0.0', port: 48014 });
+});
+
+test('an unavailable requested fixture port fails instead of selecting a replacement', async () => {
+  const getPortMock = vi.mocked(getPort).mockReset().mockResolvedValueOnce(48015);
+  await expect(availablePort(40585)).rejects.toThrow('Requested fixture port is unavailable.');
+  expect(getPortMock).toHaveBeenCalledExactlyOnceWith({ host: '0.0.0.0', port: 40585 });
+});
 
 function fixture({
   startupFailure,
