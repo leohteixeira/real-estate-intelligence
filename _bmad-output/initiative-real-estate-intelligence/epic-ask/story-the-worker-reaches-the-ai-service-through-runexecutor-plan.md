@@ -3,7 +3,7 @@ title: 'The worker reaches the AI service through RunExecutor'
 type: 'feature'
 ticket: '17'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: '556bad91d0a341f2e30e91aff1f85f31baeb1bc4'
 route: 'full'
 route_source: 'auto'
@@ -340,6 +340,20 @@ is unchanged. No UI/artboard, live source, VPS, `.env*`, push or deployment is p
   and 13 original volumes; no owned fixture or Ryuk remains. The existing user stash is intact.
 
 ## Verification
+
+### Orchestrator closure — 2026-10-11
+
+The build workflow halted `built` after all post-review gates passed and the working tree was
+clean. The orchestrator independently resolved ticket 5.17 again and accepted its outer-surface
+verify: the real production worker executed the graph through AI HTTP and missing authority was
+refused. All 45 reviewed paths are present after the canonical baseline revision.
+
+Implementation: `7a728bdd8e37b271d63666e9d0dc18eeb4b3438f`.
+Tests: `66550aeb921424d7fdca47952d4d36054354a441`.
+Verified result and documentation: `22ac54a25c6b280653a5c5c1e121268d05d3893a`.
+All root gates, unchanged coverage floors, 24 integration files/43 tests and exact 13-container/
+13-volume preservation passed. This closes the foundation hop only; no model, price analysis,
+durable execution or VPS outcome is claimed. No push was performed.
 
 **Commands:**
 
