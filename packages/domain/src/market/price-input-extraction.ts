@@ -28,7 +28,16 @@ const scales: Readonly<Record<string, bigint>> = {
   milhao: 1000000n,
   milhoes: 1000000n,
 };
-const unsupportedScales = new Set(['billion', 'billions', 'bilhao', 'bilhoes']);
+const unsupportedScales = new Set([
+  'billion',
+  'billions',
+  'bilhao',
+  'bilhoes',
+  'trillion',
+  'trillions',
+  'trilhao',
+  'trilhoes',
+]);
 const priceLabels = new Set(['price', 'preco', 'valor']);
 const areaLabels = new Set(['area']);
 const currencies = new Set(['r$', 'brl', 'reais', 'real']);
@@ -36,7 +45,8 @@ const currencyLabels = new Set(['currency', 'moeda']);
 const currencyPrepositions = new Set(['in', 'em']);
 const currencyQuoteWords = new Set(['quoted', 'cotado', 'cotada']);
 const currencyCodeWords = new Set(['try', 'all', 'mad', 'top']);
-const foreignCurrencyNames = new Set(['peso', 'pesos', 'franc', 'francs']);
+const foreignCurrencyNames = new Set(['peso', 'pesos', 'franc', 'francs', 'franco', 'francos']);
+const currencyModifiers = new Set(['swiss', 'mexican', 'argentine']);
 // Known foreign markers are meaningful beside a numeric mention or explicit declaration,
 // not an arbitrary uppercase word elsewhere in the question.
 const foreignCurrencyCodes = new Set(
@@ -54,6 +64,7 @@ const foreignCurrencyCodes = new Set(
 );
 const squareUnits = new Set(['m2', 'm²']);
 const rangeWords = new Set(['to', 'a', 'ate', 'or', 'ou']);
+const rangePrefixes = new Set(['between', 'entre']);
 const coordinationWords = new Set(['and', 'e', 'vs']);
 const contextNumberUnits = new Set([
   'bedroom',
@@ -77,16 +88,19 @@ const refused = (reason: PriceInputRefusalReason): PriceInputExtraction => ({
 /** Bounded v1 grammar. A token is consumed whole; malformed numbers are never salvaged. */
 export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): PriceInputExtraction {
   if (query.length > 16000 || !query.trim()) return refused('missing_price');
-  const normalized = query.normalize('NFD').replace(/\p{M}/gu, '').replace(/[–—]/g, '-');
   const originalTokens = (
-    normalized.match(/us\$|r\$|[\p{Sc}]|[+−.,\d-][^\s?!()[\]{}<>\p{Sc}]*|[\p{L}\p{N}²]+/giu) ?? []
+    query
+      .replace(/[–—]/g, '-')
+      .match(/us\$|r\$|[\p{Sc}]|[+−.,\d-][^\s?!()[\]{}<>\p{Sc}]*|[\p{L}\p{M}\p{N}²]+/giu) ?? []
   )
     .filter((token) => token !== ',' && token !== '.')
     .map((token) => token.replace(/[.,]$/, ''));
-  const tokens = originalTokens.map((token) => token.toLowerCase());
+  const tokens = originalTokens.map((token) =>
+    token.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase(),
+  );
   const hasCurrencyReference = (index: number) => {
     let previous = index - 1;
-    const hasModifier = tokens[previous] === 'swiss';
+    const hasModifier = currencyModifiers.has(tokens[previous] ?? '');
     if (hasModifier) previous--;
     if (currencyPrepositions.has(tokens[previous] ?? '')) {
       previous--;
@@ -179,6 +193,18 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'cm',
           'cm2',
           'cm²',
+          'centimeter',
+          'centimeters',
+          'centimetre',
+          'centimetres',
+          'centimetro',
+          'centimetros',
+          'decimeter',
+          'decimeters',
+          'decimetre',
+          'decimetres',
+          'decimetro',
+          'decimetros',
           'mm',
           'mm2',
           'mm²',
@@ -188,6 +214,7 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'in²',
         ].includes(token) ||
         (token === 'ha' &&
+          originalTokens[index]?.normalize('NFC').toLowerCase() !== 'há' &&
           (/^[+−.,\d-]/.test(tokens[index - 1] ?? '') ||
             (areaLabels.has(tokens[index - 1] ?? '') &&
               /^[+−.,\d-]/.test(tokens[index + 1] ?? '')))),
@@ -218,12 +245,20 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
       scales[tokens[afterIndex] ?? ''] !== undefined ||
       unsupportedScales.has(tokens[afterIndex] ?? '');
     const price =
-      priceLabels.has(before) || currencies.has(before) || currencies.has(tokens[afterIndex] ?? '');
-    const area = areaLabels.has(before) || isAreaUnit(afterIndex);
+      priceLabels.has(before) ||
+      currencies.has(before) ||
+      currencies.has(tokens[afterIndex] ?? '') ||
+      (rangePrefixes.has(before) &&
+        (priceLabels.has(tokens[index - 2] ?? '') || currencies.has(tokens[index - 2] ?? '')));
+    const area =
+      areaLabels.has(before) ||
+      isAreaUnit(afterIndex) ||
+      (rangePrefixes.has(before) && areaLabels.has(tokens[index - 2] ?? ''));
     const range =
       /^\d[\d.,]*-\d/.test(token) ||
       rangeWords.has(tokens[index + 1] ?? '') ||
       rangeWords.has(before) ||
+      rangePrefixes.has(before) ||
       tokens[index + 1] === '-' ||
       before === '-';
     let role: Role | undefined = price ? 'price' : area ? 'area' : undefined;
