@@ -3,7 +3,7 @@ title: 'Price and area extracted and validated by code'
 type: 'feature'
 ticket: '3'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: '4ef64a2a5f6105e772e80a95e4b70b7c8aaab5e1'
 route: 'full'
 route_source: 'auto'
@@ -1097,3 +1097,32 @@ foreign containers and thirteen foreign volumes were preserved, with no owned fi
 resource remaining. See `final-container-inventory.log` and `final-volume-inventory.log` in the
 main evidence directory. Ryuk exited automatically after its normal post-process cleanup wait;
 no foreign resource was removed and no broad Docker cleanup was performed.
+
+### Orchestrator closure audit — 2026-10-11
+
+The orchestrator closes story 5.3 as done after the completed build/review workflow, not by
+reopening the built plan for another unsolicited review. Canonical verified revision:
+`6d85b7a962bf23866624a25e8cfc2ec3a6731ad1`. The current non-Markdown baseline diff still has
+SHA-256 `b46894ce19f60613d1bba3c14103a77eb4a79c45de02f2afdb566abfca85bce8`, identical to
+`final-source-before.sha256` and the final seventh-pass verification. No product source or
+test changed after that terminal verification; this closure changes only this plan.
+
+Main inspected the actual ticket description/verify, accepted ADR 0024, six public acceptance
+criteria, current executed integration assertions and final logs. Text-only PT/EN requests
+persist equal canonical inputs and complete through worker/graph/HTTP Market tool/SSE;
+typed refusals preserve six SQL effect counts; replay, foreign authority and altered tool
+inputs/operation/identity/grants are checked at the real public/private boundaries. Cursor
+replay and API restart retain the terminal; populated 6001-to-6002 upgrade preserves historical
+digests, rejects malformed provenance and completes a text run in a mixed thread.
+The current final logs prove root lint/typecheck/unit/build and coverage, 1,822 unit tests,
+four focused integration files/seven tests and all 26 integration files/50 tests. The earlier
+terminal process exit codes were observed by main, not inferred from these notes alone.
+
+The review recommendation is false and the deferred list is empty. The thirteen foreign
+containers and thirteen foreign volumes still match the retained inventories; no owned fixture
+or Ryuk remains. Formatting, owned Markdown, immutable intent and normal commit hooks are
+checked for this metadata-only closure. The pre-existing generated-snapshot root Markdown
+exception remains reported, not suppressed. No provider, UI, production, confidence gate,
+model explanation or checkpoint completion is implied by closing this extraction story;
+those remain their own tickets. D-006's VPS reservation is unchanged. The full Epics 1–6
+goal and final browser campaign remain active and incomplete.
