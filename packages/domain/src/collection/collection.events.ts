@@ -226,11 +226,19 @@ function boundedNumber(
   return value;
 }
 
+function maskedText(value: unknown, field: string, maximumLength = 500): string {
+  const parsed = stringValue(value, field, maximumLength);
+  if (maskSnapshotText(parsed) !== parsed) {
+    return fail(`${field} contains unmasked contact data or a link.`, field);
+  }
+  return parsed;
+}
+
 function stringArray(value: unknown, field: string): readonly string[] {
   if (!Array.isArray(value) || value.length > 100) {
     return fail(`${field} must be an array with at most 100 entries.`, field);
   }
-  const result = value.map((item, index) => stringValue(item, `${field}[${index}]`, 100));
+  const result = value.map((item, index) => maskedText(item, `${field}[${index}]`, 100));
   if (new Set(result).size !== result.length) {
     return fail(`${field} must not contain duplicate values.`, field);
   }
@@ -242,7 +250,15 @@ export function parseImageFingerprints(value: unknown, allowEmpty = true): reado
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.length > 100) {
     return fail(`${field} must contain between 1 and 100 fingerprints.`, field);
   }
-  const result = value.map((item, index) => stringValue(item, `${field}[${index}]`, 1_000));
+  const result = value.map((item, index) => {
+    const itemField = `${field}[${index}]`;
+    const fingerprint = stringValue(item, itemField, 1_000);
+    // Opaque tokens; URL, data-URI and base64 punctuation cannot carry media here.
+    if (!/^[a-z0-9][a-z0-9:_-]*$/i.test(fingerprint)) {
+      return fail(`${itemField} must be an opaque fingerprint identifier.`, itemField);
+    }
+    return fingerprint;
+  });
   if (new Set(result).size !== result.length) {
     return fail(`${field} must not contain duplicate fingerprints.`, field);
   }
@@ -250,14 +266,7 @@ export function parseImageFingerprints(value: unknown, allowEmpty = true): reado
 }
 
 function maskedDescription(value: unknown): string {
-  const parsed = stringValue(value, 'payload.listing.maskedDescription', 20_000);
-  if (maskSnapshotText(parsed) !== parsed) {
-    return fail(
-      'payload.listing.maskedDescription contains unmasked contact data or a link.',
-      'payload.listing.maskedDescription',
-    );
-  }
-  return parsed;
+  return maskedText(value, 'payload.listing.maskedDescription', 20_000);
 }
 
 function parseTraceContext(value: unknown): TraceContext | null {
@@ -293,11 +302,22 @@ function parseLocation(value: unknown): CollectedListingLocation {
       'payload.listing.location.stateCode',
     );
   }
+  const street = maskedText(parsed.street, 'payload.listing.location.street', 300);
+  if (
+    /\b(?:apartamento|apto\.?|apt\.?|apartment|unit|unidade|sala|conjunto|cj\.?|bloco|block|complemento|complement)\s*(?:n[º°o.]?|#|:|-)?\s*\d/iu.test(
+      street,
+    )
+  ) {
+    return fail(
+      'payload.listing.location.street contains unit or complement details.',
+      'payload.listing.location.street',
+    );
+  }
   return {
-    city: stringValue(parsed.city, 'payload.listing.location.city', 200),
+    city: maskedText(parsed.city, 'payload.listing.location.city', 200),
     stateCode,
-    neighborhood: stringValue(parsed.neighborhood, 'payload.listing.location.neighborhood', 200),
-    street: stringValue(parsed.street, 'payload.listing.location.street', 300),
+    neighborhood: maskedText(parsed.neighborhood, 'payload.listing.location.neighborhood', 200),
+    street,
   };
 }
 
@@ -323,7 +343,7 @@ function parseAdvertiser(value: unknown): CollectedListingAdvertiser {
   }
   return {
     type: 'agency',
-    agencyName: stringValue(parsed.agencyName, 'payload.listing.advertiser.agencyName', 300),
+    agencyName: maskedText(parsed.agencyName, 'payload.listing.advertiser.agencyName', 300),
   };
 }
 

@@ -10,6 +10,7 @@ import {
   CollectionListingSuppressed,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  hashCollectionManifest,
   type CollectionEvent,
   type EnabledSourceView,
   type Sha256Hash,
@@ -22,8 +23,7 @@ export const SYNTHETIC_SNAPSHOT_ID = '0199c8f2-2394-7ba0-8f9e-286378779211' as U
 export const SYNTHETIC_SOURCE_LISTING_ID = 'SYN-SP-0001';
 export const SYNTHETIC_SNAPSHOT_HASH =
   'sha256:1111111111111111111111111111111111111111111111111111111111111111' as Sha256Hash;
-export const SYNTHETIC_MANIFEST_HASH =
-  'sha256:2222222222222222222222222222222222222222222222222222222222222222' as Sha256Hash;
+export const SYNTHETIC_MANIFEST_HASH = hashCollectionManifest([SYNTHETIC_SOURCE_LISTING_ID]);
 
 const ALLOWED_PERMISSIONS = Object.freeze({
   sourceId: SYNTHETIC_SOURCE_ID,
