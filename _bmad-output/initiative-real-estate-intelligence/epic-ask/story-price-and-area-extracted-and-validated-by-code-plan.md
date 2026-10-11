@@ -322,6 +322,31 @@ confidence gate, explanation, full checkpoints/quotas or UI as part of this stor
     call. Associated ambiguous ha with an area measurement; actual ha/hectares remain refused.
     Domain and actual public 202-to-completed evidence cover the reported bedroom context.
 
+### 2026-10-11 — Third review pass
+
+- verdicts: 5 findings — high 4, medium 1, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Modified pesos and Portuguese francs still defaulted to BRL — Main
+    independently reproduced Mexican pesos, Argentine pesos and francos suíços through Domain
+    and Market; an Ask probe confirmed wrong BRL inputs reached the repository. Extended the
+    bounded modifier/name association; all three Domain and real public no-effect regressions pass.
+  - `[high]` `[patch]` Unsupported trillion/trilhões scales admitted the unscaled prefix — Main
+    reproduced both as 1,000 minor units through Market and verified an Ask repository call.
+    Added the demonstrated unsupported scale family to whole-value refusal; Domain and real
+    strict-422, unchanged-count regressions pass without changing supported scales.
+  - `[high]` `[patch]` Labelled between/entre ranges selected their upper endpoint — Main
+    reproduced four PT/EN price/area examples and traced accepted candidates through Ask.
+    Associated the range prefix with the labelled role before ambiguity checks; all four Domain
+    and real public no-effect regressions pass, preserving unrelated numeric context.
+  - `[high]` `[patch]` Spelled-out centimetre/decimetre units silently became square metres —
+    Main reproduced both languages and the decimeter example through Domain and Market, then
+    confirmed Ask admission with the wrong area. Extended the bounded unsupported-unit spellings;
+    Domain and actual public strict-422, unchanged-count regressions cover each reported form.
+  - `[medium]` `[patch]` Portuguese há after a unitless labelled area still meant hectares —
+    Main reproduced the exact sentence as a refusal and its context-free counterpart as valid.
+    Preserve original Unicode accents for the ha guard; composed/decomposed Domain regressions
+    pass, with actual public acceptance and terminal completion for the exact bedroom sentence.
+
 ## Independent Verification and Matrix Audit
 
 - Main read the complete staged 3,515-line baseline diff, including every new file, at
@@ -506,7 +531,7 @@ calls no model and opens no UI, VPS, provider or real-source surface.
 - `packages/domain/src/market/index.ts`
   — Export the pure extraction capability.
 - `packages/domain/src/market/price-input-extraction.test.ts`
-  — Cover 111 PT/EN accepted and adversarial extraction cases.
+  — Cover 127 PT/EN accepted and adversarial extraction cases.
 - `packages/domain/src/market/price-input-extraction.ts`
   — Parse bounded PT/EN whole tokens with exact money and finite refusals.
 - `packages/infrastructure/src/ask/ask-run.pg-repository.test.ts`
@@ -555,7 +580,7 @@ prefix, while the newly contextual ha guard could misassociate nearby unrelated 
 A fresh context-free Quick pass must trace those pre-persistence boundaries before the outer
 orchestrator marks the story done; passing this finite table does not establish exhaustive refusal.
 
-### Final verification
+### Previous follow-up verification
 
 All evidence is under `/tmp/rei-ask-text-main-52hIQ4/`, with final-source logs prefixed
 `followup-review-`. Focused Domain/Application/Contracts: 111/30/47 tests, exit 0. Root lint,
@@ -588,3 +613,60 @@ Final container/volume inventories contain no owned fixture resources, including
 unrelated portfolio resources were preserved. Exact cleanup evidence is in the
 `followup-review-final-container-inventory.log` and
 `followup-review-final-volume-inventory.log` files.
+
+### Third review and follow-up
+
+A fresh context-free Quick lens returned five findings. Main independently reproduced every
+reported form through compiled Domain and canonical Market validation, traced the public
+contract/controller guards and confirmed incorrect admission or refusal through Ask probes.
+Verdicts and patched counts: high 4, medium 1, low 0; nothing deferred or rejected. The same
+implementation agent repaired only the parser and its two test files. Genuine RED was
+14 failed/113 passed, followed by GREEN 127 passed; evidence is under
+`/tmp/rei-ask-text-implementation/` in `review-three-domain-red.log` and
+`review-three-domain-green.log`. Its single affected real integration file passed two tests,
+exit 0, 173.26 seconds in `review-three-text-integration.log`, then cleaned its owned resources.
+
+Main read every incremental source/test change and independently repeated all plan verification.
+Twelve new real public refusal rows return strict 422 and preserve all six thread/run/event/
+receipt/outbox/inbox counts. Both PT/EN terminal goldens, the unitless-area Portuguese bedroom
+sentence and populated structured upgrade retain their actual completed SSE/receipt evidence.
+No public type, SQL migration, coverage floor, deadline, authority rule or architecture decision
+changed. The immutable intent remains byte-identical to the previously committed plan.
+
+Follow-up review remains recommended: true. This follow-up pass patched four high entries.
+Specific unverified risk: unlabelled between/entre ranges whose only role marker follows their
+final endpoint could still leave the first endpoint unassociated and admit the second. The new
+regressions establish labelled range refusal, not all role-inference combinations. A fresh Quick
+pass must trace that pre-persistence association before the outer orchestrator marks this done.
+
+### Final third-pass verification
+
+All main evidence is under `/tmp/rei-ask-text-third-review-oLP4bl/`, prefixed `postpatch-`;
+the earlier `baseline-` logs precede these repairs and are not substituted for final verification.
+Focused Domain/Application/Contracts: 127/30/47 tests, exit 0. Root lint, typecheck, unit and
+build: exit 0; unit total 1,759 across all eight workspaces. Root coverage: exit 0 with unchanged
+80 statements/lines/functions and 75 branches floors in every workspace. Final percentages
+(statements/branches/functions/lines): web 100/100/100/100; Contracts 94.79/94.64/98.01/96.94;
+Domain 95.10/90.78/100/95.76; AI 97.30/88.46/92.06/98.37;
+Application 91.95/86.54/98.58/93.65; Infrastructure 85.07/80.11/89.59/87.02;
+API 93.31/86.12/97.91/94.65; worker 94.42/84.77/91.52/95.66.
+
+Focused real integration: four files/seven tests, exit 0, 211.83 seconds in
+`postpatch-focused-integration.log`. Full `pnpm run test:integration`: 26 files/46 tests,
+exit 0, 947.69 seconds in `postpatch-full-integration.log`. Campaigns ran serially, without skips.
+All 13 immutable matrix rows and six public acceptance criteria were re-audited against these
+executed tests: valid/refused extraction, exact results, strict contracts/auth, replay, mixed
+provenance, fenced tool attacks, reconnect/restart and populated historical upgrade remain proven.
+
+All 45 supported-format baseline paths pass Prettier; SQL retains real migration-convention,
+whitespace and populated-upgrade verification without introducing a formatter or changing 6001.
+All seven owned Markdown paths and working/index whitespace pass. Root `lint:md` remains exit 1
+with the same 1,377 pre-existing errors, all in ignored generated `_bmad/render/` snapshots,
+zero outside them. No rule, hook or threshold was bypassed. Negative-path API/retention warnings
+are expected scenario output; final assertions and exit codes establish the campaign results.
+
+No product-source changes followed final verification. Final container/volume inventories retain
+only pre-existing foreign resources, with no owned REI fixture or Ryuk resources; see
+`postpatch-final-container-inventory.log` and `postpatch-final-volume-inventory.log`.
+Production/VPS stories remain reserved for the owner to unblock. This story remains built,
+not done, pending the recommended fresh review; it opens no UI or external-production surface.
