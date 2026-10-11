@@ -61,12 +61,16 @@ const foreignCurrencyNames = new Set([
   'franco',
   'francos',
   'yen',
+  'iene',
+  'ienes',
   'rupee',
   'rupees',
+  'ruble',
+  'rubles',
   'lira',
   'liras',
 ]);
-const currencyModifiers = new Set(['swiss', 'mexican', 'argentine', 'turkish']);
+const currencyModifiers = new Set(['swiss', 'mexican', 'argentine', 'turkish', 'russian']);
 // Known foreign markers are meaningful beside a numeric mention or explicit declaration,
 // not an arbitrary uppercase word elsewhere in the question.
 const foreignCurrencyCodes = new Set(
@@ -185,14 +189,16 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
   const isDistanceUnit = (index: number) => {
     const measurementIndex = index - (scales[tokens[index - 1] ?? ''] !== undefined ? 2 : 1);
     return (
+      /^[+−.,\d-]/.test(tokens[measurementIndex] ?? '') &&
       ['from', 'away'].includes(tokens[index + 1] ?? '') &&
-      !areaLabels.has(tokens[measurementIndex - 1] ?? '')
+      !areaLabels.has(tokens[measurementIndex - 1] ?? '') &&
+      !(tokens[measurementIndex - 1] === 'is' && areaLabels.has(tokens[measurementIndex - 2] ?? ''))
     );
   };
   if (
     tokens.some(
       (token, index) =>
-        [
+        ([
           'ft',
           'ft2',
           'ft²',
@@ -252,7 +258,12 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'inches',
           'in2',
           'in²',
-        ].includes(token) ||
+        ].includes(token) &&
+          !(['foot', 'feet', 'ft'].includes(token) && isDistanceUnit(index))) ||
+        ((token === 'ares' || (token === 'sq' && tokens[index + 1] === 'in')) &&
+          (/^[+−.,\d-]/.test(tokens[index - 1] ?? '') ||
+            (scales[tokens[index - 1] ?? ''] !== undefined &&
+              /^[+−.,\d-]/.test(tokens[index - 2] ?? '')))) ||
         (token === 'cubic' &&
           ['meter', 'meters', 'metre', 'metres'].includes(tokens[index + 1] ?? '')) ||
         (['meter', 'meters', 'metre', 'metres', 'metro', 'metros', 'm'].includes(token) &&
@@ -311,6 +322,7 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
         (priceLabels.has(tokens[index - 2] ?? '') || currencies.has(tokens[index - 2] ?? '')));
     const area =
       areaLabels.has(before) ||
+      (before === 'is' && areaLabels.has(tokens[index - 2] ?? '')) ||
       isAreaUnit(afterIndex) ||
       (boundedRange && isAreaUnit(rangeMarkerIndex)) ||
       (rangePrefixes.has(before) && areaLabels.has(tokens[index - 2] ?? ''));
