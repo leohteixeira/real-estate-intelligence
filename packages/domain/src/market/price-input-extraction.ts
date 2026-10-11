@@ -120,12 +120,19 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
   );
   const hasCurrencyReference = (index: number) => {
     let previous = index - 1;
+    if (
+      ['and', 'e'].includes(tokens[previous] ?? '') &&
+      currencies.has(tokens[previous - 1] ?? '') &&
+      currencyLabels.has(tokens[previous - 2] ?? '')
+    )
+      return true;
     const hasModifier = currencyModifiers.has(tokens[previous] ?? '');
     if (hasModifier) previous--;
     if (currencyPrepositions.has(tokens[previous] ?? '')) {
       previous--;
       if (currencyQuoteWords.has(tokens[previous] ?? '')) previous--;
     } else if (!hasModifier) return false;
+    if (currencies.has(tokens[previous] ?? '')) previous--;
     return (
       /^[+−.,\d-]/.test(tokens[previous] ?? '') ||
       (scales[tokens[previous] ?? ''] !== undefined &&
@@ -175,6 +182,13 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
     )
   )
     return refused('unsupported_currency');
+  const isDistanceUnit = (index: number) => {
+    const measurementIndex = index - (scales[tokens[index - 1] ?? ''] !== undefined ? 2 : 1);
+    return (
+      ['from', 'away'].includes(tokens[index + 1] ?? '') &&
+      !areaLabels.has(tokens[measurementIndex - 1] ?? '')
+    );
+  };
   if (
     tokens.some(
       (token, index) =>
@@ -216,6 +230,9 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'cm²',
           'cm3',
           'cm³',
+          'dm',
+          'dm2',
+          'dm²',
           'centimeter',
           'centimeters',
           'centimetre',
@@ -238,7 +255,9 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
         ].includes(token) ||
         (token === 'cubic' &&
           ['meter', 'meters', 'metre', 'metres'].includes(tokens[index + 1] ?? '')) ||
-        (['meter', 'meters', 'metre', 'metres', 'm'].includes(token) &&
+        (['meter', 'meters', 'metre', 'metres', 'metro', 'metros', 'm'].includes(token) &&
+          !['quadrado', 'quadrados'].includes(tokens[index + 1] ?? '') &&
+          !isDistanceUnit(index) &&
           (/^[+−.,\d-]/.test(tokens[index - 1] ?? '') ||
             (scales[tokens[index - 1] ?? ''] !== undefined &&
               /^[+−.,\d-]/.test(tokens[index - 2] ?? '')) ||
@@ -284,6 +303,7 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
       /^\d/.test(tokens[rangeEndpoint] ?? '');
     const price =
       priceLabels.has(before) ||
+      (before === 'is' && priceLabels.has(tokens[index - 2] ?? '')) ||
       currencies.has(before) ||
       currencies.has(tokens[afterIndex] ?? '') ||
       (boundedRange && currencies.has(tokens[rangeMarkerIndex] ?? '')) ||

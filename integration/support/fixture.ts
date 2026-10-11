@@ -117,7 +117,7 @@ const portNames = [
 export async function allocatePorts(count: number) {
   const ports = [];
   for (let i = 0; i < count; i++) {
-    const port = await getPort({ host: '127.0.0.1' });
+    const port = await getPort({ host: '0.0.0.0' });
     ports.push(port);
     allowOwnedEndpoint(`http://127.0.0.1:${port}`);
     allowOwnedEndpoint(`http://localhost:${port}`);
@@ -126,7 +126,7 @@ export async function allocatePorts(count: number) {
 }
 
 export async function availablePort(requested?: number) {
-  const port = await getPort({ host: '127.0.0.1', port: requested });
+  const port = await getPort({ host: '0.0.0.0', port: requested });
   if (requested && requested !== port) throw new Error('Requested fixture port is unavailable.');
   allowOwnedEndpoint(`http://127.0.0.1:${port}`);
   return port;
