@@ -122,3 +122,18 @@ for it here.
   behalf, D-005, 2026-10-10).
 - Assumption: this epic owns the structure of the environment example file and of `compose.yaml`;
   the entry of any epic that introduces a setting adds it there.
+- Decision: every integration campaign uses Vitest, Supertest for real HTTP and Testcontainers
+  for isolated real infrastructure; Nock intercepts controlled external HTTP dependencies only.
+  Do not use Node test/assert, hand-written assertion frameworks or Vitest wrappers around the
+  old campaign subprocesses. Preserve existing guarantees, fault/restart/upgrade scenarios,
+  cleanup and workspace coverage floors; audit owns its isolated fixture rather than the default
+  stack. Basic fixture file/cryptographic APIs are not a second test framework. D-039 records the
+  owner's explicit request and implementation boundaries (owner, 2026-10-11; agent, on the owner's
+  behalf, 2026-10-11).
+  The normative record is [ADR 0020](../../../specs/adrs/0020-vitest-integration-standard.md);
+  [the integration guide](../../../docs/testing/integration.md) defines execution and new tests.
+- Decision: the owner additionally requires TypeScript for every integration campaign, helper
+  and fresh-process probe. D-040 requires a strict integration compiler gate in root typecheck,
+  meaningful types without explicit any or checking suppressions, preserved real-service proofs
+  and an updated TypeScript Vitest configuration (owner, 2026-10-11; agent, on the owner's behalf,
+  2026-10-11). JavaScript verification remains baseline evidence, not final typed verification.

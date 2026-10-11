@@ -3,7 +3,15 @@
 `pnpm run test:coverage` runs every workspace test suite with V8 coverage and evaluates each
 workspace independently. The command fails when lines, statements, or functions fall below 80%, or
 when branches fall below 75%. CI uses this command in place of an unmeasured unit-test run.
-Every invocation is scoped with `--dir src`, so compiled tests under `dist` are never discovered.
+Every unit-coverage invocation is scoped with `--dir src`, so compiled tests under `dist` are never
+discovered. Integration tests use the explicit root integration configuration instead and do not
+replace or lower these gates. See [the integration guide](integration.md) and
+[ADR 0020](../../specs/adrs/0020-vitest-integration-standard.md).
+
+Integration campaigns, helpers, fresh-process probes and their configuration are TypeScript under
+the separate strict `tsconfig.integration.json` gate (D-040). Root `pnpm run typecheck` includes
+that gate after recursive workspace checking; `pnpm run typecheck:integration` runs it alone after
+compiled packages exist. This compiler gate does not change unit discovery or coverage thresholds.
 
 The include rule counts every TypeScript and TSX source file, even when no test imports it. The
 following exclusions keep generated or declarative wiring out of the denominator:

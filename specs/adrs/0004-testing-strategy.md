@@ -33,3 +33,18 @@ the first feature that touches the database.
 
 Add Playwright once there is a first screen with a real flow. Add Testcontainers, or use the
 PostgreSQL from Compose, once there is a first concrete repository.
+
+## Amendment — 2026-10-11 (D-039)
+
+[ADR 0020](0020-vitest-integration-standard.md) defines the now-established integration standard:
+native Vitest campaigns, Supertest, owned Testcontainers fixtures and controlled Nock scopes.
+The historical `--dir src` rule above remains mandatory for unit tests; integration tests use
+the explicit root integration configuration, excluding compiled tests and fixture probes.
+PostgreSQL, RabbitMQ and S3-compatible guarantees are verified against real isolated services.
+
+## Amendment — 2026-10-11 (D-040)
+
+The owner extends D-039: all integration campaigns, shared helpers, independent probes and root
+configuration use TypeScript. The strict integration compiler extends the unchanged base options
+and participates in root typecheck. Node 24 executes erasable probe TypeScript in fresh processes,
+loading compiled production code without Vitest. Unit discovery and coverage floors remain unchanged.

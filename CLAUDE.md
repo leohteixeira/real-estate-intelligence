@@ -65,8 +65,24 @@ entities, no collectors, no comparables, no AI tools and no business endpoints.
 - A single ESLint configuration at the root covers every workspace. Do not create a per-package
   `eslint.config.js`.
 - BMad product specifications live under `_bmad-output/`; `specs/adrs/` holds normative ADRs.
-- Tests run with Vitest, always with `--dir src`: without it the runner picks up the compiled tests
-  in `dist/`.
+- Unit tests run with Vitest and `--dir src`, excluding compiled `dist/` tests. Integration tests
+  instead use the explicit root `vitest.integration.config.ts` (D-039/D-040, ADR 0020).
+- Every integration campaign, helper and probe is TypeScript, included in strict
+  `tsconfig.integration.json` through root `typecheck`. Build first for standalone integration
+  checking; use public parsers or specific evidence shapes for unknown JSON, never explicit any,
+  suppression directives, fabricated generic JSON or partial-runtime-client casts. Fresh Node 24
+  probes must remain erasable TypeScript and must not import Vitest.
+- New integration tests belong in `integration/*.integration.test.ts` and use native Vitest
+  `test`/`expect`, Supertest HTTP and shared Testcontainers-owned fixtures. Use `vi.waitFor` or
+  `expect.poll` for bounded probes. Nock permits only exact synthetic external scopes; real
+  PostgreSQL, RabbitMQ and S3-compatible behavior must not be mocked.
+- Do not use Node test/assert, custom assertion functions, fetch, child_process, net-based port
+  reservation or promisified process harnesses in integration tests. Execa is allowed for actual
+  product commands and fresh-process probes. Basic file/crypto/module APIs remain allowed.
+- Allocate unique `rei-` projects and ports through shared support; never use the default stack or
+  `.env*`. Cleanup must remove only owned resources and preserve primary and all cleanup failures.
+  Follow [the integration guide](docs/testing/integration.md) and
+  [ADR 0020](specs/adrs/0020-vitest-integration-standard.md).
 - The API and the worker start with `node -r ./dist/otel.js dist/main.js`. Do not remove the
   preload.
 - Never log a connection string, source credential or provider key.

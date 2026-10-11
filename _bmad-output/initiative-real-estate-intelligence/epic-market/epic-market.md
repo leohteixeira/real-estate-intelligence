@@ -77,3 +77,12 @@ of CAP-22, not recorded sale figures (CAP-33).
   `market` consumes `collection.run.completed` (owner, 2026-10-10).
 - Decision: a neighbouring place is one registered as adjacent in `locations`, not a sibling in the
   zone (owner, 2026-10-10).
+- Decision: D-038 defines parameter-free `/api/v1/places/:id/market`, `/market/neighbours`
+  and `/market/monthly-series` reads with explicitly identified `prepared-market-example`
+  fixtures, canonical numeric units and per-figure evidence/freshness evaluated at a declared
+  fixture instant. Use the unchanged five prepared groups, nine listings, three synthetic sources
+  and twenty registered places, with actual parent identity, registered adjacency, explicit empty
+  and unrecorded-sale states and November 2025–October 2026 series points. Six-month movement
+  and thirty-day reduction examples do not settle later production algorithms; no persisted
+  Properties reads, foreign writes, events, collection or external calls are introduced (agent,
+  on the owner's behalf, 2026-10-11).
