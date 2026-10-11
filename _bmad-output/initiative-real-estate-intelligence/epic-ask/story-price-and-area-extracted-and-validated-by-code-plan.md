@@ -12,7 +12,7 @@ review: 'quick'
 review_source: 'pinned'
 lenses_ran: ['quick']
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '/workspace/repos/real-estate-intelligence/AGENTS.md'
   - '/workspace/repos/real-estate-intelligence/specs/adrs/0024-deterministic-text-price-admission.md'
@@ -432,6 +432,34 @@ confidence gate, explanation, full checkpoints/quotas or UI as part of this stor
     Domain and actual public ambiguous_price/no-six-effects regressions now refuse the competition,
     while a single price-is declaration retains exact canonical extraction.
 
+### 2026-10-11 — Seventh review pass
+
+- verdicts: 4 findings — high 3, medium 1, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Competing area declarations containing is were discarded — Main
+    independently reproduced both reported requests through current Domain source, the strict
+    public parser and compiled Market/Ask admission; each reached the repository with only the
+    earlier area. Recognized the existing bounded area-label association through is. Domain
+    ambiguity and single-area acceptance regressions, plus real strict-422/no-six-effects rows,
+    cover both reported forms without changing the public grammar version or authority.
+  - `[high]` `[patch]` Explicit sq in and ares measurements became square metres — Main
+    reproduced both reported units as canonical area 68 with a repository call each. Extended
+    the bounded measurement refusal to those spellings and demonstrated supported-scale
+    prefixes. Domain and real no-effect refusals cover direct and scaled measurements;
+    unrelated Ares report prose retains its accepted canonical inputs.
+  - `[high]` `[patch]` Russian rubles and Portuguese ienes defaulted to BRL — Main reproduced
+    both explicit denominations through source, strict public parsing and Market/Ask admission,
+    with incorrect BRL inputs reaching the repository. Added the demonstrated names/modifier
+    to the existing contextual currency guard. Domain and real strict-422/no-effect regressions
+    cover the reported requests; unrelated currency-name prose remains accepted.
+  - `[medium]` `[patch]` Unrelated numeric feet distances invalidated explicit square-metre
+    area — Main reproduced the valid feet request as unsupported_area_unit before persistence.
+    Applied the existing numeric from/away distance association to foot/feet/ft, preserving
+    directly labelled area and area-is refusals, including supported scales. Independent
+    intermediate probes exposed singular-foot refusal and square-feet/ft misadmission; genuine
+    RED/GREEN regressions repaired that same boundary. Domain and real completed-SSE positives
+    cover all three distance spellings; explicit and squared unsupported areas remain refused.
+
 ## Independent Verification and Matrix Audit
 
 - Main read the complete staged 3,515-line baseline diff, including every new file, at
@@ -620,7 +648,7 @@ calls no model and opens no UI, VPS, provider or real-source surface.
 - `packages/domain/src/market/index.ts`
   — Export the pure extraction capability.
 - `packages/domain/src/market/price-input-extraction.test.ts`
-  — Cover 153 PT/EN accepted and adversarial extraction cases.
+  — Cover 190 PT/EN accepted and adversarial extraction cases.
 - `packages/domain/src/market/price-input-extraction.ts`
   — Parse bounded PT/EN whole tokens with exact money and finite refusals.
 - `packages/infrastructure/src/ask/ask-run.pg-repository.test.ts`
@@ -977,3 +1005,95 @@ containers and 13 foreign volumes were preserved, with no owned fixture or Ryuk 
 See `final-container-inventory.log` and `final-volume-inventory.log`. All 35 integration files
 remain TypeScript, with no JavaScript integration file or Node testing/assertion harness.
 This follow-up ends built, not done; VPS-dependent stories remain reserved for the owner.
+
+### Seventh review and follow-up
+
+The mandatory fresh context-free Quick lens returned four findings. Main independently
+reproduced all seven reported forms through the strict public text-price-v1 contracts and
+compiled Market/Ask admission: six incorrect admissions reached the repository and one valid
+request containing an unrelated distance was incorrectly refused. Verdicts and patched counts:
+high 3, medium 1, low 0. Each finding retains its own triage row; nothing was rejected or
+deferred. Evidence is `/tmp/rei-ask-text-seventh-review-ilQRWK/prepatch-triage-probes.log`.
+
+The same implementation agent repaired only the parser and its two test files. Competing
+area-is declarations now participate in ambiguity refusal; numeric square-inch/are units and
+associated Russian rubles/Portuguese ienes are refused. Numeric unrelated foot/feet/ft distances
+remain context rather than area, without exempting directly labelled areas or square units.
+Main traced the existing Market facade, Ask admission and Nest DI boundaries; no public type,
+SQL, authority, deadline, architecture decision or coverage floor changed.
+
+The initial genuine RED was eight failed/171 passed, followed by GREEN 179 passed. Same-finding
+completion covered scaled unsupported units and explicitly labelled distances: RED three
+failed/181 passed, then GREEN 184 passed. Main independently found singular-foot context and
+square-feet/ft cases within that same distance finding; RED three failed/187 passed was followed
+by GREEN 190 passed. These are recorded under `/tmp/rei-ask-text-implementation/` in
+`review-seven-domain-red.log`, `review-seven-domain-green.log`,
+`review-seven-followup-domain-red.log`, `review-seven-followup-domain-green.log`,
+`review-seven-final-domain-red.log` and `review-seven-final-domain-green.log`.
+The agent's final affected real integration file passed two tests, exit 0, 215.70 seconds in
+`review-seven-final-text-integration.log`, with owned cleanup verified independently by main.
+
+Twenty-five added Domain cases include eight accepted contexts and seventeen refusals.
+Seventeen added real public rows assert strict 422, the exact closed refusal reason and
+unchanged thread/run/event/receipt/outbox/inbox counts. Three accepted unrelated foot/feet/ft
+contexts traverse the real API/worker/Market/tool path to completed SSE with the exact
+1,154,412 minor-unit result. Main independently repeated sixteen final strict-contract compiled
+Market/Ask probes: thirteen invalid inputs refused before any repository call and three valid
+inputs admitted with the exact 78,500,000 BRL minor units, 68 m² and one canonical call.
+These compiled probes are not a substitute for real HTTP/SQL assertions. Main evidence is
+`final-compiled-admission-probes.log`, with intermediate completion probes in
+`intermediate-review-completion-probes.log` and `intermediate-distance-completion-probes.log`,
+under `/tmp/rei-ask-text-seventh-review-ilQRWK/`.
+
+Follow-up review recommendation: false. This follow-up patched three high entries and one
+medium entry, but no specific unverified risk remains among their demonstrated boundaries.
+Competing area-is declarations, scaled unsupported area units, contextual foreign currencies,
+unrelated singular/plural/abbreviated distances, direct area declarations and square units all
+have focused and real public regression evidence. The bounded v1 grammar does not claim
+support for unrestricted natural language; that unchanged limitation alone is not a reason
+to manufacture another follow-up pass. There are no deferred or rejected findings this pass.
+
+### Final seventh-pass verification
+
+Main evidence is under `/tmp/rei-ask-text-seventh-review-ilQRWK/`; final logs use the `final-`
+prefix and were produced against the unchanged final source. Focused Domain/Application/Contracts:
+190/30/47 tests, exit 0; focused fixture support: 13 tests, exit 0. Root lint, typecheck, unit and
+build: exit 0, including strict integration TypeScript. Unit total: 1,822 across eight workspaces.
+Root coverage: exit 0 with unchanged 80 statements/lines/functions and 75 branches floors.
+Percentages (statements/branches/functions/lines): web 100/100/100/100; Contracts
+94.79/94.64/98.01/96.94; Domain 95.14/90.13/100/95.79; AI 97.30/88.46/92.06/98.37;
+Application 91.95/86.54/98.58/93.65; Infrastructure 85.07/80.11/89.59/87.02;
+API 93.31/86.12/97.91/94.65; worker 94.42/84.77/91.52/95.66.
+
+Focused real integration: four files/seven tests, exit 0, Vitest duration 217.31 seconds in
+`final-focused-integration.log`. Full `pnpm run test:integration`: 26 files/50 tests, exit 0,
+Vitest duration 981.93 seconds in `final-full-integration.log`. Campaigns ran serially without
+skips. Expected negative-path API failure and retention-job warnings are scenario output;
+passing final assertions and terminal exit codes establish the results. Earlier failed or
+prepatch executions were not substituted for final-source verification. All thirteen immutable
+matrix rows and six public acceptance criteria retain their executed evidence: exact PT/EN
+inputs/results, typed no-effect refusals, strict contracts/auth, replay, mixed provenance,
+fenced tool attacks, reconnect/restart and populated historical upgrade. The unchanged 6001
+migration and additive 6002 retain real SQL history/digest checks. No UI, provider, Jev,
+confidence gate, explanation or production completion is claimed.
+
+Prettier passes all 47 supported-format baseline paths; all seven owned Markdown files and
+working/index whitespace pass.
+SQL retains migration-convention and real populated-upgrade proof without adding a formatter.
+Root `lint:md` remains exit 1 with exactly 1,377 pre-existing errors, all in ignored generated
+`_bmad/render/` snapshots, zero outside them. No lint rule, test, hook or threshold was bypassed.
+
+The non-Markdown baseline diff SHA-256 is
+`b46894ce19f60613d1bba3c14103a77eb4a79c45de02f2afdb566abfca85bce8` and is unchanged
+after final verification. The immutable intent remains byte-identical to the committed plan;
+its SHA-256 is `87e45a22978575fcb180425480135472e4c604f7f0d2c354b051a0ff0190d883`.
+The complete patched baseline snapshot is `story-full.diff` in the main evidence directory.
+All 35 integration files remain TypeScript, with no JavaScript integration file or Node
+testing/assertion harness. This follow-up ends built, not done; VPS-dependent stories remain
+reserved for the owner. No new owner-delegated architectural decision was needed this pass.
+
+Final container and volume inventories exactly match their prepatch counterparts: all thirteen
+foreign containers and thirteen foreign volumes were preserved, with no owned fixture or Ryuk
+resource remaining. See `final-container-inventory.log` and `final-volume-inventory.log` in the
+main evidence directory. Ryuk exited automatically after its normal post-process cleanup wait;
+no foreign resource was removed and no broad Docker cleanup was performed.
