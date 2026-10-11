@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ExternalFailure } from '../shared/external-failure.js';
 import { ConsumeAskRunRequest } from './consume-ask-run-request.service.js';
+import { askAdmissionPolicy } from './ask-admission.policy.js';
 const identity = {
   version: 1 as const,
   eventId: '0199c8f2-2394-7ba0-8f9e-286378779212',
@@ -65,6 +66,31 @@ function harness() {
 }
 afterEach(() => vi.useRealTimers());
 describe('Ask requested delivery orchestration', () => {
+  it('accepts matching text execution and refuses substituted structured evidence', async () => {
+    const h = harness();
+    const textInput = { ...input, step: 'text-price-v1' as const };
+    const textEvidence = {
+      ...evidence,
+      step: 'text-price-v1' as const,
+      visitedNodes: ['validatedInputs', 'priceTool'] as const,
+    };
+    h.claim.mockResolvedValue({
+      disposition: 'claimed',
+      identity,
+      input: textInput,
+      expiresAt: '2026-10-11T00:00:30.000Z',
+    });
+    h.execute.mockResolvedValueOnce(textEvidence);
+    await h.service.execute(event, new AbortController().signal, Date.now() + 60000);
+    expect(h.complete.mock.calls[0]![0].evidence).toEqual(textEvidence);
+    h.complete.mockClear();
+    h.execute.mockResolvedValueOnce(evidence);
+    await h.service.execute(event, new AbortController().signal, Date.now() + 60000);
+    expect(h.complete.mock.calls[0]![0]).toMatchObject({
+      evidence: null,
+      failure: 'execution_unavailable',
+    });
+  });
   it('bounds repeated busy admission to forty seconds without starting execution', async () => {
     vi.useFakeTimers();
     const h = harness();
@@ -116,6 +142,24 @@ describe('Ask requested delivery orchestration', () => {
     await pending;
     expect(h.claim).toHaveBeenCalledTimes(2);
     expect(h.execute).toHaveBeenCalledOnce();
+  });
+  it('rechecks a released sibling at the bounded policy hint without burning a broker retry', async () => {
+    vi.useFakeTimers();
+    const h = harness();
+    h.claim.mockResolvedValueOnce({
+      disposition: 'busy',
+      identity,
+      retryAfterMs: askAdmissionPolicy.maximumBusyRetryAfterMs,
+    });
+    const pending = h.service.execute(event, new AbortController().signal, Date.now() + 60000);
+    await vi.advanceTimersByTimeAsync(999);
+    expect(h.execute).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    await pending;
+    expect(h.claim).toHaveBeenCalledTimes(2);
+    expect(h.execute).toHaveBeenCalledOnce();
+    expect(h.complete).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
   });
   it('replays terminal inbox acknowledgement without invoking executor', async () => {
     const h = harness();

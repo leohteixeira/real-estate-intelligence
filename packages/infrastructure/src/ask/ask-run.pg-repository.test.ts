@@ -53,10 +53,45 @@ const stored = {
 };
 
 describe('retained Ask creation fence before thread preparation', () => {
+  it('bounds a busy sibling retry hint without mutating its active lease', async () => {
+    const identity = {
+      version: 1 as const,
+      eventId: '0199c8f2-2394-7ba0-8f9e-286378779212',
+      runId: run.id,
+      threadId: run.threadId,
+    };
+    const connection = new DatabaseConnection('postgres://synthetic.invalid/ask');
+    const query = vi
+      .fn<DatabaseClient['query']>()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ ...stored, requested_event_id: identity.eventId }])
+      .mockResolvedValueOnce([{ delay: 30000 }])
+      .mockResolvedValueOnce([]);
+    vi.spyOn(connection, 'leaseClient').mockResolvedValue({ query, release: vi.fn() });
+    const outbox = { append: vi.fn() };
+    try {
+      const repository = new PostgresAskRunRepository(
+        connection,
+        new PostgresTransactionRunner(connection),
+        outbox,
+      );
+      await expect(repository.claim(identity)).resolves.toEqual({
+        disposition: 'busy',
+        identity,
+        retryAfterMs: 1000,
+      });
+      expect(query.mock.calls.some(([sql]) => /^(?:UPDATE|INSERT|DELETE)/.test(sql))).toBe(false);
+      expect(outbox.append).not.toHaveBeenCalled();
+    } finally {
+      await connection.close();
+    }
+  });
   it.each([
     ['foreign null-thread replay', { ...original, threadId: null }, 'f'.repeat(43), 'forbidden'],
     ['owner null-thread changed body', { ...original, threadId: null }, owner, 'conflict'],
     ['owner changed query', { ...original, query: 'Changed.' }, owner, 'conflict'],
+    ['owner changed text mode', { ...original, mode: 'text-price-v1' }, owner, 'conflict'],
   ] as const)('%s makes no preparation insertion', async (_label, body, capability, kind) => {
     const connection = new DatabaseConnection('postgres://synthetic.invalid/ask');
     const query = vi

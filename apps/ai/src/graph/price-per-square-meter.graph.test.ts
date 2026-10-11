@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { parseStructuredExecutionRequest } from '@rei/contracts';
+import { parseStructuredExecutionRequest, parseTextExecutionRequest } from '@rei/contracts';
 import { compilePriceGraph } from './price-per-square-meter.graph';
 import { compileNoOpGraph } from './no-op.graph';
 import { ExecutionService } from '../execution/execution.service';
@@ -16,6 +16,28 @@ const input = parseStructuredExecutionRequest({
   inputs: { priceMinorUnits: 10000, currency: 'BRL', areaSquareMeters: 2 },
 });
 describe('real structured LangGraph traversal', () => {
+  it('actually traverses validatedInputs then the same HTTP tool for admitted text inputs', async () => {
+    const textInput = parseTextExecutionRequest({ ...input, step: 'text-price-v1' });
+    const calculate = vi.fn().mockImplementation(async (request) => ({
+      ...request,
+      receiptId: input.executionId,
+      provenance: 'market-domain-v1',
+      result: {
+        kind: 'price_per_square_meter',
+        minorUnits: 5000,
+        currency: 'BRL',
+        areaUnit: 'm2',
+        inputs: input.inputs,
+        computedAt: '2026-10-11T00:00:00.000Z',
+      },
+    }));
+    const service = new ExecutionService(compileNoOpGraph(), compilePriceGraph({ calculate }));
+    const result = await service.execute(textInput, new AbortController().signal);
+    expect(result.step).toBe('text-price-v1');
+    expect(result.visitedNodes).toEqual(['validatedInputs', 'priceTool']);
+    expect(calculate).toHaveBeenCalledOnce();
+    expect(calculate.mock.calls[0]![0].inputs).toEqual(textInput.inputs);
+  });
   it('records actual fixedDecision then priceTool nodes and delegates all arithmetic to its typed tool', async () => {
     const calculate = vi.fn().mockImplementation(async (request) => ({
       ...request,

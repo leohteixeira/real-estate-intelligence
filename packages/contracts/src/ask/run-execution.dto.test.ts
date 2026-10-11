@@ -55,3 +55,64 @@ describe('foundation execution wire boundary', () => {
     expect(() => parseRunExecutionEvidence(value)).toThrow('Invalid contract value.');
   });
 });
+
+describe('text execution union boundary', () => {
+  const text = {
+    ...input,
+    eventId: '0197e4e0-0000-7000-8000-000000000003',
+    executionId: '0197e4e0-0000-7000-8000-000000000004',
+    step: 'text-price-v1',
+    toolGrant: 'g'.repeat(43),
+    inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
+  };
+  const textEvidence = {
+    version: 1,
+    eventId: text.eventId,
+    runId: text.runId,
+    threadId: text.threadId,
+    executionId: text.executionId,
+    step: text.step,
+    outcome: 'price-calculated',
+    visitedNodes: ['validatedInputs', 'priceTool'],
+    receipt: {
+      version: 1,
+      eventId: text.eventId,
+      runId: text.runId,
+      threadId: text.threadId,
+      executionId: text.executionId,
+      receiptId: text.executionId,
+      operation: 'price-per-square-meter',
+      provenance: 'market-domain-v1',
+      inputs: text.inputs,
+      result: {
+        kind: 'price_per_square_meter',
+        minorUnits: 1154412,
+        currency: 'BRL',
+        areaUnit: 'm2',
+        inputs: text.inputs,
+        computedAt: '2026-10-11T00:00:00.000Z',
+      },
+    },
+  };
+  it('dispatches only the truthful text request and graph evidence', () => {
+    expect(parseRunExecutionRequest(text)).toEqual(text);
+    expect(parseRunExecutionEvidence(textEvidence)).toEqual(textEvidence);
+  });
+  it.each([
+    { ...textEvidence, step: 'foundation' },
+    { ...textEvidence, step: 'structured-price-v1' },
+    { ...textEvidence, visitedNodes: ['fixedDecision', 'priceTool'] },
+    { ...textEvidence, eventId: text.executionId },
+    { ...textEvidence, query: input.query },
+    { ...textEvidence, receipt: { ...textEvidence.receipt, executionId: text.eventId } },
+    {
+      ...textEvidence,
+      receipt: {
+        ...textEvidence.receipt,
+        result: { ...textEvidence.receipt.result, computedAt: 'invalid' },
+      },
+    },
+  ])('rejects discriminator, identity, node and timestamp substitutions', (value) => {
+    expect(() => parseRunExecutionEvidence(value)).toThrow('Invalid contract value.');
+  });
+});

@@ -10,6 +10,11 @@ import {
   parseStructuredAskCreate,
   parseStructuredExecutionEvidence,
   parseStructuredExecutionRequest,
+  parseTextAskCreate,
+  parseTextAskAccepted,
+  parseTextAskRefused,
+  parseTextExecutionRequest,
+  parseTextExecutionEvidence,
 } from './ask-live.dto.js';
 const runId = '0199c8f2-2394-7ba0-8f9e-286378779210',
   threadId = '0199c8f2-2394-7ba0-8f9e-286378779211',
@@ -74,6 +79,106 @@ const completed = {
   steps: [...running.steps, { sequence: 2, phase: 'completed', at }],
 };
 describe('structured Ask closed wire contracts', () => {
+  it('admits only closed text creation, acceptance and finite non-echoing refusals', () => {
+    const body = {
+      mode: 'text-price-v1',
+      threadId: null,
+      placeId: null,
+      query: 'Price 10, area 2 m2',
+      locale: 'en',
+    };
+    expect(parseTextAskCreate(body)).toEqual(body);
+    expect(parseTextAskAccepted({ mode: body.mode, runId, threadId, state: 'queued' }).runId).toBe(
+      runId,
+    );
+    expect(
+      parseTextAskRefused({ mode: body.mode, code: 'price_input_refused', reason: 'missing_area' })
+        .reason,
+    ).toBe('missing_area');
+    for (const bad of [
+      { ...body, inputs },
+      { ...body, secret: 'x' },
+      { ...body, locale: 'fr' },
+      { ...body, query: '\u0001' },
+      { ...body, query: 'x'.repeat(16001) },
+    ])
+      expect(() => parseTextAskCreate(bad)).toThrow();
+    expect(() => parseStructuredAskCreate(body)).toThrow();
+    expect(() =>
+      parseTextAskRefused({ mode: body.mode, code: 'price_input_refused', reason: 'arbitrary' }),
+    ).toThrow();
+    expect(() =>
+      parseTextAskRefused({
+        mode: body.mode,
+        code: 'price_input_refused',
+        reason: 'missing_area',
+        query: body.query,
+      }),
+    ).toThrow();
+  });
+  it('correlates text basis, decision, actual graph nodes and mixed thread basis', () => {
+    const textRun = {
+      ...completed,
+      basis: 'text-price-v1',
+      decision: { ...running.decision, source: 'validated-text-v1' },
+    };
+    expect(parseAskLiveRun(textRun).basis).toBe('text-price-v1');
+    expect(() => parseAskLiveRun({ ...textRun, decision: running.decision })).toThrow();
+    expect(() => parseAskLiveRun({ ...completed, decision: textRun.decision })).toThrow();
+    const other = { ...textRun, id: executionId };
+    expect(
+      parseAskLiveThread({
+        basis: 'mixed-price-v1',
+        id: threadId,
+        principalId: null,
+        runs: [completed, other],
+      }).runs,
+    ).toHaveLength(2);
+    expect(() =>
+      parseAskLiveThread({
+        basis: 'text-price-v1',
+        id: threadId,
+        principalId: null,
+        runs: [completed, other],
+      }),
+    ).toThrow();
+    const input = {
+      ...identity,
+      executionId,
+      step: 'text-price-v1',
+      query: 'Price 100000, area 25 m2',
+      locale: 'en',
+      toolGrant: 'g'.repeat(43),
+      inputs,
+    };
+    expect(parseTextExecutionRequest(input).step).toBe('text-price-v1');
+    expect(
+      parseAskClaim({ disposition: 'claimed', identity, input, expiresAt: at }).disposition,
+    ).toBe('claimed');
+    const textEvidence = {
+      ...evidence,
+      step: 'text-price-v1',
+      visitedNodes: ['validatedInputs', 'priceTool'],
+    };
+    expect(parseTextExecutionEvidence(textEvidence).visitedNodes).toEqual([
+      'validatedInputs',
+      'priceTool',
+    ]);
+    expect(
+      parseAskCompletion({ ...identity, executionId, evidence: textEvidence, failure: null })
+        .evidence?.step,
+    ).toBe('text-price-v1');
+    for (const changed of [
+      { ...textEvidence, visitedNodes: evidence.visitedNodes },
+      { ...textEvidence, receipt: { ...receipt, eventId: executionId } },
+      { ...textEvidence, receipt: { ...receipt, executionId: eventId } },
+      { ...textEvidence, receipt: { ...receipt, inputs: { ...inputs, priceMinorUnits: 1 } } },
+      { ...textEvidence, extra: 1 },
+    ])
+      expect(() => parseTextExecutionEvidence(changed)).toThrow();
+    expect(() => parseStructuredExecutionRequest(input)).toThrow();
+    expect(() => parseStructuredExecutionEvidence(textEvidence)).toThrow();
+  });
   it('accepts independently parsed queued/running/terminal documents, thread and cursor', () => {
     for (const run of [queued, running, completed]) expect(parseAskLiveRun(run).id).toBe(runId);
     expect(

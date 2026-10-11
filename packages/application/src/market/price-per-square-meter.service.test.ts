@@ -3,6 +3,33 @@ import { PricePerSquareMeterService } from './price-per-square-meter.service.js'
 const service = new PricePerSquareMeterService(),
   at = '2026-10-11T00:00:00.000Z';
 describe('Market canonical structured calculation', () => {
+  it.each([
+    ['Preço R$ 785.000,00, área 68 m²', 'pt-BR'],
+    ['Price BRL 785,000.00, area 68 square meters', 'en'],
+  ] as const)('extracts and validates %s without I/O', (query, locale) => {
+    const extracted = service.extractPriceInputs(query, locale);
+    expect(extracted).toEqual({
+      kind: 'extracted',
+      inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
+    });
+    if (extracted.kind === 'extracted')
+      expect(service.pricePerSquareMeter(extracted.inputs, at).minorUnits).toBe(1154412);
+  });
+  it.each(['Price 0.01, area 1000000 m2', 'Price 90071992547409.91, area 0.01 m2'])(
+    'refuses unsafe canonical result for %s',
+    (query) => {
+      expect(service.extractPriceInputs(query, 'en')).toEqual({
+        kind: 'refused',
+        reason: 'unsafe_result',
+      });
+    },
+  );
+  it('returns the closed grammar refusal', () => {
+    expect(service.extractPriceInputs('Area 68 m2', 'en')).toEqual({
+      kind: 'refused',
+      reason: 'missing_price',
+    });
+  });
   it('uses integer cents, existing canonical rounding and defensive result inputs', () => {
     const inputs = { priceMinorUnits: 10001, currency: 'BRL' as const, areaSquareMeters: 2 };
     const result = service.pricePerSquareMeter(inputs, at);

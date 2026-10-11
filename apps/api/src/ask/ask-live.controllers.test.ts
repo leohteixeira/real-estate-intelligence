@@ -63,6 +63,9 @@ function req(authorization?: string, originalUrl = '/api/v1/runs') {
 function facade() {
   return {
     create: vi.fn().mockResolvedValue(queued),
+    createText: vi
+      .fn()
+      .mockResolvedValue({ kind: 'accepted', run: { ...queued, basis: 'text-price-v1' } }),
     claim: vi.fn().mockResolvedValue({ disposition: 'busy', identity, retryAfterMs: 30000 }),
     complete: vi.fn().mockResolvedValue(failed),
     tool: vi.fn(),
@@ -73,6 +76,41 @@ function facade() {
 }
 afterEach(() => vi.unstubAllEnvs());
 describe('scoped Ask command, dispatch and tool boundaries', () => {
+  it('returns text acceptance or a strict 422 refusal after auth/config/key checks', async () => {
+    vi.stubEnv('ASK_DISPATCH_SECRET', secret);
+    const live = facade(),
+      controller = new AskLiveController(live);
+    const body = {
+      mode: 'text-price-v1',
+      threadId: null,
+      placeId: null,
+      query: 'Price 10, area 2 m2',
+      locale: 'en',
+    };
+    expect(controller.textCapabilities(req()).available).toBe(true);
+    expect(await controller.create(body, req(`Bearer ${capability}`))).toEqual({
+      mode: 'text-price-v1',
+      runId: identity.runId,
+      threadId: identity.threadId,
+      state: 'queued',
+    });
+    live.createText.mockResolvedValueOnce({ kind: 'refused', reason: 'missing_area' });
+    const status = vi.fn();
+    const response = { status } as unknown as import('express').Response;
+    expect(await controller.create(body, req(`Bearer ${capability}`), response)).toEqual({
+      mode: 'text-price-v1',
+      code: 'price_input_refused',
+      reason: 'missing_area',
+    });
+    expect(status).toHaveBeenCalledWith(422);
+    expect(live.create).not.toHaveBeenCalled();
+    live.createText.mockClear();
+    await expect(
+      controller.create({ ...body, inputs }, req(`Bearer ${capability}`)),
+    ).rejects.toThrow('Bad Request');
+    await expect(controller.create(body, req('Bearer short'))).rejects.toThrow('Unauthorized');
+    expect(live.createText).not.toHaveBeenCalled();
+  });
   it('reports disabled availability and rejects creation before persistence when dispatch is absent', async () => {
     vi.stubEnv('ASK_DISPATCH_SECRET', '');
     const live = facade(),
@@ -167,6 +205,7 @@ describe('scoped Ask command, dispatch and tool boundaries', () => {
   it('checks grant/path before Market callback and never calculates on foreign grant', async () => {
     const live = facade(),
       market = {
+        extractPriceInputs: vi.fn(),
         pricePerSquareMeter: vi.fn().mockReturnValue({
           kind: 'price_per_square_meter',
           minorUnits: 50,

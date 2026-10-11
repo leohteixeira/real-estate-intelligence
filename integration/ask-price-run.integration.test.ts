@@ -20,6 +20,7 @@ import {
 } from '../packages/infrastructure/dist/index.js';
 import { allocatePorts, cleanupAll, ComposeFixture, preserveCleanup } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
+import { captureAskDiagnostics } from './support/ask-diagnostics.ts';
 
 const requestBody: StructuredAskCreate = {
   mode: 'structured-price-v1',
@@ -107,6 +108,7 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
   });
   const foreign = await inventory();
   let connection: DatabaseConnection | undefined;
+  let assertionsCompleted = false;
   await preserveCleanup(
     async () => {
       await fixture.up(['--build', 'postgres', 'migrations', 'api', 'ai', 'rabbitmq', 'minio']);
@@ -450,7 +452,10 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
         (
           await complete({
             ...evidence,
-            receipt: { ...evidence.receipt, result: { ...evidence.receipt.result, minorUnits: 1 } },
+            receipt: {
+              ...evidence.receipt,
+              result: { ...evidence.receipt.result, minorUnits: 1 },
+            },
           })
         ).status,
       ).toBe(403);
@@ -679,7 +684,10 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
       expect(frames(await restarted.text())).toStrictEqual(events);
 
       // AI is unavailable: the real worker commits explicit failed state, never a fabricated result.
-      const failed = await create({ ...requestBody, query: 'private-synthetic-failure-question' });
+      const failed = await create({
+        ...requestBody,
+        query: 'private-synthetic-failure-question',
+      });
       const failedStream = await requestHttp(`${api}/api/v1/runs/${failed.runId}/events`, {
         headers,
       });
@@ -721,9 +729,13 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
       expect(authorityRows).toStrictEqual([
         { authority_digest: askDigest(capability), preparation_key: askDigest(key) },
       ]);
+      assertionsCompleted = true;
     },
-    () =>
+    async () =>
       cleanupAll(
+        async () => {
+          if (!assertionsCompleted) await captureAskDiagnostics(fixture, connection);
+        },
         async () => connection?.close(),
         () => fixture.down(),
         async () => {
