@@ -1,4 +1,8 @@
-import type { CollectionFacade, PropertiesFacade } from '@rei/application';
+import type {
+  CollectionFacade,
+  PropertiesFacade,
+  LargestReductionsService,
+} from '@rei/application';
 import type {
   ListingResponse,
   ListingDetail,
@@ -13,7 +17,7 @@ import { projectInitialProperty } from './persisted-property.projection.js';
 import type { PostgresPropertyRepository } from './postgres-property.repository.js';
 import type { PostgresListingHistoryRepository } from './postgres-listing-history.repository.js';
 
-/** Detail is persisted-first; prepared search/counts/reductions remain explicit fixtures. */
+/** Detail is persisted-first; reductions are persisted-only; search/counts remain prepared. */
 export class PersistedPropertiesFacade implements PropertiesFacade {
   public constructor(
     private readonly repository: Pick<PostgresPropertyRepository, 'getProperty' | 'getListing'>,
@@ -23,12 +27,14 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
     >,
     private readonly prepared: PropertiesFacade,
     private readonly history?: Pick<PostgresListingHistoryRepository, 'getState'>,
+    private readonly reductions?: Pick<LargestReductionsService, 'execute'>,
   ) {}
   public search(query: SearchQuery): Promise<SearchResponse> {
     return this.prepared.search(query);
   }
   public largestReductions(placeId: string, query: PageQuery): Promise<ReductionsResponse | null> {
-    return this.prepared.largestReductions(placeId, query);
+    if (!this.reductions) throw new Error('Persisted reductions query is unavailable.');
+    return this.reductions.execute(placeId, query);
   }
   public async getProperty(id: string): Promise<PropertyResponse | null> {
     const property = await this.repository.getProperty(id);

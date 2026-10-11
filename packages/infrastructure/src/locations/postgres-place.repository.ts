@@ -7,6 +7,17 @@ import { postgresClientFor } from '../shared/persistence/postgres-transaction.js
 /** All hierarchy/adjacency SQL stays in the owned Locations schema. */
 export class PostgresPlaceRepository implements PlaceRepository {
   public constructor(private readonly database: DatabaseConnection) {}
+  public async registeredScopeIds(id: string): Promise<readonly string[] | null> {
+    const rows = await this.database.query<{ id: string }>(
+      `WITH RECURSIVE scope AS (
+        SELECT place_id,public_id FROM locations.place WHERE public_id=$1
+        UNION ALL
+        SELECT child.place_id,child.public_id FROM locations.place child JOIN scope ON child.parent_id=scope.place_id
+      ) SELECT public_id AS id FROM scope ORDER BY public_id`,
+      [id],
+    );
+    return rows.length ? rows.map((row) => row.id) : null;
+  }
   public async metadata(): Promise<FixtureMetadata> {
     const rows = await this.database.query<FixtureMetadata>(
       `SELECT data_mode AS "dataMode", fixture_version AS "fixtureVersion", to_char(as_of AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "asOf" FROM locations.reference_metadata WHERE singleton = true`,

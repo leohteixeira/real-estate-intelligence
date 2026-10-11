@@ -23,4 +23,7 @@ export class PostgresLocationsFacade implements LocationsFacade {
   public children(id: string) {
     return this.queries.children(id);
   }
+  public registeredScopeIds(id: string) {
+    return this.queries.registeredScopeIds(id);
+  }
 }

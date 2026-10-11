@@ -8,6 +8,7 @@ import type {
 import type { Transaction } from '../shared/index.js';
 export const LOCATIONS_FACADE = Symbol.for('rei.LocationsFacade');
 export interface LocationsFacade {
+  registeredScopeIds(id: string): Promise<readonly string[] | null>;
   resolvePublishedAddress(address: PublishedAddress): Promise<ResolvedPropertyPlace | null>;
   resolveFixtureAddress(
     address: CollectedListingLocation,

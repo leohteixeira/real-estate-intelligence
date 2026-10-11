@@ -1,23 +1,14 @@
 import { Inject, Module, type OnModuleInit } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { LOCATIONS_FACADE } from '@rei/application';
-import { PostgresLocationsFacade, type DatabaseConnection } from '@rei/infrastructure';
-import { DATABASE_CONNECTION, PersistenceModule } from '../persistence/persistence.module';
 import { PropertiesModule } from '../properties/index';
 import { LocationsController } from './locations.controller';
 import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
+import { LocationsReferenceModule } from '../locations-reference.module';
 
 @Module({
-  imports: [PropertiesModule, PersistenceModule],
+  imports: [PropertiesModule, LocationsReferenceModule],
   controllers: [LocationsController],
-  providers: [
-    {
-      provide: LOCATIONS_FACADE,
-      inject: [DATABASE_CONNECTION],
-      useFactory: (database: DatabaseConnection) => new PostgresLocationsFacade(database),
-    },
-  ],
-  exports: [LOCATIONS_FACADE],
+  exports: [LocationsReferenceModule],
 })
 export class LocationsModule implements OnModuleInit {
   public constructor(@Inject(HttpAdapterHost) private readonly adapter: HttpAdapterHost) {}

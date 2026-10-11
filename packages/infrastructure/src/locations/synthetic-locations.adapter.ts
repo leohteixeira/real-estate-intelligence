@@ -210,6 +210,14 @@ export function placeContains(scope: string, neighborhood: string): boolean {
   return syntheticPlace(neighborhood)?.breadcrumbs.some((place) => place.id === scope) ?? false;
 }
 export class SyntheticLocationsAdapter implements LocationsFacade {
+  public async registeredScopeIds(id: string): Promise<readonly string[] | null> {
+    const places = [...syntheticPlaces(), ...supplementaryPlaces()];
+    if (!places.some((place) => place.id === id)) return null;
+    return places
+      .filter((place) => place.breadcrumbs.some((crumb) => crumb.id === id))
+      .map((place) => place.id)
+      .sort();
+  }
   public async resolvePublishedAddress(
     input: PublishedAddress,
   ): Promise<ResolvedPropertyPlace | null> {

@@ -16,6 +16,11 @@ function placeId(id: string): void {
 }
 export class LocationsQueryService {
   public constructor(private readonly repository: PlaceRepository) {}
+  public async registeredScopeIds(id: string): Promise<readonly string[] | null> {
+    placeId(id);
+    const scope = await this.repository.registeredScopeIds(id);
+    return scope === null ? null : [...scope];
+  }
   public async resolvePublishedAddress(
     input: PublishedAddress,
     transaction?: Transaction,
