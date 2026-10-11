@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { RabbitMqEventBroker } from '@rei/infrastructure';
+import { MarketListingConsumer } from './market/index';
 import {
   ParsedListingConsumer,
   ListingCompletionConsumer,
@@ -49,6 +50,7 @@ async function bootstrap(): Promise<void> {
   await collectionRunConsumer.start();
   await context.get(ParsedListingConsumer).start();
   await context.get(ListingCompletionConsumer).start();
+  await context.get(MarketListingConsumer).start();
   const listingHistory = context.get(ListingHistoryJob);
   listingHistory.start();
   brokerSupervisor.start();

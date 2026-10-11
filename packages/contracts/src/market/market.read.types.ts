@@ -11,7 +11,7 @@ export interface MarketEvidence {
   readonly sources: readonly MarketSourceEvidence[];
   readonly computedAt: string;
   readonly freshness: {
-    readonly status: 'fresh' | 'stale';
+    readonly status: 'fresh' | 'stale' | 'untracked';
     readonly latestCollectionCompletedAt: string | null;
     readonly ageSeconds: number;
   };
@@ -53,11 +53,28 @@ export interface MarketResponseBase {
   readonly evaluatedAt: string;
   readonly place: PlaceRef;
 }
-export interface PlaceMarketResponse extends MarketResponseBase {
+export const MARKET_PREPARED_SECTIONS = [
+  'counts',
+  'figures.askingPriceMovement',
+  'figures.medianTimeOnMarketDays',
+  'figures.priceReductions',
+  'figures.listingsPerProperty',
+  'figures.recordedSalePricePerSquareMeter',
+] as const;
+interface PlaceMarketOverview {
   readonly counts: MarketCounts;
   readonly figures: MarketFigures;
   readonly parentMedian: { readonly place: PlaceRef; readonly median: MarketMedian } | null;
 }
+export type PlaceMarketResponse = PlaceMarketOverview &
+  (
+    | MarketResponseBase
+    | (Omit<MarketResponseBase, 'basis'> & {
+        readonly basis: 'event-fed-median-with-prepared-sections';
+        readonly preparedSections: typeof MARKET_PREPARED_SECTIONS;
+        readonly preparedEvaluatedAt: string;
+      })
+  );
 export interface PlaceMarketNeighboursResponse extends MarketResponseBase {
   readonly items: readonly {
     readonly place: PlaceRef;

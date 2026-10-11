@@ -22,6 +22,7 @@
     "test:integration:properties": "vitest run --config vitest.integration.config.ts integration/properties-contracts.integration.test.ts",
     "test:integration:locations": "vitest run --config vitest.integration.config.ts integration/locations.integration.test.ts",
     "test:integration:market": "vitest run --config vitest.integration.config.ts integration/market-contracts.integration.test.ts",
+    "test:integration:market-median": "vitest run --config vitest.integration.config.ts integration/market-median.integration.test.ts",
     "test:integration:properties-ingestion": "vitest run --config vitest.integration.config.ts integration/properties-ingestion.integration.test.ts",
     "test:integration:properties-history": "vitest run --config vitest.integration.config.ts integration/properties-history.integration.test.ts integration/properties-history-upgrade.integration.test.ts",
     "test:integration:listing-provenance": "vitest run --config vitest.integration.config.ts integration/listing-provenance.integration.test.ts",

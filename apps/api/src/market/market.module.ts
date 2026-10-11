@@ -5,7 +5,12 @@ import {
   MarketQueryService,
   type LocationsFacade,
 } from '@rei/application';
-import { SyntheticMarketAdapter } from '@rei/infrastructure';
+import {
+  SyntheticMarketAdapter,
+  PostgresMarketPriceFacts,
+  type DatabaseConnection,
+} from '@rei/infrastructure';
+import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 import { LocationsReferenceModule } from '../locations-reference.module';
 import { MarketController } from './market.controller';
 
@@ -15,9 +20,12 @@ import { MarketController } from './market.controller';
   providers: [
     {
       provide: MARKET_FACADE,
-      inject: [LOCATIONS_FACADE],
-      useFactory: (locations: LocationsFacade) =>
-        new MarketQueryService(new SyntheticMarketAdapter(), locations),
+      inject: [LOCATIONS_FACADE, DATABASE_CONNECTION],
+      useFactory: (locations: LocationsFacade, connection: DatabaseConnection) =>
+        new MarketQueryService(new SyntheticMarketAdapter(), locations, {
+          facts: new PostgresMarketPriceFacts(connection),
+          clock: { now: () => new Date().toISOString() },
+        }),
     },
   ],
   exports: [MARKET_FACADE],
