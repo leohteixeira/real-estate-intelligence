@@ -1,10 +1,13 @@
 # Foundation RunExecutor reference
 
-`POST /internal/v1/runs/execute` belongs to the isolated AI service on port 4111. It executes
+`POST /internal/v1/runs/execute` belongs to the isolated AI service on port 4111. Its `foundation`
+step executes
 the existing `START → noOp → END` LangGraph and returns observed node traversal. It does not
 create a public Ask run, calculate a price, call a provider or tool, save a checkpoint, publish an
 event, or claim durable completion or deduplication. The graph receives empty state; the question
 is validated at the boundary and is neither used by the graph nor returned in the evidence.
+The separately scoped `structured-price-v1` step invokes the [real price tracer](ask-tracer.md).
+The guarantees and request/evidence shapes below describe the foundation step only.
 
 ## Authority and configuration
 
@@ -37,7 +40,7 @@ The request is a closed object: extra or missing fields are rejected. `Content-T
 }
 ```
 
-Both identifiers must be canonical lowercase UUIDv7 values. The only version is `1`, the only
+Both identifiers must be canonical lowercase UUIDv7 values. The only version is `1`, this
 step is `foundation`, and locale is `en` or `pt-BR`. The query must be nonblank and at most 16,000
 JavaScript characters. No idempotency or operation-key header is used or required.
 
@@ -97,8 +100,9 @@ cleanup produces a retained timeout; no promise can be forcibly cancelled by tha
 
 Compose also provides `run-execution-command` under the explicit `tools` profile. Start the owned
 AI service first, then use `docker compose --profile tools run --rm --no-deps -T
-run-execution-command` with JSON on stdin. The ordinary worker never starts a run automatically
-and gains no unconditional AI service dependency.
+run-execution-command` with JSON on stdin. The ordinary worker does not start foundation runs
+automatically and gains no unconditional AI dependency. When structured dispatch is configured,
+it consumes explicitly accepted structured runs, not fixture histories.
 
 Successful execution prints one safe evidence JSON line; failure exits with code 1 and writes
 `{"code":"foundation_execution_failed","kind":"<category>"}` to stderr. Public prepared Ask

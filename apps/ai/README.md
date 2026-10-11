@@ -1,6 +1,6 @@
 # @rei/ai
 
-NestJS 12 service with a LangGraph skeleton, executed as a separate application on port 4111.
+NestJS 12 service with isolated LangGraph execution on port 4111.
 
 ## Boundary rule
 
@@ -24,9 +24,17 @@ searchListings()
 
 ## State
 
-The service exposes dependency-free liveness at `GET /health` and provides one compiled no-op
-LangGraph graph through Nest dependency injection. The graph terminates without external I/O.
-There is no agent, model, tool, checkpoint, business endpoint or telemetry yet.
+The service exposes dependency-free liveness at `GET /health` and two compiled graphs through
+Nest dependency injection. The foundation graph terminates without external I/O. The
+`structured-price-v1` graph visits `fixedDecision` and `priceTool`, invoking a scoped typed API
+tool rather than performing price arithmetic in AI. Execution is authenticated through
+`POST /internal/v1/runs/execute`; see [the foundation reference](../../docs/api/run-executor.md)
+and [the live tracer reference](../../docs/api/ask-tracer.md) for the distinct contracts.
+
+There is no model invocation, general autonomous agent or durable checkpoint in this increment.
+OpenTelemetry is preloaded before HTTP/Nest, with categorical node spans and W3C propagation,
+without recording questions, grants or internal tokens. The API dispatch signing key remains
+outside this application.
 
 `AI_PORT` defaults to `4111` and accepts only a decimal port from 1 through 65535. Invalid values
 fail startup with a clear error. The service binds to `0.0.0.0` for container and Dev Container

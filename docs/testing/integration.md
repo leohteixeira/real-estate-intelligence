@@ -10,7 +10,7 @@ pnpm run test:integration:list
 pnpm run test:integration
 ```
 
-The full command builds compiled applications once, then discovers all twenty campaigns plus
+The full command builds compiled applications once, then discovers all integration campaigns plus
 cleanup/support tests. Files run serially; a campaign can deliberately exercise simultaneous writers
 or four parallel brokers. Test and hook deadlines are bounded, and empty discovery fails. Fixture
 probes in `integration/fixtures/` and compiled tests under `dist/` are not discovered.
@@ -23,6 +23,7 @@ pnpm run test:integration:market
 pnpm run test:integration:market-median
 pnpm run test:integration:market-price-facts
 pnpm run test:integration:ask
+pnpm run test:integration:ask-tracer
 pnpm run test:integration:run-executor
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
@@ -49,11 +50,22 @@ snapshot; foreign projects and volumes remain outside its lifecycle.
 
 The Ask campaign checks seven prepared run snapshots and finite scripted SSE previews through public
 contract parsers, capability refusals, fixture replay, full ordered threads, edited confirmation
-inputs and absent POST command handlers. A distinct API E2E test opens a catalogue grant, reads its
+inputs, absent confirmation/cancellation handlers and disabled structured admission. A distinct API
+E2E test opens a catalogue grant, reads its
 run/thread and reaches an explicit edited-confirmation terminal. Both use the production
 PostgreSQL/migrations/API images and compare every owned table count/content digest before and
-after: no Ask table, retained caller text, outbox write or live AI execution is added. See the
+after: migrated Ask tables stay empty; no retained caller text, outbox write or live AI execution is
+added. See the
 [Ask API reference](../api/ask.md) for the prepared-only contract and replay limitations.
+
+The structured price campaign (`integration/ask-price-run.integration.test.ts`) runs PostgreSQL,
+migrations, API, RabbitMQ, production worker and isolated AI graph with ephemeral scoped authority.
+It verifies the 785,000 BRL / 68 m² result, concurrent creation replay, ownership/input refusals,
+creation/outbox/inbox rollback, claim replacement, retained Market receipts, SQL JSON constraints,
+durable terminal SSE and API restart recovery. Pruning delivery/idempotency records cannot duplicate
+a result even with AI stopped; a new run with unavailable AI reaches a safe failed terminal.
+It uses Vitest, strict TypeScript, Supertest and the same Testcontainers fixture/teardown standard.
+See [the structured tracer reference](../api/ask-tracer.md).
 
 The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
 campaign against the production AI image, and a production worker-command E2E journey resolving

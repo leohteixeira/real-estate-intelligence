@@ -91,3 +91,13 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   strict contracts, fixed destination/no redirects, bounded cancellation and ADR-ordered named
   policies protect the hop. Existing public Ask previews remain read-only and non-live
   (agent, on the owner's behalf, 2026-10-11).
+- Decision: D-045 / ADR 0023 opens the real `structured-price-v1` tracer: caller-known strong
+  thread capability, fingerprinted replay, API-owned queued state/event/outbox and claim/terminal
+  writes, worker consumption through event-scoped dispatch proofs, fixed-decision LangGraph and
+  a run/claim/input-scoped ephemeral typed HTTP Market tool. Retained tool receipts and run
+  identity fence redelivery independently of inbox/outbox retention; terminal and inbox commit
+  before broker ack. Live contracts and persisted resumable SSE stay separate from prepared
+  previews. The golden 78,500,000 BRL minor units / 68 m² yields 1,154,412 minor units/m².
+  No model, text extraction, remote checkpoint, full quota policy, UI or production action is
+  claimed; missing dispatch configuration fails closed without changing collection or fixtures
+  (agent, on the owner's behalf, 2026-10-11).

@@ -25,18 +25,23 @@ Both are version 1, accepted as an engineering baseline by the agent on the owne
 > a twelve-month series. Real-source processing, production matching, full history, production market
 > figures and comparables are not enabled.
 
+Ask also provides a [real structured price tracer](docs/api/ask-tracer.md): API-owned durable runs,
+production worker delivery and an isolated AI graph calling a scoped backend Market tool. Its
+prepared seven-state examples remain read-only and separately labelled. Natural-language extraction,
+provider calls, confirmation, complete checkpoints and visitor quota are not part of the tracer.
+
 ## Stack
 
-| Layer       | Choice                                                                |
-| ----------- | --------------------------------------------------------------------- |
-| API         | NestJS 12 on Express (port 8200)                                      |
-| Worker      | NestJS 12 standalone application context                              |
-| AI          | NestJS 12 + LangGraph in a separate application (port 4111), no tools |
-| Persistence | PostgreSQL 18 with PostGIS available, `pg` driver, no ORM             |
-| Migrations  | versioned SQL applied by `scripts/migrate.sh`                         |
-| Web         | React 19 + Vite 8 + TypeScript 6.0.3 (port 3200)                      |
-| Telemetry   | OpenTelemetry Node 0.221, preloaded through `node -r`                 |
-| Tests       | Vitest 4                                                              |
+| Layer       | Choice                                                    |
+| ----------- | --------------------------------------------------------- |
+| API         | NestJS 12 on Express (port 8200)                          |
+| Worker      | NestJS 12 standalone application context                  |
+| AI          | NestJS 12 + LangGraph (port 4111), scoped HTTP price tool |
+| Persistence | PostgreSQL 18 with PostGIS available, `pg` driver, no ORM |
+| Migrations  | versioned SQL applied by `scripts/migrate.sh`             |
+| Web         | React 19 + Vite 8 + TypeScript 6.0.3 (port 3200)          |
+| Telemetry   | OpenTelemetry Node 0.221, preloaded through `node -r`     |
+| Tests       | Vitest 4                                                  |
 
 The decisions are recorded in [`specs/adrs/`](specs/adrs/).
 

@@ -1,7 +1,8 @@
 # Ask prepared fixture API
 
 Ask exposes read-only prepared examples under `/api/v1`. Its snapshots and finite scripted SSE
-previews freeze the wire contract before execution is implemented. They do not create runs, invoke
+previews are separate from the [real structured price tracer](ask-tracer.md). They do not create runs,
+invoke
 AI, count quota, persist events or guarantee durable reconnect recovery. Availability explicitly
 reports `mode: "prepared-fixtures"` and `commandHandlers: false`.
 
@@ -143,8 +144,9 @@ curl -N http://localhost:8200/api/v1/runs/0199c8f2-2394-7000-8000-000000000003/e
 
 ## Reserved commands: shapes only
 
-These parsers freeze future command shapes. No POST `/api/v1/runs`, `/api/v1/runs/:id/confirm` or
-`/api/v1/runs/:id/cancel` handler exists; those requests return 404. The fixture API does not accept
+These parsers freeze future text/confirmation command shapes. POST `/api/v1/runs/:id/confirm` and
+`/api/v1/runs/:id/cancel` remain absent and return 404. POST `/api/v1/runs` accepts only the separate
+configured structured tracer contract, never a prepared fixture grant. The fixture API does not accept
 caller text, issue accepted responses, retain submitted queries or enforce quota.
 
 | Parser                   | Closed shape                                                                                               |
