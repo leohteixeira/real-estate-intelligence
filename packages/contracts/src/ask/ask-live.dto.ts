@@ -32,6 +32,80 @@ export interface StructuredAskAccepted {
   readonly threadId: string;
   readonly state: 'queued';
 }
+export type TextAskCreate = Omit<StructuredAskCreate, 'mode' | 'inputs'> & {
+  readonly mode: 'text-price-v1';
+};
+export type TextAskAccepted = Omit<StructuredAskAccepted, 'mode'> & {
+  readonly mode: 'text-price-v1';
+};
+export type PriceInputRefusalReason =
+  | 'missing_price'
+  | 'missing_area'
+  | 'ambiguous_price'
+  | 'ambiguous_area'
+  | 'invalid_price'
+  | 'invalid_area'
+  | 'unsupported_currency'
+  | 'unsupported_area_unit'
+  | 'unsafe_result';
+export interface TextAskRefused {
+  readonly mode: 'text-price-v1';
+  readonly code: 'price_input_refused';
+  readonly reason: PriceInputRefusalReason;
+}
+const textQueryWire = (value: unknown) => {
+  askQueryWire(value);
+  if (
+    typeof value !== 'string' ||
+    Array.from(value).some(
+      (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+    )
+  )
+    invalidWire();
+};
+export function parseTextAskCreate(value: unknown): TextAskCreate {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['text-price-v1']),
+      threadId: wireNullable(wireUuid),
+      placeId: wireNullable(wireSlug),
+      query: textQueryWire,
+      locale: wireEnum(['en', 'pt-BR']),
+    }),
+  );
+}
+export function parseTextAskAccepted(value: unknown): TextAskAccepted {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['text-price-v1']),
+      runId: wireUuid,
+      threadId: wireUuid,
+      state: wireEnum(['queued']),
+    }),
+  );
+}
+export function parseTextAskRefused(value: unknown): TextAskRefused {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['text-price-v1']),
+      code: wireEnum(['price_input_refused']),
+      reason: wireEnum([
+        'missing_price',
+        'missing_area',
+        'ambiguous_price',
+        'ambiguous_area',
+        'invalid_price',
+        'invalid_area',
+        'unsupported_currency',
+        'unsupported_area_unit',
+        'unsafe_result',
+      ]),
+    }),
+  );
+}
 export function parseStructuredAskAccepted(value: unknown): StructuredAskAccepted {
   return parseWire(
     value,
@@ -58,7 +132,7 @@ export interface AskRequestedIdentity {
   readonly threadId: string;
 }
 export interface AskLiveRun {
-  readonly basis: 'structured-price-v1';
+  readonly basis: 'structured-price-v1' | 'text-price-v1';
   readonly id: string;
   readonly threadId: string;
   readonly principalId: null;
@@ -70,7 +144,7 @@ export interface AskLiveRun {
   readonly state: 'queued' | 'running' | 'completed' | 'failed';
   readonly originalInputs: AskInputs;
   readonly decision: {
-    readonly source: 'fixed-structured-v1';
+    readonly source: 'fixed-structured-v1' | 'validated-text-v1';
     readonly intent: 'price_per_square_meter';
     readonly decidedAt: string;
   } | null;
@@ -87,7 +161,7 @@ export interface AskLiveRun {
   }[];
 }
 export interface AskLiveThread {
-  readonly basis: 'structured-price-v1';
+  readonly basis: 'structured-price-v1' | 'text-price-v1' | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
   readonly runs: readonly AskLiveRun[];
@@ -126,6 +200,15 @@ export interface StructuredExecutionResponse extends AskRequestedIdentity {
   readonly visitedNodes: readonly ['fixedDecision', 'priceTool'];
   readonly receipt: PriceToolReceipt;
 }
+export type TextExecutionRequest = Omit<StructuredExecutionRequest, 'step'> & {
+  readonly step: 'text-price-v1';
+};
+export type TextExecutionResponse = Omit<StructuredExecutionResponse, 'step' | 'visitedNodes'> & {
+  readonly step: 'text-price-v1';
+  readonly visitedNodes: readonly ['validatedInputs', 'priceTool'];
+};
+export type PriceExecutionRequest = StructuredExecutionRequest | TextExecutionRequest;
+export type PriceExecutionResponse = StructuredExecutionResponse | TextExecutionResponse;
 export type AskClaim =
   | {
       readonly disposition: 'busy';
@@ -135,7 +218,7 @@ export type AskClaim =
   | {
       readonly disposition: 'claimed';
       readonly identity: AskRequestedIdentity;
-      readonly input: StructuredExecutionRequest;
+      readonly input: PriceExecutionRequest;
       readonly expiresAt: string;
     }
   | {
@@ -145,7 +228,7 @@ export type AskClaim =
     };
 export interface AskCompletion extends AskRequestedIdentity {
   readonly executionId: string;
-  readonly evidence: StructuredExecutionResponse | null;
+  readonly evidence: PriceExecutionResponse | null;
   readonly failure: 'execution_unavailable' | null;
 }
 export const strongAskCapabilityWire = wirePattern(/^[A-Za-z0-9_-]{43,128}$/);
@@ -209,8 +292,66 @@ export const structuredEvidenceWire = wireObject({
   },
   receipt: priceToolReceiptWire,
 });
+export const textExecutionWire = wireObject({
+  ...identityFields,
+  step: wireEnum(['text-price-v1']),
+  query: textQueryWire,
+  locale: wireEnum(['en', 'pt-BR']),
+  executionId: wireUuid,
+  toolGrant: strongAskCapabilityWire,
+  inputs: askInputsWire,
+});
+export const textEvidenceWire = wireObject({
+  ...identityFields,
+  step: wireEnum(['text-price-v1']),
+  outcome: wireEnum(['price-calculated']),
+  executionId: wireUuid,
+  visitedNodes: (nodes) => {
+    if (
+      !Array.isArray(nodes) ||
+      nodes.length !== 2 ||
+      nodes[0] !== 'validatedInputs' ||
+      nodes[1] !== 'priceTool'
+    )
+      invalidWire();
+  },
+  receipt: priceToolReceiptWire,
+});
+export function parseTextExecutionRequest(value: unknown): TextExecutionRequest {
+  return parseWire(value, textExecutionWire);
+}
+export function parseTextExecutionEvidence(value: unknown): TextExecutionResponse {
+  const evidence = parseWire<TextExecutionResponse>(value, textEvidenceWire);
+  parsePriceToolReceipt(evidence.receipt);
+  if (
+    !sameAskIdentity(evidence, evidence.receipt) ||
+    evidence.executionId !== evidence.receipt.executionId
+  )
+    invalidWire();
+  return evidence;
+}
+const priceExecutionWire = (value: unknown) => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'text-price-v1'
+  )
+    textExecutionWire(value);
+  else structuredExecutionWire(value);
+};
+const priceEvidenceWire = (value: unknown) => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'text-price-v1'
+  )
+    textEvidenceWire(value);
+  else structuredEvidenceWire(value);
+};
 const liveRunWire = wireObject({
-  basis: wireEnum(['structured-price-v1']),
+  basis: wireEnum(['structured-price-v1', 'text-price-v1']),
   id: wireUuid,
   threadId: wireUuid,
   principalId: wireNull,
@@ -223,7 +364,7 @@ const liveRunWire = wireObject({
   originalInputs: askInputsWire,
   decision: wireNullable(
     wireObject({
-      source: wireEnum(['fixed-structured-v1']),
+      source: wireEnum(['fixed-structured-v1', 'validated-text-v1']),
       intent: wireEnum(['price_per_square_meter']),
       decidedAt: wireDate,
     }),
@@ -306,6 +447,13 @@ export function parseStructuredExecutionEvidence(value: unknown): StructuredExec
 }
 export function parseAskLiveRun(value: unknown): AskLiveRun {
   const run = parseWire<AskLiveRun>(value, liveRunWire);
+  if (run.basis === 'text-price-v1') textQueryWire(run.question);
+  if (
+    run.decision &&
+    run.decision.source !==
+      (run.basis === 'text-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1')
+  )
+    invalidWire();
   const terminal = run.state === 'completed' || run.state === 'failed';
   if (
     run.createdAt > run.updatedAt ||
@@ -359,13 +507,19 @@ export function parseAskLiveThread(value: unknown): AskLiveThread {
   const thread = parseWire<AskLiveThread>(
     value,
     wireObject({
-      basis: wireEnum(['structured-price-v1']),
+      basis: wireEnum(['structured-price-v1', 'text-price-v1', 'mixed-price-v1']),
       id: wireUuid,
       principalId: wireNull,
       runs: wireArray(liveRunWire),
     }),
   );
   if (new Set(thread.runs.map((run) => run.id)).size !== thread.runs.length) invalidWire();
+  const bases = new Set(thread.runs.map((run) => run.basis));
+  if (
+    thread.runs.length &&
+    thread.basis !== (bases.size > 1 ? 'mixed-price-v1' : thread.runs[0]!.basis)
+  )
+    invalidWire();
   let previous = '';
   for (const run of thread.runs) {
     parseAskLiveRun(run);
@@ -431,7 +585,7 @@ export function parseAskClaim(value: unknown): AskClaim {
     wireObject({
       disposition: wireEnum(['claimed']),
       identity: requestedIdentityWire,
-      input: structuredExecutionWire,
+      input: priceExecutionWire,
       expiresAt: wireDate,
     }),
   );
@@ -444,13 +598,14 @@ export function parseAskCompletion(value: unknown): AskCompletion {
     wireObject({
       ...identityFields,
       executionId: wireUuid,
-      evidence: wireNullable(structuredEvidenceWire),
+      evidence: wireNullable(priceEvidenceWire),
       failure: wireNullable(wireEnum(['execution_unavailable'])),
     }),
   );
   if ((result.evidence === null) === (result.failure === null)) invalidWire();
   if (result.evidence) {
-    parseStructuredExecutionEvidence(result.evidence);
+    if (result.evidence.step === 'text-price-v1') parseTextExecutionEvidence(result.evidence);
+    else parseStructuredExecutionEvidence(result.evidence);
     if (
       !sameAskIdentity(result, result.evidence) ||
       result.executionId !== result.evidence.executionId

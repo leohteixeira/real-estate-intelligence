@@ -8,6 +8,12 @@ export interface StructuredAskCreate {
   readonly locale: 'en' | 'pt-BR';
   readonly inputs: AskInputs;
 }
+export type TextAskCreate = Omit<StructuredAskCreate, 'mode' | 'inputs'> & {
+  readonly mode: 'text-price-v1';
+};
+/** Internal admission only: these inputs are derived by Market, never supplied by text callers. */
+export type ValidatedTextAskCreate = TextAskCreate & { readonly inputs: AskInputs };
+export type ValidatedAskCreate = StructuredAskCreate | ValidatedTextAskCreate;
 export type PriceResult = Extract<AskResult, { kind: 'price_per_square_meter' }>;
 export interface AskRequestedIdentity {
   readonly version: 1;
@@ -16,7 +22,7 @@ export interface AskRequestedIdentity {
   readonly threadId: string;
 }
 export interface AskLiveRun {
-  readonly basis: 'structured-price-v1';
+  readonly basis: 'structured-price-v1' | 'text-price-v1';
   readonly id: string;
   readonly threadId: string;
   readonly principalId: null;
@@ -28,7 +34,7 @@ export interface AskLiveRun {
   readonly state: 'queued' | 'running' | 'completed' | 'failed';
   readonly originalInputs: AskInputs;
   readonly decision: {
-    readonly source: 'fixed-structured-v1';
+    readonly source: 'fixed-structured-v1' | 'validated-text-v1';
     readonly intent: 'price_per_square_meter';
     readonly decidedAt: string;
   } | null;
@@ -45,7 +51,7 @@ export interface AskLiveRun {
   }[];
 }
 export interface AskLiveThread {
-  readonly basis: 'structured-price-v1';
+  readonly basis: 'structured-price-v1' | 'text-price-v1' | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
   readonly runs: readonly AskLiveRun[];
@@ -84,6 +90,15 @@ export interface StructuredExecutionEvidence extends AskRequestedIdentity {
   readonly visitedNodes: readonly ['fixedDecision', 'priceTool'];
   readonly receipt: PriceToolReceipt;
 }
+export type TextExecutionInput = Omit<StructuredExecutionInput, 'step'> & {
+  readonly step: 'text-price-v1';
+};
+export type TextExecutionEvidence = Omit<StructuredExecutionEvidence, 'step' | 'visitedNodes'> & {
+  readonly step: 'text-price-v1';
+  readonly visitedNodes: readonly ['validatedInputs', 'priceTool'];
+};
+export type PriceExecutionInput = StructuredExecutionInput | TextExecutionInput;
+export type PriceExecutionEvidence = StructuredExecutionEvidence | TextExecutionEvidence;
 export type AskClaim =
   | {
       readonly disposition: 'busy';
@@ -93,7 +108,7 @@ export type AskClaim =
   | {
       readonly disposition: 'claimed';
       readonly identity: AskRequestedIdentity;
-      readonly input: StructuredExecutionInput;
+      readonly input: PriceExecutionInput;
       readonly expiresAt: string;
     }
   | {
@@ -103,6 +118,6 @@ export type AskClaim =
     };
 export interface AskCompletion extends AskRequestedIdentity {
   readonly executionId: string;
-  readonly evidence: StructuredExecutionEvidence | null;
+  readonly evidence: PriceExecutionEvidence | null;
   readonly failure: 'execution_unavailable' | null;
 }

@@ -5,6 +5,8 @@ import {
   ASK_LIVE_FACADE,
   AskQueryService,
   AskRunService,
+  MARKET_CALCULATION_FACADE,
+  type MarketCalculationFacade,
   OUTBOX_APPEND_PORT,
   TRANSACTION_RUNNER,
   type OutboxAppendPort,
@@ -30,12 +32,19 @@ import { MarketModule } from '../market/index';
     { provide: ASK_FACADE, useFactory: () => new AskQueryService(new SyntheticAskAdapter()) },
     {
       provide: ASK_LIVE_FACADE,
-      inject: [DATABASE_CONNECTION, TRANSACTION_RUNNER, OUTBOX_APPEND_PORT],
+      inject: [
+        DATABASE_CONNECTION,
+        TRANSACTION_RUNNER,
+        OUTBOX_APPEND_PORT,
+        MARKET_CALCULATION_FACADE,
+      ],
       useFactory: (
         connection: DatabaseConnection,
         transactions: TransactionRunner,
         outbox: OutboxAppendPort,
-      ) => new AskRunService(new PostgresAskRunRepository(connection, transactions, outbox)),
+        market: MarketCalculationFacade,
+      ) =>
+        new AskRunService(new PostgresAskRunRepository(connection, transactions, outbox), market),
     },
   ],
   exports: [ASK_FACADE],

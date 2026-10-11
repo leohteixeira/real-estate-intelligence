@@ -8,7 +8,7 @@ import type {
   PriceResult,
   PriceToolReceipt,
   PriceToolRequest,
-  StructuredAskCreate,
+  ValidatedAskCreate,
 } from '@rei/domain';
 export const ASK_RUN_REPOSITORY = Symbol('ASK_RUN_REPOSITORY');
 export class AskLiveError extends Error {
@@ -20,7 +20,7 @@ export class AskLiveError extends Error {
 }
 export interface AskRunRepository {
   create(
-    request: StructuredAskCreate,
+    request: ValidatedAskCreate,
     capability: string,
     key: string,
     signal?: AbortSignal,

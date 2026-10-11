@@ -54,6 +54,7 @@ export class InMemoryRunDispatch implements RunDispatch {
     if (
       request.runId !== this.#terminal.id ||
       request.threadId !== this.#terminal.threadId ||
+      (request.evidence !== null && request.evidence.step !== this.#terminal.basis) ||
       this.#terminal.state !== (request.evidence ? 'completed' : 'failed')
     )
       throw new ExternalFailure({ kind: 'rejected', operation: 'run-dispatch' });

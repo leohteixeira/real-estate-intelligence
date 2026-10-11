@@ -1,15 +1,16 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
 import {
   parseStructuredExecutionRequest,
+  parseTextExecutionRequest,
   type PriceToolReceipt,
-  type StructuredExecutionRequest,
+  type PriceExecutionRequest,
 } from '@rei/contracts';
 import { z } from 'zod';
 import type { PricePerSquareMeterTool } from '../tools/price-per-square-meter.port';
 import { priceNodeSpan } from './price-telemetry';
 export const PRICE_GRAPH = Symbol('PRICE_GRAPH');
 const PriceState = z.object({
-  input: z.custom<StructuredExecutionRequest>(),
+  input: z.custom<PriceExecutionRequest>(),
   decision: z.boolean().optional(),
   receipt: z.custom<PriceToolReceipt>().optional(),
 });
@@ -18,6 +19,12 @@ export function compilePriceGraph(tool: PricePerSquareMeterTool) {
     .addNode('fixedDecision', (state) =>
       priceNodeSpan('fixedDecision', state.input, async () => {
         parseStructuredExecutionRequest(state.input);
+        return { decision: true };
+      }),
+    )
+    .addNode('validatedInputs', (state) =>
+      priceNodeSpan('validatedInputs', state.input, async () => {
+        parseTextExecutionRequest(state.input);
         return { decision: true };
       }),
     )
@@ -42,8 +49,11 @@ export function compilePriceGraph(tool: PricePerSquareMeterTool) {
       );
       return { receipt };
     })
-    .addEdge(START, 'fixedDecision')
+    .addConditionalEdges(START, (state) =>
+      state.input.step === 'text-price-v1' ? 'validatedInputs' : 'fixedDecision',
+    )
     .addEdge('fixedDecision', 'priceTool')
+    .addEdge('validatedInputs', 'priceTool')
     .addEdge('priceTool', END)
     .compile();
 }

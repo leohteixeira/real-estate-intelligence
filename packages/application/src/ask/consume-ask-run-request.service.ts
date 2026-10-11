@@ -48,7 +48,14 @@ export class ConsumeAskRunRequest {
     let evidence;
     try {
       evidence = await this.executor.execute(claim.input, signal, deadlineAt);
-      if (evidence.step !== 'structured-price-v1')
+      if (
+        evidence.step !== claim.input.step ||
+        !('eventId' in evidence) ||
+        evidence.eventId !== identity.eventId ||
+        evidence.runId !== identity.runId ||
+        evidence.threadId !== identity.threadId ||
+        evidence.executionId !== claim.input.executionId
+      )
         throw new TypeError('Invalid executor evidence.');
     } catch (error) {
       signal.throwIfAborted();

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import {
   AskLiveError,
+  askAdmissionPolicy,
   type AskRunRepository,
   type OutboxAppendPort,
   type Transaction,
@@ -20,7 +21,7 @@ import {
   type PriceResult,
   type PriceToolReceipt,
   type PriceToolRequest,
-  type StructuredAskCreate,
+  type ValidatedAskCreate,
 } from '@rei/domain';
 import {
   parseAskCompletion,
@@ -30,6 +31,7 @@ import {
   parsePriceToolReceipt,
   parsePriceToolRequest,
   parseStructuredAskCreate,
+  parseTextAskCreate,
   sameAskIdentity,
   sameAskInputs,
 } from '@rei/contracts';
@@ -150,12 +152,25 @@ export class PostgresAskRunRepository implements AskRunRepository {
     await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`ask:${key}`]);
   }
   public async create(
-    untrusted: StructuredAskCreate,
+    untrusted: ValidatedAskCreate,
     capability: string,
     key: string,
     signal?: AbortSignal,
   ): Promise<AskLiveRun> {
-    const request = structuredClone(parseStructuredAskCreate(untrusted));
+    const request: ValidatedAskCreate = structuredClone(
+      untrusted.mode === 'text-price-v1'
+        ? {
+            ...parseTextAskCreate({
+              mode: untrusted.mode,
+              threadId: untrusted.threadId,
+              placeId: untrusted.placeId,
+              query: untrusted.query,
+              locale: untrusted.locale,
+            }),
+            inputs: parseStructuredAskCreate({ ...untrusted, mode: 'structured-price-v1' }).inputs,
+          }
+        : parseStructuredAskCreate(untrusted),
+    );
     if (!/^[A-Za-z0-9_-]{43,128}$/.test(capability) || !/^[A-Za-z0-9_-]{16,128}$/.test(key))
       throw new AskLiveError('invalid');
     const creationKey = askDigest(key);
@@ -223,7 +238,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const eventId = await this.uuid(client);
       const at = new Date().toISOString();
       const run: AskLiveRun = {
-        basis: 'structured-price-v1',
+        basis: request.mode,
         id,
         threadId,
         principalId: null,
@@ -297,11 +312,15 @@ export class PostgresAskRunRepository implements AskRunRepository {
         'SELECT document FROM ask.run WHERE thread_id=$1 ORDER BY id',
         [id],
       );
+      const parsedRuns = runs.map((row) => structuredClone(parseAskLiveRun(row.document)));
       return {
-        basis: 'structured-price-v1',
+        basis:
+          new Set(parsedRuns.map((run) => run.basis)).size > 1
+            ? 'mixed-price-v1'
+            : (parsedRuns[0]?.basis ?? 'structured-price-v1'),
         id,
         principalId: null,
-        runs: runs.map((row) => structuredClone(parseAskLiveRun(row.document))),
+        runs: parsedRuns,
       };
     }, signal);
   }
@@ -344,7 +363,14 @@ export class PostgresAskRunRepository implements AskRunRepository {
         `SELECT LEAST(30000,GREATEST(1,ceil(EXTRACT(epoch FROM (claim_expires_at-clock_timestamp()))*1000)))::integer AS delay FROM ask.run WHERE thread_id=$1 AND state='running' AND claim_expires_at>clock_timestamp() LIMIT 1`,
         [identity.threadId],
       );
-      if (busy[0]) return { disposition: 'busy', identity, retryAfterMs: busy[0].delay };
+      // A sibling can finish long before its lease expires. Recheck promptly without
+      // replacing that active claim or consuming the caller's entire admission budget.
+      if (busy[0])
+        return {
+          disposition: 'busy',
+          identity,
+          retryAfterMs: Math.min(askAdmissionPolicy.maximumBusyRetryAfterMs, busy[0].delay),
+        };
       const executionId = await this.uuid(client);
       const grant = randomBytes(32).toString('base64url');
       const now = Date.now();
@@ -356,7 +382,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
           state: 'running',
           updatedAt: at,
           decision: {
-            source: 'fixed-structured-v1',
+            source: run.basis === 'text-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1',
             intent: 'price_per_square_meter',
             decidedAt: at,
           },
@@ -373,7 +399,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         expiresAt,
         input: {
           ...identity,
-          step: 'structured-price-v1',
+          step: run.basis,
           query: run.question,
           locale: run.locale,
           executionId,
@@ -456,6 +482,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!previous.terminal) this.active(row, request.executionId);
       let result: PriceResult | null = null;
       if (request.evidence) {
+        if (request.evidence.step !== previous.basis) throw new AskLiveError('forbidden');
         const rows = await client.query<{ document: unknown }>(
           'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
           [request.runId],

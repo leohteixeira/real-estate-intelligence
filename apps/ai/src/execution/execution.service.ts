@@ -36,7 +36,7 @@ export class ExecutionService {
     input: RunExecutionInput,
     signal: AbortSignal,
   ): Promise<RunExecutionEvidence> {
-    if (input.step === 'structured-price-v1') {
+    if (input.step === 'structured-price-v1' || input.step === 'text-price-v1') {
       if (!this.priceGraph) throw new Error('Price execution unavailable.');
       const updates = await this.priceGraph.stream({ input }, { streamMode: 'updates', signal });
       const visitedNodes: string[] = [];

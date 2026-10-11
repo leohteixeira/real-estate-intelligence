@@ -151,8 +151,8 @@ export class HttpRunExecutor implements RunExecutor {
       )
         throw new Error();
       if (
-        input.step === 'structured-price-v1' &&
-        (result.step !== 'structured-price-v1' ||
+        input.step !== 'foundation' &&
+        (result.step === 'foundation' ||
           !sameAskIdentity(input, result) ||
           input.executionId !== result.executionId ||
           !sameAskInputs(input.inputs, result.receipt.inputs))

@@ -74,6 +74,7 @@ export class HttpRunDispatch implements RunDispatch {
     if (
       result.id !== request.runId ||
       result.threadId !== request.threadId ||
+      (request.evidence !== null && result.basis !== request.evidence.step) ||
       result.state !== (request.evidence ? 'completed' : 'failed')
     )
       throw new ExternalFailure({ kind: 'rejected', operation: 'run-dispatch.complete' });

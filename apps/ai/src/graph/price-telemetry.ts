@@ -1,5 +1,5 @@
 import { context, propagation, SpanStatusCode, trace } from '@opentelemetry/api';
-import type { StructuredExecutionRequest } from '@rei/contracts';
+import type { PriceExecutionRequest } from '@rei/contracts';
 export function priceTraceHeaders(): Readonly<Record<string, string>> {
   const carrier: Record<string, string> = {};
   propagation.inject(context.active(), carrier);
@@ -9,8 +9,8 @@ export function priceTraceHeaders(): Readonly<Record<string, string>> {
 }
 /** No questions, inputs, tool grants, error text or model payloads enter telemetry. */
 export async function priceNodeSpan<T>(
-  node: 'fixedDecision' | 'priceTool',
-  input: StructuredExecutionRequest,
+  node: 'fixedDecision' | 'validatedInputs' | 'priceTool',
+  input: PriceExecutionRequest,
   work: () => Promise<T>,
 ): Promise<T> {
   return trace.getTracer('rei.ai.structured-price').startActiveSpan(

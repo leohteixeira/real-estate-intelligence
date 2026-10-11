@@ -18,7 +18,7 @@ export interface FoundationExecutionEvidence {
 }
 export type RunExecutionInput =
   | FoundationExecutionInput
-  | import('./ask-live.types.js').StructuredExecutionInput;
+  | import('./ask-live.types.js').PriceExecutionInput;
 export type RunExecutionEvidence =
   | FoundationExecutionEvidence
-  | import('./ask-live.types.js').StructuredExecutionEvidence;
+  | import('./ask-live.types.js').PriceExecutionEvidence;

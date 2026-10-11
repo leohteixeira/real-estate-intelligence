@@ -5,6 +5,10 @@ import {
   parseStructuredExecutionEvidence,
   type StructuredExecutionRequest,
   type StructuredExecutionResponse,
+  parseTextExecutionRequest,
+  parseTextExecutionEvidence,
+  type TextExecutionRequest,
+  type TextExecutionResponse,
 } from './ask-live.dto.js';
 
 /** Internal v1 shapes are independent of domain and public Ask command/result contracts. */
@@ -24,8 +28,14 @@ export interface FoundationExecutionResponse {
   readonly outcome: 'foundation-executed';
   readonly visitedNodes: readonly ['noOp'];
 }
-export type RunExecutionRequest = FoundationExecutionRequest | StructuredExecutionRequest;
-export type RunExecutionResponse = FoundationExecutionResponse | StructuredExecutionResponse;
+export type RunExecutionRequest =
+  | FoundationExecutionRequest
+  | StructuredExecutionRequest
+  | TextExecutionRequest;
+export type RunExecutionResponse =
+  | FoundationExecutionResponse
+  | StructuredExecutionResponse
+  | TextExecutionResponse;
 const identityFields = {
   version: wireEnum([1]),
   runId: wireUuid,
@@ -34,6 +44,13 @@ const identityFields = {
 };
 
 export function parseRunExecutionRequest(value: unknown): RunExecutionRequest {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'text-price-v1'
+  )
+    return parseTextExecutionRequest(value);
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -47,6 +64,13 @@ export function parseRunExecutionRequest(value: unknown): RunExecutionRequest {
   );
 }
 export function parseRunExecutionEvidence(value: unknown): RunExecutionResponse {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'text-price-v1'
+  )
+    return parseTextExecutionEvidence(value);
   if (
     typeof value === 'object' &&
     value !== null &&

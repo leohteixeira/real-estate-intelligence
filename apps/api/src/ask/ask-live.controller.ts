@@ -8,13 +8,19 @@ import {
   Inject,
   Post,
   Req,
+  Res,
   ServiceUnavailableException,
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
 import { ASK_LIVE_FACADE, AskLiveError, type AskLiveFacade } from '@rei/application';
-import { parseAskCommandHeaders, parseStructuredAskCreate } from '@rei/contracts';
-import type { Request } from 'express';
+import {
+  parseAskCommandHeaders,
+  parseStructuredAskCreate,
+  parseTextAskCreate,
+  parseTextAskRefused,
+} from '@rei/contracts';
+import type { Request, Response } from 'express';
 import { DomainValidationError } from '@rei/domain';
 import { askBearerCapability } from './ask.controller';
 import { readAskConfig } from './ask.config';
@@ -52,25 +58,60 @@ export class AskLiveController {
       intent: 'price_per_square_meter',
     };
   }
+  @Get('ask/text-price-capabilities')
+  public textCapabilities(@Req() request: Request) {
+    readQuery(request, 'none');
+    return {
+      mode: 'text-price-v1',
+      available: !!readAskConfig(process.env).secret,
+      intent: 'price_per_square_meter',
+    };
+  }
   @Post('runs')
   @HttpCode(202)
-  public async create(@Body() body: unknown, @Req() request: Request) {
+  public async create(
+    @Body() body: unknown,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response?: Response,
+  ) {
     readQuery(request, 'none');
     const capability = strongAskBearer(request.headers.authorization);
     if (!readAskConfig(process.env).secret) throw new ServiceUnavailableException();
     let input;
     let key;
     try {
-      input = parseStructuredAskCreate(body);
+      input =
+        typeof body === 'object' && body !== null && 'mode' in body && body.mode === 'text-price-v1'
+          ? parseTextAskCreate(body)
+          : parseStructuredAskCreate(body);
       key = parseAskCommandHeaders({
         idempotencyKey: request.headers['idempotency-key'],
       }).idempotencyKey;
     } catch {
       throw new BadRequestException();
     }
+    if (input.mode === 'text-price-v1') {
+      const result = await askRequestWork(request, (signal) =>
+        liveAuthorized(() => this.live.createText(input, capability, key, signal)),
+      );
+      if (result.kind === 'refused') {
+        response?.status(422);
+        return parseTextAskRefused({
+          mode: input.mode,
+          code: 'price_input_refused',
+          reason: result.reason,
+        });
+      }
+      return {
+        mode: input.mode,
+        runId: result.run.id,
+        threadId: result.run.threadId,
+        state: 'queued',
+      };
+    }
     const run = await askRequestWork(request, (signal) =>
       liveAuthorized(() => this.live.create(input, capability, key, signal)),
     );
-    return { mode: 'structured-price-v1', runId: run.id, threadId: run.threadId, state: 'queued' };
+    return { mode: input.mode, runId: run.id, threadId: run.threadId, state: 'queued' };
   }
 }
