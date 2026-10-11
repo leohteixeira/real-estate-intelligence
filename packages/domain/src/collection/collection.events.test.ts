@@ -105,6 +105,9 @@ describe('collection event contracts', () => {
     'data:image/png;base64,iVBORw0KGgo=',
     '/9j/4AAQSkZJRgABAQAAAQABAAD=',
     'person@example.test',
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAIffl6bWAAAAABJRU5ErkJggg',
+    'R0lGODlhAQABAIAAAAAAAP___yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+    'PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxIiBoZWlnaHQ9IjEiPjwvc3ZnPg',
   ])('rejects raw image or contact content in fingerprints: %s', (fingerprint) => {
     const value = mutableParsedWire();
     nested(value, 'payload', 'listing').imageFingerprints = [fingerprint];
@@ -116,18 +119,41 @@ describe('collection event contracts', () => {
     'Rua Exemplo, apto. 123',
     'Example Street, unit #123',
     'Rua Exemplo, complemento: 123',
+    'Rua Exemplo, bloco A',
+    'Rua Exemplo 123, fundos',
+    'Rua Exemplo, ap 12',
   ])('rejects unit or complement details embedded in the street: %s', (street) => {
     const value = mutableParsedWire();
     nested(value, 'payload', 'listing', 'location').street = street;
     expect(() => parseCollectionEvent(value)).toThrow(DomainValidationError);
   });
 
-  it.each(['Rua Exemplo 123', 'Rua dos Apartamentos', 'Avenida Bloco Novo'])(
+  it.each(['Rua Exemplo 123', 'Rua dos Apartamentos', 'Avenida Bloco Novo', 'Rua dos Fundos'])(
     'retains source street text without unit details: %s',
     (street) => {
       const value = mutableParsedWire();
       nested(value, 'payload', 'listing', 'location').street = street;
       expect(parseCollectionSnapshotParsed(value).payload.listing.location.street).toBe(street);
+    },
+  );
+
+  it.each(['person@example.test', '12345678909', '+55 11 99999-9999'])(
+    'rejects contact data in parsed and suppressed source identities: %s',
+    (sourceListingId) => {
+      const parsed = mutableParsedWire();
+      nested(parsed, 'payload', 'source').sourceListingId = sourceListingId;
+      expect(() => parseCollectionEvent(parsed)).toThrow(DomainValidationError);
+
+      const suppressed = {
+        eventId: '0199c8f2-2394-7ba0-8f9e-286378779214',
+        aggregateId: '0199c8f2-2394-7ba0-8f9e-286378779215',
+        type: COLLECTION_LISTING_SUPPRESSED_TYPE,
+        version: 1,
+        occurredAt: '2026-10-10T12:00:02.000Z',
+        traceContext: null,
+        payload: { sourceId: 'synthetic-data', sourceListingId },
+      };
+      expect(() => parseCollectionEvent(suppressed)).toThrow(DomainValidationError);
     },
   );
 
