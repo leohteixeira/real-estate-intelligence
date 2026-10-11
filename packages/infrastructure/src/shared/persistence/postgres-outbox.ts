@@ -4,6 +4,7 @@ import type {
   OutboxRelayPort,
   OutboxRetentionPort,
   OutboxRow,
+  RetainedPublicationReader,
   Transaction,
 } from '@rei/application';
 import { DomainEvent, type DomainEventInput, type EventPayload, type UuidV7 } from '@rei/domain';
@@ -86,8 +87,42 @@ const CLAIMED_COLUMNS = `
   claimed.claim_id, claimed.claim_expires_at
 `;
 
-export class PostgresOutbox implements OutboxAppendPort, OutboxRelayPort, OutboxRetentionPort {
+export class PostgresOutbox
+  implements OutboxAppendPort, OutboxRelayPort, OutboxRetentionPort, RetainedPublicationReader
+{
   public constructor(private readonly connection: DatabaseConnection) {}
+
+  public async find(
+    transaction: Transaction,
+    aggregateId: string,
+    eventType: string,
+  ): Promise<EventEnvelope | null> {
+    const rows = await postgresClientFor(transaction, this.connection).query<{
+      event_id: string;
+      event_type: string;
+      event_version: number;
+      aggregate_id: string;
+      occurred_at: Date;
+      trace_context: DomainEventInput<string, EventPayload>['traceContext'];
+      payload: EventPayload;
+    }>(
+      `SELECT event_id::text, event_type, event_version, aggregate_id::text, occurred_at, trace_context, payload
+       FROM platform.outbox WHERE aggregate_id=$1 AND event_type=$2 ORDER BY event_id LIMIT 1`,
+      [aggregateId, eventType],
+    );
+    const row = rows[0];
+    return row
+      ? new HydratedEvent({
+          eventId: row.event_id,
+          type: row.event_type,
+          version: row.event_version,
+          aggregateId: row.aggregate_id,
+          occurredAt: timestamp(row.occurred_at, 'occurred_at'),
+          traceContext: row.trace_context,
+          payload: row.payload,
+        })
+      : null;
+  }
 
   public async append(transaction: Transaction, events: readonly EventEnvelope[]): Promise<void> {
     return runOutboxAppendSpan(async () => {

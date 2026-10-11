@@ -4,6 +4,7 @@ import { COLLECTION_FACADE, PROPERTIES_FACADE, type CollectionFacade } from '@re
 import {
   PersistedPropertiesFacade,
   PostgresPropertyRepository,
+  PostgresListingHistoryRepository,
   SyntheticPropertiesAdapter,
   type DatabaseConnection,
 } from '@rei/infrastructure';
@@ -24,6 +25,7 @@ import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
           new PostgresPropertyRepository(connection),
           collection,
           new SyntheticPropertiesAdapter(),
+          new PostgresListingHistoryRepository(connection),
         ),
     },
   ],

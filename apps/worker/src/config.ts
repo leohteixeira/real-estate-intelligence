@@ -82,6 +82,18 @@ function positiveInteger(
   return value;
 }
 
+export function readListingHistoryConfig(env: NodeJS.ProcessEnv): {
+  intervalMs: number;
+  batchSize: number;
+  timeoutMs: number;
+} {
+  return {
+    intervalMs: positiveInteger(env, 'LISTING_HISTORY_INTERVAL_MS', 250, 100, MAX_TIMER_DELAY_MS),
+    batchSize: positiveInteger(env, 'LISTING_HISTORY_BATCH_SIZE', 25, 1, 100),
+    timeoutMs: positiveInteger(env, 'LISTING_HISTORY_TIMEOUT_MS', 5000, 100, MAX_TIMER_DELAY_MS),
+  };
+}
+
 function nonnegativeInteger(
   env: NodeJS.ProcessEnv,
   name: string,

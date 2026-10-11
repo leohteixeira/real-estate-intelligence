@@ -1,5 +1,7 @@
 import type {
   CollectionFacade,
+  CollectionHistoryFacade,
+  CanonicalCompletedRun,
   CollectionRunView,
   CollectionSourcePermissions,
   SourceRegisterRepository,
@@ -12,18 +14,179 @@ import {
   parseCollectionEvent,
   isOwnedSyntheticSourceId,
   CollectionSnapshotCorrected,
+  CollectionRunCompleted,
+  hashCollectionManifest,
   type EnabledSourceView,
   type Sha256Hash,
 } from '@rei/domain';
 
 import type { DatabaseConnection } from '../shared/persistence/database-connection.js';
 import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
+import { lockSourceAdmission } from './postgres-source-admission.js';
 
-export class PostgresCollectionFacade implements CollectionFacade {
+export class PostgresCollectionFacade implements CollectionFacade, CollectionHistoryFacade {
   public constructor(
     private readonly connection: DatabaseConnection,
     private readonly sources: SourceRegisterRepository,
   ) {}
+
+  public async verifyCompletedEvent(
+    transaction: Transaction,
+    event: CollectionRunCompleted,
+  ): Promise<boolean> {
+    if (!isOwnedSyntheticSourceId(event.payload.sourceId)) return false;
+    const rows = await postgresClientFor(transaction, this.connection).query<{
+      event: unknown;
+      observed_source_listing_ids: string[];
+      started_at: Date;
+      completed_at: Date;
+      observed_count: number;
+      parsed_count: number;
+      suppressed_count: number;
+      failed_count: number;
+      manifest_hash: string;
+    }>(
+      `SELECT evidence.event, evidence.observed_source_listing_ids, run.started_at,
+        run.completed_at, run.observed_count, run.parsed_count, run.suppressed_count,
+        run.failed_count, run.manifest_hash
+       FROM collection.completed_event_evidence evidence
+       JOIN collection.collection_run run ON run.run_id=evidence.run_id
+       JOIN collection.source_register source ON source.source_id=run.source_id
+       WHERE evidence.event_id=$1 AND run.run_id=$2 AND run.source_id=$3
+         AND run.status='completed' AND run.completed_event_id=evidence.event_id
+         AND source.source_category='synthetic-listing' AND source.access_method='repository-fixture'
+         AND source.review_outcome='not-required' AND source.enabled AND source.collection_allowed
+         AND source.hold_reason IS NULL
+       FOR SHARE OF evidence, run, source`,
+      [event.eventId, event.aggregateId, event.payload.sourceId],
+    );
+    const row = rows[0];
+    if (!row || JSON.stringify(parseCollectionEvent(row.event)) !== JSON.stringify(event))
+      return false;
+    return (
+      row.completed_at.toISOString() === event.occurredAt &&
+      row.observed_count === event.payload.observedCount &&
+      row.parsed_count === event.payload.parsedCount &&
+      row.suppressed_count === event.payload.suppressedCount &&
+      row.failed_count === event.payload.failedCount &&
+      row.observed_source_listing_ids.length === row.observed_count &&
+      hashCollectionManifest(row.observed_source_listing_ids) === row.manifest_hash &&
+      row.manifest_hash === event.payload.manifestHash
+    );
+  }
+
+  public async nextCompletedRun(
+    transaction: Transaction,
+    sourceId: string,
+    after: { readonly startedAt: string; readonly runId: string } | null,
+  ): Promise<CanonicalCompletedRun | null> {
+    const client = postgresClientFor(transaction, this.connection);
+    await lockSourceAdmission(client, sourceId);
+    const rows = await client.query<{
+      event: unknown;
+      started_at: Date;
+      observed_source_listing_ids: string[];
+    }>(
+      `SELECT evidence.event, run.started_at, evidence.observed_source_listing_ids
+       FROM collection.collection_run run
+       JOIN collection.completed_event_evidence evidence ON evidence.run_id=run.run_id
+       WHERE run.source_id=$1 AND run.status='completed'
+         AND ($2::timestamptz IS NULL OR (run.started_at,run.run_id)>($2::timestamptz,$3::uuid))
+         AND NOT EXISTS (SELECT 1 FROM collection.collection_run earlier
+           WHERE earlier.source_id=run.source_id AND earlier.status IN ('running','paused')
+             AND (earlier.started_at,earlier.run_id)<(run.started_at,run.run_id))
+       ORDER BY run.started_at,run.run_id LIMIT 1 FOR SHARE OF run,evidence`,
+      [sourceId, after?.startedAt ?? null, after?.runId ?? null],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const event = parseCollectionEvent(row.event);
+    if (
+      !(event instanceof CollectionRunCompleted) ||
+      !(await this.verifyCompletedEvent(transaction, event))
+    )
+      return null;
+    return {
+      event,
+      runId: event.aggregateId,
+      sourceId,
+      startedAt: row.started_at.toISOString(),
+      completedAt: event.occurredAt,
+      manifestHash: event.payload.manifestHash,
+      observedSourceListingIds: row.observed_source_listing_ids,
+      counts: {
+        observed: event.payload.observedCount,
+        parsed: event.payload.parsedCount,
+        changed: 0,
+        suppressed: event.payload.suppressedCount,
+        failed: event.payload.failedCount,
+      },
+    };
+  }
+
+  public async getRunListingFacts(
+    transaction: Transaction,
+    runId: string,
+    sourceListingId: string,
+  ): Promise<readonly ParsedCollectionEvent[]> {
+    const rows = await postgresClientFor(transaction, this.connection).query<{ event: unknown }>(
+      `SELECT evidence.event FROM collection.parsed_event_evidence evidence
+       JOIN collection.snapshot_observation observation ON observation.snapshot_id=evidence.snapshot_id
+       WHERE observation.run_id=$1 AND observation.source_listing_id=$2 AND evidence.event_version=1
+       ORDER BY observation.observed_at,observation.snapshot_id`,
+      [runId, sourceListingId],
+    );
+    const facts: ParsedCollectionEvent[] = [];
+    for (const row of rows) {
+      const event = parseCollectionEvent(row.event) as ParsedCollectionEvent;
+      if (await this.verifyParsedEvent(transaction, event)) facts.push(event);
+    }
+    return facts;
+  }
+
+  public async getLegacyListingFacts(
+    transaction: Transaction,
+    sourceId: string,
+    sourceListingId: string,
+    excludedEventIds: readonly string[],
+    limit: number,
+  ): Promise<readonly ParsedCollectionEvent[]> {
+    const rows = await postgresClientFor(transaction, this.connection).query<{ event: unknown }>(
+      `SELECT evidence.event FROM collection.parsed_event_evidence evidence
+       JOIN collection.snapshot_observation observation ON observation.snapshot_id=evidence.snapshot_id
+       JOIN collection.collection_run run ON run.run_id=observation.run_id
+       WHERE run.source_id=$1 AND observation.source_listing_id=$2 AND evidence.event_version=1
+         AND run.status='completed' AND NOT (evidence.event_id=ANY($3::uuid[]))
+         AND NOT EXISTS (SELECT 1 FROM collection.completed_event_evidence completed WHERE completed.run_id=run.run_id)
+         AND NOT EXISTS (SELECT 1 FROM collection.collection_run earlier WHERE earlier.source_id=run.source_id
+           AND earlier.status IN ('running','paused') AND (earlier.started_at,earlier.run_id)<(run.started_at,run.run_id))
+       ORDER BY run.started_at,run.run_id,observation.observed_at,observation.snapshot_id LIMIT $4`,
+      [sourceId, sourceListingId, excludedEventIds, limit],
+    );
+    const facts: ParsedCollectionEvent[] = [];
+    for (const row of rows) {
+      const event = parseCollectionEvent(row.event) as ParsedCollectionEvent;
+      if (await this.verifyParsedEvent(transaction, event)) facts.push(event);
+    }
+    return facts;
+  }
+
+  public async getSnapshotCorrections(
+    transaction: Transaction,
+    snapshotId: string,
+  ): Promise<readonly ParsedCollectionEvent[]> {
+    const rows = await postgresClientFor(transaction, this.connection).query<{ event: unknown }>(
+      `SELECT event FROM collection.parsed_event_evidence WHERE snapshot_id=$1 AND event_version=2
+       ORDER BY (event->'payload'->'correction'->>'order')::integer DESC`,
+      [snapshotId],
+    );
+    const events: ParsedCollectionEvent[] = [];
+    for (const row of rows) {
+      const event = parseCollectionEvent(row.event) as ParsedCollectionEvent;
+      if (await this.verifyParsedEvent(transaction, event)) events.push(event);
+    }
+    return events;
+  }
 
   public async verifyParsedEvent(
     transaction: Transaction,

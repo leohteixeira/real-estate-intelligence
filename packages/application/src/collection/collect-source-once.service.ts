@@ -2,9 +2,11 @@ import {
   decideSourceEnablement,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  DomainValidationError,
   hashCollectionManifest,
   parseCollectionSourceListingId,
   type TraceContext,
+  type CollectionRunState,
 } from '@rei/domain';
 import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
@@ -23,6 +25,7 @@ import type {
 import { ListingSourceAccessRefusal, type ListingSource } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
+import { startAdmittedRun } from './start-admitted-run.js';
 
 const OPERATION_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 
@@ -51,6 +54,7 @@ export class CollectSourceOnce {
     private readonly clock: Clock,
     private readonly outbox: OutboxAppendPort,
     private readonly sanitizer?: SnapshotSanitizer,
+    private readonly terminalCleanupTimeoutMs = 5_000,
   ) {}
 
   public async execute(
@@ -64,20 +68,8 @@ export class CollectSourceOnce {
     signal.throwIfAborted();
 
     const existingRun = await this.runs.loadRunByOperationKey(operationKey, signal);
-    if (existingRun) {
-      if (
-        existingRun.sourceId !== sourceId ||
-        existingRun.status !== 'completed' ||
-        existingRun.counts.observed !== 1 ||
-        existingRun.counts.parsed !== 1
-      ) {
-        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
-      }
-      const replay = await this.runs.findByOperationKey(operationKey, signal);
-      if (!replay || replay.sourceId !== sourceId) {
-        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
-      }
-      return Object.freeze({ ...replay, replayed: true });
+    if (existingRun && (existingRun.sourceId !== sourceId || existingRun.status !== 'running')) {
+      return this.completedReplay(existingRun, sourceId, operationKey, signal);
     }
 
     const registration = await this.sources.findById(sourceId, signal);
@@ -92,127 +84,196 @@ export class CollectSourceOnce {
     }
 
     signal.throwIfAborted();
-    const startedAt = this.clock.now();
-    const page = await this.source
-      .fetchPage(sourceId, null, signal, deadlineAt)
-      .catch(async (error: unknown) => {
-        if (error instanceof ListingSourceAccessRefusal) {
-          const held = await this.sources.holdAtomically(
-            sourceId,
-            { reason: error.reason, heldAt: this.clock.now() },
-            signal,
-          );
-          if (!held?.hold) throw new Error('Source hold could not be persisted.', { cause: error });
-        }
-        throw error;
-      });
-    if (!page.exhausted || page.documents.length !== 1) {
-      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
-    }
-    const original = page.documents[0]!;
-    const synthetic = registration.category === 'synthetic-listing';
-    if (!synthetic && !this.sanitizer)
-      throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.snapshot.sanitize' });
-    const sanitized = synthetic ? null : this.sanitizer!.sanitize(original);
-    const document = sanitized?.document ?? original;
-    if (document.sourceId !== registration.sourceId) {
-      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
-    }
-    let manifestHash: ReturnType<typeof hashCollectionManifest>;
-    try {
-      const sourceListingId = parseCollectionSourceListingId(document.sourceListingId);
-      manifestHash = hashCollectionManifest([sourceListingId]);
-    } catch {
-      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
-    }
-
-    signal.throwIfAborted();
-    const stored = await this.snapshots.store(
-      {
+    const run = await this.transactions.runInTransaction(async (transaction) => {
+      const boundary = await startAdmittedRun(
+        transaction,
         sourceId,
-        mediaType: document.mediaType,
-        synthetic,
-        acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
-        bytes: document.bytes,
-      },
-      signal,
-      deadlineAt,
-    );
-
-    signal.throwIfAborted();
-    const parsedListing = await this.source.parse(document, signal);
-    const listing = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
-    signal.throwIfAborted();
-
-    return this.transactions.runInTransaction(async (transaction) => {
-      await this.sources.assertCollectible(transaction, sourceId);
-      signal.throwIfAborted();
-      const runId = await this.identifiers.generate(transaction);
-      const snapshotId = await this.identifiers.generate(transaction);
-      const parsedEventId = await this.identifiers.generate(transaction);
-      const completedEventId = await this.identifiers.generate(transaction);
-      const completedAt = this.clock.now();
-
-      const persistence: PersistCompletedCollectionInput = {
         operationKey,
-        runId,
-        snapshotId,
-        parsedEventId,
-        completedEventId,
-        sourceId,
-        sourceListingId: document.sourceListingId,
-        sourceUrl: document.sourceUrl,
-        observedAt: document.observedAt,
-        startedAt,
-        completedAt,
-        contentHash: stored.contentHash,
-        objectKey: stored.objectKey,
-        byteLength: stored.byteLength,
-        mediaType: stored.mediaType,
-        manifestHash,
-        imageFingerprints: listing.imageFingerprints,
-      };
-
-      const persisted = await this.runs.persistCompleted(transaction, persistence);
-      if (persisted.result.sourceId !== sourceId) {
+        this.runs,
+        this.identifiers,
+        this.clock,
+        () => this.sources.assertCollectible(transaction, sourceId),
+        signal,
+      );
+      if (boundary.status === 'completed') return boundary;
+      if (
+        boundary.sourceId !== sourceId ||
+        boundary.status !== 'running' ||
+        boundary.checkpoint.ordinal !== 0
+      )
         throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
-      }
-      if (!persisted.created) return Object.freeze({ ...persisted.result, replayed: true });
-
-      const parsed = new CollectionSnapshotParsed({
-        eventId: parsedEventId,
-        aggregateId: snapshotId,
-        occurredAt: completedAt,
-        traceContext,
-        payload: {
-          run: { runId },
-          snapshot: { snapshotId, contentHash: stored.contentHash },
-          source: {
-            sourceId,
-            sourceListingId: document.sourceListingId,
-            sourceUrl: document.sourceUrl,
-            observedAt: document.observedAt,
-          },
-          listing,
-        },
-      });
-      const completed = new CollectionRunCompleted({
-        eventId: completedEventId,
-        aggregateId: runId,
-        occurredAt: completedAt,
-        traceContext,
-        payload: {
-          sourceId,
-          observedCount: 1,
-          parsedCount: 1,
-          suppressedCount: 0,
-          failedCount: 0,
-          manifestHash,
-        },
-      });
-      await this.runs.appendParsedEvidence(transaction, [parsed]);
-      await this.outbox.append(transaction, [parsed, completed]);
-      return persisted.result;
+      return boundary;
     }, signal);
+    if (run.status === 'completed') {
+      return this.completedReplay(run, sourceId, operationKey, signal);
+    }
+    try {
+      const startedAt = run.startedAt;
+      const page = await this.source
+        .fetchPage(sourceId, null, signal, deadlineAt)
+        .catch(async (error: unknown) => {
+          if (error instanceof ListingSourceAccessRefusal) {
+            const held = await this.sources.holdAtomically(
+              sourceId,
+              { reason: error.reason, heldAt: this.clock.now() },
+              signal,
+            );
+            if (!held?.hold)
+              throw new Error('Source hold could not be persisted.', { cause: error });
+            await this.transactions.runInTransaction(
+              (transaction) => this.runs.pause(transaction, run.runId, held.hold!),
+              signal,
+            );
+          }
+          throw error;
+        });
+      if (!page.exhausted || page.documents.length !== 1) {
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
+      }
+      const original = page.documents[0]!;
+      const synthetic = registration.category === 'synthetic-listing';
+      if (!synthetic && !this.sanitizer)
+        throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.snapshot.sanitize' });
+      const sanitized = synthetic ? null : this.sanitizer!.sanitize(original);
+      const document = sanitized?.document ?? original;
+      if (document.sourceId !== registration.sourceId) {
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
+      }
+      let manifestHash: ReturnType<typeof hashCollectionManifest>;
+      try {
+        const sourceListingId = parseCollectionSourceListingId(document.sourceListingId);
+        manifestHash = hashCollectionManifest([sourceListingId]);
+      } catch {
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
+      }
+
+      signal.throwIfAborted();
+      const stored = await this.snapshots.store(
+        {
+          sourceId,
+          mediaType: document.mediaType,
+          synthetic,
+          acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
+          bytes: document.bytes,
+        },
+        signal,
+        deadlineAt,
+      );
+
+      signal.throwIfAborted();
+      const parsedListing = await this.source.parse(document, signal);
+      const listing = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
+      signal.throwIfAborted();
+
+      return await this.transactions.runInTransaction(async (transaction) => {
+        await this.sources.assertCollectible(transaction, sourceId);
+        signal.throwIfAborted();
+        const runId = run.runId;
+        const snapshotId = await this.identifiers.generate(transaction);
+        const parsedEventId = await this.identifiers.generate(transaction);
+        const completedEventId = await this.identifiers.generate(transaction);
+        const completedAt = this.clock.now();
+
+        const persistence: PersistCompletedCollectionInput = {
+          operationKey,
+          runId,
+          snapshotId,
+          parsedEventId,
+          completedEventId,
+          sourceId,
+          sourceListingId: document.sourceListingId,
+          sourceUrl: document.sourceUrl,
+          observedAt: document.observedAt,
+          startedAt,
+          completedAt,
+          contentHash: stored.contentHash,
+          objectKey: stored.objectKey,
+          byteLength: stored.byteLength,
+          mediaType: stored.mediaType,
+          manifestHash,
+          imageFingerprints: listing.imageFingerprints,
+        };
+
+        const persisted = await this.runs.persistCompleted(transaction, persistence);
+        if (persisted.result.sourceId !== sourceId) {
+          throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+        }
+        if (!persisted.created) return Object.freeze({ ...persisted.result, replayed: true });
+
+        const parsed = new CollectionSnapshotParsed({
+          eventId: parsedEventId,
+          aggregateId: snapshotId,
+          occurredAt: completedAt,
+          traceContext,
+          payload: {
+            run: { runId },
+            snapshot: { snapshotId, contentHash: stored.contentHash },
+            source: {
+              sourceId,
+              sourceListingId: document.sourceListingId,
+              sourceUrl: document.sourceUrl,
+              observedAt: document.observedAt,
+            },
+            listing,
+          },
+        });
+        const completed = new CollectionRunCompleted({
+          eventId: completedEventId,
+          aggregateId: runId,
+          occurredAt: completedAt,
+          traceContext,
+          payload: {
+            sourceId,
+            observedCount: 1,
+            parsedCount: 1,
+            suppressedCount: 0,
+            failedCount: 0,
+            manifestHash,
+          },
+        });
+        await this.runs.appendParsedEvidence(transaction, [parsed]);
+        await this.runs.appendCompletedEvidence(transaction, completed);
+        await this.outbox.append(transaction, [parsed, completed]);
+        return persisted.result;
+      }, signal);
+    } catch (error) {
+      // AbortSignal.any preserves the first cause. Deadline exhaustion is recoverable even
+      // when an adapter sanitizes that abort to ExternalFailure.cancelled.
+      const timedOut =
+        signal.aborted && signal.reason instanceof Error && signal.reason.name === 'TimeoutError';
+      if (
+        !timedOut &&
+        (signal.aborted ||
+          error instanceof DomainValidationError ||
+          (error instanceof ExternalFailure && ['rejected', 'cancelled'].includes(error.kind)))
+      ) {
+        // An aborted request cannot cancel its own durable terminal cleanup.
+        const cleanupSignal = AbortSignal.timeout(this.terminalCleanupTimeoutMs);
+        await this.transactions.runInTransaction(
+          (transaction) => this.runs.fail(transaction, run.runId),
+          cleanupSignal,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async completedReplay(
+    run: CollectionRunState,
+    sourceId: string,
+    operationKey: string,
+    signal: AbortSignal,
+  ): Promise<CollectionExecutionResult> {
+    if (
+      run.sourceId !== sourceId ||
+      run.status !== 'completed' ||
+      run.counts.observed !== 1 ||
+      run.counts.parsed !== 1
+    )
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+    const replay = await this.runs.findByOperationKey(operationKey, signal);
+    if (!replay || replay.sourceId !== sourceId || replay.runId !== run.runId)
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+    return Object.freeze({ ...replay, replayed: true });
   }
 }

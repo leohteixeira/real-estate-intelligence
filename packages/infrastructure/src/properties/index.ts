@@ -3,3 +3,4 @@ export * from './synthetic-properties.projection.js';
 export * from './postgres-property.repository.js';
 export * from './persisted-property.projection.js';
 export * from './persisted-properties.facade.js';
+export * from './postgres-listing-history.repository.js';

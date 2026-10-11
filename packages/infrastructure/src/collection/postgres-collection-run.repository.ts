@@ -11,6 +11,7 @@ import type {
 } from '@rei/application';
 import { ExternalFailure } from '@rei/application';
 import {
+  CollectionRunCompleted,
   StaleCollectionCheckpointError,
   hydrateCollectionRun,
   parseSha256Hash,
@@ -27,6 +28,7 @@ import type {
 import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
 import { redactConnectionError } from '../shared/persistence/redact.js';
 import { PostgresSourceRegisterRepository } from './postgres-source-register.repository.js';
+import { admittedFrontier, lockSourceAdmission } from './postgres-source-admission.js';
 
 interface LegacyResultRow {
   readonly operation_key: unknown;
@@ -105,7 +107,10 @@ function mapRun(row: RunRow): CollectionRunState {
     typeof row.operation_key !== 'string' ||
     typeof row.run_id !== 'string' ||
     typeof row.source_id !== 'string' ||
-    (row.status !== 'running' && row.status !== 'paused' && row.status !== 'completed') ||
+    (row.status !== 'running' &&
+      row.status !== 'paused' &&
+      row.status !== 'completed' &&
+      row.status !== 'failed') ||
     typeof row.observed_count !== 'number' ||
     typeof row.parsed_count !== 'number' ||
     (row.changed_count !== undefined && typeof row.changed_count !== 'number') ||
@@ -185,6 +190,28 @@ async function oneRun(
 }
 
 export class PostgresCollectionRunRepository implements CollectionRunRepository {
+  public async withSourceAdmission<TResult>(
+    transaction: Transaction,
+    sourceId: string,
+    work: (frontier: Pick<CollectionRunState, 'startedAt' | 'runId'> | null) => Promise<TResult>,
+  ): Promise<TResult> {
+    const client = postgresClientFor(transaction, this.connection);
+    await lockSourceAdmission(client, sourceId);
+    return work(await admittedFrontier(client, sourceId));
+  }
+  public async appendCompletedEvidence(
+    transaction: Transaction,
+    event: CollectionRunCompleted,
+  ): Promise<void> {
+    const client = postgresClientFor(transaction, this.connection);
+    await client.query(
+      `INSERT INTO collection.completed_event_evidence
+        (event_id, run_id, event, observed_source_listing_ids)
+       SELECT $1, $2, $3::jsonb, COALESCE(jsonb_agg(source_listing_id ORDER BY source_listing_id), '[]'::jsonb)
+       FROM collection.snapshot_observation WHERE run_id = $2`,
+      [event.eventId, event.aggregateId, JSON.stringify(event)],
+    );
+  }
   public appendParsedEvidence(
     transaction: Transaction,
     events: readonly import('@rei/application').ParsedCollectionEvent[],
@@ -195,6 +222,22 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
     );
   }
   public constructor(private readonly connection: DatabaseConnection) {}
+
+  public async fail(transaction: Transaction, runId: CollectionRunState['runId']) {
+    const client = postgresClientFor(transaction, this.connection);
+    await client.query(
+      `UPDATE collection.collection_run SET status = 'failed'
+       WHERE run_id = $1 AND status = 'running'`,
+      [runId],
+    );
+    const run = await oneRun(
+      client,
+      `SELECT ${RUN_FIELDS} FROM collection.collection_run AS run WHERE run.run_id = $1`,
+      [runId],
+    );
+    if (!run) throw new Error('Collection run was not found.');
+    return run;
+  }
 
   public async pause(
     transaction: Transaction,
@@ -280,6 +323,13 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       if (signal?.aborted) throw signal.reason;
       throw redactConnectionError(error);
     }
+  }
+
+  public loadRunByOperationKeyInTransaction(
+    transaction: Transaction,
+    operationKey: string,
+  ): Promise<CollectionRunState | null> {
+    return oneRun(postgresClientFor(transaction, this.connection), LOAD_RUN_QUERY, [operationKey]);
   }
 
   public async startOrLoad(
@@ -560,21 +610,34 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
         ],
       );
       if (inserted.length === 0) {
-        const run = await oneRun(client, LOAD_RUN_QUERY, [input.operationKey]);
+        const run = await oneRun(client, `${LOAD_RUN_QUERY} FOR UPDATE`, [input.operationKey]);
         if (!run) throw new Error('Concurrent collection operation could not be read.');
         if (run.sourceId !== input.sourceId) {
           throw new Error('Collection operation key is already bound to a different source.');
         }
-        if (run.status !== 'completed' || run.counts.observed !== 1 || run.counts.parsed !== 1) {
-          throw new Error('Concurrent collection operation is not a one-shot completed result.');
+        if (run.status === 'running' && run.runId === input.runId && run.checkpoint.ordinal === 0) {
+          const completed = await client.query(
+            `UPDATE collection.collection_run SET status='completed',completed_at=$2,
+              observed_count=1,parsed_count=1,manifest_hash=$3,completed_event_id=$4,
+              checkpoint_ordinal=1,checkpointed_at=$2
+             WHERE run_id=$1 AND status='running' AND checkpoint_ordinal=0 RETURNING run_id`,
+            [input.runId, input.completedAt, input.manifestHash, input.completedEventId],
+          );
+          if (completed.length !== 1) throw new StaleCollectionCheckpointError();
+        } else {
+          if (run.status !== 'completed' || run.counts.observed !== 1 || run.counts.parsed !== 1) {
+            throw new Error('Concurrent collection operation is not a one-shot completed result.');
+          }
+          const rows = await client.query<LegacyResultRow>(LEGACY_RESULT_QUERY, [
+            input.operationKey,
+          ]);
+          if (rows.length !== 1) throw new Error('Concurrent collection replay could not be read.');
+          const result = mapLegacyResult(rows[0]!);
+          if (result.sourceId !== input.sourceId) {
+            throw new Error('Collection operation result is bound to a different source.');
+          }
+          return { created: false, result };
         }
-        const rows = await client.query<LegacyResultRow>(LEGACY_RESULT_QUERY, [input.operationKey]);
-        if (rows.length !== 1) throw new Error('Concurrent collection replay could not be read.');
-        const result = mapLegacyResult(rows[0]!);
-        if (result.sourceId !== input.sourceId) {
-          throw new Error('Collection operation result is bound to a different source.');
-        }
-        return { created: false, result };
       }
 
       if (input.objectKey.startsWith('real/')) {

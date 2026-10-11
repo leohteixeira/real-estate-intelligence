@@ -2,6 +2,8 @@ export { COLLECTION_FACADE } from './collection.facade.js';
 export type { ParsedEventEvidence, ParsedCollectionEvent } from './parsed-event-evidence.port.js';
 export type {
   CollectionFacade,
+  CollectionHistoryFacade,
+  CanonicalCompletedRun,
   CollectionRunCounts,
   CollectionRunView,
   CollectionSourcePermissions,

@@ -31,4 +31,6 @@ export type {
 export { Transaction, TRANSACTION_RUNNER } from './transaction.js';
 export type { TransactionRunner, TransactionWork } from './transaction.js';
 export { UUID_V7_GENERATOR } from './uuid-v7-generator.js';
+export { RETAINED_PUBLICATION_READER } from './retained-publication-reader.js';
+export type { RetainedPublicationReader } from './retained-publication-reader.js';
 export type { UuidV7Generator } from './uuid-v7-generator.js';

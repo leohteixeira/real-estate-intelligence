@@ -32,6 +32,7 @@ import type {
 import type { RawSnapshotStore, StoredRawSnapshot } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
 import { ListingSourceAccessRefusal } from './listing-source.port.js';
+import { startAdmittedRun } from './start-admitted-run.js';
 
 const OPERATION_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
 
@@ -169,6 +170,8 @@ export class CollectSourceRun {
     }
     if (run?.status === 'completed') return completedResult(run, true);
     if (run?.status === 'paused') return pausedResult(run, true);
+    if (run?.status === 'failed')
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
 
     const registration = await this.sources.findById(sourceId, signal);
     if (
@@ -182,16 +185,25 @@ export class CollectSourceRun {
     }
 
     if (!run) {
-      const startedAt = this.clock.now();
       run = await this.transactions.runInTransaction(async (transaction) => {
-        const runId = await this.identifiers.generate(transaction);
-        return this.runs.startOrLoad(transaction, { operationKey, runId, sourceId, startedAt });
+        return startAdmittedRun(
+          transaction,
+          sourceId,
+          operationKey,
+          this.runs,
+          this.identifiers,
+          this.clock,
+          async () => undefined,
+          signal,
+        );
       }, signal);
       if (run.sourceId !== sourceId) {
         throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
       }
       if (run.status === 'completed') return completedResult(run, true);
       if (run.status === 'paused') return pausedResult(run, true);
+      if (run.status === 'failed')
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
     }
 
     if (registration.hold !== null) return this.pause(run, registration.hold, signal);
@@ -383,6 +395,8 @@ export class CollectSourceRun {
               );
             }
             await this.runs.appendParsedEvidence(transaction, parsedEvents);
+            const completion = events.find((event) => event instanceof CollectionRunCompleted);
+            if (completion) await this.runs.appendCompletedEvidence(transaction, completion);
             await this.outbox.append(transaction, events);
             return committed;
           }, signal);

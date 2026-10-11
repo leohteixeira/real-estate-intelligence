@@ -56,6 +56,7 @@ export {
   StaleCollectionCheckpointError,
   advanceCollectionRun,
   createRunningCollectionRun,
+  failCollectionRun,
   hydrateCollectionRun,
   parseCollectionCheckpointCursor,
   pauseCollectionRun,

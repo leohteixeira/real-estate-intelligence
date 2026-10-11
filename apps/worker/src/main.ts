@@ -1,6 +1,10 @@
 import 'reflect-metadata';
 import { RabbitMqEventBroker } from '@rei/infrastructure';
-import { ParsedListingConsumer } from './properties/index';
+import {
+  ParsedListingConsumer,
+  ListingCompletionConsumer,
+  ListingHistoryJob,
+} from './properties/index';
 
 import { AuditTraceConsumer } from './audit/audit-trace.consumer';
 import { CollectionAuditConsumer } from './collection/collection-audit.consumer';
@@ -44,6 +48,9 @@ async function bootstrap(): Promise<void> {
   await collectionConsumer.start();
   await collectionRunConsumer.start();
   await context.get(ParsedListingConsumer).start();
+  await context.get(ListingCompletionConsumer).start();
+  const listingHistory = context.get(ListingHistoryJob);
+  listingHistory.start();
   brokerSupervisor.start();
   relay.start();
   retention.start();
@@ -63,6 +70,7 @@ async function bootstrap(): Promise<void> {
           stopRelay: () => relay.stop(),
           stopRetention: () => retention.stop(),
           stopSnapshotRetention: () => snapshotRetention.stop(),
+          stopListingHistory: () => listingHistory.stop(),
           stopHeartbeat: () => heartbeat.stop(),
           closeBroker: () => broker.close(),
           closeContext: () => context.close(),

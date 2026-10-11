@@ -5,7 +5,7 @@ import { SOURCE_ACCESS_REFUSALS, type SourceHold } from './source-registration.j
 export const COLLECTION_CHECKPOINT_CURSOR_MAX_LENGTH = 300;
 const SAFE_CURSOR = /^[\x21-\x7e]{1,300}$/;
 
-export type CollectionRunStatus = 'running' | 'paused' | 'completed';
+export type CollectionRunStatus = 'running' | 'paused' | 'completed' | 'failed';
 
 export interface CollectionCheckpoint {
   readonly ordinal: number;
@@ -88,7 +88,7 @@ export function createRunningCollectionRun(input: {
 }
 
 export function hydrateCollectionRun(input: CollectionRunState): CollectionRunState {
-  if (!['running', 'paused', 'completed'].includes(input.status))
+  if (!['running', 'paused', 'completed', 'failed'].includes(input.status))
     throw new TypeError('Unsupported collection run status.');
   if (input.status === 'paused') {
     if (!input.pause || !SOURCE_ACCESS_REFUSALS.includes(input.pause.reason))
@@ -143,9 +143,16 @@ export function hydrateCollectionRun(input: CollectionRunState): CollectionRunSt
 }
 
 export function pauseCollectionRun(run: CollectionRunState, pause: SourceHold): CollectionRunState {
-  if (run.status === 'completed') throw new TypeError('A completed collection run is immutable.');
+  if (run.status === 'completed' || run.status === 'failed')
+    throw new TypeError('A terminal collection run is immutable.');
   if (run.status === 'paused') return run;
   return hydrateCollectionRun({ ...run, status: 'paused', pause: Object.freeze({ ...pause }) });
+}
+
+/** Failure preserves the operation's ownership and chronology without complete-manifest authority. */
+export function failCollectionRun(run: CollectionRunState): CollectionRunState {
+  if (run.status !== 'running') return run;
+  return hydrateCollectionRun({ ...run, status: 'failed' });
 }
 
 export function resumeCollectionRun(run: CollectionRunState): CollectionRunState {

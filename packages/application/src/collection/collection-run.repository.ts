@@ -2,6 +2,7 @@ import type { CollectionRunState, Sha256Hash, UuidV7, SourceHold } from '@rei/do
 
 import type { Transaction } from '../shared/index.js';
 import type { ParsedEventEvidence } from './parsed-event-evidence.port.js';
+import type { CompletedEventEvidence } from './completed-event-evidence.port.js';
 
 export const COLLECTION_RUN_REPOSITORY = Symbol.for('rei.CollectionRunRepository');
 
@@ -87,7 +88,15 @@ export interface CommitCollectionPageResult {
   readonly run: CollectionRunState;
 }
 
-export interface CollectionRunRepository extends ParsedEventEvidence {
+export interface CollectionRunRepository extends ParsedEventEvidence, CompletedEventEvidence {
+  /** Serializes new source admission through transaction commit, before any start is captured. */
+  withSourceAdmission<TResult>(
+    transaction: Transaction,
+    sourceId: string,
+    work: (frontier: Pick<CollectionRunState, 'startedAt' | 'runId'> | null) => Promise<TResult>,
+    signal?: AbortSignal,
+  ): Promise<TResult>;
+  fail(transaction: Transaction, runId: UuidV7): Promise<CollectionRunState>;
   pause(transaction: Transaction, runId: UuidV7, hold: SourceHold): Promise<CollectionRunState>;
   resume(transaction: Transaction, runId: UuidV7): Promise<CollectionRunState>;
   findByOperationKey(
@@ -101,6 +110,10 @@ export interface CollectionRunRepository extends ParsedEventEvidence {
   loadRunByOperationKey(
     operationKey: string,
     signal?: AbortSignal,
+  ): Promise<CollectionRunState | null>;
+  loadRunByOperationKeyInTransaction(
+    transaction: Transaction,
+    operationKey: string,
   ): Promise<CollectionRunState | null>;
   startOrLoad(
     transaction: Transaction,

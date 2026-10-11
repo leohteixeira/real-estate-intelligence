@@ -1,20 +1,15 @@
 import {
   COLLECTION_SNAPSHOT_PARSED_TYPE,
   CollectionSnapshotCorrected,
-  Property,
   parseCollectionEvent,
   isOwnedSyntheticSourceId,
+  NormalizedListing,
 } from '@rei/domain';
 import type { CollectionFacade } from '../collection/index.js';
 import type { LocationsFacade } from '../locations/index.js';
-import {
-  ExternalFailure,
-  type Inbox,
-  type OutboxAppendPort,
-  type TransactionRunner,
-  type UuidV7Generator,
-} from '../shared/index.js';
+import { ExternalFailure, type Inbox, type TransactionRunner } from '../shared/index.js';
 import type { PropertyRepository } from './property.repository.js';
+import type { ListingHistoryRepository } from './listing-history.repository.js';
 
 export const PARSED_LISTING_CONSUMER = 'properties.parsed-listing';
 
@@ -26,8 +21,7 @@ export class ConsumeParsedListing {
     private readonly repository: PropertyRepository,
     private readonly transactions: TransactionRunner,
     private readonly inbox: Inbox,
-    private readonly outbox: OutboxAppendPort,
-    private readonly identifiers: UuidV7Generator,
+    private readonly history: Pick<ListingHistoryRepository, 'enqueue'>,
   ) {}
   public async execute(untrusted: unknown, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
@@ -41,47 +35,27 @@ export class ConsumeParsedListing {
       if (!(await this.collection.verifyParsedEvent(transaction, event)))
         throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
       signal.throwIfAborted();
-      const resolved = await this.locations.resolveFixtureAddress(
-        event.payload.listing.location,
-        transaction,
-      );
-      if (!resolved)
-        throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
+      // Authenticated corrections are durable work; their business refusal is scoped during
+      // reconciliation, so an invalid correction cannot discard its valid original acquisition.
+      if (!(event instanceof CollectionSnapshotCorrected)) {
+        const resolved = await this.locations.resolveFixtureAddress(
+          event.payload.listing.location,
+          transaction,
+        );
+        if (!resolved)
+          throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
+        new NormalizedListing(event);
+      }
       if (!(await this.inbox.record(transaction, PARSED_LISTING_CONSUMER, event.eventId))) return;
       const { sourceId, sourceListingId } = event.payload.source;
+      await this.history.enqueue(transaction, sourceId);
       await this.repository.lockSourceIdentity(transaction, sourceId, sourceListingId);
       if (await this.repository.hasFact(transaction, event.eventId)) return;
-      const existing = await this.repository.findSourceIdentity(
+      await this.repository.appendFact(
         transaction,
-        sourceId,
-        sourceListingId,
+        event,
+        event instanceof CollectionSnapshotCorrected ? 'pending-correction' : 'pending-history',
       );
-      if (event instanceof CollectionSnapshotCorrected || existing) {
-        await this.repository.appendFact(
-          transaction,
-          event,
-          event instanceof CollectionSnapshotCorrected ? 'pending-correction' : 'pending-history',
-        );
-      } else {
-        const propertyId = await this.identifiers.generate(transaction);
-        const listingId = await this.identifiers.generate(transaction);
-        const property = new Property(propertyId, listingId, event, resolved);
-        await this.repository.appendFact(transaction, event, 'initial');
-        await this.repository.create(transaction, property);
-        const creation = property.creationEvent(await this.identifiers.generate(transaction));
-        await this.outbox.append(transaction, [
-          {
-            ...creation,
-            payload: {
-              ...creation.payload,
-              listing: {
-                ...creation.payload.listing,
-                provenance: { ...creation.payload.listing.provenance },
-              },
-            },
-          },
-        ]);
-      }
       signal.throwIfAborted();
     }, signal);
   }

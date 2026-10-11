@@ -17,6 +17,7 @@ import { ExternalFailure, ListingSourceAccessRefusal } from '@rei/application';
 import {
   createSourceRegistration,
   createRunningCollectionRun,
+  failCollectionRun,
   decideSourceEnablement,
   advanceCollectionRun,
   pauseCollectionRun,
@@ -93,6 +94,59 @@ export class InMemoryRawSnapshotStore implements RawSnapshotStore {
 }
 
 export class InMemoryCollectionRunRepository implements CollectionRunRepository {
+  public loadRunByOperationKeyInTransaction(_transaction: Transaction, operationKey: string) {
+    return this.loadRunByOperationKey(operationKey);
+  }
+  readonly #admissions = new Map<string, Promise<void>>();
+  public async withSourceAdmission<TResult>(
+    _transaction: Transaction,
+    sourceId: string,
+    work: (frontier: Pick<CollectionRunState, 'startedAt' | 'runId'> | null) => Promise<TResult>,
+    signal?: AbortSignal,
+  ): Promise<TResult> {
+    signal?.throwIfAborted();
+    const previous = this.#admissions.get(sourceId) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    this.#admissions.set(sourceId, current);
+    const admitted = (async () => {
+      await previous;
+      try {
+        signal?.throwIfAborted();
+        const frontier = [...this.#runs.values()]
+          .filter((run) => run.sourceId === sourceId)
+          .sort(
+            (a, b) => b.startedAt.localeCompare(a.startedAt) || b.runId.localeCompare(a.runId),
+          )[0];
+        return await work(frontier ?? null);
+      } finally {
+        release();
+        if (this.#admissions.get(sourceId) === current) this.#admissions.delete(sourceId);
+      }
+    })();
+    if (!signal) return admitted;
+    let removeAbort = () => {};
+    const aborted = new Promise<never>((_resolve, reject) => {
+      const onAbort = () => reject(signal.reason);
+      signal.addEventListener('abort', onAbort, { once: true });
+      removeAbort = () => signal.removeEventListener('abort', onAbort);
+      if (signal.aborted) onAbort();
+    });
+    try {
+      return await Promise.race([admitted, aborted]);
+    } finally {
+      removeAbort();
+    }
+  }
+  public readonly completedEvidence: import('@rei/domain').CollectionRunCompleted[] = [];
+  public async appendCompletedEvidence(
+    _transaction: Transaction,
+    event: import('@rei/domain').CollectionRunCompleted,
+  ): Promise<void> {
+    this.completedEvidence.push(event);
+  }
   public readonly parsedEvidence: import('@rei/application').ParsedCollectionEvent[] = [];
   public async appendParsedEvidence(
     _transaction: Transaction,
@@ -111,9 +165,18 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
   ) {
     const run = this.#runs.get(runId);
     if (!run) throw new Error('Collection run was not found.');
-    const paused = run.status === 'completed' ? run : pauseCollectionRun(run, hold);
+    const paused =
+      run.status === 'completed' || run.status === 'failed' ? run : pauseCollectionRun(run, hold);
     this.#runs.set(runId, paused);
     return paused;
+  }
+
+  public async fail(_transaction: Transaction, runId: CollectionRunState['runId']) {
+    const run = this.#runs.get(runId);
+    if (!run) throw new Error('Collection run was not found.');
+    const failed = failCollectionRun(run);
+    this.#runs.set(runId, failed);
+    return failed;
   }
 
   public async resume(_transaction: Transaction, runId: CollectionRunState['runId']) {
@@ -153,11 +216,19 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
       if (!existingRun || existingRun.sourceId !== input.sourceId) {
         throw new Error('Collection operation key is already bound to a different source.');
       }
-      const existing = await this.findByOperationKey(input.operationKey);
-      if (!existing) {
-        throw new Error('Existing collection operation is not a one-shot completed result.');
+      if (
+        !(
+          existingRun.status === 'running' &&
+          existingRun.runId === input.runId &&
+          existingRun.checkpoint.ordinal === 0
+        )
+      ) {
+        const existing = await this.findByOperationKey(input.operationKey);
+        if (!existing) {
+          throw new Error('Existing collection operation is not a one-shot completed result.');
+        }
+        return { created: false, result: existing };
       }
-      return { created: false, result: existing };
     }
     const run = advanceCollectionRun(
       createRunningCollectionRun({

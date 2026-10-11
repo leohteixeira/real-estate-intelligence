@@ -1,6 +1,7 @@
 import {
   CollectionSnapshotParsed,
-  parseCollectionSnapshotParsed,
+  CollectionSnapshotCorrected,
+  parseCollectionEvent,
   type CollectionPropertyType,
   type CollectionAdvertiserType,
 } from '../../collection/index.js';
@@ -42,9 +43,17 @@ export class NormalizedListing {
   public readonly provenance: ListingProvenance;
 
   public constructor(original: unknown) {
-    const event = parseCollectionSnapshotParsed(
-      original instanceof CollectionSnapshotParsed ? { ...original } : original,
+    const event = parseCollectionEvent(
+      original instanceof CollectionSnapshotParsed ||
+        original instanceof CollectionSnapshotCorrected
+        ? { ...original }
+        : original,
     );
+    if (
+      !(event instanceof CollectionSnapshotParsed) &&
+      !(event instanceof CollectionSnapshotCorrected)
+    )
+      throw new DomainValidationError('Expected a parsed listing publication.', 'event');
     const { listing, source, run, snapshot } = event.payload;
     const value = <T extends SerializableValue>(item: T): Provenance<T> =>
       new Provenance({
