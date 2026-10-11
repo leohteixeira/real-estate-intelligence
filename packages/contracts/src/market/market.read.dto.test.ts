@@ -4,6 +4,7 @@ import {
   parsePlaceMarketResponse,
   parsePlaceMarketSeriesResponse,
 } from './market.read.dto.js';
+import { MARKET_PREPARED_SECTIONS } from './market.read.types.js';
 
 const evaluatedAt = '2026-10-01T12:00:00.000Z';
 const country = { id: 'brazil', kind: 'country', name: { en: 'Brazil', ptBR: 'Brasil' } };
@@ -94,6 +95,87 @@ function changed(input: unknown, path: string, value: unknown, remove = false) {
   return result;
 }
 describe('strict prepared Market wire contracts', () => {
+  function live() {
+    const original = overview();
+    const now = '2026-10-11T12:00:00.000Z';
+    return {
+      ...original,
+      basis: 'event-fed-median-with-prepared-sections',
+      evaluatedAt: now,
+      preparedEvaluatedAt: evaluatedAt,
+      preparedSections: MARKET_PREPARED_SECTIONS,
+      figures: {
+        ...original.figures,
+        medianAskingPricePerSquareMeter: {
+          ...figure({ minorUnits: 1500, currency: 'BRL' }, now, 2),
+          sources: [
+            {
+              id: 'synthetic-source',
+              label: 'synthetic-source',
+              url: 'https://source.invalid/selected',
+              collectedAt: evaluatedAt,
+            },
+          ],
+          freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+        },
+      },
+    };
+  }
+  it('separates real population/computation from independently evaluated prepared sections', () => {
+    const parsed = parsePlaceMarketResponse(live());
+    expect(parsed.figures.medianAskingPricePerSquareMeter.recordCount).toBe(2);
+    expect(parsed.counts.properties).toBe(1);
+    expect(parsed.figures.askingPriceMovement.freshness.ageSeconds).toBe(0);
+    const empty = changed(
+      changed(
+        changed(
+          changed(live(), 'figures.medianAskingPricePerSquareMeter.recordCount', 0),
+          'figures.medianAskingPricePerSquareMeter.sources',
+          [],
+        ),
+        'figures.medianAskingPricePerSquareMeter.state',
+        'insufficient-data',
+      ),
+      'figures.medianAskingPricePerSquareMeter.value',
+      null,
+    );
+    expect(
+      parsePlaceMarketResponse(empty).figures.medianAskingPricePerSquareMeter.value,
+    ).toBeNull();
+  });
+  it.each([
+    ['preparedSections', ['counts']],
+    ['preparedSections', [...MARKET_PREPARED_SECTIONS, 'counts']],
+    ['preparedSections', [...MARKET_PREPARED_SECTIONS].reverse()],
+    ['preparedSections', ['counts', 'figures.medianAskingPricePerSquareMeter']],
+    ['preparedEvaluatedAt', '2026-10-12T12:00:00.000Z'],
+    ['figures.askingPriceMovement.freshness.ageSeconds', 864000],
+    ['figures.askingPriceMovement.freshness.status', 'untracked'],
+    ['figures.medianAskingPricePerSquareMeter.computedAt', evaluatedAt],
+    ['figures.medianAskingPricePerSquareMeter.freshness.status', 'fresh'],
+    ['figures.medianAskingPricePerSquareMeter.freshness.latestCollectionCompletedAt', evaluatedAt],
+    ['figures.medianAskingPricePerSquareMeter.freshness.ageSeconds', 1],
+    ['figures.medianAskingPricePerSquareMeter.sources.0.label', 'prepared label'],
+    ['figures.medianAskingPricePerSquareMeter.sources.0.collectedAt', '2026-10-12T12:00:00.000Z'],
+    ['figures.medianAskingPricePerSquareMeter.value.minorUnits', 0],
+    ['counts.sources', 0],
+  ])('rejects staged contradiction %s', (path, value) => {
+    expect(() => parsePlaceMarketResponse(changed(live(), path, value))).toThrow(TypeError);
+  });
+  it('requires both staged declarations and preserves strict parent provenance', () => {
+    for (const key of ['preparedSections', 'preparedEvaluatedAt'])
+      expect(() => parsePlaceMarketResponse(changed(live(), key, null, true))).toThrow();
+    const original = live();
+    const child = {
+      ...original,
+      place: { id: 'state', kind: 'state', name: { en: 'State', ptBR: 'State' } },
+      parentMedian: { place: country, median: original.figures.medianAskingPricePerSquareMeter },
+    };
+    expect(parsePlaceMarketResponse(child).parentMedian?.median.recordCount).toBe(2);
+    expect(() =>
+      parsePlaceMarketResponse(changed(child, 'parentMedian.median.freshness.status', 'fresh')),
+    ).toThrow();
+  });
   it('validates the parsed synthetic hostname rather than a raw authority suffix', () => {
     const realHostUrl = 'https://real.example\\synthetic.invalid';
     expect(new URL(realHostUrl).hostname).toBe('real.example');

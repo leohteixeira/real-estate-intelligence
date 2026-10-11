@@ -11,6 +11,7 @@ import {
   parsePlaceMarketNeighboursResponse,
   parsePlaceMarketSeriesResponse,
 } from '@rei/contracts';
+import { PropertiesEvent, parsePropertiesEvent } from '@rei/domain';
 import {
   PostgresLocationsFacade,
   SYNTHETIC_READ_METADATA,
@@ -25,8 +26,10 @@ import { MarketModule } from './market.module';
 const places = [...syntheticPlaces(), ...supplementaryPlaces()];
 describe('actual MarketModule HTTP contracts', () => {
   let unavailable = false;
+  let storedFacts: Array<{ business_event: unknown }> = [];
   const query = vi.fn(async (sql: string, parameters: readonly unknown[] = []) => {
     if (unavailable) throw new Error('password=private database unavailable');
+    if (sql.includes('market.listing_price_current')) return storedFacts;
     if (sql.includes('locations.reference_metadata')) return [SYNTHETIC_READ_METADATA];
     if (sql.includes('SELECT public_id AS id FROM scope'))
       return places
@@ -107,7 +110,9 @@ describe('actual MarketModule HTTP contracts', () => {
           true,
         );
     }
-    expect(query.mock.calls.every(([sql]) => sql.includes('locations.'))).toBe(true);
+    expect(
+      query.mock.calls.every(([sql]) => sql.includes('locations.') || sql.includes('market.')),
+    ).toBe(true);
   });
   it('rejects malformed IDs and every query before accessing the facade; unknown and unprefixed reads are canonical', async () => {
     for (const suffix of ['', '/neighbours', '/monthly-series']) {
@@ -144,6 +149,51 @@ describe('actual MarketModule HTTP contracts', () => {
       unavailable = false;
     }
   });
+  it('returns canonical 500 for malformed stored facts and an accepted event with an unrepresentable median', async () => {
+    const id = (n: number) => `0199c8f2-2394-7000-8000-${String(n).padStart(12, '0')}`;
+    const observedAt = '2026-10-10T12:00:00.000Z';
+    const accepted = new PropertiesEvent('properties.listing.created', {
+      eventId: id(1),
+      aggregateId: id(2),
+      occurredAt: observedAt,
+      payload: {
+        revision: 1,
+        effectiveAt: observedAt,
+        listing: {
+          listingId: id(2),
+          propertyId: id(3),
+          sourceId: 'synthetic-market',
+          sourceListingId: 'listing-1',
+          placeId: 'sao-paulo-pinheiros-fictional-block',
+          propertyType: 'apartment',
+          status: 'active',
+          askingPriceMinorUnits: 1,
+          currency: 'BRL',
+          areaSquareMeters: 1_000_000,
+          effectiveAt: observedAt,
+          provenance: {
+            sourceId: 'synthetic-market',
+            sourceListingId: 'listing-1',
+            sourceUrl: 'https://market.invalid/listing-1',
+            runId: id(4),
+            snapshotId: id(5),
+            contentHash: `sha256:${'a'.repeat(64)}`,
+            observedAt,
+          },
+        },
+      },
+    });
+    expect(parsePropertiesEvent(accepted).payload).toEqual(accepted.payload);
+    try {
+      for (const business_event of [{ private: 'never expose' }, accepted]) {
+        storedFacts = [{ business_event }];
+        await error('/api/v1/places/brazil/market', 500);
+        await error('/api/v1/places/BRAZIL/market', 400);
+      }
+    } finally {
+      storedFacts = [];
+    }
+  });
   it('rejects malformed output and thrown facade failures without success fallback', async () => {
     for (const [method, suffix] of [
       ['getPlaceMarket', ''],
@@ -161,9 +211,9 @@ describe('actual MarketModule HTTP contracts', () => {
   it('allows truthful stale examples and isolates caller changes', async () => {
     const original = (await market.getPlaceMarket('brazil'))!;
     const stale = structuredClone(original);
-    Reflect.set(stale, 'evaluatedAt', '2026-10-01T12:00:02.000Z');
-    for (const item of Object.values(stale.figures)) Reflect.set(item.freshness, 'ageSeconds', 2);
-    Reflect.set(stale.parentMedian?.median.freshness ?? {}, 'ageSeconds', 2);
+    Reflect.set(stale, 'preparedEvaluatedAt', '2026-10-01T12:00:02.000Z');
+    for (const [key, item] of Object.entries(stale.figures))
+      if (key !== 'medianAskingPricePerSquareMeter') Reflect.set(item.freshness, 'ageSeconds', 2);
     const figure = stale.figures.askingPriceMovement;
     Reflect.set(figure.sources[0]!, 'collectedAt', '2026-10-01T12:00:01.000Z');
     Reflect.set(figure.freshness, 'latestCollectionCompletedAt', '2026-10-01T12:00:01.000Z');
@@ -172,7 +222,15 @@ describe('actual MarketModule HTTP contracts', () => {
     const parsed = parsePlaceMarketResponse(await success('brazil', '', parsePlaceMarketResponse));
     expect(parsed.figures.askingPriceMovement.freshness.status).toBe('stale');
     spy.mockRestore();
-    Reflect.set(parsed.figures.medianAskingPricePerSquareMeter.value!, 'minorUnits', 1);
-    expect(await success('brazil', '', parsePlaceMarketResponse)).toEqual(original);
+    Reflect.set(
+      parsed.figures.askingPriceMovement.value === null ? {} : parsed.figures.askingPriceMovement,
+      'value',
+      1,
+    );
+    const fresh = parsePlaceMarketResponse(await success('brazil', '', parsePlaceMarketResponse));
+    expect(fresh.figures.askingPriceMovement.value).toEqual(
+      original.figures.askingPriceMovement.value,
+    );
+    expect(fresh.figures.medianAskingPricePerSquareMeter.value).toBeNull();
   });
 });

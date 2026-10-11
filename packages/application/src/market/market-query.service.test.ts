@@ -1,4 +1,4 @@
-import type { PlaceDetail } from '@rei/domain';
+import { DomainValidationError, type ListingFact, type PlaceDetail } from '@rei/domain';
 import { describe, expect, it, vi } from 'vitest';
 import type { LocationsFacade } from '../locations/index.js';
 import type { PreparedMarketSample } from './market-fixture-read.port.js';
@@ -61,9 +61,95 @@ function fixture() {
     children: async () => null,
   };
   const read = vi.fn(async () => sample);
-  return { service: new MarketQueryService({ read }, locations), read, getPlace, scope };
+  return { service: new MarketQueryService({ read }, locations), read, getPlace, scope, locations };
 }
 describe('Market facade query orchestration', () => {
+  it('translates stored-fact validation failures without changing malformed-request errors', async () => {
+    const f = fixture();
+    const invalidFact = new DomainValidationError('Invalid stored fact.', 'event');
+    const readCurrent = vi.fn(async (): Promise<readonly ListingFact[]> => {
+      throw invalidFact;
+    });
+    const service = new MarketQueryService({ read: f.read }, f.locations, {
+      facts: { readCurrent },
+      clock: { now: () => date },
+    });
+    await expect(service.getPlaceMarket('child')).rejects.toMatchObject({
+      name: 'Error',
+      message: 'Stored Market price facts could not be evaluated.',
+      cause: invalidFact,
+    });
+    await expect(service.getPlaceMarket('BAD')).rejects.toBeInstanceOf(DomainValidationError);
+    expect(readCurrent).toHaveBeenCalledTimes(1);
+  });
+  it.each(['child', 'parent'])(
+    'translates an unrepresentable live %s median into a server failure',
+    async (placeId) => {
+      const f = fixture();
+      const fact: ListingFact = {
+        listingId: 'listing',
+        propertyId: 'property',
+        sourceId: 'synthetic-source',
+        sourceListingId: 'listing',
+        placeId,
+        propertyType: 'apartment',
+        status: 'active',
+        askingPriceMinorUnits: 1,
+        currency: 'BRL',
+        areaSquareMeters: 1_000_000,
+        effectiveAt: date,
+        provenance: {
+          sourceId: 'synthetic-source',
+          sourceListingId: 'listing',
+          sourceUrl: 'https://source.invalid/listing',
+          observedAt: date,
+          runId: 'run',
+          snapshotId: 'snapshot',
+          contentHash: `sha256:${'a'.repeat(64)}`,
+        },
+      };
+      const service = new MarketQueryService({ read: f.read }, f.locations, {
+        facts: { readCurrent: async () => [fact] },
+        clock: { now: () => date },
+      });
+      await expect(service.getPlaceMarket('child')).rejects.toMatchObject({
+        name: 'Error',
+        message: 'Stored Market price facts could not be evaluated.',
+        cause: expect.any(DomainValidationError),
+      });
+    },
+  );
+  it('explicitly injects a live read and clock, uses actual scopes once and never falls back on failure', async () => {
+    const f = fixture();
+    const readCurrent = vi.fn(async () => []);
+    const now = vi.fn(() => '2026-10-11T12:00:00.000Z');
+    const service = new MarketQueryService({ read: f.read }, f.locations, {
+      facts: { readCurrent },
+      clock: { now },
+    });
+    const result = (await service.getPlaceMarket('child'))!;
+    expect(result).toMatchObject({
+      basis: 'event-fed-median-with-prepared-sections',
+      evaluatedAt: now(),
+      preparedEvaluatedAt: date,
+      figures: {
+        medianAskingPricePerSquareMeter: {
+          value: null,
+          recordCount: 0,
+          freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+        },
+      },
+      parentMedian: { place: { id: 'parent' }, median: { value: null } },
+    });
+    expect(readCurrent).toHaveBeenCalledTimes(1);
+    expect(f.scope.mock.calls).toEqual([['child'], ['parent']]);
+    expect(await service.getPlaceMarket('unknown')).toBeNull();
+    expect(readCurrent).toHaveBeenCalledTimes(1);
+    readCurrent.mockRejectedValue(new Error('Live dependency failed'));
+    await expect(service.getPlaceMarket('child')).rejects.toThrow('Live dependency failed');
+    expect((await service.neighbours('child'))!.basis).toBe('prepared-market-example');
+    expect((await service.monthlySeries('child'))!.basis).toBe('prepared-market-example');
+  });
   it('keeps known empty scopes readable, obtains actual parents and detaches fixture state', async () => {
     const { service, read, scope } = fixture();
     const result = (await service.getPlaceMarket('child'))!;

@@ -72,8 +72,11 @@ test('market-contracts preserves its complete real-service campaign', async () =
       expect(response.status, `${id}${suffix}`).toBe(200);
       const value = parser(await response.json());
       expect(value.metadata).toStrictEqual(SYNTHETIC_READ_METADATA);
-      expect(value.basis).toBe('prepared-market-example');
-      expect(value.evaluatedAt).toBe('2026-10-01T12:00:00.000Z');
+      expect(value.basis).toBe(
+        suffix === '' ? 'event-fed-median-with-prepared-sections' : 'prepared-market-example',
+      );
+      if (suffix !== '') expect(value.evaluatedAt).toBe('2026-10-01T12:00:00.000Z');
+      else expect(Date.now() - Date.parse(value.evaluatedAt)).toBeLessThan(5000);
       return value as ReturnType<T>;
     }
     async function error(
@@ -111,6 +114,22 @@ test('market-contracts preserves its complete real-service campaign', async () =
       });
     }
     let connection: DatabaseConnection;
+    function stableOverview(body: PlaceMarketResponse) {
+      return {
+        ...body,
+        evaluatedAt: 'live',
+        figures: {
+          ...body.figures,
+          medianAskingPricePerSquareMeter: {
+            ...body.figures.medianAskingPricePerSquareMeter,
+            computedAt: 'live',
+          },
+        },
+        parentMedian: body.parentMedian
+          ? { ...body.parentMedian, median: { ...body.parentMedian.median, computedAt: 'live' } }
+          : null,
+      };
+    }
     async function state() {
       // Test-only snapshots of every owned table: detect updates as well as inserts/deletes.
       const tables = await connection.query<{ table_schema: string; table_name: string }>(
@@ -159,6 +178,13 @@ test('market-contracts preserves its complete real-service campaign', async () =
             });
             expect(overview.counts.properties).toBe(place.propertyCount);
             expect(overview.parentMedian?.place.id ?? null).toBe(place.parentId);
+            expect(overview.figures.medianAskingPricePerSquareMeter).toMatchObject({
+              state: 'insufficient-data',
+              value: null,
+              recordCount: 0,
+              sources: [],
+              freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+            });
             expect(overview.figures.recordedSalePricePerSquareMeter.state).toBe('not-recorded');
             expect(overview.figures.recordedSalePricePerSquareMeter.value).toBe(null);
             const neighbours = await get(
@@ -199,7 +225,9 @@ test('market-contracts preserves its complete real-service campaign', async () =
                 'caller mutation',
               );
             }
-            expect(await get(place.id, '', parsePlaceMarketResponse)).toStrictEqual(clean);
+            expect(stableOverview(await get(place.id, '', parsePlaceMarketResponse))).toStrictEqual(
+              stableOverview(clean),
+            );
             Reflect.set(series!.points[0]!.median, 'state', 'caller mutation');
             expect(
               (await get(place.id, '/monthly-series', parsePlaceMarketSeriesResponse)).points![0]!
@@ -208,7 +236,7 @@ test('market-contracts preserves its complete real-service campaign', async () =
           }
           const city = await get('sao-paulo', '', parsePlaceMarketResponse);
           expect(city.counts).toStrictEqual({ properties: 5, activeListings: 9, sources: 3 });
-          expect(city!.figures.medianAskingPricePerSquareMeter.value!.minorUnits).toBe(951220);
+          expect(city.figures.medianAskingPricePerSquareMeter.value).toBeNull();
           const pinheiros = await get('sao-paulo-pinheiros', '', parsePlaceMarketResponse);
           expect(pinheiros!.parentMedian!.place.id).toBe('sao-paulo-oeste');
           expect(pinheiros.figures.askingPriceMovement.value).toBe(0);
@@ -238,17 +266,16 @@ test('market-contracts preserves its complete real-service campaign', async () =
             },
             (body: PlaceMarketResponse) => {
               Reflect.set(
-                body!.figures.medianAskingPricePerSquareMeter.sources[0]!,
+                body.figures.askingPriceMovement.sources[0]!,
                 'url',
                 'https://real.example.com',
               );
             },
             (body: PlaceMarketResponse) => {
-              Reflect.set(
-                body.figures.medianAskingPricePerSquareMeter.value!,
-                'minorUnits',
-                Number.MAX_SAFE_INTEGER + 1,
-              );
+              Reflect.set(body.figures.medianAskingPricePerSquareMeter, 'value', {
+                minorUnits: Number.MAX_SAFE_INTEGER + 1,
+                currency: 'BRL',
+              });
             },
             (body: PlaceMarketResponse) => {
               Reflect.set(body.figures.recordedSalePricePerSquareMeter, 'value', 0);
@@ -262,8 +289,9 @@ test('market-contracts preserves its complete real-service campaign', async () =
           Reflect.set(chart!.points[1]!, 'month', chart!.points[0]!.month);
           expect(() => parsePlaceMarketSeriesResponse(chart)).toThrow(TypeError);
           const stale = await get('brazil', '', parsePlaceMarketResponse);
-          Reflect.set(stale, 'evaluatedAt', '2026-10-01T12:00:02.000Z');
-          for (const figure of Object.values(stale.figures)) figure.freshness.ageSeconds = 2;
+          Reflect.set(stale, 'preparedEvaluatedAt', '2026-10-01T12:00:02.000Z');
+          for (const [key, figure] of Object.entries(stale.figures))
+            if (key !== 'medianAskingPricePerSquareMeter') figure.freshness.ageSeconds = 2;
           Reflect.set(
             stale!.figures.askingPriceMovement.sources[0]!,
             'collectedAt',
