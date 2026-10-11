@@ -12,8 +12,18 @@ describe('readConfig', () => {
   });
 
   it.each(['0', '65536', '4111rest', 'http'])('rejects an invalid AI_PORT value: %s', (value) => {
-    expect(() => readConfig({ AI_PORT: value })).toThrow(
-      `AI_PORT must be a valid port number, got ${value}.`,
-    );
+    expect(() => readConfig({ AI_PORT: value })).toThrow('AI_PORT must be a valid port number.');
   });
+  it('keeps execution disabled when token is absent or empty and accepts strict authority', () => {
+    expect(readConfig({ AI_INTERNAL_TOKEN: '' })).toEqual({ port: 4111 });
+    expect(readConfig({ AI_INTERNAL_TOKEN: 'a'.repeat(48) }).internalToken).toBe('a'.repeat(48));
+  });
+  it.each(['short', ' '.repeat(48), 'secret\nvalue', 'x'.repeat(129), `${'a'.repeat(48)}\n`])(
+    'rejects malformed token without reflection',
+    (token) => {
+      expect(() => readConfig({ AI_INTERNAL_TOKEN: token })).toThrow(
+        'Invalid AI execution configuration.',
+      );
+    },
+  );
 });
