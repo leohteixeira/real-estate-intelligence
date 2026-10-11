@@ -6,9 +6,12 @@ packages:
 # explicitly:
 #   esbuild     downloads its own platform binary, needed by Vite
 #   protobufjs  regenerates its bundled helpers, pulled in by the OTLP exporters
+# Optional Testcontainers SSH acceleration is unused: cpu-features and ssh2 stay disabled.
 allowBuilds:
+  cpu-features: false
   esbuild: true
   protobufjs: true
+  ssh2: false
 
 # pnpm gates very recently published versions; these two are pinned on purpose.
 minimumReleaseAgeExclude:

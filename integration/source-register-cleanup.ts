@@ -1,9 +1,21 @@
-function cleanupError(message, cause) {
+function cleanupError(message: string, cause: unknown) {
   return new Error(message, { cause });
 }
 
-export async function coordinateSourceRegisterCleanup({ primaryFailure, close, down, onSuccess }) {
-  const cleanupFailures = [];
+export async function coordinateSourceRegisterCleanup({
+  primaryFailure,
+  primaryThrown = primaryFailure !== undefined,
+  close,
+  down,
+  onSuccess,
+}: {
+  primaryFailure?: unknown;
+  primaryThrown?: boolean;
+  close: () => Promise<unknown>;
+  down: () => Promise<unknown>;
+  onSuccess: () => Promise<unknown>;
+}) {
+  const cleanupFailures: Error[] = [];
 
   try {
     await close();
@@ -21,13 +33,13 @@ export async function coordinateSourceRegisterCleanup({ primaryFailure, close, d
     );
   }
 
-  if (primaryFailure && cleanupFailures.length > 0) {
+  if (primaryThrown && cleanupFailures.length > 0) {
     throw new AggregateError(
       [primaryFailure, ...cleanupFailures],
       'The source-register campaign and its cleanup failed.',
     );
   }
-  if (primaryFailure) throw primaryFailure;
+  if (primaryThrown) throw primaryFailure;
   if (cleanupFailures.length === 1) throw cleanupFailures[0];
   if (cleanupFailures.length > 1) {
     throw new AggregateError(

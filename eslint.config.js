@@ -71,10 +71,72 @@ export default tseslint.config(
     },
   },
   {
-    files: ['integration/**/*.mjs'],
+    files: [
+      'integration/**/*.{ts,cts,mjs,cjs}',
+      'scripts/**/*.mjs',
+      'vitest.integration.config.ts',
+    ],
     languageOptions: {
       globals: globals.node,
     },
+  },
+  {
+    files: ['integration/**/*.{ts,cts,mjs,cjs}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            'node:test',
+            'node:assert',
+            'node:assert/strict',
+            'node:child_process',
+            'node:net',
+            'node:util',
+            'assert',
+            'assert/strict',
+            'child_process',
+            'net',
+            'util',
+          ].map((name) => ({
+            name,
+            message:
+              'Use Vitest, Supertest, Testcontainers, Execa and get-port for integration testing.',
+          })),
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'FunctionDeclaration[id.name="assert"], VariableDeclarator[id.name="assert"][init.type=/^(ArrowFunctionExpression|FunctionExpression)$/]',
+          message: 'Integration assertions use Vitest expect.',
+        },
+        {
+          selector:
+            'CallExpression[callee.name="fetch"], VariableDeclarator[init.name="fetch"], AssignmentExpression[right.name="fetch"], MemberExpression[object.name="globalThis"][property.name="fetch"], MemberExpression[object.name="globalThis"][property.value="fetch"], VariableDeclarator[init.name="globalThis"] > ObjectPattern > Property[key.name="fetch"]',
+          message: 'Real integration HTTP requests use Supertest.',
+        },
+        {
+          selector: 'CallExpression[callee.name="promisify"]',
+          message: 'Integration processes use Execa.',
+        },
+        {
+          selector:
+            'CallExpression[callee.name="require"][arguments.0.value=/^(?:node:)?(test|assert|child_process|net|util)(?:\\/|$)/]',
+          message: 'Do not embed a second testing/process framework in fixture probes.',
+        },
+        {
+          selector:
+            'ImportExpression[source.value=/^(?:node:)?(test|assert|child_process|net|util)(?:\\/|$)/]',
+          message: 'Use the integration testing libraries.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['integration/fixtures/*.cts'],
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
     // The web application is the only browser target.
