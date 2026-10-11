@@ -15,7 +15,7 @@ class Scope extends Transaction {
   }
 }
 describe('MarketListingConsumer', () => {
-  it('subscribes all five public listing types and waits for application commit', async () => {
+  it('subscribes all eight public types and waits for application commit', async () => {
     let handler!: EventHandler;
     const subscriber: EventSubscriber = {
       subscribe: vi.fn(async (_subscription, registered) => {
@@ -35,6 +35,7 @@ describe('MarketListingConsumer', () => {
         }),
     );
     await new MarketListingConsumer(subscriber, service).start();
+    expect(MARKET_LISTING_EVENT_TYPES).toHaveLength(8);
     expect(subscriber.subscribe).toHaveBeenCalledWith(
       { consumerName: MARKET_LISTING_CONSUMER, eventTypes: MARKET_LISTING_EVENT_TYPES },
       expect.any(Function),

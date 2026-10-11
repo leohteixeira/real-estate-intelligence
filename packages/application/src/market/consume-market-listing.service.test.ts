@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PropertiesEvent, type ListingFact } from '@rei/domain';
+import { PropertiesEvent, PropertiesEventV2, type ListingFact } from '@rei/domain';
 import { Transaction, type TransactionRunner } from '../shared/index.js';
 import { ConsumeMarketListing } from './consume-market-listing.service.js';
-import type { MarketListingEvent } from './market-price-facts.port.js';
+import type { MarketListingEvent, MarketPriceFactsEvent } from './market-price-facts.port.js';
 
 const id = (n: number) => `0199c8f2-2394-7000-8000-${String(n).padStart(12, '0')}`;
 const date = '2026-10-10T12:00:00.000Z';
@@ -37,8 +37,8 @@ function event(revision = 1, eventId = id(revision + 10), effectiveAt = date): M
   });
 }
 interface State {
-  evidence: MarketListingEvent[];
-  current: MarketListingEvent | null;
+  evidence: MarketPriceFactsEvent[];
+  current: MarketPriceFactsEvent | null;
   inbox: string[];
 }
 class Scope extends Transaction {
@@ -67,14 +67,15 @@ function fixture(fail?: 'fact' | 'inbox', cancel?: 'fact' | 'inbox') {
       return result;
     },
   };
-  const project = vi.fn(async (tx: Transaction, incoming: MarketListingEvent) => {
+  const project = vi.fn(async (tx: Transaction, incoming: MarketPriceFactsEvent) => {
     if (!(tx instanceof Scope)) throw new Error('Wrong transaction');
     const previous = tx.state.evidence.find(
       (stored) =>
         stored.eventId === incoming.eventId ||
         stored.payload.revision === incoming.payload.revision,
     );
-    const business = (item: MarketListingEvent) => JSON.stringify({ ...item, traceContext: null });
+    const business = (item: MarketPriceFactsEvent) =>
+      JSON.stringify({ ...item, traceContext: null });
     if (previous && business(previous) !== business(incoming))
       throw new Error('Permanent conflict');
     if (!previous) tx.state.evidence.push(incoming);
@@ -98,6 +99,47 @@ function fixture(fail?: 'fact' | 'inbox', cancel?: 'fact' | 'inbox') {
   };
 }
 describe('Market listing consumer', () => {
+  it('projects a causal property snapshot before recording the shared inbox', async () => {
+    const f = fixture();
+    const listing = event().payload.listing;
+    const current = {
+      propertyId: listing.propertyId,
+      placeId: listing.placeId,
+      areaSquareMeters: listing.areaSquareMeters,
+      minimumMinorUnits: listing.askingPriceMinorUnits,
+      currency: listing.currency,
+      selectedListingId: listing.listingId,
+      provenance: listing.provenance,
+      activeListingIds: [listing.listingId],
+    };
+    const incoming = new PropertiesEventV2('properties.property.asking-price-changed', {
+      eventId: id(100),
+      aggregateId: listing.propertyId,
+      occurredAt: date,
+      payload: {
+        revision: 2,
+        effectiveAt: date,
+        previous: { ...current, minimumMinorUnits: 20000 },
+        current,
+        listingStates: [{ listing, revision: 3, assignmentRevision: 1 }],
+      },
+    });
+    await f.service.execute(incoming, f.controller.signal);
+    expect(f.state().evidence).toEqual([incoming]);
+    expect(f.state().inbox).toEqual([incoming.eventId]);
+    expect(f.project.mock.invocationCallOrder[0]).toBeLessThan(
+      f.record.mock.invocationCallOrder[0]!,
+    );
+    for (const failed of [
+      fixture('fact'),
+      fixture('inbox'),
+      fixture(undefined, 'fact'),
+      fixture(undefined, 'inbox'),
+    ]) {
+      await expect(failed.service.execute(incoming, failed.controller.signal)).rejects.toThrow();
+      expect(failed.state()).toEqual({ evidence: [], current: null, inbox: [] });
+    }
+  });
   it('rejects a valid property-level event outside the five listing subscriptions', async () => {
     const f = fixture();
     const fact = event().payload.listing;

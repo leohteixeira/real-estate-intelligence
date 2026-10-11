@@ -525,7 +525,7 @@ test('event-fed median persists real broker evidence, fences replay and follows 
           `http://127.0.0.1:${api}/api/v1/places/unknown-place/market`,
         );
         expect(unknown.status).toBe(404);
-        await db.query('ALTER TABLE market.listing_price_current RENAME TO owned_unavailable');
+        await db.query('ALTER TABLE market.property_price_current RENAME TO owned_unavailable');
         await preserveCleanup(
           async () => {
             const failure = await requestHttp(
@@ -540,7 +540,7 @@ test('event-fed median persists real broker evidence, fences replay and follows 
               },
             });
           },
-          () => db.query('ALTER TABLE market.owned_unavailable RENAME TO listing_price_current'),
+          () => db.query('ALTER TABLE market.owned_unavailable RENAME TO property_price_current'),
         );
         expect(await snapshot()).toEqual(beforeReads);
       },

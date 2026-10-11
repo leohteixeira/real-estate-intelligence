@@ -26,10 +26,10 @@ import { MarketModule } from './market.module';
 const places = [...syntheticPlaces(), ...supplementaryPlaces()];
 describe('actual MarketModule HTTP contracts', () => {
   let unavailable = false;
-  let storedFacts: Array<{ business_event: unknown }> = [];
+  let storedFacts: Array<{ property_id: string; selected_listing: unknown }> = [];
   const query = vi.fn(async (sql: string, parameters: readonly unknown[] = []) => {
     if (unavailable) throw new Error('password=private database unavailable');
-    if (sql.includes('market.listing_price_current')) return storedFacts;
+    if (sql.includes('market.property_price_current')) return storedFacts;
     if (sql.includes('locations.reference_metadata')) return [SYNTHETIC_READ_METADATA];
     if (sql.includes('SELECT public_id AS id FROM scope'))
       return places
@@ -185,8 +185,8 @@ describe('actual MarketModule HTTP contracts', () => {
     });
     expect(parsePropertiesEvent(accepted).payload).toEqual(accepted.payload);
     try {
-      for (const business_event of [{ private: 'never expose' }, accepted]) {
-        storedFacts = [{ business_event }];
+      for (const selected_listing of [{ private: 'never expose' }, accepted.payload.listing]) {
+        storedFacts = [{ property_id: id(3), selected_listing }];
         await error('/api/v1/places/brazil/market', 500);
         await error('/api/v1/places/BRAZIL/market', 400);
       }
