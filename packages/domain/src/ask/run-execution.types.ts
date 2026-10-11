@@ -1,5 +1,5 @@
 /** Foundation graph traversal only; this is neither an analysis result nor durable completion. */
-export interface RunExecutionInput {
+export interface FoundationExecutionInput {
   readonly version: 1;
   readonly runId: string;
   readonly threadId: string;
@@ -8,7 +8,7 @@ export interface RunExecutionInput {
   readonly locale: 'en' | 'pt-BR';
 }
 
-export interface RunExecutionEvidence {
+export interface FoundationExecutionEvidence {
   readonly version: 1;
   readonly runId: string;
   readonly threadId: string;
@@ -16,3 +16,9 @@ export interface RunExecutionEvidence {
   readonly outcome: 'foundation-executed';
   readonly visitedNodes: readonly ['noOp'];
 }
+export type RunExecutionInput =
+  | FoundationExecutionInput
+  | import('./ask-live.types.js').StructuredExecutionInput;
+export type RunExecutionEvidence =
+  | FoundationExecutionEvidence
+  | import('./ask-live.types.js').StructuredExecutionEvidence;

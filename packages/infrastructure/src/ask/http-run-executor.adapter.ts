@@ -1,6 +1,12 @@
 import { ExternalFailure, isExternalFailure, type RunExecutor } from '@rei/application';
-import { parseRunExecutionEvidence, parseRunExecutionRequest } from '@rei/contracts';
+import {
+  parseRunExecutionEvidence,
+  parseRunExecutionRequest,
+  sameAskIdentity,
+  sameAskInputs,
+} from '@rei/contracts';
 import type { RunExecutionEvidence, RunExecutionInput } from '@rei/domain';
+import { activeAmqpTraceHeaders } from '../shared/telemetry/trace-context.js';
 
 const OPERATION = 'run-executor.execute';
 const MAX_RESPONSE_BYTES = 16_384;
@@ -46,7 +52,7 @@ export class HttpRunExecutor implements RunExecutor {
       throw new ExternalFailure({ kind: 'transient', operation: OPERATION });
     let request;
     try {
-      request = { ...parseRunExecutionRequest(input) };
+      request = structuredClone(parseRunExecutionRequest(input));
     } catch {
       throw new ExternalFailure({ kind: 'rejected', operation: OPERATION });
     }
@@ -95,7 +101,11 @@ export class HttpRunExecutor implements RunExecutor {
       method: 'POST',
       redirect: 'manual',
       signal,
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${this.#token}` },
+      headers: {
+        ...activeAmqpTraceHeaders(),
+        'content-type': 'application/json',
+        authorization: `Bearer ${this.#token}`,
+      },
       body: JSON.stringify(input),
     });
     if (response.status !== 200) {
@@ -138,6 +148,14 @@ export class HttpRunExecutor implements RunExecutor {
         result.runId !== input.runId ||
         result.threadId !== input.threadId ||
         result.step !== input.step
+      )
+        throw new Error();
+      if (
+        input.step === 'structured-price-v1' &&
+        (result.step !== 'structured-price-v1' ||
+          !sameAskIdentity(input, result) ||
+          input.executionId !== result.executionId ||
+          !sameAskInputs(input.inputs, result.receipt.inputs))
       )
         throw new Error();
       return result;

@@ -3,6 +3,8 @@ import {
   LOCATIONS_FACADE,
   MARKET_FACADE,
   MarketQueryService,
+  MARKET_CALCULATION_FACADE,
+  PricePerSquareMeterService,
   type LocationsFacade,
 } from '@rei/application';
 import {
@@ -18,6 +20,7 @@ import { MarketController } from './market.controller';
   imports: [LocationsReferenceModule],
   controllers: [MarketController],
   providers: [
+    { provide: MARKET_CALCULATION_FACADE, useFactory: () => new PricePerSquareMeterService() },
     {
       provide: MARKET_FACADE,
       inject: [LOCATIONS_FACADE, DATABASE_CONNECTION],
@@ -28,6 +31,6 @@ import { MarketController } from './market.controller';
         }),
     },
   ],
-  exports: [MARKET_FACADE],
+  exports: [MARKET_FACADE, MARKET_CALCULATION_FACADE],
 })
 export class MarketModule {}

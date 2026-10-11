@@ -2,3 +2,8 @@ export * from './ask.facade.js';
 export * from './ask-fixture-read.port.js';
 export * from './ask-query.service.js';
 export * from './run-executor.port.js';
+export * from './ask-run.repository.js';
+export * from './ask-live.facade.js';
+export * from './ask-run.service.js';
+export * from './run-dispatch.port.js';
+export * from './consume-ask-run-request.service.js';

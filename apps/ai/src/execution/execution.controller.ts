@@ -11,6 +11,7 @@ import {
 import { parseRunExecutionRequest } from '@rei/contracts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ExecutionService } from './execution.service';
+import { readConfig } from '../config';
 
 @Controller('internal/v1/runs')
 export class ExecutionController {
@@ -39,7 +40,14 @@ export class ExecutionController {
     try {
       return await this.service.execute(
         input,
-        AbortSignal.any([disconnected.signal, AbortSignal.timeout(2000)]),
+        AbortSignal.any([
+          disconnected.signal,
+          AbortSignal.timeout(
+            input.step === 'structured-price-v1'
+              ? (readConfig(process.env).tracerDeadlineMs ?? 4500)
+              : 2000,
+          ),
+        ]),
       );
     } finally {
       request.removeListener('aborted', abort);

@@ -27,4 +27,4 @@ COPY --from=build /out ./
 
 EXPOSE 4111
 USER node
-CMD ["node", "dist/main.js"]
+CMD ["node", "-r", "./dist/otel.js", "dist/main.js"]

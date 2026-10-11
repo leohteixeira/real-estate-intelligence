@@ -8,6 +8,7 @@ import {
   eventPublisherResilienceSettings,
 } from './event-publisher-resilience.settings';
 import { runExecutorResilienceSettings } from '../../ask/run-executor-resilience.settings';
+import { runDispatchResilienceSettings } from '../../ask/run-dispatch-resilience.settings';
 import {
   listingSourceResilienceSettings,
   rawSnapshotStoreResilienceSettings,
@@ -33,6 +34,7 @@ const POLICY_DEPENDENCIES = new Map([
   ),
   ...[
     runExecutorResilienceSettings,
+    runDispatchResilienceSettings,
     listingSourceResilienceSettings,
     rawSnapshotStoreResilienceSettings,
     rawSnapshotReadResilienceSettings,

@@ -5,25 +5,36 @@ import {
   Get,
   Inject,
   NotFoundException,
+  Optional,
   Param,
   Req,
   Sse,
   UnauthorizedException,
   type MessageEvent,
 } from '@nestjs/common';
-import { ASK_FACADE, AskAccessDeniedError, type AskFacade } from '@rei/application';
+import {
+  ASK_FACADE,
+  ASK_LIVE_FACADE,
+  AskAccessDeniedError,
+  type AskFacade,
+  type AskLiveFacade,
+} from '@rei/application';
 import {
   parseAskAvailability,
   parseAskFixtureCatalogue,
   parseAskProgressEvent,
   parseAskRun,
   parseAskThread,
+  parseAskLiveRun,
+  parseAskLiveThread,
   type AskProgressEvent,
 } from '@rei/contracts';
 import { DomainValidationError } from '@rei/domain';
 import type { Request } from 'express';
 import { catchError, EMPTY, from, map, of, takeWhile, type Observable } from 'rxjs';
 import { readQuery } from '../http/read-query';
+import { askLiveStream } from './ask-live-stream';
+import { liveAuthorized } from './ask-live.controller';
 
 export function askBearerCapability(header: unknown): string {
   if (
@@ -94,7 +105,10 @@ export function askPreviewStream(
 
 @Controller()
 export class AskController {
-  public constructor(@Inject(ASK_FACADE) private readonly ask: AskFacade) {}
+  public constructor(
+    @Inject(ASK_FACADE) private readonly ask: AskFacade,
+    @Optional() @Inject(ASK_LIVE_FACADE) private readonly live?: AskLiveFacade,
+  ) {}
   @Get('ask/capabilities')
   public async capabilities(@Req() request: Request) {
     readQuery(request, 'none');
@@ -109,12 +123,20 @@ export class AskController {
   public async run(@Param('id') id: string, @Req() request: Request) {
     const grant = capability(request);
     readQuery(request, 'none');
+    if (this.live) {
+      const run = await liveAuthorized(() => this.live!.run(id, grant));
+      if (run) return parseAskLiveRun(run);
+    }
     return parseAskRun(present(await authorized(() => this.ask.run(id, grant))));
   }
   @Get('threads/:id')
   public async thread(@Param('id') id: string, @Req() request: Request) {
     const grant = capability(request);
     readQuery(request, 'none');
+    if (this.live) {
+      const thread = await liveAuthorized(() => this.live!.thread(id, grant));
+      if (thread) return parseAskLiveThread(thread);
+    }
     return parseAskThread(present(await authorized(() => this.ask.thread(id, grant))));
   }
   @Sse('runs/:id/events')
@@ -126,6 +148,20 @@ export class AskController {
     readQuery(request, 'none');
     const cursor = request.headers['last-event-id'];
     if (cursor !== undefined && typeof cursor !== 'string') throw new BadRequestException();
+    if (this.live) {
+      const run = await liveAuthorized(() => this.live!.run(id, grant));
+      if (run) {
+        const suffix = cursor?.startsWith(`${id}:v1:`) ? cursor.slice(`${id}:v1:`.length) : '';
+        if (
+          cursor !== undefined &&
+          (!/^[1-9][0-9]{0,5}$/.test(suffix) || String(Number(suffix)) !== suffix)
+        )
+          throw new BadRequestException();
+        const after = cursor === undefined ? 0 : Number(suffix);
+        const frames = await liveAuthorized(() => this.live!.events(id, grant, after));
+        return askLiveStream(this.live, id, grant, after, frames, run.terminal !== null);
+      }
+    }
     const frames = present(await authorized(() => this.ask.preview(id, grant, cursor)));
     return askPreviewStream(frames);
   }
