@@ -276,6 +276,18 @@ confidence gate, explanation, full checkpoints/quotas or UI as part of this stor
   both containers and volumes after interruption: neither remained. Subsequent campaigns run
   sequentially with all ownership checks and finite stream deadlines unchanged.
 
+- Sixth-pass independent focused integration failed one prepared Ask fixture at startup, not an
+  application assertion: Docker could not publish API port 40585 on 0.0.0.0 because its own DNS
+  listener already held that port on 127.0.0.11. Both shared get-port helpers tested only
+  127.0.0.1. Fresh independent library probes established the mismatch; inspect evidence in
+  `/tmp/rei-ask-text-sixth-review-Sjkt9C/port-bind-diagnosis-wildcard.log` and
+  `port-bind-diagnosis-loopback.log`, plus `postpatch-focused-integration.log` for the failed
+  six-passed/one-failed execution. The smallest repair probes Compose's actual wildcard bind
+  address in both helpers, with regression-first support coverage. Preserve explicit-request
+  failure, finite deadlines, exact owned HTTP/cleanup scope and every primary/teardown failure;
+  no retry, skip, foreign listener removal or second port harness is permitted. All verification
+  commands must run again on the repaired final source; this failed execution is not a pass.
+
 ## Review Triage Log
 
 ### 2026-10-11 — Review pass
@@ -394,6 +406,31 @@ confidence gate, explanation, full checkpoints/quotas or UI as part of this stor
     Market and Ask, with no repository call. Applied the existing contextNumberUnits exclusion to
     that fallback; Domain acceptance regressions and real API-to-completed SSE checks cover both
     inputs while retaining competing-value refusals and existing Portuguese há cases.
+
+### 2026-10-11 — Sixth review pass
+
+- verdicts: 4 findings — high 3, medium 1, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Portuguese linear metres and abbreviated square decimetres became m² —
+    Main independently reproduced both reported requests through current Domain source, the strict
+    public parser, compiled Market facade and Ask admission; each called the repository with
+    canonical area 68. Added the demonstrated bounded unit spellings, preserving Portuguese square metres;
+    Domain and real public strict-422/no-six-effects regressions cover both examples.
+  - `[high]` `[patch]` Intervening or coordinated BRL declarations hid contradictory CHF —
+    Main reproduced both reported forms through source extraction and valid public Market/Ask
+    admission, each reaching the repository with BRL inputs. Extended only the existing bounded
+    currency-reference association; both Domain and actual public unsupported_currency rows pass,
+    while ordinary BRL/CHF prose and supported BRL references retain acceptance.
+  - `[medium]` `[patch]` Unrelated numeric distance prose was treated as property area — Main
+    reproduced both word orders as unsupported_area_unit refusals through Domain, Market and Ask,
+    with no repository call. Associated demonstrated from/away distance context separately from
+    directly labelled area; Domain acceptance and real completed-SSE regressions cover both
+    requests, and explicit linear-area declarations retain refusal even with those distance words.
+  - `[high]` `[patch]` A competing price introduced by is was silently discarded — Main
+    reproduced the exact strict-contract request through source, Market and Ask, with a repository
+    call containing only the first price. Recognized that bounded explicit label association;
+    Domain and actual public ambiguous_price/no-six-effects regressions now refuse the competition,
+    while a single price-is declaration retains exact canonical extraction.
 
 ## Independent Verification and Matrix Audit
 
@@ -534,6 +571,10 @@ calls no model and opens no UI, VPS, provider or real-source surface.
   — Prove real PT/EN E2E, no-effect refusals, authority fencing and populated upgrade.
 - `integration/support/ask-diagnostics.ts`
   — Capture safe owned operational evidence without private content.
+- `integration/support/fixture.ts`
+  — Probe the same wildcard bind address as Compose rather than one loopback interface.
+- `integration/support/fixture.test.ts`
+  — Prove both port helpers use that address and retain explicit-request failure.
 - `migrations/6002_ask_text_price_runs.sql`
   — Add correlated text provenance while preserving existing SQL invariants.
 - `package.json`
@@ -857,3 +898,82 @@ See `postpatch-final-container-inventory.log` and `postpatch-final-volume-invent
 All 35 integration files remain TypeScript, with no JavaScript integration file or Node
 testing/assertion harness introduced. This follow-up ends built, not done; production/VPS
 stories remain reserved for the owner. No UI, provider or real-source completion is claimed.
+
+### Sixth review and follow-up
+
+The mandatory fresh context-free Quick lens returned four findings. Main independently
+reproduced all seven reported forms against the current source, strict public text-price-v1
+contracts and compiled Market/Ask admission. Five incorrectly admitted inputs reached the
+repository; two valid requests containing unrelated distances were incorrectly refused.
+Verdicts and patched counts: high 3, medium 1, low 0. Each finding retains its own triage row;
+nothing was rejected or deferred. Prepatch and postpatch admission probes are recorded in
+`/tmp/rei-ask-text-sixth-review-Sjkt9C/prepatch-triage-probes.log` and
+`postpatch-compiled-admission-probes.log` respectively. After the patch, the five invalid inputs
+are refused before any repository call and the two valid inputs each produce one canonical call.
+
+The same implementation agent repaired bounded currency, linear-unit and price-label
+associations in the parser and its two test files. Genuine RED was eight failed/157 passed,
+followed by GREEN 165 passed in `/tmp/rei-ask-text-implementation/review-six-domain-red.log`
+and `review-six-domain-green.log`. Its affected real integration file passed two tests,
+exit 0, 177.03 seconds in `review-six-text-integration.log`, and cleaned its owned resources.
+Five added public refusal rows assert strict 422, exact closed reasons and unchanged
+thread/run/event/receipt/outbox/inbox counts. Two unrelated-distance acceptance regressions
+traverse the real worker/Market/tool path to completed SSE with exactly 1,154,412 minor units.
+Supported BRL quotes, unrelated currency prose, a single price-is declaration and directly
+labelled unsupported linear areas retain focused Domain regressions.
+
+The initial main focused integration command failed visibly: six tests passed and one
+prepared Ask fixture could not publish port 40585. Independent interface probes and `ss`
+established an existing Docker DNS listener at `127.0.0.11:40585`: loopback-only allocation
+wrongly considered it available for Compose's wildcard publication. This failed execution is
+not counted as final approval. Both shared port helpers now probe `0.0.0.0`; four regression
+tests were RED before the two-line repair and GREEN afterward, with 13 support tests passed.
+Evidence is `review-port-fixture-red.log` and `review-port-fixture-green.log` in the implementation
+directory. Main independently verified real allocation and refusal of occupied port 40585 in
+`final-real-port-probe.log`. The integration guide records the interface boundary and retains
+visible failure and owned cleanup for time-of-check races. No foreign listener was removed.
+
+Follow-up review remains recommended: true. This follow-up pass patched three high entries.
+Specific unverified risk: the newly recognized price-label linking word `is` has not established
+equivalent association of competing area declarations containing a linking word. A fresh Quick
+pass should trace whether such competing area mentions participate in ambiguity refusal rather
+than silently selecting the earlier area. This is not a claim of support for unrestricted prose.
+No public contract, SQL, authority, timeout, coverage floor or architecture decision changed.
+
+### Final sixth-pass verification
+
+Main evidence is under `/tmp/rei-ask-text-sixth-review-Sjkt9C/`; all final verification logs use
+the `final-` prefix and follow the wildcard-port repair. Focused Domain/Application/Contracts:
+165/30/47 tests, exit 0; focused fixture support: 13 tests, exit 0. Root lint, typecheck, unit and
+build: exit 0, including strict integration TypeScript. Unit total: 1,797 across eight workspaces.
+Root coverage: exit 0 with unchanged 80 statements/lines/functions and 75 branches floors.
+Percentages (statements/branches/functions/lines): web 100/100/100/100; Contracts
+94.79/94.64/98.01/96.94; Domain 95.14/90.22/100/95.79; AI 97.30/88.46/92.06/98.37;
+Application 91.95/86.54/98.58/93.65; Infrastructure 85.07/80.11/89.59/87.02;
+API 93.31/86.12/97.91/94.65; worker 94.42/84.77/91.52/95.66.
+
+Focused real integration: four files/seven tests, exit 0, Vitest duration 213.37 seconds in
+`final-focused-integration.log`. Full `pnpm run test:integration`: 26 files/50 tests, exit 0,
+Vitest duration 961.10 seconds in `final-full-integration.log`. Campaigns ran serially without
+skips. Expected negative-path API failure and retention-job warnings are scenario output;
+passing final assertions and terminal exit codes establish the results. Earlier failed or
+prepatch executions were not substituted for final-source verification. Retained campaigns
+cover strict contracts/auth, exact PT/EN results, no-effect refusals, replay, mixed provenance,
+fenced tool attacks, reconnect/restart and populated historical upgrade.
+
+Prettier passes all 47 supported-format baseline paths; all seven owned Markdown paths and
+working/index whitespace pass. SQL retains migration-convention and real populated-upgrade
+proof without a new formatter or an edit to 6001. Root `lint:md` remains exit 1 with exactly
+1,377 pre-existing errors, all in ignored generated `_bmad/render/` snapshots, zero outside
+them. No test, lint rule, hook or threshold was bypassed.
+
+The non-Markdown baseline diff SHA-256 is
+`b478088b394adbe1b5310bcedd954213da583ad45895fa1cb6401764ab462c5d` and is unchanged
+after final verification. The immutable intent is byte-identical to the committed plan;
+its SHA-256 is `87e45a22978575fcb180425480135472e4c604f7f0d2c354b051a0ff0190d883`.
+The complete patched baseline snapshot is `story-full.diff` in the main evidence directory.
+Final container/volume inventories exactly match the prepatch inventories: all 13 foreign
+containers and 13 foreign volumes were preserved, with no owned fixture or Ryuk resource.
+See `final-container-inventory.log` and `final-volume-inventory.log`. All 35 integration files
+remain TypeScript, with no JavaScript integration file or Node testing/assertion harness.
+This follow-up ends built, not done; VPS-dependent stories remain reserved for the owner.

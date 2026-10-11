@@ -163,8 +163,11 @@ synthetic and explicitly scoped.
 
 Fixtures disable Compose env-file loading, own unique `rei-` projects and ports, and remove only
 their labeled containers and volumes. No default development stack, remote service, VPS or real
-source belongs in a campaign. get-port cannot prevent an unrelated process claiming a port after
-allocation; an allocation/bind failure must fail visibly and trigger owned teardown.
+source belongs in a campaign. Both shared port helpers probe `0.0.0.0`, matching Compose's wildcard
+publication rather than checking only one loopback interface. This prevents selecting a port already
+bound on another local interface, including Docker's internal DNS. get-port still cannot prevent an
+unrelated process claiming a port after allocation; an allocation/bind failure must fail visibly and
+trigger owned teardown.
 
 Wrap work/resource release in `preserveCleanup`; use `cleanupAll` when multiple releases must all
 run. Both primary and cleanup errors remain visible, including thrown falsy values. Diagnostic log
