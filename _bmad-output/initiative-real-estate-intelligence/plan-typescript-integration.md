@@ -1,7 +1,6 @@
 ---
 title: 'TypeScript integration campaigns'
 type: 'chore'
-ticket: ''
 created: '2026-10-11'
 status: 'built'
 baseline_revision: '7738135d2d76d7d8fd749d4609d93aeaf1d4a06d'
