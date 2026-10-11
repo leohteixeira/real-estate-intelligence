@@ -190,6 +190,25 @@ data`, and URL `null`, without asserting a legal licence.
     The stub now uses the existing `hashCollectionManifest` function, and the JSON test consumer
     compares the completion hash against a digest independently derived from the facade's IDs.
 
+### 2026-10-11 — Second follow-up review pass
+
+- verdicts: 3 findings — high 3, medium 0, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Street text still admitted alphabetic units, the `ap` abbreviation,
+    and a trailing `fundos` complement — independently reproduced all three through the public
+    JSON parser. Extended the existing rejection guard for these demonstrated representations;
+    word boundaries preserve `Rua dos Apartamentos`, and `Rua dos Fundos` remains valid.
+    Snapshot projection uses this same boundary. No address extraction algorithm was added.
+  - `[high]` `[patch]` Identifier characters admitted unpadded encoded image bytes as
+    fingerprints — reproduced the reviewer's complete PNG and independently confirmed GIF
+    base64url and SVG base64 payloads. Added bounded encoded-header rejection alongside the
+    existing opaque-token guard; no fingerprint algorithm, media decoder, or public shape was
+    introduced. Existing SHA-256 and prepared fingerprint acceptance remain covered.
+  - `[high]` `[patch]` Parsed and suppressed source-listing identifiers admitted contact data —
+    verified email, CPF, and phone values through both event parsers and checked that the existing
+    snapshot identifier boundary already rejects them. Both event payloads now reuse the shared
+    masked-text invariant, with regressions for each identity and both event families.
+
 ## Design Notes
 
 Canonical hashes use `sha256:` and lowercase hex so persistence keys, equality, and contract
@@ -216,6 +235,52 @@ _bmad-output/initiative-real-estate-intelligence/epic-collection/story-collectio
   permission denial, and the enabled-source licence DTO.
 
 ## Auto Run Result
+
+### 2026-10-11 — Second follow-up verification
+
+- **Summary:** Closed the three independently demonstrated event-boundary leaks: alphabetic
+  unit/abbreviated apartment/rear-complement street text, encoded image payloads beginning with
+  the demonstrated PNG/GIF/SVG headers, and contact-bearing source-listing identifiers. Existing
+  event versions, prepared fingerprints, ordinary street names/numbers, immutable facade values,
+  independent permissions, licence semantics, and the ordered synthetic fixture remain unchanged.
+- **Files changed:** `collection.events.ts` extends private guards and reuses the shared text
+  invariant for both identity payloads; `collection.events.test.ts` adds ten parameterized cases,
+  including a positive street-name regression; this plan records each finding and verification.
+  No public surface, media decoder, fingerprint computation, persistence, or runtime wiring changed.
+- **Review:** Three findings, three patched entries (high 3), zero deferred and zero rejected.
+  The resumed context-free Quick reviewer completed before triage. The original full-route
+  implementation child was unavailable, so the main agent applied the bounded corrections.
+- **Follow-up review recommendation:** `true` — this follow-up patched three high entries.
+  The specific remaining unverified risk is encoded media with alternative headers/encodings
+  outside the demonstrated PNG/GIF/SVG signatures, alongside the compatibility of valid opaque
+  fingerprint values with these guards. A fresh independent pass must assess that boundary;
+  these synthetic regressions are not an exhaustive anonymization or real-source readiness claim.
+- Regression-first evidence — the 92-case event suite exited 1 with nine failures and 83 passes
+  before the code correction. The first correction revealed a positive street-name regression;
+  the word-boundary correction restored it without weakening any rejection test.
+- `pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` — exited 0 on the
+  corrected source; all 1,848 unit tests across eight workspaces passed, including strict integration
+  TypeScript checking. The existing web chunk-size warning remains unchanged.
+- `pnpm run test:coverage` — exited 0 with all eight workspaces above unchanged coverage floors.
+  Domain measured 95.16% statements, 90.19% branches, 100% functions and 95.82% lines;
+  Infrastructure measured 85.07%, 80.11%, 89.59% and 87.02% respectively.
+- Focused matrix checks — Domain events/hash/privacy (3 files, 126 tests), Infrastructure stub
+  (1 file, 6 tests), and Contracts enabled-source DTO (1 file, 1 test) each exited 0. All six
+  original matrix rows, including the three-event JSON wire consumer, remain exercised.
+- `pnpm run test:integration` — exited 0 on the corrected source: all 26 files and 50 tests
+  passed in 1,049.41 seconds. Real PostgreSQL, RabbitMQ, storage, HTTP, replay/restart and API E2E
+  consumers were exercised. Owned resources, including the resource controller, are gone;
+  the exact pre-existing inventory of 13 foreign containers and 8 labelled volumes is unchanged,
+  and `docker ps` is empty.
+- The collection/context-wide Prettier check, scoped Markdown lint with `--no-globs`, and
+  `git diff --check` passed. An initial Markdown invocation also expanded the configured global
+  glob and reported 1,377 existing generated-render errors; those unrelated artifacts were not
+  edited. The original intent block retains digest
+  `sha256:70f5930d783cc94eade82c51e69f696af302488a6f468048f011273b93925dad`.
+- Evidence is in `/tmp/rei-collection-contracts-second-followup-WDYQ32/`. No environment file,
+  real source, VPS state, source permission, or deployment was accessed or changed. No new owner
+  decision, configuration variable, or deferred finding was introduced. This pass ends as `built`,
+  with the named independent follow-up risk pending; no later story was started in this invocation.
 
 ### 2026-10-11 — Follow-up verification
 
