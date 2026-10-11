@@ -3,7 +3,7 @@ title: 'Median asking price of one neighborhood from events'
 type: 'feature'
 ticket: '2'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: '527f08e61b95cc917313911404ca53e4a567b039'
 route: 'full'
 route_source: 'auto'
