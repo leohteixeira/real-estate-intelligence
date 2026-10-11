@@ -347,6 +347,28 @@ confidence gate, explanation, full checkpoints/quotas or UI as part of this stor
     Preserve original Unicode accents for the ha guard; composed/decomposed Domain regressions
     pass, with actual public acceptance and terminal completion for the exact bedroom sentence.
 
+### 2026-10-11 — Fourth review pass
+
+- verdicts: 4 findings — high 4, medium 0, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Unlabelled between/entre price ranges selected their final endpoint —
+    Main independently reproduced all three reported PT/EN and scaled forms against the current
+    Domain source, strict public request parser, Market facade and Ask admission: each called
+    the repository with 90,000,000 minor units. Added bounded endpoint/currency lookahead to the
+    existing range association; all three Domain and actual public strict-422/no-effect rows pass.
+  - `[high]` `[patch]` Explicit yen and rupees still became BRL — Main reproduced both names
+    through the current source and valid public Market/Ask admission, including a repository
+    call with BRL inputs. Extended the existing contextual foreign-name guard; both Domain and
+    real public no-effect refusal rows pass while unrelated yen prose remains accepted.
+  - `[high]` `[patch]` Explicit sqft, cm³ and cubic meters still became square metres — Main
+    independently reproduced all three spellings through source extraction, valid public parsing
+    and Market/Ask repository calls. Extended the bounded unit guard without rejecting ordinary
+    cubic-design prose; all three Domain and actual public strict-422/no-effect rows pass.
+  - `[high]` `[patch]` Quadrillion/sextillion magnitudes admitted an unscaled price or area —
+    Main reproduced both examples through source extraction and valid public Market/Ask admission,
+    retaining only 1,000 price minor units or area 68. Extended existing whole-value scale
+    validation; invalid_price/invalid_area Domain and real public no-effect regressions pass.
+
 ## Independent Verification and Matrix Audit
 
 - Main read the complete staged 3,515-line baseline diff, including every new file, at
@@ -531,7 +553,7 @@ calls no model and opens no UI, VPS, provider or real-source surface.
 - `packages/domain/src/market/index.ts`
   — Export the pure extraction capability.
 - `packages/domain/src/market/price-input-extraction.test.ts`
-  — Cover 127 PT/EN accepted and adversarial extraction cases.
+  — Cover 141 PT/EN accepted and adversarial extraction cases.
 - `packages/domain/src/market/price-input-extraction.ts`
   — Parse bounded PT/EN whole tokens with exact money and finite refusals.
 - `packages/infrastructure/src/ask/ask-run.pg-repository.test.ts`
@@ -670,3 +692,68 @@ only pre-existing foreign resources, with no owned REI fixture or Ryuk resources
 `postpatch-final-container-inventory.log` and `postpatch-final-volume-inventory.log`.
 Production/VPS stories remain reserved for the owner to unblock. This story remains built,
 not done, pending the recommended fresh review; it opens no UI or external-production surface.
+
+### Fourth review and follow-up
+
+The mandatory fresh context-free Quick lens returned four findings. Main independently verified
+all ten reported examples against the current Domain source and valid text-price-v1 public
+requests, traced the controller's authority/configuration/key guards and confirmed incorrect
+Market/Ask admission with a repository call for each. Verdicts and patched counts: high 4,
+medium 0, low 0. Nothing was deferred or rejected; every finding has its own triage row.
+
+The same implementation agent made minimal changes only to the parser and its two test files.
+Regression-first evidence is 10 failed/130 passed in
+`/tmp/rei-ask-text-implementation/review-four-domain-red.log`; final GREEN is 141 passed in
+`review-four-domain-green.log`. Its sole affected real integration file passed two tests,
+exit 0, 163.19 seconds in `review-four-text-integration.log`, then cleaned its owned fixtures.
+Ten additional public refusal rows assert strict 422, the exact finite reason and unchanged
+thread/run/event/receipt/outbox/inbox counts. Four acceptance regressions preserve unrelated
+PT/EN bedroom ranges, ordinary yen prose and cubic-design prose. Existing goldens, Portuguese
+accent/context cases, actual terminal SSE and populated structured upgrade remain intact.
+
+Main read every incremental source/test change, rewrote the full baseline snapshot at
+`/tmp/rei-ask-text-fourth-review-gYN22a/story-full-patched.diff` and independently reran every
+plan verification command. No public type, SQL, deadline, authority, coverage floor or
+architecture decision changed. The immutable intent is byte-identical to the committed plan.
+
+Follow-up review remains recommended: true. This follow-up pass patched four high entries.
+Specific unverified risk: unlabelled between/entre area ranges with supported scales and a
+square-metre marker only after the final endpoint could still leave the first endpoint
+unassociated. The new lookahead and regressions establish trailing-currency price refusal,
+not every scaled area association. A fresh Quick pass must trace this before outer closure.
+
+### Final fourth-pass verification
+
+All main evidence is under `/tmp/rei-ask-text-fourth-review-gYN22a/`, prefixed `postpatch-`.
+Focused Domain/Application/Contracts: 141/30/47 tests, exit 0. Root lint, typecheck, unit and
+build: exit 0, including strict integration TypeScript; unit total 1,773 across eight workspaces.
+Root coverage: exit 0, with unchanged 80 statements/lines/functions and 75 branches floors.
+Percentages (statements/branches/functions/lines): web 100/100/100/100; Contracts
+94.79/94.64/98.01/96.94; Domain 95.11/90.90/100/95.77; AI 97.30/88.46/92.06/98.37;
+Application 91.95/86.54/98.58/93.65; Infrastructure 85.07/80.11/89.59/87.02;
+API 93.31/86.12/97.91/94.65; worker 94.42/84.77/91.52/95.66.
+
+Focused real integration: four files/seven tests, exit 0, Vitest duration 207.32 seconds
+(command 208.03 seconds), in `postpatch-focused-integration.log`. Full
+`pnpm run test:integration`: 26 files/46 tests, exit 0, Vitest duration 962.35 seconds
+(command including build 968.47 seconds), in `postpatch-full-integration.log`.
+Campaigns ran serially, without skips. All 13 immutable matrix rows and six public acceptance
+criteria were re-audited against the executed tests: exact PT/EN inputs/results, typed no-effect
+refusals, strict contracts/auth, replay, fenced tool attacks, retained mixed provenance,
+reconnect/restart and populated historical upgrade remain proven.
+
+Prettier passes all 45 supported-format baseline paths; all seven owned Markdown paths and
+working/index whitespace pass. SQL retains passing migration-convention and real populated
+upgrade proof without a new formatter or any edit to 6001. Root Markdown remains exit 1 with
+exactly 1,377 pre-existing errors, all in ignored generated `_bmad/render/` snapshots, zero
+outside them. No rule, hook or threshold was bypassed. Expected API failure and retention-job
+warnings are negative-path output, not failed assertions; all final command exits above are 0.
+
+The non-Markdown baseline diff SHA-256 is
+`096b0bcff6f8a941fc68e6f760456f5455f32b057db1e96cd9c17a1a7ae8acf8` and remains unchanged
+after verification. Final container and volume inventories exactly match their prepatch
+counterparts: all 13 foreign containers and 13 foreign volumes were preserved, with no owned
+fixture or Ryuk resource remaining. See `postpatch-final-container-inventory.log` and
+`postpatch-final-volume-inventory.log`. All 35 integration files remain TypeScript, with no
+JavaScript integration file or Node testing/assertion harness introduced.
+This follow-up ends built, not done; production/VPS stories remain reserved for the owner.
