@@ -3,7 +3,7 @@ title: 'Scheduled runs and the run record'
 type: 'feature'
 ticket: '14'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'f6399d660915f0fb7f2ff83c71174ca90473d887'
 route: 'full'
 route_source: 'pinned'
@@ -28,6 +28,32 @@ deferred:
   - 'Snapshot sanitization, encryption, and expiry belong to Story 2.7.'
   - 'Production schedule activation, deployment, VPS access, and remote telemetry proof belong to Story 2.12 and remain blocked until the operator returns.'
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.14 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/scheduled-collection.integration.test.ts` passed the real scheduled run counts,
+SIGTERM/checkpoint/restart, durable claim and broker/worker journeys. Production schedule
+activation and VPS proof remain separate pending obligations, not accepted by this closure.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`ab823065f32596040e6988cb49d1073eb4d06c02`,
+`c42c83b370c1e820f3afee71b59c49bbd1859448`,
+`22b8aad847a3d5784f2d6992e446e477e469e766`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

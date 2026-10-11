@@ -3,7 +3,7 @@ title: 'Rate limits, backoff and blocks at the source'
 type: 'feature'
 ticket: '6'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '22b8aad847a3d5784f2d6992e446e477e469e766'
 route: 'full'
 route_source: 'auto'
@@ -19,6 +19,32 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.6 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`apps/worker/src/collection/collection-resilience.test.ts` passed deterministic fake-clock
+429/rate/backoff/block refusal assertions. `integration/collection-resilience.integration.test.ts`
+passed durable holds, pause/restart and real dependency failure boundaries.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`dd5eecd68420fb67142bda9bb0d028b19112d2b9`,
+`346e55ed27107953fc908f81fc2822539a329969`,
+`8bc0c4ce522cd9a92331f6844a7284259646c15f`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 # Collection Resilience Implementation Plan
 

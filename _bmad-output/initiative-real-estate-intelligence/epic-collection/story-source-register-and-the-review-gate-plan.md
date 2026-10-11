@@ -3,7 +3,7 @@ title: 'Source register and the review gate'
 type: 'feature'
 ticket: '4'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '0f1308ef3ae8a8f4e8bb5489c5ed9b73e6079817'
 route: 'full'
 route_source: 'pinned'
@@ -30,6 +30,31 @@ deferred:
   - 'Run checkpoints, resumption, scheduling, and production execution belong to Stories 2.5 and 2.14.'
   - 'A durable operator audit trail depends on the later identity and operations surfaces.'
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.4 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/source-register.integration.test.ts` passed review-gate refusal and reviewed
+facade/command enablement. The cleanup-coordinator tests passed; real listing sources remain disabled.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`9e27e5f77119886d5e45721e79a58c56d34d859e`,
+`c991622142152761af2a722fcd1f1c239d68f17f`,
+`883bcc449373dc2743e65d90699bd470c22dbb8e`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

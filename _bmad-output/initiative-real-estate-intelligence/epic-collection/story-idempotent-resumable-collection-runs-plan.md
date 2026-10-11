@@ -3,7 +3,7 @@ title: 'Idempotent, resumable collection runs'
 type: 'feature'
 ticket: '5'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '883bcc449373dc2743e65d90699bd470c22dbb8e'
 route: 'full'
 route_source: 'pinned'
@@ -32,6 +32,31 @@ deferred:
   - 'Scheduling, broker-delivered collection commands, concurrency policy, graceful run draining, and operational run telemetry belong to Story 2.14.'
   - 'Production scheduling and VPS deployment remain blocked until the operator unlocks their owning story.'
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.5 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/resumable-collection.integration.test.ts` passed its actual SIGKILL/restart,
+legacy-schema upgrade, checkpoint contention and unique-observation/replay assertions.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`f787cc06c391c0d366174717d057f96a3004f9ab`,
+`58305e67ebba837ce076c339607ce95aed162ca8`,
+`f6399d660915f0fb7f2ff83c71174ca90473d887`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

@@ -3,7 +3,7 @@ title: 'Sanitized, encrypted snapshots with expiry'
 type: 'feature'
 ticket: '7'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '8bc0c4ce522cd9a92331f6844a7284259646c15f'
 route: 'full'
 route_source: 'auto'
@@ -19,6 +19,32 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.7 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/snapshot-lifecycle.integration.test.ts` passed real PostgreSQL/MinIO sanitized
+and encrypted snapshot, exact 30-day expiry, retained-hash, restart and reconciliation assertions.
+Passing reruns do not establish a root-cause fix for historical RabbitMQ startup failures.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`9a6aea818e85ec53c43c5d71dfb98fd50014e746`,
+`955745d5f13c691a325465ed33f9e368efb73449`,
+`e912cc836d1050bc922afc32ab874c955eb5ea7e`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

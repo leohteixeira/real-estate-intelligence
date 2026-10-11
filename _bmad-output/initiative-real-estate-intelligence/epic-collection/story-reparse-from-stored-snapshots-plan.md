@@ -3,7 +3,7 @@ title: 'Reparse from stored snapshots'
 type: 'feature'
 ticket: '8'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: 'e912cc836d1050bc922afc32ab874c955eb5ea7e'
 route: 'full'
 route_source: 'auto'
@@ -19,6 +19,31 @@ context:
 warnings: [oversized]
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.8 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`integration/snapshot-reparse.integration.test.ts` passed the real reparse command, updated
+parser/correction publication, durable recovery and zero source-acquisition assertions.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`2b8698412f75f336c3462ceff8dafddb9e6cabe6`,
+`f75efed1e584a6d4ecb6fd3fe60b492e749746eb`,
+`c3de8579fbb4c76d391ae493fc8769ea6ab7d39e`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

@@ -3,7 +3,7 @@ title: 'Synthetic São Paulo dataset'
 type: 'feature'
 ticket: '3'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '227df0981d170d88ae1cd5551901dc18ded34f60'
 route: 'full'
 route_source: 'pinned'
@@ -28,6 +28,32 @@ context:
 warnings: []
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 2.3 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+The synthetic Sao Paulo match-label and dataset suites passed labelled-pair, three-listing,
+zone consistency and byte-identical full replay assertions across the 39 source runs/13 cycles.
+Prepared opaque fingerprints remain fixtures, not proof of a perceptual algorithm.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`5cfd6732705bb1392e691d3cc1135c8cc0dc8b65`,
+`7c8b54e26d91be43cdd592f7fb3b6a30467221cd`,
+`0f1308ef3ae8a8f4e8bb5489c5ed9b73e6079817`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 
