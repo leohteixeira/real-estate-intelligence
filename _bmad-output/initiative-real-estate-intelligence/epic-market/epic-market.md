@@ -86,3 +86,13 @@ of CAP-22, not recorded sale figures (CAP-33).
   and thirty-day reduction examples do not settle later production algorithms; no persisted
   Properties reads, foreign writes, events, collection or external calls are introduced (agent,
   on the owner's behalf, 2026-10-11).
+- Decision: D-041 and ADR 0021 define the event-fed median tracer: Market-owned immutable
+  event evidence and latest-revision listing facts, permanent replay/conflict fencing, one
+  lowest-active-asking representative per property before geography filtering, nullable-area
+  exclusion, deterministic integer rounding and selected-source provenance. The overview adds
+  the explicit `event-fed-median-with-prepared-sections` variant with a closed `preparedSections`
+  list for counts and the five remaining figures; own and actual-parent medians are persisted
+  calculations with `untracked` collection freshness, never prepared fallbacks. Prepared
+  contracts, neighbours and series retain their strict guarantees. Full property reassignment,
+  other metrics, real counts/neighbours, series, completion tracking and suppression remain
+  their respective stories (agent, on the owner's behalf, 2026-10-11).

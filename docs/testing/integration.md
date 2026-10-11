@@ -10,7 +10,7 @@ pnpm run test:integration:list
 pnpm run test:integration
 ```
 
-The full command builds compiled applications once, then discovers all sixteen campaigns plus
+The full command builds compiled applications once, then discovers all seventeen campaigns plus
 cleanup/support tests. Files run serially; a campaign can deliberately exercise simultaneous
 writers or four parallel brokers. Test and hook deadlines are bounded, and empty discovery fails.
 Fixture probes in `integration/fixtures/` and compiled tests under `dist/` are not discovered.
@@ -20,6 +20,7 @@ For an individual campaign, build first, then select its existing focused alias:
 ```bash
 pnpm run build
 pnpm run test:integration:market
+pnpm run test:integration:market-median
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
 pnpm run test:integration:audit
