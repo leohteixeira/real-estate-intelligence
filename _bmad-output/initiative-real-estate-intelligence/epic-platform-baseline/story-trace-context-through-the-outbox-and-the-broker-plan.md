@@ -3,7 +3,7 @@ title: 'Trace context through the outbox and the broker'
 type: 'feature'
 ticket: '8'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '6d5316b57543fd2ca21460130421abdd5e3d327c'
 route: 'full'
 route_source: 'pinned'
@@ -22,6 +22,32 @@ warnings:
   - 'oversized'
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 1.8 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+`packages/infrastructure/src/shared/telemetry/trace-context.test.ts` passed its test-exporter
+request/outbox/publisher/consumer lineage assertions. The real broker/outbox audit journey in
+`integration/audit-tracer.integration.test.ts` also passed; no remote OTLP backend is claimed.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`fc7c6a46e56904484ff154966eacbf2b12cd0ae3`,
+`078ec5e5103f6a87e5b551b98548cc4c59409c0b`,
+`01286ba2dbd7d4e5776ec70f8b0b3535ff31df02`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 

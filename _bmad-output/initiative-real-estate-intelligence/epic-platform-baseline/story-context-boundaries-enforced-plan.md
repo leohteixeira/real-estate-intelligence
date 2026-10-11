@@ -3,7 +3,7 @@ title: 'Context boundaries enforced'
 type: 'feature'
 ticket: '6'
 created: '2026-10-10'
-status: 'built'
+status: done
 baseline_revision: '20e4931069cf26a87e3ba8b684d7d1ef10ce52fc'
 route: 'full'
 route_source: 'pinned'
@@ -21,6 +21,32 @@ warnings:
   - 'multiple-goals'
 deferred: []
 ---
+
+## Orchestrator Closure — 2026-10-11
+
+Ticket 1.6 was resolved individually with `tickets.py find`; its committed implementation,
+verification record and final review disposition were audited before acceptance. The final
+plan recommends no follow-up review. Existing residual limits and deferred owning-story scope
+remain intact; this acceptance does not close the parent epic or the initiative.
+
+Current `pnpm run lint` executes the context-boundary and migration probes. API/worker
+composition suites and `integration/audit-tracer.integration.test.ts` passed, proving real
+startup alongside the nine-context module checks.
+
+Fresh verification on product revision `5fae2e2ddda193525f75d4a48f7e758edd6999d3`:
+`pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` passed,
+including strict integration typing and 144 unit files/1,503 tests. All eight unchanged coverage
+floors passed. `pnpm run test:integration` passed 24 files/43 tests in 827.31 s without skips
+or retries. Exact before/after inventories preserved all 13 containers and 13 volumes;
+no owned fixtures or Ryuk remain. These commands ran after the final RunExecutor review patches;
+subsequent changes are documentation/status only. No global generated-Markdown success is claimed.
+
+Historical implementation/test/result commits, resolved to canonical identifiers:
+`e5df986df4b3b3a144397c2e5a6d0a486531fc45`,
+`ed24995e2082b1159092c9f8934a42ca5270e826`,
+`6268fe67dd2d273c1a828da59571c9ebaaf9f9e6`.
+The user stash is preserved. No source activation, VPS action, push or deployment occurred;
+VPS-dependent stories still await the owner's explicit unblock.
 
 <intent-contract>
 
