@@ -34,6 +34,27 @@ name, phone number, e-mail address or individual CRECI number of a natural perso
 and neither is a photograph. Adding a field requires a superseding ADR and an updated source and
 privacy review.
 
+### Accepted clarification — D-047, 2026-10-11
+
+Accepted by the agent on the owner's behalf, 2026-10-11. This clarification enforces the existing
+prohibition on raw images and address complements; it does not enable a source or choose the
+perceptual algorithm of collection story 2.9.
+
+The current canonical fingerprint boundary accepts `sha256:` plus 64 lowercase hexadecimal
+digits, or prepared synthetic labels matching
+`^(?:fixture|synthetic)(?:[-:][a-z0-9]{1,32}){1,8}$`. Arbitrary opaque strings and encoded media
+are not fingerprint representations. The existing stub and historical dataset values, event
+versions and intentional-empty correction behavior are preserved without rewriting evidence.
+Synthetic labels are test evidence, not proof of an image permission or cryptographic computation;
+real snapshot sanitization continues to accept only already-computed SHA-256 values. A future
+perceptual representation requires an explicit compatibility/versioning decision in story 2.9.
+
+Street text rejects explicit unit/complement labels after a comma or semicolon regardless of the
+following value, and a rear (`fundos`) complement after a door number. Existing numeric/unit
+guards remain. Ordinary street names such as `Rua dos Apartamentos`, `Avenida Bloco Novo` and
+`Rua dos Fundos`, and a door number alone, remain valid. This bounded validation is not general
+address recognition or an exhaustive anonymization guarantee.
+
 ### Photographs and listing text
 
 For each real source, the source register records two independent permissions. Both default to

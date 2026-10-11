@@ -67,6 +67,11 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 
 ## Notes
 
+- Decision: D-047 and the accepted ADR 0015 clarification close current fingerprint
+  representations to SHA-256 and identifiable prepared synthetic labels, preserving every
+  published dataset value, and reject demonstrated explicit street unit/complement details.
+  No perceptual algorithm, historical rewrite, source permission or exhaustive anonymization
+  claim is introduced (agent, on the owner's behalf, 2026-10-11).
 - Decision: D-019 accepts version 1 of the
   [record of processing operations](../../../docs/privacy/record-of-processing-operations.md) and
   [legitimate-interest assessment](../../../docs/privacy/legitimate-interest-assessment.md) as an

@@ -12,8 +12,8 @@ review: 'quick'
 review_source: 'pinned'
 lenses_ran:
   - 'quick'
-review_loop_iteration: 0
-followup_review_recommended: true
+review_loop_iteration: 1
+followup_review_recommended: false
 context:
   - 'AGENTS.md'
   - 'specs/adrs/0011-bounded-contexts-and-module-layout.md'
@@ -140,6 +140,87 @@ data`, and URL `null`, without asserting a legal licence.
 
 ## Implementation Notes
 
+- Current repair scope (D-047): the repair tasks below are complete against current
+  HEAD. All earlier checked tasks and later consumer stories already exist and must be kept.
+  Follow the repository's NestJS modular-monolith skill with ADR precedence (D-012), Vitest and
+  strict TypeScript; do not introduce an alternate runner, ORM, module or runtime registration.
+  The parent performs final gates and auto-commit; the implementation child does not commit.
+
+### D-047 repair tasks
+
+- [x] In `packages/domain/src/collection/collection.events.test.ts`, add rejection cases for the
+      complete XML-declared SVG base64url representation reported in review, arbitrary untyped
+      tokens and invalid/uppercase/truncated SHA-256 strings. Exercise `parseCollectionEvent`
+      through JSON, retaining all existing rejection cases. Add positive cases for SHA-256,
+      `fixture-fingerprint:v1:synthetic-001`, `fixture:v1`, `synthetic-fingerprint`, and
+      `fixture-history-fingerprint`. Verify segment length/count bounds without loosening tests.
+- [x] In the same test file, add street rejections for `Rua Exemplo, apartamento AB`,
+      `Rua Exemplo, apto AB`, `Rua Exemplo, bloco Azul`, `Rua Exemplo, bloco B12`,
+      `Rua Exemplo, complemento: cobertura`, and `Rua Exemplo 123 fundos`. Preserve ordinary
+      street names and door numbers. Add the same cases through `sanitizeSnapshotListing` in
+      `packages/domain/src/collection/snapshot-privacy.test.ts` using real-shaped SHA-256 evidence.
+- [x] Run the new regression tests before implementation and retain actual red evidence.
+- [x] In `packages/domain/src/collection/collection.events.ts`, replace the fingerprint character
+      and media-header blacklist with the two closed representations below. Preserve maximum
+      array size, uniqueness and v1 nonempty/v2 intentional-empty semantics. No decoder or Node
+      dependency enters the domain.
+
+      ```ts
+      /^sha256:[a-f0-9]{64}$/.test(fingerprint) ||
+      /^(?:fixture|synthetic)(?:[-:][a-z0-9]{1,32}){1,8}$/.test(fingerprint)
+      ```
+
+- [x] In the same file, retain the current numeric/unit guard and reject a comma/semicolon
+      followed by any existing unit/complement label independently of its value. Reject
+      `fundos` following a door number without requiring punctuation. Keep word boundaries and
+      positive street-name tests; do not add a sanitizer or claim arbitrary address recognition.
+- [x] In `packages/application/src/properties/reconcile-listing-history.service.test.ts`, change
+      only the non-namespaced positive test label `owned-fingerprint` to `fixture:owned-fingerprint`.
+      In `packages/infrastructure/src/collection/postgres-snapshot-reparse.repository.test.ts`,
+      change positive `trusted` input and exact expectation to `fixture:trusted`. Keep original
+      history/recovery assertions; intentionally injected `invented` evidence must stay negative
+      or discarded. Never change producer/dataset values, IDs, hashes or persisted history.
+- [x] Run affected Domain, Application and Infrastructure Vitest suites, including synthetic
+      dataset/replay, stub JSON consumer, reconciliation and reparse recovery. Report commands,
+      red/green counts, files changed and any remaining risk to the parent.
+
+Repair acceptance, additional to the unchanged intent:
+
+- Given XML-declared SVG bytes encoded as base64url, when submitted as a fingerprint in a JSON
+  collection event, then the public parser rejects them without echoing the payload.
+- Given either recognized representation, when parsed and consumed, then the fingerprint remains
+  byte-identical; every existing dataset event, ID and digest remains unchanged.
+- Given each demonstrated unit/complement string, when parsed directly or projected through the
+  snapshot boundary, then it is rejected; ordinary street names and door numbers remain accepted.
+
+Repair implementation evidence:
+
+- The original full-route implementation child completed the D-047 handoff. Its regression-first
+  run failed with 32 failures and 136 passes before production edits; the same two suites then
+  passed all 168 tests. Complete affected suites passed Domain 642, Application 219 and
+  Infrastructure 427 tests. Evidence: `/tmp/rei-collection-d047-pktMDA/`.
+- Production changes are confined to the two private guards in `collection.events.ts`.
+  Four test files add 47 regressions and namespace two positive labels. No producer, dataset,
+  migration, public event shape, runtime registration or stored evidence was changed.
+- The parent read the implementation diff and confirmed root lint, strict typecheck, all 1,895
+  unit tests, build and coverage passed. Domain coverage is 95.24% statements, 90.26% branches,
+  100% functions and 95.90% lines; Infrastructure is 85.03%, 80.06%, 89.59% and 86.98%.
+  Every workspace retains the existing coverage thresholds. Full real-service integration passed
+  all 50 tests in 26 files in 1,049.43 seconds. The post-repair independent Quick review completed
+  with no findings; the parent repeated all root gates successfully before finalization.
+- The parent compared complete Docker inventories after the Testcontainers controller exited:
+  all 13 pre-existing container IDs and all 13 volume names are unchanged, with no owned fixture
+  resources remaining and no running containers. Evidence: `/tmp/rei-collection-d047-udLkii/`.
+- Parent matrix evidence: events/privacy (168 tests), SHA-256 value (5), ordered JSON stub
+  consumer/facade/abort/rejection (6), and enabled-source licence DTO (1) passed. All six original
+  matrix rows are covered. Synthetic dataset/replay/source tests passed another 15 cases.
+  An initial focused command used two nonexistent synthetic test filenames and failed empty
+  discovery; the corrected command selected the actual files without skips or relaxed checks.
+- Post-build dataset and replay JSON digests remain respectively
+  `92b210a19b3096a2090736e3f1c6997ed83314306a4f67bb902e2835f5a67d69` and
+  `2326bda45235778dbc5baa4e6e4478c1a6fb675e684812c56986bbd7054e6875`, equal to the pre-parent-build
+  capture. Producer files are byte-identical to HEAD; the intent block retains its recorded digest.
+
 - The phrase “run and snapshot hash” is resolved as a run reference/manifest plus a snapshot
   content hash; no second ambiguous “run content hash” is introduced. Both snapshot content and run
   manifest hashes share the canonical SHA-256 text representation.
@@ -153,7 +234,52 @@ data`, and URL `null`, without asserting a legal licence.
 
 ## Plan Change Log
 
+### 2026-10-11 — D-047 closed representations and explicit street details
+
+- Trigger: the Quick review independently reproduced XML-declared SVG base64url in the public
+  event parser and multi-letter units/rear complements surviving street text into Properties.
+- Amendment: replace unspecified opaque fingerprint acceptance with the ADR 0015 clarification's
+  two closed representations; explicitly cover delimited multi-letter unit/complement labels
+  and number-followed rear complements in both the public event and snapshot projection tests.
+- Known-bad state avoided: adding one more image header or one more single-letter suffix leaves
+  the same unspecified-format defect and cannot satisfy the no-image/no-complement contract.
+- KEEP: preserve v1/v2 shapes and empty-array distinction, domain purity, all existing rejection
+  tests, positive street names/numbers, every published synthetic producer/dataset byte, IDs and
+  hashes, facade immutability/deny-default permissions/licence semantics, ordered stub publication,
+  original reparse evidence and every later consumer. Two test-only labels gain a fixture namespace.
+- Rollback scope: no uncommitted code exists to revert in this resumed pass. The original baseline
+  spans many later committed stories; reverting that history would violate the owner's no-data/
+  no-history-deletion limit. Re-derive only the private guards in current HEAD, keeping all positive
+  implementation and the immutable intent block. Baseline remains unchanged.
+
 ## Review Triage Log
+
+### 2026-10-11 — D-047 post-repair Quick review
+
+- verdicts: 0 findings — high 0, medium 0, low 0, false 0, maybe-false 0
+- findings: none. The context-free reviewer read the baseline diff, acceptance and current
+  surrounding contracts/consumers, checked both repaired boundaries and reported no findings.
+  It independently ran 173 Domain event/privacy/hash, 41 Infrastructure stub/reparse/dataset/source,
+  21 Application reconciliation and 1 enabled-source licence tests, all passing.
+- No entry was patched, deferred or rejected in this pass. The earlier two high `bad_plan` entries
+  are resolved by D-047's implementation and dual-boundary regressions, not carried as fresh findings.
+
+### 2026-10-11 — Resumed third follow-up review pass
+
+- verdicts: 2 findings — high 2, medium 0, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[bad_plan]` XML-declared SVG base64url bypasses the media-header blacklist — parent
+    independently reproduced a complete SVG through the compiled JSON event parser and decoded
+    the exact original bytes. Neither earlier logged header cases nor the real snapshot SHA-only
+    guard prevents this public event path. D-047 amends representation acceptance and tests; no
+    media recognition, fingerprint computation or published dataset rewrite is permitted.
+  - `[high]` `[bad_plan]` Multi-letter unit values and number-followed rear complements survive
+    street validation — parent reproduced apto AB, bloco B12, complemento: cobertura and
+    123 fundos through the public parser; reviewer also confirmed apartamento AB and bloco Azul.
+    Snapshot projection calls the same boundary and Properties preserves the accepted string.
+    D-047 amends delimited-label/door-number constraints and dual-surface regression tests while
+    preserving street names and ordinary door numbers. Each finding is independently graded;
+    both plan-level corrections are in one implementation repair, not deduplicated.
 
 ### 2026-10-10 — Review pass
 
@@ -222,19 +348,67 @@ privacy posture honest while allowing downstream contexts to build entirely from
 
 **Commands:**
 
-- `pnpm run lint && pnpm run typecheck && pnpm run test:coverage && pnpm run build` -- passed after
-  review repairs; 361 tests ran under coverage and every workspace remained above its threshold.
+- `pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` -- passed on the D-047
+  repair; all 1,895 unit tests passed across eight workspaces. Root typecheck includes strict
+  integration TypeScript. The unchanged `CityScene` chunk-size warning remains non-failing.
+- `pnpm run test:coverage` -- passed on the same production source; every workspace remains above
+  its unchanged coverage floors (80% statements/lines/functions and 75% branches).
+- `pnpm run test:integration` -- passed on the same production source; all 50 tests in 26 files
+  passed against owned real services, including API E2E, upgrades and restarts. Exact before/after
+  inventories preserve all 13 foreign container IDs and all 13 volumes, with no running containers.
+- `pnpm exec vitest run --config vitest.integration.config.ts integration/support
+integration/source-register-cleanup.test.ts` -- repeated after integration, all 25 tests passed.
+- `pnpm run typecheck:integration`, integration ESLint/Prettier and `pnpm run test:integration:list`
+  -- passed after integration; discovery lists 50 tests. All 35 integration files remain TypeScript.
 - `pnpm exec prettier --check packages/application/src/collection packages/contracts/src/collection
 packages/domain/src/collection packages/infrastructure/src/collection packages/application/src/index.ts
 packages/contracts/src/index.ts packages/domain/src/index.ts packages/infrastructure/src/index.ts
 _bmad-output/initiative-real-estate-intelligence/epic-collection/story-collection-contracts-and-a-stub-publisher-plan.md`
   -- every file changed by this story passed formatting.
 - `git diff --check` -- passed.
-- Matrix audit -- all six rows ran under coverage: ordered publication/abort/rejection, JSON wire
-  hydration and strict invalid-shape handling, parsed allowlist/PII rejection, run/hash lookup,
-  permission denial, and the enabled-source licence DTO.
+- Matrix audit -- all six rows passed in focused checks: events/privacy 168, canonical SHA-256
+  value 5, stub JSON consumer/facade/abort/rejection 6, and enabled-source licence DTO 1. Synthetic
+  dataset/replay/source regressions passed another 15 cases. No tests were skipped or weakened.
 
 ## Auto Run Result
+
+### 2026-10-11 — D-047 repair verification and convergence
+
+- **Summary:** Replaced open fingerprint tokens/header blacklists with identifiable SHA-256 and
+  prepared synthetic representations. Rejected demonstrated multi-letter unit/complement labels
+  after comma/semicolon and rear complements after a door number. The JSON parser and snapshot
+  boundary retain normal street names/numbers, immutability, exact event versions and the v1/v2
+  intentional-empty distinction. Published producers, dataset, IDs, hashes and history are unchanged.
+- **Files changed:** `packages/domain/src/collection/collection.events.ts` changes two private
+  guards; its test and `snapshot-privacy.test.ts` add 47 regressions. Application reconciliation
+  and Infrastructure reparse tests namespace two positive test labels without changing their
+  recovery assertions. ADR 0015 and the epic Notes mirror D-047; this plan records repair and evidence.
+- **Review:** The fresh context-free Quick review returned no findings. This pass has zero patched
+  entries (high 0, medium 0, low 0), zero deferred entries and zero rejected findings. Both previous
+  high plan defects were addressed before this review by the original full-route implementation
+  child. No acceptance criteria or immutable intent were changed.
+- **Follow-up review recommendation:** `false` — no patches or specific unverified regression
+  remain from this review. Bounded synthetic validation is not exhaustive anonymization or legal
+  permission; real sources and future perceptual computation remain separate, unenabled work.
+- **Verification:** Root lint, strict typecheck, all 1,895 unit tests and build passed, then passed
+  again after resuming. Coverage passed in all eight workspaces against unchanged 80/75 floors.
+  The complete real-service integration/API E2E suite passed all 50 tests in 26 files in
+  1,049.43 seconds. The 25 support/cleanup tests, integration typecheck/lint/format and 50-test
+  discovery passed again. All six intent matrix rows and 15 dataset/source/replay tests passed.
+  Scoped collection/context Prettier, Markdown lint and whitespace checks passed.
+- **Isolation:** The Testcontainers controller exited automatically. Exact inventory comparisons
+  preserve all 13 pre-existing containers and 13 volumes; no running container or owned test
+  resource remains. No default stack, environment file, VPS, source permission or deployment changed.
+- **Preservation:** The intent digest remains
+  `sha256:70f5930d783cc94eade82c51e69f696af302488a6f468048f011273b93925dad`;
+  baseline remains `01286ba2dbd7d4e5776ec70f8b0b3535ff31df02`. No migration or historical rewrite
+  was introduced. Evidence is under `/tmp/rei-collection-d047-udLkii/` and
+  `/tmp/rei-collection-d047-pktMDA/`; the reviewed diff is under
+  `/tmp/rei-collection-d047-review-RnMG1f/`.
+- **Residual risks:** The existing `CityScene` chunk-size build warning remains. No new configuration
+  variable or deferred finding was added. This workflow ends as `built`, with independent review
+  converged; the initiative controller may accept the verified artifact next. No later ticket
+  was started in this invocation, and VPS-dependent work remains owner-controlled.
 
 ### 2026-10-11 — Second follow-up verification
 
