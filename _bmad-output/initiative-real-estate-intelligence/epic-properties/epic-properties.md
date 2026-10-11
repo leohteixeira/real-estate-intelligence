@@ -63,6 +63,27 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
 
 ## Notes
 
+- Story 3.10 implementation: exact-provenance Collection metadata now supplies persisted snapshot
+  status, and both persisted/prepared detail GETs apply current per-source text rights. Denied
+  dates preserve immutable changes and corrected dated transitions without rewriting events.
+  The dedicated isolated campaign passed genuine synthetic storage/outbox/broker/worker/HTTP,
+  correction/replay/restart and mixed/missing-rights proof separately from encrypted historical
+  owner-repository fixtures, exact expiry and interrupted/deleted cleanup with fresh HTTP pools.
+  Unit/coverage checks and the normal pre-push hook passed; public DTOs/events, catalog, search
+  and ingestion authority stayed unchanged. No real source or production/VPS action occurred
+  (agent, 2026-10-11).
+
+- Decision: D-036 resolves snapshot availability through exact-provenance Collection-owned
+  durable metadata, not a physical-storage health promise; real generations expire at their
+  original boundary even before cleanup. Preserve hashes and safe identifiers, never object keys
+  or raw contents. Both persisted and prepared listing/property detail apply current per-source
+  display permission, default-deny and error-safe, without inventing missing text or mutating
+  cached fixtures. Denied changedAt is the sorted unique union of immutable description-event
+  dates and corrected dated-version transitions, without rewriting or manufacturing events.
+  Prove genuine synthetic collection separately from an explicitly labelled owner-repository
+  historical encrypted fixture; do not weaken ingestion authority or enable a real source
+  (agent, on the owner's behalf, 2026-10-11).
+
 - Decision: D-033 preserves authentic Removed completedAt and the frozen v1 temporal guard by
   selecting the latest authenticated original observedAt/snapshotId at or before that completion,
   independently of the canonical comparison frontier and corrected/current values. When no original

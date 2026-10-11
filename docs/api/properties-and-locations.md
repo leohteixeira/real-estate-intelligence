@@ -130,9 +130,11 @@ by the backend from the current canonical area. If that derived value rounds to 
 or exceeds the positive safe-integer contract, both Property and Listing return `null` for the
 metric while preserving the exact original asking-price cents.
 
-Current source text-display permission is checked independently on every persisted property and
-listing request. Denied text omits current text, versions and excerpts while preserving provenance;
-a failed permission lookup returns a sanitized failure, never a permissive response. Only masked,
+Current source text-display permission is checked independently for each listing on every persisted
+and prepared property/listing detail request. Missing or revoked rights deny text; a failed lookup
+returns a sanitized failure, never a permissive fallback. Restoring rights exposes only the
+already-stored or prepared permitted text, without mutating history or cached fixtures. An originally
+text-free denied example remains text-free after a grant. Only masked,
 allowlisted canonical facts are stored; contact, unit/complement and photograph data are excluded.
 
 Properties derives an immutable normalized listing only after verification of the original
@@ -358,16 +360,40 @@ privacy suppression.
 Allowed descriptions have `permission: "allowed"`, `current`, dated `versions` (text and hash)
 and `sourceUrl`. The denied branch has only `permission: "denied"`, `changedAt` and `sourceUrl`:
 neither listing nor property responses include current/previous text, text versions or excerpts.
-This is an explicit prepared permission branch, not permission inferred from public availability.
+Current Collection source-register rights govern both detail endpoints, including prepared mixed-source
+properties; public availability does not establish permission. Denied `changedAt` is the sorted unique
+union of immutable original `description-changed` effective dates and corrected dated-version
+transitions. A correction can collapse versions without erasing an original change date, or create
+a dated transition without publishing a market event. Generic history retains those distinctions.
 Generic history never contains description text. No contact, unit identifier, photo or fingerprint
 payload is exposed.
 
-Snapshot availability is `available`, `expired` or `unavailable`. The supplementary expired example
+Snapshot availability is `available`, `expired` or `unavailable`. Persisted detail obtains safe
+metadata from Collection, bound to the exact source/listing/URL/run/snapshot/hash and original
+observation date. Missing or mismatched evidence returns `unavailable`, never a foreign reference.
+A retained committed synthetic reference is `available` with its original collection date and
+null expiry. A real generation is `available` only when its matching durable reference is confirmed
+available, non-deleted and before its original fixed 30-day expiry. It is `expired` exactly at that
+deadline, including delayed or interrupted physical cleanup. Trusted generation collection/expiry
+dates do not change on parser correction, replay or restart. Hashes and original provenance remain
+auditable after deletion. Availability describes durable metadata, not physical object-store health;
+public reads do not probe storage or receive object locations, encryption keys or raw contents.
+
+Prepared lifecycle examples remain explicitly illustrative. The supplementary expired example
 represents a single historical observation, not a mixture of its old snapshot and newer listing facts.
 An expired prepared snapshot
 retains its original collection time, expiry time, run ID and content hash; no raw-object download
 or retrieval is implemented. A prepared missing-bedroom example uses null, has no active asking
 price, and still explicitly records no sale.
+
+The isolated `pnpm run test:integration:listing-provenance` campaign verifies both detail endpoints
+through genuine synthetic acquisitions, actual storage/outbox/broker/worker delivery and reparse,
+live per-source revoke/restore, prepared mixed/missing rights and restart. A separately labelled
+encrypted historical fixture is written through each owning repository and read through the actual
+HTTP composition with a controlled clock; it proves exact expiry, interrupted deletion and fresh
+pool/API recovery without weakening synthetic-only ingestion authority. All services and data are
+campaign-owned local resources. No real source is enabled or collected, and no VPS, push or
+deployment action is part of this proof.
 
 ## Stable fixture IDs
 
