@@ -89,6 +89,12 @@ importers:
       '@nestjs/platform-express':
         specifier: 12.1.2
         version: 12.1.2(@nestjs/common@12.1.2(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@12.1.2)(supports-color@8.1.1)
+      '@rei/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@rei/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       reflect-metadata:
         specifier: 0.2.2
         version: 0.2.2
@@ -296,6 +302,9 @@ importers:
       '@rei/application':
         specifier: workspace:*
         version: link:../../packages/application
+      '@rei/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@rei/domain':
         specifier: workspace:*
         version: link:../../packages/domain
@@ -367,6 +376,9 @@ importers:
       '@rei/application':
         specifier: workspace:*
         version: link:../application
+      '@rei/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@rei/domain':
         specifier: workspace:*
         version: link:../domain
@@ -7734,7 +7746,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.13.3
+      '@types/node': 24.19.2
       merge-stream: 2.0.0
       supports-color: 8.1.1
     optional: true

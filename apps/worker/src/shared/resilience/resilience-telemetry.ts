@@ -7,6 +7,7 @@ import {
   EVENT_PUBLISHER_DEPENDENCY,
   eventPublisherResilienceSettings,
 } from './event-publisher-resilience.settings';
+import { runExecutorResilienceSettings } from '../../ask/run-executor-resilience.settings';
 import {
   listingSourceResilienceSettings,
   rawSnapshotStoreResilienceSettings,
@@ -31,6 +32,7 @@ const POLICY_DEPENDENCIES = new Map([
     (name) => [name, EVENT_PUBLISHER_DEPENDENCY] as const,
   ),
   ...[
+    runExecutorResilienceSettings,
     listingSourceResilienceSettings,
     rawSnapshotStoreResilienceSettings,
     rawSnapshotReadResilienceSettings,

@@ -106,6 +106,8 @@ services:
       dockerfile: docker/worker.Dockerfile
     environment:
       NODE_ENV: ${NODE_ENV:-development}
+      AI_URL: http://ai:4111
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-realestate}:${RABBITMQ_PASSWORD:-realestate}@rabbitmq:5672/${RABBITMQ_VHOST:-real-estate-intelligence}
       WORKER_INTERVAL_MS: ${WORKER_INTERVAL_MS:-30000}
@@ -264,6 +266,21 @@ services:
         condition: service_completed_successfully
     restart: 'no'
 
+  run-execution-command:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    entrypoint: ['node', '-r', './dist/otel.js', 'dist/ask/execute-foundation.js']
+    stdin_open: true
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      AI_URL: http://ai:4111
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: real-estate-intelligence-run-command
+    restart: 'no'
+
   # Deliberately without DATABASE_URL and without object storage credentials:
   # the LangGraph service reaches domain capabilities only through typed tools
   # that call the API's versioned HTTP contract.
@@ -274,6 +291,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       API_BASE_URL: http://api:8200
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:-}
     ports:
       - '${AI_PORT:-4111}:4111'
     depends_on:

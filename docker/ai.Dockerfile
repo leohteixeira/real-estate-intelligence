@@ -6,10 +6,14 @@ RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/ai/package.json ./apps/ai/
+COPY packages/domain/package.json ./packages/domain/
+COPY packages/contracts/package.json ./packages/contracts/
 RUN pnpm install --frozen-lockfile --filter "@rei/ai..."
 
 COPY apps/ai/ ./apps/ai/
-RUN pnpm --filter "@rei/ai" build \
+COPY packages/domain/ ./packages/domain/
+COPY packages/contracts/ ./packages/contracts/
+RUN pnpm --filter "@rei/ai..." build \
   && pnpm --filter "@rei/ai" deploy --prod --legacy /out
 
 FROM node:24.19.0-alpine AS runtime

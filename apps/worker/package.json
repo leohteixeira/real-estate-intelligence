@@ -10,6 +10,7 @@
     "collect:resumable": "node -r ./dist/otel.js dist/collection/collect-resumable.js",
     "snapshot:reparse": "node -r ./dist/otel.js dist/collection/reparse-snapshot.js",
     "source:enable": "node -r ./dist/otel.js dist/collection/enable-source.js",
+    "run:foundation": "node -r ./dist/otel.js dist/ask/execute-foundation.js",
     "typecheck": "tsc --build --force",
     "test": "vitest run --dir src --passWithNoTests"
   },
@@ -29,6 +30,7 @@
     "@opentelemetry/sdk-trace-base": "2.10.0",
     "@opentelemetry/semantic-conventions": "1.43.0",
     "@rei/application": "workspace:*",
+    "@rei/contracts": "workspace:*",
     "@rei/domain": "workspace:*",
     "@rei/infrastructure": "workspace:*",
     "reflect-metadata": "0.2.2",
