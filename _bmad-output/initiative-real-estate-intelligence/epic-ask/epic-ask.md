@@ -72,3 +72,12 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   the resilience composition and the Zero Data Retention ADR.
 - Tracer bullet: entry 2; entries 1 and 17 precede it so epic-web opens on the contracts and the
   tracer has its worker-to-AI hop.
+- Decision: D-043 delivers closed Ask request/response contracts and read-only, explicitly
+  `prepared-ask-example` fixtures for all seven public states, full threads and edited inputs.
+  `/api/v1/ask/capabilities` and `/ask/fixtures` expose synthetic availability/catalogue; thread,
+  run and finite scripted SSE previews require the fixture's Bearer capability. Every preview
+  reaches an explicit version-1 terminal event; fixture-only Last-Event-ID replay is not durable
+  recovery. Creation, confirmation, cancellation, acceptance and quota rejection have typed
+  shapes, not live POST handlers or quota counters. No arbitrary visitor text, model call, SQL
+  write, outbox event or production durability is introduced. D-012 and ADR 0020 override the
+  skill's Prisma/NX/Jest examples (agent, on the owner's behalf, 2026-10-11).
