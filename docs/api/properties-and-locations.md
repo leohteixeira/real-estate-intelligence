@@ -1,7 +1,7 @@
 # Properties and locations API reference
 
 The seven read endpoints below are a versioned, synthetic contract surface. Property and listing
-detail query persisted initial owned-synthetic observations first, then use prepared fallback for
+detail query persisted owned-synthetic listing history first, then use prepared fallback for
 existing fixture IDs. Place navigation reads a persisted synthetic reference; property search,
 counts and reductions remain prepared. No read starts
 collection, publishes events, resolves entities or calculates market figures. The prepared fixture
@@ -19,25 +19,114 @@ Prepared property reads and persisted place navigation have this `metadata` obje
 }
 ```
 
-Persisted detail keeps `dataMode: "synthetic-stub"`, uses
-`fixtureVersion: "persisted-initial-synthetic-v1"`, and anchors `asOf` to its initial original
-observation time. It is an unresolved single-listing baseline, not a physical-property match.
+Persisted history keeps `dataMode: "synthetic-stub"`, uses
+`fixtureVersion: "persisted-synthetic-history-v1"`, and anchors `asOf` to its latest original
+acquisition or market event: the maximum retained effective date, not the final publication's
+date. Legacy rows without authenticated completion history retain the
+`persisted-initial-synthetic-v1` view. Each is an unresolved single-listing property, not a
+physical-property match.
 
-## Persisted initial detail
+## Persisted listing history
 
 The worker's durable `properties.parsed-listing` subscription consumes strict parsed v1/v2 events.
 Collection verifies the complete canonical publication, original provenance and current synthetic
 collection authority within the transaction; missing legacy publication evidence is not fabricated.
-An original v1 creates one immutable Property with a distinct Listing ID and one revision-1
-`properties.listing.created` outbox event. Inbox, fact, entity and outgoing event commit together.
-Durable fact and source-identity uniqueness prevent duplicate creation even after inbox expiry.
+Receipts commit inbox, immutable fact and durable source work together. A new identity waits for
+an authenticated complete source-run boundary before creating its immutable Property, distinct
+Listing ID and revision-1 `properties.listing.created` event. A separate bounded worker job
+reconciles sources by `(startedAt, runId)` and originals by `(observedAt, snapshotId)`; earlier
+running or paused source runs block later completions. Completion can recover a missing original
+delivery through Collection's facade. Retained completion publication evidence and its full
+observed manifest are independent of outbox retention; missing legacy authority is never invented.
 
-Another v1 for the source identity is `pending-history`; a v2 correction is `pending-correction`,
-including when it arrives before v1. These facts retain correction identity and chronology but do
-not change the initial HTTP view or create fake price/description history. Detail reports one
-collection, one creation, no sale, no comparison, no production match score and explicitly
-illustrative uncalibrated evidence. Amounts are exact BRL cents; price per square meter is calculated
-and rounded by the backend from the original canonical area. If that derived value rounds to zero
+Every original snapshot is one acquisition, even when unchanged. Price and masked-description
+effects compare the previous original in canonical run/fact order. Observation dates may invert
+across overlapping runs: every valid original still counts, and each authentic change retains
+its publication revision and effective date. The separately sorted `(observedAt, snapshotId)`
+series selects dated values, current provenance and resolved geography, so an older observation
+cannot replace newer current values. This also applies to a new identity whose second canonical
+observation predates creation; it emits ordinary changes rather than legacy-only backfill.
+Price and masked-description
+changes emit immutable events in that order, with consecutive per-listing revisions. Only a valid
+complete manifest's absence removes a listing, effective at completion time. Its provenance and
+original values come from the latest authenticated original `(observedAt, snapshotId)` at or before
+that completion, independently of the canonical comparison frontier and corrections. If no original
+has yet been observed at completion, that manifest advances without an absence event or rejection;
+later retained evidence remains available. Seen failed or
+suppressed identities are not absence. Return keeps both IDs and emits reappearance before price
+and description changes, effective at acquisition time. Lifelines close at removal and reopen on
+return. Durable state retains each canonical activity period with its authentic opening and closing.
+Removal closes only the corresponding open period at its exact completion. Active exposure is the
+derived temporal union of non-negative periods, merging overlapping or touching
+intervals so time on market counts each active day once. An earlier run may complete after a
+later run observed its return: removal and reappearance retain those authentic dates and
+consecutive revisions even when the effective dates decrease in publication order.
+An open union never replaces closed constituent boundaries: Created(1), Removed(4), Reappeared(6),
+Removed(7), Reappeared(3), Removed(5) derives intervals [1,5] and [6,7], retaining five exposure days
+and the genuine gap. Empty or inverted periods add no invented exposure.
+Time on market excludes removed intervals. Removed properties have no active asking
+price, no sale and no fabricated zero price.
+
+Corrections are separate dated values: highest authenticated per-snapshot correction order wins,
+without adding an acquisition, revision or market event. A historical correction cannot replace a
+newer original acquisition's current values. Original facts, provenance, history and published
+events stay immutable. Listing effects, current/history state and outbox commit atomically; source
+progress commits separately, and semantic run/snapshot effects survive replay, inbox expiry and
+restart. Permanently invalid normalized/address facts reject the listing transaction and record a
+rejected run effect, allowing other identities and later source runs to proceed. Collection
+authority failures remain fail-closed and retryable after authority restoration.
+
+A Collection-authenticated correction can still be invalid for Properties, for example if its
+address does not resolve to the owned reference geography. That correction alone receives a
+durable rejection; the valid original acquisition and previous valid corrected view remain.
+A later valid higher-order correction can recover the view. Infrastructure and cancellation
+failures remain retryable and are never recorded as a business rejection.
+
+On upgrade, authenticated pending original facts for existing identities are reconciled even
+when their legacy run has no retained completion publication. This restores acquisition counts
+and original price/description effects without recreating the initial Property or creation event.
+Legacy parsed authority cannot authorize removal or materialize a new identity. Both one-shot
+and resumable collection register their running chronology before external I/O, so a later
+completed run remains fenced while an earlier fetch is still in progress.
+
+Both registration paths and canonical selection share a Collection-owned per-source transaction
+guard. A new start time and run ID are captured after admission; the running boundary commits
+before fetching. Selection therefore waits for an uncommitted registration rather than advancing
+past an invisible earlier run. The guard precedes source/run/evidence locks and ends with the short
+transaction, before external I/O or per-listing reconciliation. Equal start timestamps retain
+their authentic time and select a fresh UUIDv7 after the admitted frontier; bounded exhaustion
+or a regressing clock is a transient admission refusal. Existing retries retain their original
+ID/start, and a one-shot completion discovered after the initial lookup returns the authenticated
+completed replay without another acquisition, parse or publication.
+
+Deterministically rejected or explicitly cancelled one-shot runs become internally `failed`,
+preserving their operation ownership, run ID and original start time without publishing completion
+or authorizing absence. A failed operation key cannot resume; a new request requires a new key.
+Transient source/storage failures and command deadline timeouts retain the running boundary for
+same-key recovery, even when an adapter maps a timeout abort to a cancelled dependency failure.
+Combined command signals preserve the first abort cause: timeout is recoverable; deliberate
+cancellation remains terminal. Fresh-signal retry preserves the original run ID and start time
+without partial original/completion evidence. Access refusals
+retain the separate source hold and paused-run policy. Failure cleanup has its own bounded
+cancellation signal and cannot replace a successfully completed concurrent request.
+
+Legacy creation recovery uses a transaction-scoped shared publication reader. Only a genuinely
+retained creation envelope is copied into Properties' immutable event ledger, preserving its
+identifier, payload, occurrence date, trace context and revision without republishing it.
+If retention has removed that envelope, acquisition/current-state recovery still proceeds, but
+no creation envelope is reconstructed. Properties' migration and repository never read platform
+tables directly.
+
+The legacy worker could publish creation from a later observation delivered first. Validated
+pending originals older than that immutable creation are backfilled in acquisition-date/snapshot
+order for counts, dated values, first collection date and the first lifeline. They do not replace
+newer current values, rewrite the published creation/history/revisions or emit retroactive
+pre-creation market events. Historical corrections and current text-display rights apply to these
+backfilled values exactly as to other acquisitions.
+
+Detail retains no sale, no comparison, no production match score and explicitly illustrative
+uncalibrated evidence. Amounts are exact BRL cents; price per square meter is calculated and rounded
+by the backend from the current canonical area. If that derived value rounds to zero
 or exceeds the positive safe-integer contract, both Property and Listing return `null` for the
 metric while preserving the exact original asking-price cents.
 
@@ -65,18 +154,25 @@ entity or creation effects. The exact received event and its evidence/hash are n
 
 The existing HTTP keys are unchanged. Listing `provenance` supplies the common source, URL and
 collection time inherited by every displayed attribute and feature; `fieldEffectiveAt.askingPrice`,
-`.description` and `.attributes` supply their effective dates, anchored to the initial acquisition.
+`.description` and `.attributes` supply their effective original-acquisition dates. Dated description
+versions use corrected values where authorized, but original description-change hashes remain
+unchanged.
 Published address values retain that source provenance. The separately resolved `place` and
 `breadcrumbs` are synthetic reference geography, with no claim that their coordinates came from
-the listing source. Normalized values are reconstructed from the immutable initial fact and
-resolved reference after restart, without an additional normalized SQL column. Later observations
-and corrections remain pending and do not replace this initial-only truth.
+the listing source. Immutable initial values stay separately readable; current values are rebuilt
+from original acquisitions plus authenticated corrections and their resolved synthetic geography.
+No correction substitutes its publication time for original acquisition provenance.
 
 Reference geography is fixture-only and persisted in the owned `locations` schema. New
 `SYN-SP-0001` observations on Avenida Exemplo resolve to
 `sao-paulo-bela-vista-avenida-exemplo-fictional-block`, with six crumbs. Existing five-crumb initial
 property snapshots remain immutable and readable after replay or restart. Persisted property
 records do not enter prepared search, place counts or reductions.
+
+The worker job uses `LISTING_HISTORY_BATCH_SIZE` (1–100, default 25),
+`LISTING_HISTORY_INTERVAL_MS` (at least 100, default 250), and `LISTING_HISTORY_TIMEOUT_MS`
+(at least 100, default 5000). Cycles do not overlap, database work receives cancellation, shutdown
+cancels active reconciliation, and OpenTelemetry records the reconciliation span and effect count.
 
 The ingestion-only `resolveFixtureAddress(address, transaction?)` forwards the verified
 Collection transaction scope into Locations. Its SQL uses the same active pool lease, after

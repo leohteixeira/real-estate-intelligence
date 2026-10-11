@@ -63,6 +63,69 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
 
 ## Notes
 
+- Decision: D-033 preserves authentic Removed completedAt and the frozen v1 temporal guard by
+  selecting the latest authenticated original observedAt/snapshotId at or before that completion,
+  independently of the canonical comparison frontier and corrected/current values. When no original
+  exists by completion, the identity is not yet evidenced active at that instant: process the run
+  without an impossible absence event or rejection, retaining the later observation. Verify existing
+  and new identities under genuine held-document/earlier-empty-completion concurrency, both HTTP
+  endpoints and replay/restart (agent, on the owner's behalf, 2026-10-11).
+
+- Decision: D-034 completes D-029 by durably retaining constituent canonical activity periods,
+  closing only the corresponding open period at its authentic completion. Public lifelines and
+  exposure are a derived union of valid non-negative intervals, never a destructive open union or
+  a closure at the greatest historical removal. Preserve genuine gaps, immutable dates/events,
+  revisions, counts, maximum asOf and D-028 backfill. Verify Created(1), Removed(4), Reappeared(6),
+  Removed(7), Reappeared(3), Removed(5) as [1,5] plus [6,7], five days rather than six, including
+  real concurrent collection, durable state, both HTTP details and replay/restart
+  (agent, on the owner's behalf, 2026-10-11).
+
+- Decision: D-031 separates canonical run/fact publication order from the dated acquisition
+  series. Retain every valid acquisition even when observation times invert across concurrent
+  runs; immutable events compare original canonical frontiers, while dated values/current
+  provenance select by observedAt/snapshotId. D-028 event-free backfill is legacy-only, never
+  a shortcut for new completion-driven identities. Preserve authentic dates, status/manifests,
+  union exposure, maximum asOf and replay/restart (agent, on the owner's behalf, 2026-10-10).
+
+- Decision: D-032 clarifies D-030: transient deadline/timeout aborts preserve same-key running
+  recovery, including combined command signals and adapters that translate abort into cancelled.
+  Only deliberate cancellation and deterministic rejection terminalize; preserve independent
+  bounded cleanup, holds and completed-run safety (agent, on the owner's behalf, 2026-10-10).
+
+- Decision: D-029 preserves canonical event revisions and authentic effective dates even when
+  overlapping runs produce non-monotone effective dates. Normalize active lifelines as an interval
+  union, merge overlapping/touching returns without negative absence, count exposure only once,
+  and derive metadata.asOf from the greatest retained acquisition/event time. Prove actual delayed
+  absence completion followed by an earlier-observed return, restart and later observation without
+  rewriting events or moving their dates (agent, on the owner's behalf, 2026-10-10).
+
+- Decision: D-030 gives permanently rejected or explicitly cancelled one-shot attempts a durable
+  internal failure terminal, preserving identity/ownership/start time but never complete-manifest
+  authority. Failed keys remain terminal; new requests use new keys. Transient infrastructure
+  failures remain same-key recoverable and access refusals remain held/paused. Terminal cleanup
+  is bounded, independent of an already-aborted signal and cannot replace a concurrent completion;
+  preserve frozen v1 events/HTTP DTOs (agent, on the owner's behalf, 2026-10-10).
+
+- Decision: D-028 preserves the published creation/event frontier when upgrading an existing
+  initial identity whose authenticated pending original predates that initial acquisition.
+  Backfill valid original evidence in observedAt/snapshotId order for acquisition counts, dated
+  values, first observation and the first lifeline, without replacing newer current values,
+  rewriting creation/revisions/events or emitting retroactive pre-creation market events.
+  Never silently consume valid older evidence, infer absence without completion authority or
+  bypass completion-bound creation for new identities; verify a real pre-migration database
+  with replay/restart (agent, on the owner's behalf, 2026-10-10).
+
+- Decision: D-027 adds immutable acquisition history and separate current/correction projections,
+  authenticated durable Collection completion evidence and restartable per-listing reconciliation.
+  Canonical source runs/facts, not broker arrival, determine ordering; earlier active runs form a
+  durable barrier. Incomplete/failed/paused runs never infer absence, and failed or suppressed
+  observed identities remain seen. Active events use acquisition observedAt; removal uses verified
+  completion time. Original market events are never rewritten or emitted for parser corrections;
+  highest authenticated per-snapshot correction order only changes dated value projections.
+  Preserve initial evidence and existing creations without re-emission, frozen v1 events/DTOs,
+  current text permissions and the full immutable catalog; verify its 18 listing events plus a
+  separate five-type journey (agent, on the owner's behalf, 2026-10-10).
+
 - Decision: "furthest below the median" and the deviation of a row use the median of the result set
   itself, so this epic does not wait on epic-market (owner, 2026-10-10).
 - Decision: this epic owns two contexts, `properties` and `locations`, because the place hierarchy
@@ -141,3 +204,12 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   local real-shaped fixture through synthetic collection, storage, broker, worker, SQL and HTTP.
   No real-source authority, model, new endpoint, history application or VPS action is introduced
   (agent, on the owner's behalf, 2026-10-10).
+- Decision: D-035 completes canonical-run admission with a Collection-owned per-source
+  transaction guard shared by both registration paths and canonical selection. Capture a new
+  start/identity only after the guard, commit its running boundary before external acquisition,
+  and prevent an invisible earlier registration or a tied start/runId from falling behind progress.
+  Preserve authentic dates, accepted facts/events, retry identity, neutral ports/schema isolation,
+  bounded cancellation and short lock lifetimes; acquire in a consistent order rather than
+  upgrading compatible source locks. Prove held registration/commit and pre-capture waits through
+  both actual collection entries, PostgreSQL, worker/HTTP, replay and restart
+  (agent, on the owner's behalf, 2026-10-11).
