@@ -37,6 +37,14 @@ const unsupportedScales = new Set([
   'trillions',
   'trilhao',
   'trilhoes',
+  'quadrillion',
+  'quadrillions',
+  'quadrilhao',
+  'quadrilhoes',
+  'sextillion',
+  'sextillions',
+  'sextilhao',
+  'sextilhoes',
 ]);
 const priceLabels = new Set(['price', 'preco', 'valor']);
 const areaLabels = new Set(['area']);
@@ -45,7 +53,17 @@ const currencyLabels = new Set(['currency', 'moeda']);
 const currencyPrepositions = new Set(['in', 'em']);
 const currencyQuoteWords = new Set(['quoted', 'cotado', 'cotada']);
 const currencyCodeWords = new Set(['try', 'all', 'mad', 'top']);
-const foreignCurrencyNames = new Set(['peso', 'pesos', 'franc', 'francs', 'franco', 'francos']);
+const foreignCurrencyNames = new Set([
+  'peso',
+  'pesos',
+  'franc',
+  'francs',
+  'franco',
+  'francos',
+  'yen',
+  'rupee',
+  'rupees',
+]);
 const currencyModifiers = new Set(['swiss', 'mexican', 'argentine']);
 // Known foreign markers are meaningful beside a numeric mention or explicit declaration,
 // not an arbitrary uppercase word elsewhere in the question.
@@ -162,6 +180,7 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'ft',
           'ft2',
           'ft²',
+          'sqft',
           'feet',
           'foot',
           'pe',
@@ -193,6 +212,8 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'cm',
           'cm2',
           'cm²',
+          'cm3',
+          'cm³',
           'centimeter',
           'centimeters',
           'centimetre',
@@ -213,6 +234,8 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
           'in2',
           'in²',
         ].includes(token) ||
+        (token === 'cubic' &&
+          ['meter', 'meters', 'metre', 'metres'].includes(tokens[index + 1] ?? '')) ||
         (token === 'ha' &&
           originalTokens[index]?.normalize('NFC').toLowerCase() !== 'há' &&
           (/^[+−.,\d-]/.test(tokens[index - 1] ?? '') ||
@@ -244,10 +267,19 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
     const invalidScale =
       scales[tokens[afterIndex] ?? ''] !== undefined ||
       unsupportedScales.has(tokens[afterIndex] ?? '');
+    const rangeEndpoint = afterIndex + 1;
+    const rangeCurrencyIndex =
+      rangeEndpoint + 1 + (scales[tokens[rangeEndpoint + 1] ?? ''] !== undefined ? 1 : 0);
+    const rangePrice =
+      rangePrefixes.has(before) &&
+      ['and', 'e'].includes(tokens[afterIndex] ?? '') &&
+      /^\d/.test(tokens[rangeEndpoint] ?? '') &&
+      currencies.has(tokens[rangeCurrencyIndex] ?? '');
     const price =
       priceLabels.has(before) ||
       currencies.has(before) ||
       currencies.has(tokens[afterIndex] ?? '') ||
+      rangePrice ||
       (rangePrefixes.has(before) &&
         (priceLabels.has(tokens[index - 2] ?? '') || currencies.has(tokens[index - 2] ?? '')));
     const area =
