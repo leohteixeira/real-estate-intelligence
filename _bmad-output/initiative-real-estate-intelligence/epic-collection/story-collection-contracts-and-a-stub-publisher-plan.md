@@ -169,6 +169,27 @@ data`, and URL `null`, without asserting a legal licence.
   - `[medium]` `[patch]` The new story plan failed its changed-file Prettier gate — formatted only
     the plan and verified every file changed by this story with the repository formatter.
 
+### 2026-10-11 — Follow-up review pass
+
+- verdicts: 4 findings — high 3, medium 1, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` Allowed feature, location, and agency text admitted contact data —
+    independently reproduced email-bearing JSON hydration in all five text fields. Reused the
+    existing shared masked-text invariant at each field; five regressions reject the observed
+    leak without adding a sanitizer or changing the public event shape.
+  - `[high]` `[patch]` Fingerprints admitted image URLs — reproduced the reviewer's URL through
+    the canonical parser, plus data-URI and JPEG-like base64 strings. Restricted the existing
+    opaque value boundary to identifier characters, retaining SHA-256 and prepared fixture
+    tokens. No fingerprint computation or similarity algorithm was introduced.
+  - `[high]` `[patch]` Street text admitted a unit despite the closed address allowlist —
+    reproduced `Rua Exemplo, apartamento 123`; four regressions cover numeric unit/complement
+    labels. The boundary rejects these details while three positive cases preserve ordinary
+    street numbers and source street names. Snapshot projection reaches this same parser.
+  - `[medium]` `[patch]` The synthetic manifest hash did not protect its observed IDs — verified
+    that the canonical digest of `["SYN-SP-0001"]` differs from the repeated-2 placeholder.
+    The stub now uses the existing `hashCollectionManifest` function, and the JSON test consumer
+    compares the completion hash against a digest independently derived from the facade's IDs.
+
 ## Design Notes
 
 Canonical hashes use `sha256:` and lowercase hex so persistence keys, equality, and contract
@@ -195,6 +216,53 @@ _bmad-output/initiative-real-estate-intelligence/epic-collection/story-collectio
   permission denial, and the enabled-source licence DTO.
 
 ## Auto Run Result
+
+### 2026-10-11 — Follow-up verification
+
+- **Summary:** Tightened the original parsed-event privacy boundary and replaced the stub's
+  placeholder manifest with the existing canonical digest. Source configuration, the three
+  version-1 fixture facts, event/public facade shapes, ordered publication, immutable views,
+  permissions, licence semantics, and version-2 empty-fingerprint behavior remain unchanged.
+- **Files changed:** `collection.events.ts` reuses shared text validation and rejects demonstrated
+  unsafe fingerprint/street values; its test file adds 16 boundary regressions;
+  `synthetic-collection.stub.ts` computes the manifest digest through the existing domain helper;
+  its test file independently verifies the wire/facade manifest; this plan records triage and
+  verification. No API/worker registration, storage implementation, or runtime fixture was added.
+- **Review:** Four findings, four patched entries (high 3, medium 1), zero deferred and zero
+  rejected. There was no viable original full-route implementation child to continue, so the
+  main agent applied the bounded corrections itself. No public surface or new algorithm was added.
+- **Follow-up review recommendation:** `true` — this follow-up patched three high privacy entries.
+  A fresh independent pass must assess whether the new opaque-token and numeric street-detail
+  constraints leave further privacy representations unguarded or reject valid source values.
+  Synthetic acceptance is not a claim of exhaustive anonymization or real-source readiness.
+- Regression-first evidence: the event suite failed with 13 failures and 69 passes, and the stub
+  suite failed its independently computed manifest digest assertion, before implementation changes.
+  Both failures exited 1. The corrected suites then passed: 82 event tests and 6 stub tests.
+- `pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build` — exited 0 on the
+  corrected source. All 1,838 unit tests passed across eight workspaces, including strict
+  integration TypeScript checking. The existing web chunk-size warning is unchanged.
+- `pnpm run test:coverage` — exited 0 on the final source with all eight workspaces above the
+  unchanged 80% statement/line/function and 75% branch floors. Domain measured 95.16% statements,
+  90.17% branches, 100% functions and 95.82% lines; Infrastructure measured 85.07%, 80.11%,
+  89.59% and 87.02% respectively.
+- Focused matrix checks — Domain events/hash/privacy (3 files, 116 tests), Infrastructure stub
+  (1 file, 6 tests), and Contracts enabled-source DTO (1 file, 1 test) each exited 0. Together
+  these exercise all six original matrix rows, including the three-event JSON test consumer.
+- `pnpm run test:integration` — exited 0 on the final product source: 26 files and all 50
+  tests passed in 1,302.09 seconds. This adds real-service regression evidence for the shared
+  parser's downstream consumers without changing the story's fixture-only runtime scope.
+  Every owned Compose resource was removed. The exact pre-existing inventory of 13 foreign
+  containers and 8 foreign labelled volumes was preserved, and `docker ps` is empty.
+- The original collection/context-wide Prettier command, the scoped plan Markdown lint, and
+  `git diff --check` passed. The `<intent-contract>` block is byte-identical to its pre-pass
+  version (`sha256:70f5930d783cc94eade82c51e69f696af302488a6f468048f011273b93925dad`).
+- Evidence for this pass is in `/tmp/rei-collection-contracts-followup-vMd8N3/`; no real-source
+  configuration, permission, deployment, VPS state, or environment file was changed.
+- **Residual risks:** The named follow-up boundary risk remains pending independent review, and
+  the existing `CityScene` build warning remains. No finding was deferred. This pass ends as
+  `built`, not `done`; no later story was started in this invocation.
+
+### 2026-10-10 — Initial build result
 
 - **Summary:** Added immutable version-1 collection events with strict wire parsers, canonical
   SHA-256 hashes, the collection read facade, the enabled-source privacy DTO, and an isolated
