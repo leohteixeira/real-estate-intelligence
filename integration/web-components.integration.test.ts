@@ -288,6 +288,9 @@ test('shared Placa components use parsed owned data and labelled edge cases in b
             for (const artboard of [
               { name: 'Components', width: 1280, height: 1882 },
               { name: 'Search', width: 390, height: 1249 },
+              { name: 'Main', width: 390, height: 1706 },
+              { name: 'PlaceEN', width: 390, height: 1706 },
+              { name: 'DesktopPlace', width: 1440, height: 1366 },
             ]) {
               const context = await browser.newContext({
                 viewport: { width: artboard.width, height: artboard.height },

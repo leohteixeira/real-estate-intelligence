@@ -28,6 +28,10 @@ it.each(['pt-BR', 'en'] as const)(
         </I18nextProvider>,
       );
       expect(screen.getAllByRole('link')).toHaveLength(2);
+      expect(view.container.querySelector('.prov__sources')).toHaveTextContent(
+        'Synthetic source, Long canonical source name',
+      );
+      expect(view.container.querySelector('.prov__separator')).toHaveTextContent(',');
       expect(
         screen.getByRole('link', {
           name: locale === 'en' ? 'Sources: Synthetic source' : 'Fontes: Synthetic source',

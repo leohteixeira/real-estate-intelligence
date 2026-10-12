@@ -22,13 +22,13 @@ afterEach(async () => {
   );
   vi.unstubAllGlobals();
 });
-function mount(path: string) {
+function mount(path: string, state?: unknown) {
   const cache = createReadCache();
   caches.push(cache);
   render(
     <I18nextProvider i18n={createLocale('pt-BR')}>
       <QueryClientProvider client={cache}>
-        <MemoryRouter initialEntries={[path]}>
+        <MemoryRouter initialEntries={[{ pathname: path, state }]}>
           <AppRoutes />
         </MemoryRouter>
       </QueryClientProvider>
@@ -52,6 +52,27 @@ function reads() {
   return request;
 }
 describe('geographic public entries', () => {
+  it.each([
+    null,
+    [],
+    'text',
+    {},
+    { placeId: pinheiros.id, questionDraft: 'Wrong place' },
+    { placeId: bela.id },
+    { placeId: bela.id, questionDraft: 42 },
+    { placeId: bela.id, questionDraft: '   ' },
+  ])('ignores untrusted or mismatched draft state %j', async (state) => {
+    reads();
+    mount(`/ask/${bela.id}`, state);
+    await screen.findByRole('heading', { name: 'Bela Vista' });
+    expect(screen.queryByText('Rascunho da pergunta')).not.toBeInTheDocument();
+  });
+  it('never displays an Ask draft in Search', async () => {
+    reads();
+    mount(`/search/${bela.id}`, { placeId: bela.id, questionDraft: 'Secret draft' });
+    await screen.findByRole('heading', { name: 'Bela Vista' });
+    expect(screen.queryByText('Secret draft')).not.toBeInTheDocument();
+  });
   it.each(['search', 'ask'] as const)(
     'opens %s with real identity and the current web boundary only',
     async (destination) => {

@@ -69,7 +69,7 @@ export async function exerciseSystemStateReads(
       expect(await button.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
       expect((await button.boundingBox())?.height).toBeGreaterThanOrEqual(44);
       await page.keyboard.press('Enter');
-      await expect.poll(() => page.locator('.fig__value').textContent()).toBe(figure);
+      await expect.poll(() => page.locator('.place-median .fig__value').textContent()).toBe(figure);
       expect(page.url()).toBe(url);
       expect(attempts).toBe(2);
     } finally {
@@ -92,12 +92,12 @@ export async function exerciseSystemStateReads(
     expect(await page.getByRole('heading', { name: 'Bela Vista', exact: true }).isVisible()).toBe(
       true,
     );
-    expect(await page.locator('.system-loading [role="status"]').textContent()).toBe(
+    expect(await page.locator('.place-median .system-loading [role="status"]').textContent()).toBe(
       locale === 'en' ? 'Loading median…' : 'Carregando mediana…',
     );
     await capture('loading');
     release?.();
-    await expect.poll(() => page.locator('.fig__value').textContent()).toBe(figure);
+    await expect.poll(() => page.locator('.place-median .fig__value').textContent()).toBe(figure);
   } finally {
     release?.();
     await page.unroute(marketUrl);
@@ -144,7 +144,7 @@ export async function exerciseSystemStateReads(
   }
   // Expire only the browser cache clock; the API and its computation time stay real.
   await page.goto(url);
-  await expect.poll(() => page.locator('.fig__value').textContent()).toBe(figure);
+  await expect.poll(() => page.locator('.place-median .fig__value').textContent()).toBe(figure);
   await page.clock.install();
   await page.clock.fastForward(31000);
   let failedRefresh = false;
@@ -162,7 +162,7 @@ export async function exerciseSystemStateReads(
       .click();
     await expect.poll(() => failedRefresh).toBe(true);
     await expect.poll(() => page.locator('.system-error').count()).toBe(1);
-    expect(await page.locator('.fig__value').textContent()).toBe(figure);
+    expect(await page.locator('.place-median .fig__value').textContent()).toBe(figure);
     expect(await page.getByRole('heading', { name: 'Bela Vista', exact: true }).isVisible()).toBe(
       true,
     );
@@ -170,7 +170,7 @@ export async function exerciseSystemStateReads(
     await page.unroute(marketUrl);
     await page.getByRole('button', { name: retry, exact: true }).click();
     await expect.poll(() => page.locator('.system-error').count()).toBe(0);
-    expect(await page.locator('.fig__value').textContent()).toBe(figure);
+    expect(await page.locator('.place-median .fig__value').textContent()).toBe(figure);
   } finally {
     await page.unroute(marketUrl);
     await page.clock.resume();

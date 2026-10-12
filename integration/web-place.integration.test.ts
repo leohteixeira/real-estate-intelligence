@@ -4,6 +4,9 @@ import { chromium } from 'playwright';
 import { expect, test } from 'vitest';
 import {
   parsePlaceMarketResponse,
+  parsePlaceMarketNeighboursResponse,
+  parsePlaceMarketSeriesResponse,
+  parseReductionsResponse,
   parsePlaceResponse,
   parsePlacesResponse,
 } from '../packages/contracts/dist/index.js';
@@ -11,6 +14,12 @@ import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './supp
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
 import { exerciseSystemStateReads } from './support/system-state-reads.ts';
+import { exerciseOverviewReads } from './support/overview-reads.ts';
+import { acquireOverviewReduction } from './support/overview-history.ts';
+import {
+  exerciseOverviewDisclosures,
+  toggleOverviewDisclosure,
+} from './support/overview-disclosures.ts';
 
 test('web place tracer follows production acquisition, proxy and browser journeys', async () => {
   await withCampaign(async ({ command }) => {
@@ -92,6 +101,11 @@ test('web place tracer follows production acquisition, proxy and browser journey
     expect(median.recordCount).toBe(1);
     expect(median.sources.map((source) => source.label)).toEqual(['synthetic-data']);
     expect(median.value?.minorUnits).toBe(951515);
+    const initialReductions = await requestHttp(
+      `${base}/api/v1/places/${bela}/largest-reductions?pageSize=3`,
+    );
+    expect(initialReductions.status).toBe(200);
+    expect(parseReductionsResponse(await initialReductions.json()).items).toEqual([]);
     const browserEnv = { ...process.env };
     // This container inherits DISPLAY=:0 but has no X11 socket. Keep ANGLE truly headless.
     delete browserEnv.DISPLAY;
@@ -145,8 +159,10 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   if (url.pathname.startsWith('/api/')) {
                     if (
                       request.method() !== 'GET' ||
-                      !/^\/api\/v1\/places(?:\/[a-z0-9-]+(?:\/(?:children|market))?)?$/.test(
-                        url.pathname,
+                      !(
+                        /^\/api\/v1\/places(?:\/[a-z0-9-]+(?:\/(?:children|market(?:\/(?:neighbours|monthly-series))?|largest-reductions))?)?$/.test(
+                          url.pathname,
+                        ) || /^\/api\/v1\/properties\/[0-9a-f-]{36}$/.test(url.pathname)
                       )
                     )
                       forbiddenRequests.push(`${request.method()} ${url.pathname}`);
@@ -160,9 +176,48 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 await page.goto(`${base}/places/${bela}`);
                 const expectedFigure = locale === 'en' ? 'R$ 9,515 /m²' : 'R$ 9.515 /m²';
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 await expect.poll(() => page.locator('.place-navigation a').count()).toBe(5);
+                const neighboursRead = await requestHttp(
+                  `${base}/api/v1/places/${bela}/market/neighbours`,
+                );
+                const seriesRead = await requestHttp(
+                  `${base}/api/v1/places/${bela}/market/monthly-series`,
+                );
+                expect(neighboursRead.status).toBe(200);
+                expect(seriesRead.status).toBe(200);
+                const neighbours = parsePlaceMarketNeighboursResponse(await neighboursRead.json());
+                const series = parsePlaceMarketSeriesResponse(await seriesRead.json());
+                await expect.poll(() => page.locator('.place-series tbody tr').count()).toBe(12);
+                expect(series.points).toHaveLength(12);
+                expect(await page.locator('.place-parent').textContent()).toContain('Centro');
+                expect(await page.locator('.place-counts').textContent()).toContain(
+                  locale === 'en' ? 'Prepared' : 'preparad',
+                );
+                expect(await page.locator('.place-sale .tag--sale').textContent()).toBe(
+                  locale === 'en' ? 'Sale' : 'Venda',
+                );
+                expect(await page.locator('.place-sale').textContent()).toContain(
+                  locale === 'en' ? 'None available' : 'Nenhum disponível',
+                );
+                expect(await page.locator('.place-map svg').getAttribute('aria-label')).toContain(
+                  'Bela Vista',
+                );
+                for (const item of neighbours.items) {
+                  const neighbourLink = page
+                    .locator('.place-neighbours')
+                    .getByRole('link', { name: item.place.name.ptBR, exact: true });
+                  await expect.poll(() => neighbourLink.count()).toBe(1);
+                  expect(await neighbourLink.getAttribute('href')).toBe(`/places/${item.place.id}`);
+                }
+                await expect
+                  .poll(() => page.locator('.place-reductions').textContent())
+                  .toContain(
+                    locale === 'en'
+                      ? 'No recorded price reductions.'
+                      : 'Nenhuma redução de preço registrada.',
+                  );
                 expect(
                   await page.getByRole('heading', { name: 'Bela Vista', exact: true }).isVisible(),
                 ).toBe(true);
@@ -183,16 +238,22 @@ test('web place tracer follows production acquisition, proxy and browser journey
                       .evaluate((element) => getComputedStyle(element).color),
                   ).toBe('rgb(11, 44, 107)');
                 }
-                expect(await page.locator('.place-provenance').textContent()).toContain(
-                  locale === 'en' ? '1 contributing property' : '1 imóvel contribuinte',
-                );
-                expect(await page.locator('.place-provenance').textContent()).toContain(
-                  'synthetic-data',
-                );
-                expect(await page.locator('.place-provenance').textContent()).toContain(
-                  locale === 'en' ? 'Computed at' : 'Calculada em',
-                );
-                expect(await page.locator('.place-provenance').textContent()).toContain('UTC');
+                await exerciseOverviewDisclosures(page, `${width}-${locale}`, locale);
+                const liveEvidence = page.locator('.place-median .place-figure-evidence');
+                await toggleOverviewDisclosure(page, liveEvidence, true);
+                expect(
+                  await page.locator('.place-median .place-provenance').textContent(),
+                ).toContain(locale === 'en' ? '1 contributing property' : '1 imóvel contribuinte');
+                expect(
+                  await page.locator('.place-median .place-provenance').textContent(),
+                ).toContain('synthetic-data');
+                expect(
+                  await page.locator('.place-median .place-provenance').textContent(),
+                ).toContain(locale === 'en' ? 'Computed at' : 'Calculada em');
+                expect(
+                  await page.locator('.place-median .place-provenance').textContent(),
+                ).toContain('UTC');
+                await toggleOverviewDisclosure(page, liveEvidence, false);
                 expect(await page.locator('html').getAttribute('lang')).toBe(locale);
                 await page.evaluate(() => document.fonts.ready);
                 const style = await page.locator('.plate__name').evaluate((element) => {
@@ -227,6 +288,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                     .count(),
                 ).toBe(0);
                 const capture = new URL(`place-${width}-${locale}.png`, captures);
+                await page.evaluate(() => window.scrollTo(0, 0));
                 const plate = await page.locator('.place-plate').boundingBox();
                 const rail = await page.locator('.place-rail').boundingBox();
                 expect(plate?.width).toBe(width === 390 ? 358 : 560);
@@ -241,13 +303,16 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 });
                 await page.screenshot({ path: capture.pathname, fullPage: true });
                 await checkAccessibility(page, `place-${width}-${locale}`);
+                await page.evaluate(() => window.scrollTo(0, 0));
+                expect(await page.evaluate(() => window.scrollY)).toBe(0);
                 await page.screenshot({
                   path: new URL(`place-${width}-${locale}-top.png`, captures).pathname,
                 });
                 await exerciseSystemStateReads(page, base, width, locale, captures);
+                await exerciseOverviewReads(page, base, width, locale, captures);
                 await page.goto(`${base}/places/${bela}`);
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 const publicNavigation = page.locator(
                   width === 390 ? '.public-tabs' : '.public-rail-navigation',
@@ -295,7 +360,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 }
                 await page.goto(`${base}/places/${bela}`);
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 for (const destination of ['search', 'ask'] as const) {
                   await publicNavigation
@@ -409,7 +474,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   })
                   .click();
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 await page.goto(`${base}/ask/${bela}`);
                 await expect
@@ -420,7 +485,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   .click();
                 await expect.poll(() => page.url()).toBe(`${base}/places/${bela}`);
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 expect(await publicNavigation.locator('[aria-current="page"]').textContent()).toBe(
                   labels.places,
@@ -428,27 +493,27 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 expect(forbiddenRequests).toEqual([]);
                 await page.reload();
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 const navigation = page.getByRole('navigation', {
                   name: locale === 'en' ? 'Place navigation' : 'Navegação de lugares',
                 });
                 await navigation.getByRole('link', { name: 'Pinheiros', exact: true }).click();
                 await expect
-                  .poll(() => page.locator('.place-unavailable').textContent())
+                  .poll(() => page.locator('.place-median .place-unavailable').textContent())
                   .toBe(locale === 'en' ? 'Median not available' : 'Mediana não disponível');
-                expect(await page.locator('.fig__value').count()).toBe(0);
+                expect(await page.locator('.place-median .fig__value').count()).toBe(0);
                 await page.goBack();
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 await page.goForward();
                 await expect
-                  .poll(() => page.locator('.place-unavailable').textContent())
+                  .poll(() => page.locator('.place-median .place-unavailable').textContent())
                   .toBe(locale === 'en' ? 'Median not available' : 'Mediana não disponível');
                 await page.goto(`${base}/places/${bela}`);
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
                 const switchButton = page
                   .getByRole('button', { name: locale === 'en' ? 'Português' : 'English' })
@@ -467,7 +532,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   nextLocale,
                 );
                 await expect
-                  .poll(() => page.locator('.fig__value').textContent())
+                  .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(nextLocale === 'en' ? 'R$ 9,515 /m²' : 'R$ 9.515 /m²');
                 await page.goto(`${base}/places/BAD_ID`);
                 expect(
@@ -659,6 +724,52 @@ test('web place tracer follows production acquisition, proxy and browser journey
               expect(external).toEqual([]);
             },
             () => longNameContext.close(),
+          );
+        }
+        await acquireOverviewReduction({
+          base,
+          postgres: postgres!,
+          minio: minio!,
+          user,
+          password,
+          bucket: env.OBJECT_STORE_BUCKET,
+        });
+        for (const locale of ['pt-BR', 'en'] as const) {
+          const historyContext = await browser.newContext({
+            viewport: { width: 390, height: 1706 },
+            reducedMotion: 'reduce',
+          });
+          await preserveCleanup(
+            async () => {
+              await historyContext.route('**/*', async (route) => {
+                const url = new URL(route.request().url());
+                if (url.origin !== base) await route.abort();
+                else await route.continue();
+              });
+              await historyContext.addInitScript(
+                (choice) => localStorage.setItem('rei.locale', choice),
+                locale,
+              );
+              const page = await historyContext.newPage();
+              await page.goto(`${base}/places/${bela}`);
+              const history = page.locator('.place-reductions');
+              await expect.poll(() => history.locator('.prow').count()).toBe(1);
+              expect(await history.textContent()).toContain(
+                locale === 'en' ? 'R$ 700,000.00' : 'R$ 700.000,00',
+              );
+              expect(await history.textContent()).toContain(
+                locale === 'en' ? 'R$ 785,000.00' : 'R$ 785.000,00',
+              );
+              expect(await history.textContent()).toContain(locale === 'en' ? '10.8%' : '10,8%');
+              const row = history.locator('.prow');
+              expect(await row.getAttribute('href')).toBe(`/search/${bela}`);
+              await checkAccessibility(page, `place-persisted-reduction-390-${locale}`);
+              await row.focus();
+              expect(await row.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+              await page.keyboard.press('Enter');
+              await expect.poll(() => page.url()).toBe(`${base}/search/${bela}`);
+            },
+            () => historyContext.close(),
           );
         }
       },

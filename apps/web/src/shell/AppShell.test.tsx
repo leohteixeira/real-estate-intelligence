@@ -9,13 +9,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../routes';
 import { createLocale } from '../places/locale';
 import { createReadCache, placesQuery } from '../places/place-queries';
-import {
-  bela,
-  marketFixture,
-  metadata,
-  pinheiros,
-  placesFixture,
-} from '../places/place-fixtures.test';
+import { bela, pinheiros } from '../places/place-fixtures.test';
+import { overviewFixture } from '../places/overview-fixtures.test';
 
 const caches: ReturnType<typeof createReadCache>[] = [];
 afterEach(async () => {
@@ -54,13 +49,7 @@ function History() {
 }
 function mount(path: string) {
   const request = vi.fn(
-    async (input: string) =>
-      new Response(
-        JSON.stringify(
-          placesFixture(input) ??
-            (input.endsWith('/market') ? marketFixture() : { metadata, place: bela }),
-        ),
-      ),
+    async (input: string) => new Response(JSON.stringify(overviewFixture(input))),
   );
   vi.stubGlobal('fetch', request);
   const cache = createReadCache();
@@ -84,9 +73,7 @@ describe('public shell', () => {
     request.mockImplementation(async (input: string) =>
       input === '/api/v1/places'
         ? new Response('private catalogue body', { status: 503 })
-        : new Response(
-            JSON.stringify(input.endsWith('/market') ? marketFixture() : { metadata, place: bela }),
-          ),
+        : new Response(JSON.stringify(overviewFixture(input))),
     );
     await act(async () => {
       await caches.at(-1)!.refetchQueries({ queryKey: placesQuery().queryKey });
@@ -98,13 +85,7 @@ describe('public shell', () => {
     const attempts = request.mock.calls.filter(([url]) => url === '/api/v1/places').length;
     expect(attempts).toBe(2);
     request.mockImplementation(
-      async (input: string) =>
-        new Response(
-          JSON.stringify(
-            placesFixture(input) ??
-              (input.endsWith('/market') ? marketFixture() : { metadata, place: bela }),
-          ),
-        ),
+      async (input: string) => new Response(JSON.stringify(overviewFixture(input))),
     );
     await userEvent.click(navigation.getByRole('button', { name: 'Tentar de novo' }));
     await screen.findByText('R$ 9.515');

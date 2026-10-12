@@ -10,7 +10,8 @@ import { AppRoutes } from '../routes';
 import { createLocale } from './locale';
 import type { Locale } from './locale';
 import { createReadCache } from './place-queries';
-import { bela, marketFixture, metadata, pinheiros, placesFixture } from './place-fixtures.test';
+import { bela, marketFixture, metadata, placesFixture } from './place-fixtures.test';
+import { overviewFixture } from './overview-fixtures.test';
 
 const caches: ReturnType<typeof createReadCache>[] = [];
 afterEach(async () => {
@@ -43,16 +44,7 @@ function mount(path = `/places/${bela.id}`, locale: Locale = 'pt-BR') {
 }
 function mockReads() {
   const request = vi.fn(async (input: string) => {
-    const collection = placesFixture(input);
-    if (collection) return new Response(JSON.stringify(collection));
-    const place = input.includes(pinheiros.id) ? pinheiros : bela;
-    return new Response(
-      JSON.stringify(
-        input.endsWith('/market')
-          ? marketFixture(place, place.id === bela.id)
-          : { metadata, place },
-      ),
-    );
+    return new Response(JSON.stringify(overviewFixture(input)));
   });
   vi.stubGlobal('fetch', request);
   return request;
@@ -95,19 +87,29 @@ describe('place tracer', () => {
     mount();
     expect(await screen.findByRole('heading', { name: 'Bela Vista' })).toBeVisible();
     expect(await screen.findByText('R$ 9.515')).toBeVisible();
-    expect(screen.getByText('1 imóvel contribuinte')).toBeVisible();
-    expect(screen.getByText('Fontes: synthetic-data')).toBeVisible();
-    expect(screen.getByText(/Calculada em/)).toHaveTextContent('12:00 UTC');
-    expect(screen.getByText('Pedido')).toBeVisible();
+    const live = within(document.querySelector<HTMLElement>('.place-median')!);
+    await userEvent.click(document.querySelector('.place-median summary')!);
+    expect(live.getByText('1 imóvel contribuinte')).toBeVisible();
+    expect(live.getByText('Fontes: synthetic-data')).toBeVisible();
+    expect(
+      within(document.querySelector<HTMLElement>('.place-median .place-provenance')!).getByText(
+        /Calculada em/,
+      ),
+    ).toHaveTextContent('12:00 UTC');
+    expect(live.getByText('Pedido')).toBeVisible();
     expect(screen.queryByText('2000')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Centro' })).toBeVisible();
+    expect(screen.getAllByRole('link', { name: 'Centro' })[0]).toBeVisible();
     await userEvent.click(
       within(screen.getAllByRole('group', { name: 'Idioma' })[0]!).getByRole('button', {
         name: 'English',
       }),
     );
     expect(await screen.findByText('R$ 9,515')).toBeVisible();
-    expect(screen.getByText('1 contributing property')).toBeVisible();
+    expect(
+      within(document.querySelector<HTMLElement>('.place-median')!).getByText(
+        '1 contributing property',
+      ),
+    ).toBeVisible();
     expect(document.documentElement.lang).toBe('en');
     expect(localStorage.getItem('rei.locale')).toBe('en');
     expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
@@ -116,9 +118,17 @@ describe('place tracer', () => {
     mockReads();
     mount('/places');
     await screen.findByText('R$ 9.515');
-    await userEvent.click(screen.getByRole('link', { name: 'Pinheiros' }));
+    await userEvent.click(
+      within(screen.getByRole('navigation', { name: 'Navegação de lugares' })).getByRole('link', {
+        name: 'Pinheiros',
+      }),
+    );
     expect(await screen.findByRole('heading', { name: 'Pinheiros' })).toBeVisible();
-    expect(await screen.findByText('Mediana não disponível')).toBeVisible();
+    expect(
+      await within(document.querySelector<HTMLElement>('.place-median')!).findByText(
+        'Mediana não disponível',
+      ),
+    ).toBeVisible();
     expect(screen.queryByText('R$ 9.515')).not.toBeInTheDocument();
   });
   it('retains the plate while pending and aborts superseded median reads', async () => {
@@ -136,22 +146,19 @@ describe('place tracer', () => {
           ),
         );
       }
-      const place = input.includes(pinheiros.id) ? pinheiros : bela;
-      return new Response(
-        JSON.stringify(
-          placesFixture(input)
-            ? placesFixture(input)
-            : input.endsWith('/market')
-              ? marketFixture(place, false)
-              : { metadata, place },
-        ),
-      );
+      return new Response(JSON.stringify(overviewFixture(input)));
     });
     mount();
     expect(await screen.findByRole('heading', { name: 'Bela Vista' })).toBeVisible();
     expect(await screen.findByText('Carregando mediana…')).toBeVisible();
-    await userEvent.click(screen.getByRole('link', { name: 'Pinheiros' }));
-    await screen.findByText('Mediana não disponível');
+    await userEvent.click(
+      within(screen.getByRole('navigation', { name: 'Navegação de lugares' })).getByRole('link', {
+        name: 'Pinheiros',
+      }),
+    );
+    await within(document.querySelector<HTMLElement>('.place-median')!).findByText(
+      'Mediana não disponível',
+    );
     expect(pendingSignal?.aborted).toBe(true);
   });
   it.each(['http', 'malformed'])(
@@ -266,7 +273,12 @@ describe('place tracer', () => {
       await screen.findByText('Não foi possível carregar a mediana. Tente novamente.'),
     ).toBeVisible();
     expect(screen.getByText('R$ 9.515')).toBeVisible();
-    expect(screen.getByText('1 imóvel contribuinte')).toBeVisible();
+    await userEvent.click(document.querySelector('.place-median summary')!);
+    expect(
+      within(document.querySelector<HTMLElement>('.place-median')!).getByText(
+        '1 imóvel contribuinte',
+      ),
+    ).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
     expect(document.body).not.toHaveTextContent('secret payload');
     failing = false;
@@ -328,7 +340,13 @@ describe('place tracer', () => {
     });
     mount(undefined, 'en');
     expect(await screen.findByRole('heading', { name })).toBeVisible();
-    expect(await screen.findByText('Freshness not tracked')).toBeVisible();
+    await screen.findByText('R$ 9,515');
+    await userEvent.click(document.querySelector('.place-median summary')!);
+    expect(
+      await within(document.querySelector<HTMLElement>('.place-median')!).findByText(
+        'Freshness not tracked',
+      ),
+    ).toBeVisible();
   });
   it('switches language even when preference storage throws', async () => {
     mockReads();
