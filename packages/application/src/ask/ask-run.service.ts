@@ -26,6 +26,8 @@ export class AskRunService implements AskLiveFacade {
     return { kind: 'accepted', run };
   }
   public readonly create: AskRunRepository['create'] = (...args) => this.repository.create(...args);
+  public readonly expireQueued: AskRunRepository['expireQueued'] = (...args) =>
+    this.repository.expireQueued(...args);
   public readonly run: AskRunRepository['run'] = (...args) => this.repository.run(...args);
   public readonly thread: AskRunRepository['thread'] = (...args) => this.repository.thread(...args);
   public readonly events: AskRunRepository['events'] = (...args) => this.repository.events(...args);

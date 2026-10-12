@@ -26,6 +26,7 @@ import { askBearerCapability } from './ask.controller';
 import { readAskConfig } from './ask.config';
 import { askRequestWork } from './ask-request-signal';
 import { readQuery } from '../http/read-query';
+import { AskPendingLimitException } from '../http/ask-pending-limit.exception';
 export function strongAskBearer(header: unknown): string {
   const capability = askBearerCapability(header);
   if (capability.length < 43) throw new UnauthorizedException();
@@ -39,6 +40,7 @@ export async function liveAuthorized<T>(work: () => Promise<T>): Promise<T> {
       if (error.kind === 'forbidden') throw new ForbiddenException();
       if (error.kind === 'conflict') throw new ConflictException();
       if (error.kind === 'invalid') throw new BadRequestException();
+      if (error.kind === 'capacity') throw new AskPendingLimitException();
       throw new ServiceUnavailableException();
     }
     if (error instanceof TypeError || error instanceof DomainValidationError)

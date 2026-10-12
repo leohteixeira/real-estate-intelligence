@@ -29,6 +29,7 @@ import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 import { MarketModule } from '../market/index';
 import { GraphCheckpointController } from './graph-checkpoint.controller';
 import { GraphCheckpointRetentionJob } from './graph-checkpoint-retention.job';
+import { AskQueueExpiryJob } from './ask-queue-expiry.job';
 
 @Module({
   imports: [MarketModule],
@@ -40,6 +41,7 @@ import { GraphCheckpointRetentionJob } from './graph-checkpoint-retention.job';
     GraphCheckpointController,
   ],
   providers: [
+    AskQueueExpiryJob,
     GraphCheckpointRetentionJob,
     {
       provide: GRAPH_CHECKPOINT_PORT,

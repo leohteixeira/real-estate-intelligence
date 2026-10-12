@@ -13,12 +13,19 @@ import type {
 export const ASK_RUN_REPOSITORY = Symbol('ASK_RUN_REPOSITORY');
 export class AskLiveError extends Error {
   public constructor(
-    public readonly kind: 'forbidden' | 'conflict' | 'busy' | 'invalid' | 'unavailable',
+    public readonly kind:
+      | 'forbidden'
+      | 'conflict'
+      | 'busy'
+      | 'capacity'
+      | 'invalid'
+      | 'unavailable',
   ) {
     super('Ask operation unavailable.');
   }
 }
 export interface AskRunRepository {
+  expireQueued(limit: number, signal?: AbortSignal): Promise<number>;
   create(
     request: ValidatedAskCreate,
     capability: string,

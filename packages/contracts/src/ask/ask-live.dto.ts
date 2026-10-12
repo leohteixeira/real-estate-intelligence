@@ -18,6 +18,16 @@ import { askInputsWire, askQueryWire } from './ask.read.dto.js';
 import type { AskInputs } from './ask.read.types.js';
 
 // These contracts deliberately own their types independently of the domain package.
+export interface AskPendingLimit {
+  readonly code: 'thread_pending_limit';
+  readonly limit: 3;
+}
+export function parseAskPendingLimit(value: unknown): AskPendingLimit {
+  return parseWire(
+    value,
+    wireObject({ code: wireEnum(['thread_pending_limit']), limit: wireEnum([3]) }),
+  );
+}
 export interface StructuredAskCreate {
   readonly mode: 'structured-price-v1';
   readonly threadId: string | null;
@@ -141,7 +151,7 @@ export interface AskLiveRun {
   readonly placeId: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly state: 'queued' | 'running' | 'completed' | 'failed';
+  readonly state: 'queued' | 'running' | 'completed' | 'failed' | 'expired';
   readonly originalInputs: AskInputs;
   readonly decision: {
     readonly source: 'fixed-structured-v1' | 'validated-text-v1';
@@ -150,13 +160,13 @@ export interface AskLiveRun {
   } | null;
   readonly result: PriceResult | null;
   readonly terminal: {
-    readonly state: 'completed' | 'failed';
-    readonly reason: 'execution_unavailable' | null;
+    readonly state: 'completed' | 'failed' | 'expired';
+    readonly reason: 'execution_unavailable' | 'queue_expired' | null;
     readonly at: string;
   } | null;
   readonly steps: readonly {
     readonly sequence: number;
-    readonly phase: 'calculating' | 'completed' | 'failed';
+    readonly phase: 'calculating' | 'completed' | 'failed' | 'expired';
     readonly at: string;
   }[];
 }
@@ -171,7 +181,7 @@ export interface AskLiveEvent {
   readonly id: string;
   readonly runId: string;
   readonly sequence: number;
-  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed';
+  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed' | 'ask.expired';
   readonly terminal: boolean;
   readonly run: AskLiveRun;
 }
@@ -363,7 +373,7 @@ const liveRunWire = wireObject({
   placeId: wireNullable(wireSlug),
   createdAt: wireDate,
   updatedAt: wireDate,
-  state: wireEnum(['queued', 'running', 'completed', 'failed']),
+  state: wireEnum(['queued', 'running', 'completed', 'failed', 'expired']),
   originalInputs: askInputsWire,
   decision: wireNullable(
     wireObject({
@@ -375,15 +385,15 @@ const liveRunWire = wireObject({
   result: wireNullable(priceResultWire),
   terminal: wireNullable(
     wireObject({
-      state: wireEnum(['completed', 'failed']),
-      reason: wireNullable(wireEnum(['execution_unavailable'])),
+      state: wireEnum(['completed', 'failed', 'expired']),
+      reason: wireNullable(wireEnum(['execution_unavailable', 'queue_expired'])),
       at: wireDate,
     }),
   ),
   steps: wireArray(
     wireObject({
       sequence: wireNumber(1, 100, true),
-      phase: wireEnum(['calculating', 'completed', 'failed']),
+      phase: wireEnum(['calculating', 'completed', 'failed', 'expired']),
       at: wireDate,
     }),
   ),
@@ -457,7 +467,7 @@ export function parseAskLiveRun(value: unknown): AskLiveRun {
       (run.basis === 'text-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1')
   )
     invalidWire();
-  const terminal = run.state === 'completed' || run.state === 'failed';
+  const terminal = run.state === 'completed' || run.state === 'failed' || run.state === 'expired';
   if (
     run.createdAt > run.updatedAt ||
     terminal !== (run.terminal !== null) ||
@@ -470,12 +480,22 @@ export function parseAskLiveRun(value: unknown): AskLiveRun {
       run.terminal.at !== run.updatedAt ||
       (run.state === 'completed'
         ? run.terminal.reason !== null
-        : run.terminal.reason !== 'execution_unavailable'))
+        : run.terminal.reason !==
+          (run.state === 'expired' ? 'queue_expired' : 'execution_unavailable')))
   )
     invalidWire();
   if (run.state === 'queued' && (run.decision || run.steps.length)) invalidWire();
-  if (run.steps.length !== (run.state === 'queued' ? 0 : terminal ? 2 : 1)) invalidWire();
-  if (run.state !== 'queued' && (!run.decision || run.steps[0]?.phase !== 'calculating'))
+  if (run.state === 'expired' && (run.decision || run.steps[0]?.phase !== 'expired')) invalidWire();
+  if (
+    run.steps.length !==
+    (run.state === 'queued' ? 0 : run.state === 'expired' ? 1 : terminal ? 2 : 1)
+  )
+    invalidWire();
+  if (
+    run.state !== 'queued' &&
+    run.state !== 'expired' &&
+    (!run.decision || run.steps[0]?.phase !== 'calculating')
+  )
     invalidWire();
   if (
     run.decision &&
@@ -539,7 +559,7 @@ export function parseAskLiveEvent(value: unknown): AskLiveEvent {
       id: wirePattern(/^[0-9a-f-]{36}:v1:[1-9][0-9]*$/),
       runId: wireUuid,
       sequence: wireNumber(1, 100000, true),
-      event: wireEnum(['ask.progress', 'ask.completed', 'ask.failed']),
+      event: wireEnum(['ask.progress', 'ask.completed', 'ask.failed', 'ask.expired']),
       terminal: wireBoolean,
       run: liveRunWire,
     }),

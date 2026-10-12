@@ -31,7 +31,7 @@ export interface AskLiveRun {
   readonly placeId: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
-  readonly state: 'queued' | 'running' | 'completed' | 'failed';
+  readonly state: 'queued' | 'running' | 'completed' | 'failed' | 'expired';
   readonly originalInputs: AskInputs;
   readonly decision: {
     readonly source: 'fixed-structured-v1' | 'validated-text-v1';
@@ -40,13 +40,13 @@ export interface AskLiveRun {
   } | null;
   readonly result: PriceResult | null;
   readonly terminal: {
-    readonly state: 'completed' | 'failed';
-    readonly reason: 'execution_unavailable' | null;
+    readonly state: 'completed' | 'failed' | 'expired';
+    readonly reason: 'execution_unavailable' | 'queue_expired' | null;
     readonly at: string;
   } | null;
   readonly steps: readonly {
     readonly sequence: number;
-    readonly phase: 'calculating' | 'completed' | 'failed';
+    readonly phase: 'calculating' | 'completed' | 'failed' | 'expired';
     readonly at: string;
   }[];
 }
@@ -61,7 +61,7 @@ export interface AskLiveEvent {
   readonly id: string;
   readonly runId: string;
   readonly sequence: number;
-  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed';
+  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed' | 'ask.expired';
   readonly terminal: boolean;
   readonly run: AskLiveRun;
 }

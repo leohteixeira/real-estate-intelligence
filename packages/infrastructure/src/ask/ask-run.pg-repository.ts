@@ -9,6 +9,7 @@ import {
 } from '@rei/application';
 import {
   AskRunRequested,
+  askDeliveryPolicy,
   ASK_STRUCTURED_CONSUMER,
   DomainEvent,
   parseUuidV7,
@@ -59,14 +60,19 @@ interface StoredRun {
   readonly grant_digest: string | null;
 }
 class AskTerminalEvent extends DomainEvent<
-  'ask.run.completed' | 'ask.run.failed',
+  'ask.run.completed' | 'ask.run.failed' | 'ask.run.expired',
   { readonly runId: string; readonly threadId: string }
 > {
   public constructor(eventId: string, run: AskLiveRun) {
     super({
       eventId,
       aggregateId: run.id,
-      type: run.state === 'completed' ? 'ask.run.completed' : 'ask.run.failed',
+      type:
+        run.state === 'completed'
+          ? 'ask.run.completed'
+          : run.state === 'expired'
+            ? 'ask.run.expired'
+            : 'ask.run.failed',
       version: 1,
       occurredAt: run.updatedAt,
       traceContext: extractAmqpTraceContext({ ...activeAmqpTraceHeaders() }),
@@ -77,6 +83,7 @@ class AskTerminalEvent extends DomainEvent<
 /** Every lifecycle mutation is a short API-owned transaction; network work holds no SQL scope. */
 export class PostgresAskRunRepository implements AskRunRepository {
   private readonly inbox: PostgresInbox;
+  private expiryFrontier = '0';
   public constructor(
     private readonly connection: DatabaseConnection,
     private readonly transactions: TransactionRunner,
@@ -134,7 +141,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
       event: run.terminal
         ? run.state === 'completed'
           ? 'ask.completed'
-          : 'ask.failed'
+          : run.state === 'expired'
+            ? 'ask.expired'
+            : 'ask.failed'
         : 'ask.progress',
       terminal: run.terminal !== null,
       run,
@@ -148,6 +157,13 @@ export class PostgresAskRunRepository implements AskRunRepository {
   private async uuid(client: DatabaseClient): Promise<string> {
     const rows = await client.query<{ id: string }>('SELECT uuidv7()::text AS id');
     return rows[0]!.id;
+  }
+  private async lifecycleAt(client: DatabaseClient, notBefore: string): Promise<string> {
+    const rows = await client.query<{ at: Date }>(
+      'SELECT GREATEST(clock_timestamp(),$1::timestamptz) AS at',
+      [notBefore],
+    );
+    return rows[0]!.at.toISOString();
   }
   private async lock(client: DatabaseClient, key: string): Promise<void> {
     await lockAskThread(client, key);
@@ -187,6 +203,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         request.inputs.areaSquareMeters,
       ]),
     );
+    let replay = false;
     const threadId = await this.transaction(async (_tx, client) => {
       await this.lock(client, creationKey);
       const previous = await client.query<{ id: string }>(
@@ -197,6 +214,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         const row = (await this.stored(client, previous[0].id))!;
         this.authorize(row, capability);
         if (row.request_fingerprint !== fingerprint) throw new AskLiveError('conflict');
+        replay = true;
         return parseAskLiveRun(row.document).threadId;
       }
       if (request.threadId) {
@@ -223,6 +241,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       );
       return id;
     }, signal);
+    if (!replay) await this.expireThread(threadId, capability, signal);
     return this.transaction(async (tx, client) => {
       await this.lock(client, creationKey);
       const previous = await client.query<{ id: string }>(
@@ -235,9 +254,24 @@ export class PostgresAskRunRepository implements AskRunRepository {
         if (row.request_fingerprint !== fingerprint) throw new AskLiveError('conflict');
         return structuredClone(parseAskLiveRun(row.document));
       }
+      await this.lock(client, threadId);
+      const authority = await client.query<{ authority_digest: string }>(
+        'SELECT authority_digest FROM ask.thread WHERE id=$1',
+        [threadId],
+      );
+      if (!authority[0]) throw new AskLiveError('forbidden');
+      this.authorize(authority[0], capability);
+      const pending = await client.query<{ count: number }>(
+        "SELECT count(*)::integer AS count FROM ask.run WHERE thread_id=$1 AND state IN ('queued','running')",
+        [threadId],
+      );
+      if (pending[0]!.count >= askDeliveryPolicy.pendingLimit) throw new AskLiveError('capacity');
       const id = await this.uuid(client);
       const eventId = await this.uuid(client);
-      const at = new Date().toISOString();
+      const clock = await client.query<{ at: Date; deadline: Date }>(
+        "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) SELECT at, at + interval '120 seconds' AS deadline FROM observed",
+      );
+      const at = clock[0]!.at.toISOString();
       const run: AskLiveRun = {
         basis: request.mode,
         id,
@@ -256,7 +290,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         steps: [],
       };
       await client.query(
-        `INSERT INTO ask.run (id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document) VALUES ($1,$2,$3,$4,$5,'queued',$6,$7,$8)`,
+        `INSERT INTO ask.run (id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document,admitted_at,queue_expires_at) VALUES ($1,$2,$3,$4,$5,'queued',$6,$7,$8,$9,$10)`,
         [
           id,
           threadId,
@@ -266,6 +300,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
           request.inputs.priceMinorUnits,
           request.inputs.areaSquareMeters,
           run,
+          clock[0]!.at,
+          clock[0]!.deadline,
         ],
       );
       await this.append(client, run);
@@ -310,7 +346,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!rows[0]) return null;
       this.authorize(rows[0], capability);
       const runs = await client.query<{ document: unknown }>(
-        'SELECT document FROM ask.run WHERE thread_id=$1 ORDER BY id',
+        'SELECT document FROM ask.run WHERE thread_id=$1 ORDER BY admission_sequence',
         [id],
       );
       const parsedRuns = runs.map((row) => structuredClone(parseAskLiveRun(row.document)));
@@ -360,6 +396,19 @@ export class PostgresAskRunRepository implements AskRunRepository {
         await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
         return { disposition: 'terminal', identity, run };
       }
+      const expired = await this.expire(tx, client, row, identity);
+      if (expired) return { disposition: 'terminal', identity, run: expired };
+      const head = await client.query<{ id: string }>(
+        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND state IN ('queued','running') ORDER BY admission_sequence LIMIT 1",
+        [identity.threadId],
+      );
+      if (!head[0]) throw new AskLiveError('unavailable');
+      if (head[0].id !== run.id)
+        return {
+          disposition: 'busy',
+          identity,
+          retryAfterMs: askAdmissionPolicy.maximumBusyRetryAfterMs,
+        };
       const busy = await client.query<{ delay: number }>(
         `SELECT LEAST(30000,GREATEST(1,ceil(EXTRACT(epoch FROM (claim_expires_at-clock_timestamp()))*1000)))::integer AS delay FROM ask.run WHERE thread_id=$1 AND state='running' AND claim_expires_at>clock_timestamp() LIMIT 1`,
         [identity.threadId],
@@ -375,8 +424,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const executionId = await this.uuid(client);
       const grant = randomBytes(32).toString('base64url');
       const checkpointGrant = randomBytes(32).toString('base64url');
-      const now = Date.now();
-      const at = new Date(now).toISOString();
+      const at = await this.lifecycleAt(client, run.updatedAt);
       if (run.state === 'queued')
         run = {
           ...run,
@@ -410,6 +458,107 @@ export class PostgresAskRunRepository implements AskRunRepository {
         },
       };
     }, signal);
+  }
+  /** The caller has already fenced and authenticated this single run. */
+  private async expire(
+    tx: Transaction,
+    client: DatabaseClient,
+    row: StoredRun,
+    identity: AskRequestedIdentity,
+  ): Promise<AskLiveRun | null> {
+    const previous = this.identity(row, identity);
+    if (previous.state !== 'queued') return null;
+    const eligible = await client.query<{ at: Date }>(
+      "SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND state='queued' AND queue_expires_at<=clock_timestamp()",
+      [identity.runId],
+    );
+    if (!eligible[0]) return null;
+    const at = eligible[0].at.toISOString();
+    const run: AskLiveRun = {
+      ...previous,
+      state: 'expired',
+      updatedAt: at,
+      decision: null,
+      result: null,
+      terminal: { state: 'expired', reason: 'queue_expired', at },
+      steps: [{ sequence: 1, phase: 'expired', at }],
+    };
+    await client.query("UPDATE ask.run SET state='expired',document=$2 WHERE id=$1", [
+      run.id,
+      parseAskLiveRun(run),
+    ]);
+    await this.append(client, run);
+    await this.outbox.append(tx, [new AskTerminalEvent(await this.uuid(client), run)]);
+    await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
+    return structuredClone(run);
+  }
+  private async expireThread(
+    threadId: string,
+    capability: string,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const candidates = await this.transaction(async (_tx, client) => {
+      const rows = await client.query<{ authority_digest: string }>(
+        'SELECT authority_digest FROM ask.thread WHERE id=$1',
+        [threadId],
+      );
+      if (!rows[0]) throw new AskLiveError('forbidden');
+      this.authorize(rows[0], capability);
+      return client.query<{ id: string }>(
+        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND state='queued' AND queue_expires_at<=clock_timestamp() ORDER BY admission_sequence LIMIT 100",
+        [threadId],
+      );
+    }, signal);
+    for (const candidate of candidates) {
+      signal?.throwIfAborted();
+      await this.transaction(async (tx, client) => {
+        await this.lock(client, threadId);
+        const row = await this.stored(client, candidate.id);
+        if (!row) return;
+        this.authorize(row, capability);
+        await this.expire(tx, client, row, {
+          version: 1,
+          eventId: row.requested_event_id,
+          runId: candidate.id,
+          threadId,
+        });
+      }, signal);
+    }
+  }
+  public async expireQueued(limit: number, signal?: AbortSignal): Promise<number> {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new AskLiveError('invalid');
+    signal?.throwIfAborted();
+    const candidates = await this.transaction(
+      (_tx, client) =>
+        client.query<{ id: string; thread_id: string; admission_sequence: string }>(
+          "SELECT id::text,thread_id::text,admission_sequence::text FROM ask.run WHERE state='queued' AND queue_expires_at<=clock_timestamp() ORDER BY CASE WHEN ask.run.admission_sequence>$1::bigint THEN 0 ELSE 1 END, ask.run.admission_sequence LIMIT $2",
+          [this.expiryFrontier, limit],
+        ),
+      signal,
+    );
+    let count = 0;
+    for (const candidate of candidates) {
+      signal?.throwIfAborted();
+      this.expiryFrontier = candidate.admission_sequence;
+      count += await this.transaction(async (tx, client) => {
+        const locked = await client.query<{ locked: boolean }>(
+          'SELECT pg_try_advisory_xact_lock(hashtextextended($1,0)) AS locked',
+          [`ask:${candidate.thread_id}`],
+        );
+        if (!locked[0]?.locked) return 0;
+        const row = await this.stored(client, candidate.id);
+        if (!row) return 0;
+        return (await this.expire(tx, client, row, {
+          version: 1,
+          eventId: row.requested_event_id,
+          runId: candidate.id,
+          threadId: candidate.thread_id,
+        }))
+          ? 1
+          : 0;
+      }, signal);
+    }
+    return count;
   }
   public async tool(
     untrusted: PriceToolRequest,
@@ -449,7 +598,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         ...request,
         receiptId: await this.uuid(client),
         provenance: 'market-domain-v1',
-        result: calculate(new Date().toISOString()),
+        result: calculate(await this.lifecycleAt(client, run.updatedAt)),
       };
       parsePriceToolReceipt(receipt);
       await client.query('INSERT INTO ask.tool_receipt(run_id,id,document) VALUES ($1,$2,$3)', [
@@ -505,7 +654,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(request.eventId));
         return structuredClone(previous);
       }
-      const at = new Date().toISOString();
+      const at = await this.lifecycleAt(client, result?.computedAt ?? previous.updatedAt);
       const state = result ? 'completed' : 'failed';
       const run: AskLiveRun = {
         ...previous,

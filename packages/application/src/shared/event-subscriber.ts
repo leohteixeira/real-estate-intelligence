@@ -8,7 +8,11 @@ export interface EventDeliveryContext {
   readonly deadlineAt: number;
 }
 
-export type EventHandler = (event: EventEnvelope, delivery: EventDeliveryContext) => Promise<void>;
+export type EventHandlerResult = void | { readonly disposition: 'deferred' };
+export type EventHandler = (
+  event: EventEnvelope,
+  delivery: EventDeliveryContext,
+) => Promise<EventHandlerResult>;
 
 export interface EventSubscription {
   /** Stable logical identity used as both the durable queue name and inbox key. */

@@ -1,6 +1,7 @@
 import type {
   EventEnvelope,
   EventHandler,
+  EventHandlerResult,
   EventPublisher,
   EventSubscriber,
   EventSubscription,
@@ -353,7 +354,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
   #closing = false;
   readonly #subscriptions = new Map<string, SubscriptionRecord>();
   readonly #deliveries = new Set<Promise<void>>();
-  readonly #handlerWork = new Set<Promise<void>>();
+  readonly #handlerWork = new Set<Promise<EventHandlerResult>>();
   readonly #cleanupWork = new Set<Promise<void>>();
   readonly #deliveryControllers = new Set<AbortController>();
 
@@ -780,7 +781,34 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
       () => this.#handlerWork.delete(work),
     );
     try {
-      await bounded(work, handlerTimeoutMs, 'Event handling', deliveryController.signal);
+      const result = await bounded(
+        work,
+        handlerTimeoutMs,
+        'Event handling',
+        deliveryController.signal,
+      );
+      if (result?.disposition === 'deferred') {
+        clearTimeout(deadlineTimer);
+        // Scheduling settlement has its own failure path and never spends handler attempts.
+        try {
+          await abortableDelay(1_000, deliveryController.signal);
+          await this.transferConfirmed(
+            generation,
+            message,
+            sourceQueue,
+            attempt,
+            'admission-deferred',
+            transportTraceContext,
+          );
+          if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
+        } catch {
+          if (!generation.invalidated) {
+            this.invalidateGeneration(generation);
+            await this.closeGeneration(generation, 'RabbitMQ interrupted admission deferral');
+          }
+        }
+        return;
+      }
       if (!generation.invalidated && !this.#closing) generation.channel.ack(message);
     } catch {
       if (!handlerSettled) tracedHandler.markTimedOut();
@@ -842,7 +870,7 @@ export class RabbitMqEventBroker implements EventPublisher, EventSubscriber {
     message: BrokerMessage,
     destinationQueue: string,
     attempt: number,
-    reason: 'handler-retry' | 'delivery-limit' | 'invalid-envelope',
+    reason: 'handler-retry' | 'delivery-limit' | 'invalid-envelope' | 'admission-deferred',
     traceContext: EventEnvelope['traceContext'],
   ): Promise<void> {
     const correlationId = randomUUID();

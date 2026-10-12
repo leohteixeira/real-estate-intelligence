@@ -12,6 +12,7 @@ import type { ErrorResponse } from '@rei/contracts';
 import type { Request, Response } from 'express';
 
 import { getRequestId, REQUEST_ID_HEADER } from './request-id';
+import { AskPendingLimitException } from './ask-pending-limit.exception';
 
 interface PublicError {
   readonly code: string;
@@ -82,7 +83,8 @@ export class ApiExceptionFilter implements ExceptionFilter {
   public catch(exception: unknown, host: ArgumentsHost): void {
     const http = host.switchToHttp();
     const request = http.getRequest<Request>();
-    const response = http.getResponse<Response<ErrorResponse>>();
+    const response =
+      http.getResponse<Response<ErrorResponse | AskPendingLimitException['refusal']>>();
     const exceptionStatus = getExceptionStatus(exception);
     const status = isHttpErrorStatus(exceptionStatus)
       ? exceptionStatus
@@ -99,6 +101,10 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     response.setHeader(REQUEST_ID_HEADER, requestId);
+    if (exception instanceof AskPendingLimitException) {
+      response.status(status).json(exception.refusal);
+      return;
+    }
     response.status(status).json({
       error: {
         ...publicError,

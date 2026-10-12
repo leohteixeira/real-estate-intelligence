@@ -15,6 +15,7 @@ export { EVENT_SUBSCRIBER } from './event-subscriber.js';
 export type {
   EventDeliveryContext,
   EventHandler,
+  EventHandlerResult,
   EventSubscriber,
   EventSubscription,
 } from './event-subscriber.js';
