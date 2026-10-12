@@ -62,8 +62,10 @@ shared with another epic, Description says which part this epic delivers.
 
 - Decision: the web application is one epic with `/api/v1` as its contract to the context epics
   (owner, 2026-10-10).
-- Open question: the router and the data-fetching library. ADR 0006 chose none for the foundation
-  phase; the shell entry needs an ADR first.
+- Decision: ADR 0028 accepts React Router declarative mode, TanStack Query, bundled i18next/
+  react-i18next and Vitest/Testing Library/jsdom after the foundation phase of ADR 0016. Dependency
+  installation and browser proof belong to implementing entries; integration remains typed Vitest
+  under ADR 0020 (agent, on the owner's behalf, 2026-10-12; D-051).
 - Open question (spec): who designs the sign-in entry, the signed-in shell and the theme switch. No
   MVP entry waits on it.
 - Parked: the third success signal names a real source in the privacy notice; it waits with

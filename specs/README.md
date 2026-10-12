@@ -41,6 +41,7 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0025         | Run-scoped remote graph checkpoints, fenced grants and bounded retention               |
 | 0026         | FIFO admission, three pending runs and truthful queued expiry                          |
 | 0027         | Versioned receipt-bound model explanations and pre-transmission privacy                |
+| 0028         | Web routing, read cache, localization and component-test standard                      |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.
