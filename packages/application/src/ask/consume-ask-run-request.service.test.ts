@@ -23,6 +23,7 @@ const input: StructuredExecutionInput = {
   query: 'Calculate.',
   locale: 'en',
   toolGrant: 'g'.repeat(43),
+  checkpointGrant: 'c'.repeat(43),
   inputs: { priceMinorUnits: 100, currency: 'BRL', areaSquareMeters: 2 },
 };
 const evidence: StructuredExecutionEvidence = {
@@ -189,7 +190,7 @@ describe('Ask requested delivery orchestration', () => {
     ).rejects.toThrow();
     expect(h.complete).not.toHaveBeenCalled();
   });
-  it.each(['cancelled', 'exhausted'] as const)(
+  it.each(['transient', 'cancelled', 'exhausted'] as const)(
     'preserves %s failure before its execution deadline without completing the run',
     async (kind) => {
       vi.useFakeTimers();

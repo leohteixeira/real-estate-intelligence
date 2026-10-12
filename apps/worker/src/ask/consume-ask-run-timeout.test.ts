@@ -27,6 +27,7 @@ it('preserves actual five-second executor exhaustion inside the ten-second consu
     query: 'Calculate.',
     locale: 'en',
     toolGrant: 'g'.repeat(43),
+    checkpointGrant: 'c'.repeat(43),
     inputs: { priceMinorUnits: 100, currency: 'BRL', areaSquareMeters: 2 },
   };
   const claim = vi.fn<RunDispatch['claim']>().mockResolvedValue({

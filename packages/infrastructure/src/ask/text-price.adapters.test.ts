@@ -24,6 +24,7 @@ const input = parseTextExecutionRequest({
   query: 'Price BRL 785000, area 68 m2',
   locale: 'en',
   toolGrant: 'g'.repeat(43),
+  checkpointGrant: 'c'.repeat(43),
   inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
 });
 const result = {

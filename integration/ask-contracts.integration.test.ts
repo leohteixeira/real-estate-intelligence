@@ -94,6 +94,8 @@ async function withAskFixture(work: (base: string) => Promise<void>): Promise<vo
       connection = new DatabaseConnection(url.toString());
       const before = await databaseState(connection);
       expect(before.filter((table) => table.schema === 'ask').map((table) => table.table)).toEqual([
+        'graph_checkpoint',
+        'graph_pending_write',
         'run',
         'run_event',
         'thread',

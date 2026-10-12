@@ -683,22 +683,44 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
       const restarted = await requestHttp(`${api}/api/v1/runs/${golden.id}/events`, { headers });
       expect(frames(await restarted.text())).toStrictEqual(events);
 
-      // AI is unavailable: the real worker commits explicit failed state, never a fabricated result.
+      // Transport outage leaves a recoverable claim and no fabricated terminal effects.
       const failed = await create({
         ...requestBody,
         query: 'private-synthetic-failure-question',
       });
-      const failedStream = await requestHttp(`${api}/api/v1/runs/${failed.runId}/events`, {
-        headers,
+      await vi.waitFor(async () => expect((await snapshot(failed.runId)).state).toBe('running'), {
+        timeout: 20000,
+        interval: 100,
       });
-      const failedEvents = frames(await failedStream.text());
-      expect(failedEvents.at(-1)?.event).toBe('ask.failed');
-      expect(failedEvents.at(-1)?.run.result).toBeNull();
-      expect(failedEvents.at(-1)?.run.terminal?.reason).toBe('execution_unavailable');
+      expect((await snapshot(failed.runId)).result).toBeNull();
       expect(await counts(failed.runId)).toStrictEqual([
-        { events: 3, receipts: 0, inbox: 1, terminal_outbox: 1 },
+        { events: 2, receipts: 0, inbox: 0, terminal_outbox: 0 },
       ]);
       await fixture.up(['ai']);
+      await expire(failed.runId);
+      await vi.waitFor(async () => expect((await snapshot(failed.runId)).state).toBe('completed'), {
+        timeout: 60000,
+        interval: 200,
+      });
+      expect(await counts(failed.runId)).toStrictEqual([
+        { events: 3, receipts: 1, inbox: 1, terminal_outbox: 1 },
+      ]);
+      // Definitive authentication refusal remains a safe failed business terminal.
+      await fixture.up(['worker'], { ...fixture.environment, AI_INTERNAL_TOKEN: secret() });
+      const rejected = await create({
+        ...requestBody,
+        query: 'Synthetic definitive authentication refusal',
+      });
+      await vi.waitFor(async () => expect((await snapshot(rejected.runId)).state).toBe('failed'), {
+        timeout: 30000,
+        interval: 200,
+      });
+      expect((await snapshot(rejected.runId)).result).toBeNull();
+      expect((await snapshot(rejected.runId)).terminal?.reason).toBe('execution_unavailable');
+      expect(await counts(rejected.runId)).toStrictEqual([
+        { events: 3, receipts: 0, inbox: 1, terminal_outbox: 1 },
+      ]);
+      await fixture.up(['worker'], { ...fixture.environment, AI_INTERNAL_TOKEN: token });
       const isolation = await command([
         'exec',
         '-T',

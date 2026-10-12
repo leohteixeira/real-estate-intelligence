@@ -45,12 +45,22 @@ class FixtureController {
   }
 }
 
+@Controller('ask/runs/:id/checkpoints')
+class CheckpointParserFixtureController {
+  @Post()
+  public accept(): { readonly status: 'accepted' } {
+    return { status: 'accepted' };
+  }
+}
+
 describe('configureApi', () => {
   let app: INestApplication;
   let baseUrl: string;
 
   beforeEach(async () => {
-    const module = await Test.createTestingModule({ controllers: [FixtureController] }).compile();
+    const module = await Test.createTestingModule({
+      controllers: [FixtureController, CheckpointParserFixtureController],
+    }).compile();
     app = module.createNestApplication();
     configureApi(app);
     await app.listen(0, '127.0.0.1');
@@ -122,6 +132,43 @@ describe('configureApi', () => {
         requestId,
       },
     });
+  });
+
+  it('raises only the fixed checkpoint route parser to 768 KiB', async () => {
+    const route = `${baseUrl}/api/v1/ask/runs/0199bd4a-1111-7111-8111-111111111111/checkpoints`;
+    for (const [length, status] of [
+      [786420, 201],
+      [786432, 413],
+    ] as const) {
+      const response = await fetch(route, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ value: 'x'.repeat(length) }),
+      });
+      expect(response.status).toBe(status);
+    }
+  });
+
+  it('rejects chunked checkpoint JSON above the same HTTP bound', async () => {
+    const bytes = new TextEncoder().encode(JSON.stringify({ value: 'x'.repeat(786432) }));
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (let at = 0; at < bytes.length; at += 16384)
+          controller.enqueue(bytes.slice(at, at + 16384));
+        controller.close();
+      },
+    });
+    const options = {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      duplex: 'half' as const,
+    };
+    const response = await fetch(
+      `${baseUrl}/api/v1/ask/runs/0199bd4a-1111-7111-8111-111111111111/checkpoints`,
+      options,
+    );
+    expect(response.status).toBe(413);
   });
 
   it('hides unexpected exception details behind the internal error envelope', async () => {

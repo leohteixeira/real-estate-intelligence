@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ConsoleLogger } from '@nestjs/common';
+import { GraphCheckpointFailure } from '../graph/graph-checkpoint.port';
 import { compileNoOpGraph } from '../graph/no-op.graph';
 import { ExecutionService } from './execution.service';
 import { authorizeExecution } from './execution.authorization';
@@ -11,6 +13,30 @@ const input = {
   locale: 'en',
 } as const;
 describe('AI foundation execution', () => {
+  it('records only closed checkpoint category/source/operation without raw input or cause', async () => {
+    const log = vi.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation(() => {});
+    const graph = compileNoOpGraph();
+    vi.spyOn(graph, 'stream').mockRejectedValueOnce(
+      new GraphCheckpointFailure('rejected', 'http-status', 'put-writes'),
+    );
+    try {
+      await expect(
+        new ExecutionService(graph).execute(input, new AbortController().signal),
+      ).rejects.toThrow('Execution unavailable.');
+      expect(log).toHaveBeenCalledWith(
+        JSON.stringify({
+          event: 'ask.execution.unavailable',
+          category: 'rejected',
+          source: 'http-status',
+          operation: 'put-writes',
+        }),
+      );
+      expect(JSON.stringify(log.mock.calls)).not.toContain(input.query);
+      expect(JSON.stringify(log.mock.calls)).not.toContain(input.runId);
+    } finally {
+      log.mockRestore();
+    }
+  });
   it('collects actual compiled graph updates with correlated safe evidence', async () => {
     const result = await new ExecutionService(compileNoOpGraph()).execute(
       input,

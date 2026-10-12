@@ -63,6 +63,7 @@ describe('text execution union boundary', () => {
     executionId: '0197e4e0-0000-7000-8000-000000000004',
     step: 'text-price-v1',
     toolGrant: 'g'.repeat(43),
+    checkpointGrant: 'c'.repeat(43),
     inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
   };
   const textEvidence = {

@@ -149,6 +149,7 @@ describe('structured Ask closed wire contracts', () => {
       query: 'Price 100000, area 25 m2',
       locale: 'en',
       toolGrant: 'g'.repeat(43),
+      checkpointGrant: 'c'.repeat(43),
       inputs,
     };
     expect(parseTextExecutionRequest(input).step).toBe('text-price-v1');
@@ -213,6 +214,7 @@ describe('structured Ask closed wire contracts', () => {
       query: 'Calculate price.',
       locale: 'en',
       toolGrant: 'g'.repeat(43),
+      checkpointGrant: 'c'.repeat(43),
       inputs,
     };
     expect(parseStructuredExecutionRequest(input).inputs).toEqual(inputs);

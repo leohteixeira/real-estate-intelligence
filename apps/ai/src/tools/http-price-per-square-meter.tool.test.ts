@@ -90,6 +90,47 @@ describe('typed fixed-origin backend price tool', () => {
       expect(transport).toHaveBeenCalledOnce();
     }
   });
+  it.each([
+    ['broken-stream', 'transient'],
+    ['cancelled-stream', 'cancelled'],
+    ['malformed-json', 'rejected'],
+    ['oversized-stream', 'rejected'],
+  ] as const)('classifies post-header %s as %s in one attempt', async (scenario, kind) => {
+    const stop = new AbortController();
+    let reads = 0;
+    const body =
+      scenario === 'broken-stream' || scenario === 'cancelled-stream'
+        ? new ReadableStream<Uint8Array>({
+            pull(controller) {
+              reads++;
+              if (reads === 1) {
+                controller.enqueue(new TextEncoder().encode('{"version":1,'));
+              } else if (scenario === 'broken-stream') {
+                controller.error(new TypeError('Synthetic socket interruption.'));
+              } else {
+                stop.abort();
+              }
+            },
+          })
+        : scenario === 'malformed-json'
+          ? 'not JSON'
+          : 'x'.repeat(16385);
+    const transport = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        new Response(body, { status: 200, headers: { 'content-type': 'application/json' } }),
+      );
+    await expect(
+      new HttpPricePerSquareMeterTool('http://api.internal:8200', transport).calculate(
+        request,
+        grant,
+        stop.signal,
+        Date.now() + 1000,
+      ),
+    ).rejects.toMatchObject({ kind, message: 'Price tool unavailable.' });
+    expect(transport).toHaveBeenCalledOnce();
+    if (scenario === 'broken-stream' || scenario === 'cancelled-stream') expect(reads).toBe(2);
+  });
   it('rejects weak grant/cancellation without network work and bounds ignored AbortSignal', async () => {
     const transport = vi.fn<typeof fetch>().mockImplementation(() => new Promise(() => {})),
       tool = new HttpPricePerSquareMeterTool('http://api.internal:8200', transport),
