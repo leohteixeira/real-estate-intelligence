@@ -1,0 +1,54 @@
+{
+  "url": "http://127.0.0.1:33273/search/sao-paulo-bela-vista",
+  "locale": "en",
+  "width": 390,
+  "observedUtc": "2026-10-12T13:47:20.891Z",
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "label": "<a href=\"/search/brazil\" data-discover=\"true\">Brasil</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-state\" data-discover=\"true\">Estado de São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo\" data-discover=\"true\">São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-centro\" data-discover=\"true\">Zona Centro</a>",
+      "height": 44
+    },
+    {
+      "label": "<a class=\"btn\" href=\"/search/sao-paulo-bela-vista?view=filters\" data-discover=\"true\">Filters</a>",
+      "height": 44
+    },
+    {
+      "label": "<select id=\"search-sort\"><option value=\"furthest-below-median\">Furthest below median</option><option value=\"lowest-price-per-square-meter\">Lowest R$/m²</option><option value=\"longest-on-market\">Longest on market</option><option value=\"most-recent\">Most recent</option></select>",
+      "height": 44
+    },
+    {
+      "label": "<summary>Prepared result evidence</summary>",
+      "height": 44
+    },
+    {
+      "label": "<summary>Sources and dates of properties on this page</summary>",
+      "height": 44
+    }
+  ],
+  "shell": {
+    "top": true,
+    "navigation": true,
+    "plate": true,
+    "footer": true,
+    "tabs": true,
+    "rail": false
+  },
+  "keyboard": {
+    "actions": ["Focus evidence disclosure", "Enter"],
+    "open": true
+  },
+  "exclusions": ["Ambient-daylight focus visibility and screen-reader speech require human review"]
+}

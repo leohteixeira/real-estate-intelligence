@@ -1,0 +1,398 @@
+{
+  "version": {
+    "commit": "f02018e3b2ac7201c44093ea83363dff08349233",
+    "dirty": true,
+    "webArtifactHash": "e0ecd24a85d72da62542b5177ebab39b2865276d9e00c016bb24f7beb017093e",
+    "artifactScope": "Local production build JS/CSS, rebuilt from the same shipping sources as the owned web image; not a production/VPS release identity.",
+    "webSourceHash": "04a6c52f331e985429871bc01c622802f30b8e40ce502f69e7f72995a3705b95",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-search-875a810e-09a6-44fb-a954-12514f7a8f42",
+    "observedUtc": "2026-10-12T13:55:38.253Z"
+  },
+  "files": [
+    {
+      "file": "search-sao-paulo-bela-vista-390-pt-BR.png",
+      "hash": "e518ee335490247f399e4c3861ddedd6dab76155dd11a1c72579cff09657b803"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-pt-BR-top.png",
+      "hash": "e518ee335490247f399e4c3861ddedd6dab76155dd11a1c72579cff09657b803"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "hash": "be7ad0957ed3ee0e8918555942f3b6649be7258ff6209b430b6f04ea16189c55"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "hash": "a216cb7ae61576ad11ce7e08fbec5f666fdc31e333fe0814039711b4b868757f"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-pt-BR.png",
+      "hash": "b4440a5addfdb37cf3151e6750279f547f88ea5ce4b3f1086fceaae1a166f2ea"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-pt-BR-top.png",
+      "hash": "b4440a5addfdb37cf3151e6750279f547f88ea5ce4b3f1086fceaae1a166f2ea"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "hash": "1df99491a71d179436ddf08af6dde42e9dbb3da2666e016d97ede62578200201"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "hash": "24fa516d237f89989ae971caf57b60b5695c3d19746c363be19a0b1e9b11fd8c"
+    },
+    {
+      "file": "search-sao-paulo-390-pt-BR.png",
+      "hash": "bdf6cdc7236be64ca3136a1dc852b5ef93c21b6a6ba19e4c1d51614897c0d90e"
+    },
+    {
+      "file": "search-sao-paulo-390-pt-BR-top.png",
+      "hash": "bdf6cdc7236be64ca3136a1dc852b5ef93c21b6a6ba19e4c1d51614897c0d90e"
+    },
+    {
+      "file": "search-sao-paulo-390-pt-BR-accessibility.json",
+      "hash": "e57839b3abe42c35057008a789fbae63f2047512d7d2c9c1745a49429a67d0e8"
+    },
+    {
+      "file": "search-sao-paulo-390-pt-BR-interaction.json",
+      "hash": "15ba002d210e19cec245f77f574e88fc3ed0e62722d39336299fb6f64797f795"
+    },
+    {
+      "file": "filters-sao-paulo-390-pt-BR.png",
+      "hash": "f785d9bef601670ef3400a8eecf0fbdbaaf42c248b6ec318847e69422c9dbe91"
+    },
+    {
+      "file": "filters-sao-paulo-390-pt-BR-top.png",
+      "hash": "f785d9bef601670ef3400a8eecf0fbdbaaf42c248b6ec318847e69422c9dbe91"
+    },
+    {
+      "file": "filters-sao-paulo-390-pt-BR-accessibility.json",
+      "hash": "571c90c63df6256a58f4c12d0f3bef7bfda28d7e09e9de17e704f8bcefdb6490"
+    },
+    {
+      "file": "filters-sao-paulo-390-pt-BR-interaction.json",
+      "hash": "9326395edb76774db9e5a43cba19ca34c95f21b4209eec495465360fa9715b6e"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-en.png",
+      "hash": "98d391366e76caf5cd3504f2a5c0290fbb040e3997378501e08dbc0487c512ec"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-en-top.png",
+      "hash": "98d391366e76caf5cd3504f2a5c0290fbb040e3997378501e08dbc0487c512ec"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-en-accessibility.json",
+      "hash": "be7ad0957ed3ee0e8918555942f3b6649be7258ff6209b430b6f04ea16189c55"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-390-en-interaction.json",
+      "hash": "5e7bdf435470b800247e6b50935fcfd485491f35c974ee09b4ed81664b89a390"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-en.png",
+      "hash": "93cfb75bd4c926f9aad3b8cb2eefa260d6babe2875887a4da21927ecfd8f4d9d"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-en-top.png",
+      "hash": "93cfb75bd4c926f9aad3b8cb2eefa260d6babe2875887a4da21927ecfd8f4d9d"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-en-accessibility.json",
+      "hash": "1df99491a71d179436ddf08af6dde42e9dbb3da2666e016d97ede62578200201"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-390-en-interaction.json",
+      "hash": "aff40b659a431113ae8e56aa4365394f7a51a0a4edb1c19686b8cd3627ae24e3"
+    },
+    {
+      "file": "search-sao-paulo-390-en.png",
+      "hash": "6e53138ffcfd9430a5ead8ff5e45b8a3656f49935b7d1d63feef086d5a90e016"
+    },
+    {
+      "file": "search-sao-paulo-390-en-top.png",
+      "hash": "6e53138ffcfd9430a5ead8ff5e45b8a3656f49935b7d1d63feef086d5a90e016"
+    },
+    {
+      "file": "search-sao-paulo-390-en-accessibility.json",
+      "hash": "e57839b3abe42c35057008a789fbae63f2047512d7d2c9c1745a49429a67d0e8"
+    },
+    {
+      "file": "search-sao-paulo-390-en-interaction.json",
+      "hash": "8eb983bd5b0cd91b16d6202617f84907415e003eb0c6630222e1a9bbca9ab691"
+    },
+    {
+      "file": "filters-sao-paulo-390-en.png",
+      "hash": "694905b2f497d4c7fc26b9a648b8c9160ffc1c8191cda2a0b611fa27bab8569c"
+    },
+    {
+      "file": "filters-sao-paulo-390-en-top.png",
+      "hash": "694905b2f497d4c7fc26b9a648b8c9160ffc1c8191cda2a0b611fa27bab8569c"
+    },
+    {
+      "file": "filters-sao-paulo-390-en-accessibility.json",
+      "hash": "571c90c63df6256a58f4c12d0f3bef7bfda28d7e09e9de17e704f8bcefdb6490"
+    },
+    {
+      "file": "filters-sao-paulo-390-en-interaction.json",
+      "hash": "3c58368d17f4cec52cc94ef71a619885e3155d601d0d13b978136558abda2054"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-pt-BR.png",
+      "hash": "a3323e70a3b3defba708e9e5ed3fcba39e5d9c4d19d14ba1890bb1d2cc5c9961"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-pt-BR-top.png",
+      "hash": "a3323e70a3b3defba708e9e5ed3fcba39e5d9c4d19d14ba1890bb1d2cc5c9961"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "hash": "596493b5b589076e3320ef33da8dbea99d5260c41634510b0f5617ad6ba124b7"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "hash": "46226d1bca061051717c93ffedf9d57d1473bf7b32e22b809af7bb526d0c610f"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-pt-BR.png",
+      "hash": "25cfa4fecba0af368b542a94b372cd82dc59dffe8f93dfc220e12a8567dc0d6a"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-pt-BR-top.png",
+      "hash": "25cfa4fecba0af368b542a94b372cd82dc59dffe8f93dfc220e12a8567dc0d6a"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "hash": "87005afc57d020b50dc8599b6151b58237fa720d0db8a1989f50427f8ffcdd0a"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "hash": "eb2cdd70564143453bcd79302ba099e6a4bbf61c6f281ba1b426344fa51e555d"
+    },
+    {
+      "file": "search-sao-paulo-960-pt-BR.png",
+      "hash": "4c3c2fbeee2828f0061fb1ccb125654494728b2819ed83358659d3cd0306ebf9"
+    },
+    {
+      "file": "search-sao-paulo-960-pt-BR-top.png",
+      "hash": "4c3c2fbeee2828f0061fb1ccb125654494728b2819ed83358659d3cd0306ebf9"
+    },
+    {
+      "file": "search-sao-paulo-960-pt-BR-accessibility.json",
+      "hash": "f2e85b0696e346575a9c2dd4a92cb867f2be469bd076dfa3f7e811d9a2b93790"
+    },
+    {
+      "file": "search-sao-paulo-960-pt-BR-interaction.json",
+      "hash": "3ded8f79e04bba4eab6fd614c77b5f2c5919b0b552efd7b19470e8772a48e2bb"
+    },
+    {
+      "file": "filters-sao-paulo-960-pt-BR.png",
+      "hash": "6f35a9f052b6f4e6ceae044995b2886a6b94af70396d3cc200131349a07abaf9"
+    },
+    {
+      "file": "filters-sao-paulo-960-pt-BR-top.png",
+      "hash": "6f35a9f052b6f4e6ceae044995b2886a6b94af70396d3cc200131349a07abaf9"
+    },
+    {
+      "file": "filters-sao-paulo-960-pt-BR-accessibility.json",
+      "hash": "af5b904e2be07b50a5afd815a74ab58d22e142f40b0b7d1844e64d3e09ba3917"
+    },
+    {
+      "file": "filters-sao-paulo-960-pt-BR-interaction.json",
+      "hash": "27ae8fa69e66306c50a7c664121276a88eddef22062cc5cc32e3a3b5e1dfa659"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-en.png",
+      "hash": "0c2fc5c0750f0c991f5121756546bdc52afd02f0754dab8f5558801fda1ade9b"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-en-top.png",
+      "hash": "0c2fc5c0750f0c991f5121756546bdc52afd02f0754dab8f5558801fda1ade9b"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-en-accessibility.json",
+      "hash": "596493b5b589076e3320ef33da8dbea99d5260c41634510b0f5617ad6ba124b7"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-960-en-interaction.json",
+      "hash": "ca4f27db1f2a2edc65f41a5b3809da5e230ae45cc825611cc9a5f0ea605cc1d8"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-en.png",
+      "hash": "96354d1a8bcc46d1c5295d945c745030ce38703eec4efb6fd98653d0ceb99d9d"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-en-top.png",
+      "hash": "96354d1a8bcc46d1c5295d945c745030ce38703eec4efb6fd98653d0ceb99d9d"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-en-accessibility.json",
+      "hash": "87005afc57d020b50dc8599b6151b58237fa720d0db8a1989f50427f8ffcdd0a"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-960-en-interaction.json",
+      "hash": "647421ba082ea381e36f7a046e7c8e04109decfb90083efc831072802fbfc755"
+    },
+    {
+      "file": "search-sao-paulo-960-en.png",
+      "hash": "51cfa061b6544d8e94ff61c4266922d9f38e97cb7fc9b041276adfb3be5f1d2a"
+    },
+    {
+      "file": "search-sao-paulo-960-en-top.png",
+      "hash": "51cfa061b6544d8e94ff61c4266922d9f38e97cb7fc9b041276adfb3be5f1d2a"
+    },
+    {
+      "file": "search-sao-paulo-960-en-accessibility.json",
+      "hash": "f2e85b0696e346575a9c2dd4a92cb867f2be469bd076dfa3f7e811d9a2b93790"
+    },
+    {
+      "file": "search-sao-paulo-960-en-interaction.json",
+      "hash": "cc002e78c4f244c759272e3df46d758d3632d94cf23a1f15599f5fe811f2e986"
+    },
+    {
+      "file": "filters-sao-paulo-960-en.png",
+      "hash": "a5038fceb675d349ed3acefe512faae8ba6b7ff0b51717dbd5454e15a1eb67e6"
+    },
+    {
+      "file": "filters-sao-paulo-960-en-top.png",
+      "hash": "a5038fceb675d349ed3acefe512faae8ba6b7ff0b51717dbd5454e15a1eb67e6"
+    },
+    {
+      "file": "filters-sao-paulo-960-en-accessibility.json",
+      "hash": "af5b904e2be07b50a5afd815a74ab58d22e142f40b0b7d1844e64d3e09ba3917"
+    },
+    {
+      "file": "filters-sao-paulo-960-en-interaction.json",
+      "hash": "a6f1d78747dd6c727399f97232a287e8cdf066169e6ef6c51bc3f67dfec1ad55"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-pt-BR.png",
+      "hash": "578b91b8a2d04f2ca0483d386b08f3a94ab1a269f319623d965b7cdbf5fefa07"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-pt-BR-top.png",
+      "hash": "578b91b8a2d04f2ca0483d386b08f3a94ab1a269f319623d965b7cdbf5fefa07"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "hash": "28a9cd4c82b25a65a7ecccb9dbb8c944f3e03e7f7868f13fabf32000bede182a"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "hash": "715b9679def4c252c288a5998002697781f060dd2704c19ff9e1ede108e9592f"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-pt-BR.png",
+      "hash": "6544b1afe62fc2311a4feb205ff55f21496a1c87cd5a7c179d40717845f2d8a4"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-pt-BR-top.png",
+      "hash": "6544b1afe62fc2311a4feb205ff55f21496a1c87cd5a7c179d40717845f2d8a4"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "hash": "b58ef98deb5f97a26cad818fe159d521414920e60c5492a0fbbcaf38aa1a9543"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "hash": "e1cbf3917aa0bcb9c764993e1290a910f86d97f40f9f90410347ab8c5ec433ea"
+    },
+    {
+      "file": "search-sao-paulo-1440-pt-BR.png",
+      "hash": "ae732ef5bf09356f6328afbfdf01bfe866f6ef7cfbd98dc44da3cbd69a43ec1b"
+    },
+    {
+      "file": "search-sao-paulo-1440-pt-BR-top.png",
+      "hash": "ae732ef5bf09356f6328afbfdf01bfe866f6ef7cfbd98dc44da3cbd69a43ec1b"
+    },
+    {
+      "file": "search-sao-paulo-1440-pt-BR-accessibility.json",
+      "hash": "1cf71bcc122bf8e286d52212627361e2a8d706a48cb2544424b8b942ba9c0bbc"
+    },
+    {
+      "file": "search-sao-paulo-1440-pt-BR-interaction.json",
+      "hash": "57845f1b0549e1a447812d31032ab87b65dfbc82c366a038c8713b691398e591"
+    },
+    {
+      "file": "filters-sao-paulo-1440-pt-BR.png",
+      "hash": "55a04abc5ad429a336e05290d191330aa2f41ccf8f2ba216ca3f37a7a1a506c1"
+    },
+    {
+      "file": "filters-sao-paulo-1440-pt-BR-top.png",
+      "hash": "55a04abc5ad429a336e05290d191330aa2f41ccf8f2ba216ca3f37a7a1a506c1"
+    },
+    {
+      "file": "filters-sao-paulo-1440-pt-BR-accessibility.json",
+      "hash": "3393b0924d625a0905dd1b98957d7ddd84b813fcbd1143d9ac9d11e05327a552"
+    },
+    {
+      "file": "filters-sao-paulo-1440-pt-BR-interaction.json",
+      "hash": "48733d59a90299d952c52dc994323ab5f43b1fe1ba67249131c1acaf5731f9d1"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-en.png",
+      "hash": "6ef168236e835a3d34c4f62354723f12cf2a056212a79937ff40c351d7d1bbf6"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-en-top.png",
+      "hash": "6ef168236e835a3d34c4f62354723f12cf2a056212a79937ff40c351d7d1bbf6"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "hash": "28a9cd4c82b25a65a7ecccb9dbb8c944f3e03e7f7868f13fabf32000bede182a"
+    },
+    {
+      "file": "search-sao-paulo-bela-vista-1440-en-interaction.json",
+      "hash": "6d592cd622e1b25fa73944b08f57314343da58b22a939246be973a5d599041d0"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-en.png",
+      "hash": "f0e7e1ed60be0bda7d796468d10d7880f0e3c4dae27e4a733078a561ffea9bbc"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-en-top.png",
+      "hash": "f0e7e1ed60be0bda7d796468d10d7880f0e3c4dae27e4a733078a561ffea9bbc"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "hash": "b58ef98deb5f97a26cad818fe159d521414920e60c5492a0fbbcaf38aa1a9543"
+    },
+    {
+      "file": "filters-sao-paulo-bela-vista-1440-en-interaction.json",
+      "hash": "45fb949d4a08f202e212b53870ce586147d04d83e11e93d9791b3c993cdaaa07"
+    },
+    {
+      "file": "search-sao-paulo-1440-en.png",
+      "hash": "4f1d664c3586d2a1a4993f4ae108f45faa30dda46b373689e1bc38fda08a56c6"
+    },
+    {
+      "file": "search-sao-paulo-1440-en-top.png",
+      "hash": "4f1d664c3586d2a1a4993f4ae108f45faa30dda46b373689e1bc38fda08a56c6"
+    },
+    {
+      "file": "search-sao-paulo-1440-en-accessibility.json",
+      "hash": "1cf71bcc122bf8e286d52212627361e2a8d706a48cb2544424b8b942ba9c0bbc"
+    },
+    {
+      "file": "search-sao-paulo-1440-en-interaction.json",
+      "hash": "c7ab0d2c8e190ca933b05ef17ab6940a3b112f4931cb99da360c8d147c3157ad"
+    },
+    {
+      "file": "filters-sao-paulo-1440-en.png",
+      "hash": "c7f48362f08cecaec94f2f6f11943ad9984a4b760e71c1d1ada949ed1009d910"
+    },
+    {
+      "file": "filters-sao-paulo-1440-en-top.png",
+      "hash": "c7f48362f08cecaec94f2f6f11943ad9984a4b760e71c1d1ada949ed1009d910"
+    },
+    {
+      "file": "filters-sao-paulo-1440-en-accessibility.json",
+      "hash": "3393b0924d625a0905dd1b98957d7ddd84b813fcbd1143d9ac9d11e05327a552"
+    },
+    {
+      "file": "filters-sao-paulo-1440-en-interaction.json",
+      "hash": "9c78f316640a344e05195786fa352011ddf0483d935a2d4b12a4aaaaf7fc7666"
+    }
+  ]
+}

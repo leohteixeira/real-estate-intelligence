@@ -1,0 +1,17 @@
+{
+  "url": "http://127.0.0.1:46699/search/sao-paulo?view=filters",
+  "requestQueries": [
+    "?placeId=sao-paulo",
+    "?placeId=sao-paulo",
+    "?placeId=sao-paulo",
+    "?placeId=sao-paulo&propertyType=apartment",
+    "?placeId=sao-paulo&propertyType=apartment",
+    "?placeId=sao-paulo",
+    "?placeId=sao-paulo&propertyType=house",
+    "?placeId=sao-paulo&propertyType=house",
+    "?placeId=sao-paulo",
+    "?placeId=sao-paulo&propertyType=studio"
+  ],
+  "body": "BrasilEstado de São PauloSão PauloSão PauloCidadeSão PauloCidadeDados sintéticosFiltrosLugarBrasilBrasil / Estado de São PauloBrasil / Estado de São Paulo / São PauloBrasil / Estado de São Paulo / São Paulo / Zona CentroBrasil / Estado de São Paulo / São Paulo / Zona NorteBrasil / Estado de São Paulo / São Paulo / Zona SulBrasil / Estado de São Paulo / São Paulo / Zona LesteBrasil / Estado de São Paulo / São Paulo / Zona OesteBrasil / Estado de São Paulo / São Paulo / Zona Centro / Bela VistaBrasil / Estado de São Paulo / São Paulo / Zona Norte / SantanaBrasil / Estado de São Paulo / São Paulo / Zona Sul / Vila MarianaBrasil / Estado de São Paulo / São Paulo / Zona Leste / TatuapéBrasil / Estado de São Paulo / São Paulo / Zona Oeste / PinheirosBrasil / Estado de São Paulo / São Paulo / Zona Centro / Bela Vista / Quarteirão fictício Bela VistaBrasil / Estado de São Paulo / São Paulo / Zona Centro / Bela Vista / Quarteirão fictício Avenida ExemploBrasil / Estado de São Paulo / São Paulo / Zona Norte / Santana / Quarteirão fictício SantanaBrasil / Estado de São Paulo / São Paulo / Zona Sul / Vila Mariana / Quarteirão fictício Vila MarianaBrasil / Estado de São Paulo / São Paulo / Zona Sul / Vila Mariana / Quarteirão fictício Vila Mariana Rua Cenário UmBrasil / Estado de São Paulo / São Paulo / Zona Leste / Tatuapé / Quarteirão fictício TatuapéBrasil / Estado de São Paulo / São Paulo / Zona Oeste / Pinheiros / Quarteirão fictício PinheirosOs filtros valem dentro deste lugar. Troque o lugar para ampliar a busca.Tipo de imóvelApartamentoCasaEstúdioComercialTerrenoPreço pedido (R$)MínimoMáximoPreço pedido por m² (R$)MínimoMáximoÁrea (m²)MínimoMáximoQuartosQualquer1+2+3+4+BanheirosQualquer1+2+3+Vagas de garagemQualquer1+2+Tempo de anúncioQualquerAté 30 dias31 a 90 diasMais de 90 diasMais de 180 diasHistórico do anúncioPreço reduzidoVoltou ao mercadoMais de um anúncioLimpar tudoMostrar 0 imóvel",
+  "failure": "expected 'Mostrar 0 imóvel' to be 'Mostrar 0 imóveis' // Object.is equality"
+}

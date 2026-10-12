@@ -1,0 +1,18 @@
+[
+  {
+    "id": "SEARCH-TARGET-001",
+    "kind": "ux",
+    "severity": "medium",
+    "scenarioIds": ["SEARCH-008"],
+    "attemptIds": ["SEARCH-008-7"],
+    "evidence": ["evidence/SEARCH-008-7/readback.json", "evidence/SEARCH-008-7/final.png"],
+    "steps": "Measure visible native Filters controls at 390px in Portuguese.",
+    "expected": "Every target is at least 44px high.",
+    "observed": "Bedroom segmented buttons were 40px high.",
+    "impact": "The inherited segment style did not meet the ticket's 44px target contract.",
+    "suggestedImprovement": "Apply a Search-scoped min-height using the existing --target token.",
+    "evaluatedVersion": "See this attempt's environment.json; dirty implementation before scoped segment minimum.",
+    "status": "Fixed in later version and rechecked across all 24 surfaces by SEARCH-008 in search-2026-10-12T13-18-34-317Z-8edad5db.",
+    "classification": "The original generic executorError flag is retained as historical data; the failed dimension assertion is a supported product UX defect."
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "url": "http://127.0.0.1:33273/search/sao-paulo-bela-vista",
+  "locale": "pt-BR",
+  "width": 1440,
+  "observedUtc": "2026-10-12T13:47:33.249Z",
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "label": "<a href=\"/search/brazil\" data-discover=\"true\">Brasil</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-state\" data-discover=\"true\">Estado de São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo\" data-discover=\"true\">São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-centro\" data-discover=\"true\">Zona Centro</a>",
+      "height": 44
+    },
+    {
+      "label": "<a class=\"btn\" href=\"/search/sao-paulo-bela-vista?view=filters\" data-discover=\"true\">Filtros</a>",
+      "height": 44
+    },
+    {
+      "label": "<select id=\"search-sort\"><option value=\"furthest-below-median\">Mais abaixo da mediana</option><option value=\"lowest-price-per-square-meter\">Menor R$/m²</option><option value=\"longest-on-market\">Mais tempo anunciado</option><option value=\"most-recent\">Mais recentes</option></select>",
+      "height": 44
+    },
+    {
+      "label": "<summary>Evidências dos resultados preparados</summary>",
+      "height": 44
+    },
+    {
+      "label": "<summary>Fontes e datas dos imóveis nesta página</summary>",
+      "height": 44
+    }
+  ],
+  "shell": {
+    "top": false,
+    "navigation": true,
+    "plate": true,
+    "footer": false,
+    "tabs": false,
+    "rail": true
+  },
+  "keyboard": {
+    "actions": ["Focus evidence disclosure", "Enter"],
+    "open": true
+  },
+  "exclusions": ["Ambient-daylight focus visibility and screen-reader speech require human review"]
+}

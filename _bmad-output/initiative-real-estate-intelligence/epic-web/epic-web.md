@@ -75,64 +75,73 @@ shared with another epic, Description says which part this epic delivers.
   Unimplemented/V2/protected controls stay absent; proper place names stay untranslated. The
   complete shell and remaining panels belong to later entries (agent, on the owner's behalf,
   2026-10-12).
-- Decision: D-053 pins Query 5.104.1, published on 2026-10-02 and compatible with React 19,
-  rather than adding release-age exclusions for the newly published 5.104.2. Existing supply-chain
-  and verification gates remain unchanged (agent, on the owner's behalf, 2026-10-12).
+- Decision: D-053 pins Query 5.104.1, published on 2026-10-02 and compatible with React 19, rather
+  than adding release-age exclusions for the newly published 5.104.2. Existing supply-chain and
+  verification gates remain unchanged (agent, on the owner's behalf, 2026-10-12).
 - Decision: D-054 completes the public shell with Places, Search and Ask only. Place-scoped
   `/search/:placeId` and `/ask/:placeId` are genuine contract-backed entry screens, explicitly
-  stating that their full web workflows are not yet included; no inert forms, prepared figures
-  or simulated errors. Full screens remain entries 6/9/16; Privacy body and real footer links
-  remain entry 10. Index routes open Bela Vista. Preserve selected place, Placa, local fonts,
-  bundled per-screen catalogues, abortable validated API reads and formatting conventions;
-  no V2/protected navigation or VPS unlock (agent, on the owner's behalf, 2026-10-12).
+  stating that their full web workflows are not yet included; no inert forms, prepared figures or
+  simulated errors. Full screens remain entries 6/9/16; Privacy body and real footer links remain
+  entry 10. Index routes open Bela Vista. Preserve selected place, Placa, local fonts, bundled
+  per-screen catalogues, abortable validated API reads and formatting conventions; no V2/protected
+  navigation or VPS unlock (agent, on the owner's behalf, 2026-10-12).
 - Parked: the third success signal names a real source in the privacy notice; it waits with
   epic-collection.
 - Decision: D-055 extracts the live median's Figure/Provenance and implements contract-typed
   PropertyRow without shipping Search early. A test-only Vite entry outside production routes
   verifies shared rows in Chromium; the owned Compose campaign verifies the actual shell/figure.
   Adopt @axe-core/playwright 4.13.0 as a shared WCAG 2.2 AA harness, without rule/region exclusions;
-  record incomplete/manual checks rather than claiming full conformance before entry 12.
-  Semantic token contrast checks require only real foreground/background roles. Accept
+  record incomplete/manual checks rather than claiming full conformance before entry 12. Semantic
+  token contrast checks require only real foreground/background roles. Accept
   `line-strong = #7f8ba2` for essential borders on white, porcelain and enamel-50, synchronizing
-  DESIGN.md, its sidecar and the canvas mirror; preserve the remaining Placa world. Never use
-  that border as an essential marker on enamel-100 or yellow alone on light backgrounds.
-  Keep TypeScript/Vitest integration, supply-chain gates and sandbox security unchanged
-  (agent, on the owner's behalf, 2026-10-12).
+  DESIGN.md, its sidecar and the canvas mirror; preserve the remaining Placa world. Never use that
+  border as an essential marker on enamel-100 or yellow alone on light backgrounds. Keep
+  TypeScript/Vitest integration, supply-chain gates and sandbox security unchanged (agent, on the
+  owner's behalf, 2026-10-12).
 - Waits on epic-platform-baseline because: it needs the contract conventions and the deployed stack.
 - Decision: D-056 delivers shared loading, no-results, read-error and stale-figure states in both
-  locales, preserving Placa and backend evidence. Preserve a known plate, filters, retained
-  figures and explicit manual retry; expose only a valid public request UUID, never raw errors.
-  Failure-source evidence and authorized collection destinations are optional caller inputs,
-  never inferred from collection timestamps. Empty results receive genuine relax/widen actions
-  and an optional available/authorized alert action. Keep the incremental Search boundary;
-  exercise unused states through labelled test-only fixtures outside production routes/build,
-  plus forced conditions and recovery on the actual owned Compose UI. No protected navigation,
-  fabricated figures, automatic retries, gate changes or VPS unlock
-  (agent, on the owner's behalf, 2026-10-12).
+  locales, preserving Placa and backend evidence. Preserve a known plate, filters, retained figures
+  and explicit manual retry; expose only a valid public request UUID, never raw errors.
+  Failure-source evidence and authorized collection destinations are optional caller inputs, never
+  inferred from collection timestamps. Empty results receive genuine relax/widen actions and an
+  optional available/authorized alert action. Keep the incremental Search boundary; exercise unused
+  states through labelled test-only fixtures outside production routes/build, plus forced conditions
+  and recovery on the actual owned Compose UI. No protected navigation, fabricated figures,
+  automatic retries, gate changes or VPS unlock (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-collection because: it needs the list of sources for the privacy notice.
 - Decision: D-057 completes entry 5 from validated public endpoints: retain event-fed place and
   immediate-parent medians; label prepared counts/secondary figures/neighbours/monthly series
   separately, with individual evidence, genuine zeros and unavailable sale/gaps. Use a labelled
   place-identity schematic, never copied streets, tiles or geographic inference. Largest reductions
-  read persisted history only, bounded to three rows with abortable public detail enrichment;
-  keep historical percentage/source/date distinct from below-median deviation. Rows lead to the
-  existing place-scoped Search, not absent Property routes; an empty history stays empty. The
-  native question form forwards a draft through navigation state to the same-place Ask entry,
-  never URL/log/local storage, and explicitly does not execute a run before entry 9. Preserve
-  independent read recovery, Placa, both locales and all gates; no VPS unlock
-  (agent, on the owner's behalf, 2026-10-12).
+  read persisted history only, bounded to three rows with abortable public detail enrichment; keep
+  historical percentage/source/date distinct from below-median deviation. Rows lead to the existing
+  place-scoped Search, not absent Property routes; an empty history stays empty. The native question
+  form forwards a draft through navigation state to the same-place Ask entry, never URL/log/local
+  storage, and explicitly does not execute a run before entry 9. Preserve independent read recovery,
+  Placa, both locales and all gates; no VPS unlock (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-properties because: it needs the search, property, listing and largest-reductions
   shapes.
-- Decision: D-058 restores the authored compact overview after the independent finish review's
-  `fix` disposition. Keep every figure's origin, count, computation time and freshness identifiable;
-  retain full individual evidence and source links in keyboard-accessible native disclosures.
-  Place the complete twelve-month table under a labelled disclosure, preserve chart gaps and
-  equal values, and derive labelled chart ranges from supplied values for presentation only.
-  Restore compact neighbour comparisons, top-aligned panels and the porcelain phone question
-  below the plate; preserve the blue desktop header and unexecuted draft semantics. Apply only
-  the six material findings as one batch, recapture the same matrix, and obtain an independent
-  verdict without weakening tests, 44px targets or gates (agent, on the owner's behalf, 2026-10-12).
+- Decision: D-058 restores the authored compact overview after the independent finish review's `fix`
+  disposition. Keep every figure's origin, count, computation time and freshness identifiable;
+  retain full individual evidence and source links in keyboard-accessible native disclosures. Place
+  the complete twelve-month table under a labelled disclosure, preserve chart gaps and equal values,
+  and derive labelled chart ranges from supplied values for presentation only. Restore compact
+  neighbour comparisons, top-aligned panels and the porcelain phone question below the plate;
+  preserve the blue desktop header and unexecuted draft semantics. Apply only the six material
+  findings as one batch, recapture the same matrix, and obtain an independent verdict without
+  weakening tests, 44px targets or gates (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-market because: it needs the place-figure, neighbours and series shapes.
+- Decision: D-059 keeps entry 6 on prepared Search, with server-evaluated filters, ordering,
+  medians, unfiltered same-place total and same-basis neighborhood comparison. Label actual metadata
+  without invented MarketEvidence. Bounded abortable UX-order prefix reads identify only a proven
+  positive-to-zero filter group; relax removes it and widen uses a real ancestor. URL-backed applied
+  state and `view=filters` preserve local draft/cancel/back-forward semantics; complete validated
+  hierarchy and backend preview counts drive the editor. Reset cursors on effective input changes,
+  request twenty, and distinguish isolated pagination proof from the five real prepared properties.
+  Preserve legitimate identical/empty fixture outcomes. Rows remain semantic non-links until entry 7
+  supplies their real Property route, never inert or fake drilldowns. Omit unavailable Map/Alerts,
+  preserve Placa/PT/EN/manual recovery and strict typed Vitest integration, all gates and VPS blocks
+  (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-ask because: it needs the run and SSE shapes.
 - Tracer bullet: entry 2; entry 1 precedes it because the router and data-fetching choice shapes
   every screen.

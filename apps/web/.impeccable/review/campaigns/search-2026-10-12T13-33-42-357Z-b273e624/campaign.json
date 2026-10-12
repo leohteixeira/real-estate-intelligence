@@ -1,0 +1,16 @@
+{
+  "runId": "search-2026-10-12T13-33-42-357Z-b273e624",
+  "status": "complete",
+  "scope": "Ticket 6.6 prepared Search and Filters, read-only real HTTP/browser campaign",
+  "exclusions": [
+    "acquired/event-fed Overview metrics",
+    "Property/Map/Alerts/Ask execution",
+    "production/VPS"
+  ],
+  "targetUrls": ["http://127.0.0.1:45981"],
+  "personas": ["public visitor"],
+  "dataOwnership": "rei-web-search-64b62745-ef64-4d48-815f-75f833209a7e",
+  "allowedSideEffects": ["Own Compose containers/network/volumes", "Local test evidence"],
+  "completionCriteria": "Eight distinct semantic scenarios and requested locale/viewport captures pass with owned teardown",
+  "stackTornDownUtc": "2026-10-12T13:34:45.778Z"
+}

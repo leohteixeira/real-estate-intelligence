@@ -1,5 +1,5 @@
 {
-  "url": "http://127.0.0.1:36003/search/sao-paulo-bela-vista",
+  "url": "http://127.0.0.1:36467/search/sao-paulo-bela-vista",
   "engine": {
     "name": "axe-core",
     "version": "4.13.0"
@@ -29,6 +29,7 @@
     "color-contrast",
     "document-title",
     "duplicate-id-aria",
+    "form-field-multiple-labels",
     "html-has-lang",
     "html-lang-valid",
     "link-name",
@@ -36,6 +37,8 @@
     "listitem",
     "meta-viewport",
     "nested-interactive",
+    "select-name",
+    "summary-name",
     "target-size",
     "valid-lang"
   ],

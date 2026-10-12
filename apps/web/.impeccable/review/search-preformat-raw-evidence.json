@@ -1,0 +1,1864 @@
+{
+  "purpose": "Exact original pre-format JSON bytes, including original surface manifests; preserve prior raw evidence while canonical commit-safe derivatives are formatted. PNG bytes remain unchanged.",
+  "createdUtc": "2026-10-12T14:20:39.049Z",
+  "archive": "apps/web/.impeccable/review/search-preformat-raw-evidence.tar.gz",
+  "archiveSha256": "958d9cc6f3a4d2be752a31ef3caae4c29b61e1389565d29574c7d5042589c736",
+  "files": [
+    {
+      "file": "apps/web/.impeccable/review/ask-1440-en-accessibility.json",
+      "sha256": "ed5e28f7ceec3aaf7262841d0941915102ccd550546c5a7308d4dc568016dec2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/ask-1440-pt-BR-accessibility.json",
+      "sha256": "ed5e28f7ceec3aaf7262841d0941915102ccd550546c5a7308d4dc568016dec2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/ask-390-en-accessibility.json",
+      "sha256": "72f67ec5ca064b3ffe8043577bb79b29a871ac589de381ef3eb5e684c9462d57"
+    },
+    {
+      "file": "apps/web/.impeccable/review/ask-390-pt-BR-accessibility.json",
+      "sha256": "72f67ec5ca064b3ffe8043577bb79b29a871ac589de381ef3eb5e684c9462d57"
+    },
+    {
+      "file": "apps/web/.impeccable/review/ask-960-en-accessibility.json",
+      "sha256": "da2074db0b49861da445f4326ebf67d843164634c4ed7483e9e12c3da6479859"
+    },
+    {
+      "file": "apps/web/.impeccable/review/ask-960-pt-BR-accessibility.json",
+      "sha256": "da2074db0b49861da445f4326ebf67d843164634c4ed7483e9e12c3da6479859"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-06-16-713Z-dffa6159/campaign.json",
+      "sha256": "52cefa1c6d7b836ef4f06d01c6073dd0998ec1f40e0a445754183690efca4559"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-06-16-713Z-dffa6159/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-06-16-713Z-dffa6159/evidence/SEARCH-001-0/environment.json",
+      "sha256": "0e4316371163c18b53060ddd01665c06be0d720521a185be22f41e3841315a2e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-06-16-713Z-dffa6159/evidence/SEARCH-001-0/readback.json",
+      "sha256": "b5ab06dd0f4a576e3a9c91a9c6a0f5de53e747a4f26d95d76901219bbec0ae68"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-06-16-713Z-dffa6159/findings.json",
+      "sha256": "988f2452f8824dbd8332dcc15648c8dad258bdc2858691d19f1be7e1ceb73598"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-06-16-713Z-dffa6159/inventory.json",
+      "sha256": "352f9e1ef423bed6966b546b2b4a18854d9d83378aa1982c33cd68494b29a495"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/campaign.json",
+      "sha256": "a1a37718e48283f41ecf9b1ceb3dd255d0e2108527a0995b1eb5be126381cf61"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-001-0/environment.json",
+      "sha256": "fb209d79cc509285438209c424b00d5b7b4d8c95b22086392625a8de690dd7f7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-001-0/readback.json",
+      "sha256": "bd40e52d81a9cc8bfd692a6e31be649bc64a3dcafa83d6588eece6d1c5e688ea"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-002-1/environment.json",
+      "sha256": "fb209d79cc509285438209c424b00d5b7b4d8c95b22086392625a8de690dd7f7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-002-1/readback.json",
+      "sha256": "37d29cdd6c01abb2c87ed591c681096bc7c8539f9bf947f8b0c09da2cd33fe7c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-003-2/environment.json",
+      "sha256": "fb209d79cc509285438209c424b00d5b7b4d8c95b22086392625a8de690dd7f7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-003-2/readback.json",
+      "sha256": "edab8887538624c180823f3bd950d102b6ba7c86bf84d3a61e594bfd0c7235fc"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-004-3/environment.json",
+      "sha256": "fb209d79cc509285438209c424b00d5b7b4d8c95b22086392625a8de690dd7f7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-004-3/readback.json",
+      "sha256": "c618970c44f227df707fe62c7a4621fa8a132a13946a4dce9e823c7b71120ac4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-005-4/environment.json",
+      "sha256": "fb209d79cc509285438209c424b00d5b7b4d8c95b22086392625a8de690dd7f7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/evidence/SEARCH-005-4/readback.json",
+      "sha256": "bc73faea9a2b078f9067536262a88aa78f627b817521267751fc8ad657bf9dad"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-07-25-148Z-88970cca/inventory.json",
+      "sha256": "e521e59de00bb37c3c7b6a3009923823a8690f51427b8f806112a142f2964f0e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/campaign.json",
+      "sha256": "3167e2f2ce70550cff4fa39c299ca1c347cf996f608bac9408ebbd796268ae93"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-001-0/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-001-0/readback.json",
+      "sha256": "317d296e961ca3b09733a4a349d3c68c5ebc69e9758d1fe753cee7acf7431d23"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-002-1/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-002-1/readback.json",
+      "sha256": "c678108ec415e9fd054350fa46fe70aff036cb5818a4f9cc43ff924d61dcc4b6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-003-2/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-003-2/readback.json",
+      "sha256": "946c9a641e17abf0ada9dc7c412456b713b8d5e88d66f6e0232aef961b90a0a2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-004-3/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-004-3/readback.json",
+      "sha256": "2c96cbc6bf15d55e016bf2c350ca74a79d5a5205a09069d1bd654fcb7dcd9f34"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-005-4/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-005-4/readback.json",
+      "sha256": "f6b9442f0ca6eebee09b2ecec414259f7c447a684b7a6c3839a30fdc3aedbe7a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-006-5/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-006-5/readback.json",
+      "sha256": "388fce1cea9376134db1f2fcd21e0fe5e145599a85cba46e07b839ae641c5233"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-007-6/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-007-6/readback.json",
+      "sha256": "3ddcafaa0900bbb12a2e67d28f2d582053d2a85f22eda816702ebec5343f790f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-008-7/environment.json",
+      "sha256": "077791ec092fd149cf3589876e5adc0e427cb9234b17496b51b2d89d8f294797"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/evidence/SEARCH-008-7/readback.json",
+      "sha256": "9e76b09d0951733bebbc646e54278aa17161eff1ca23d8e8522b37b4377cc77e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/findings.json",
+      "sha256": "6ed1a35d634a4165c030365582ae5c5d9519348d997edfc52cde3ea3e117da2a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-09-08-222Z-58575030/inventory.json",
+      "sha256": "a4182020c8f507be7cc3794abaae1549a0aab6042810175d2a175cb56e09dcb6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-11-27-187Z-7c558a57/campaign.json",
+      "sha256": "e83ea6dff3284ca5266fdb849ff6b549f76c23ee9ac5377b77616c1ed8cc9624"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-11-27-187Z-7c558a57/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-11-27-187Z-7c558a57/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-11-27-187Z-7c558a57/inventory.json",
+      "sha256": "958f92f636a13eb04699621bc63ea8b4e782a60c3fa88d3ff3529f5028cac867"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/campaign.json",
+      "sha256": "e82d7377d6e66c9674b978d0d458af04a2413ecb2546246c01794a7671f58de0"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-001-0/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-001-0/readback.json",
+      "sha256": "185a4c99dc0634303858c6099948b90f75855ddd3dc62ce7dbfa5c0a0495312e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-002-1/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-002-1/readback.json",
+      "sha256": "6aeb5c9be457d1ea44d3a6c7dedf5129b1f39cf54037132e2db8e3c5a480d7b2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-003-2/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-003-2/readback.json",
+      "sha256": "8a6c718a91910113b997cb860f4c0dda0c8d67deb3c13d650786f04cbf27fd6c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-004-3/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-004-3/readback.json",
+      "sha256": "dc0668045a77f9a7a9b40fb703de457cf49cbfd4fc63291d0fdbeb140455375c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-005-4/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-005-4/readback.json",
+      "sha256": "f3a8ee86306d76c669497829e8ca39c1093bfb06b1f764329f040ccd58f6f72e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-006-5/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-006-5/readback.json",
+      "sha256": "ef916077b9bb7fe8f6cd4968015f819271f81b975dc1c58a5315f763866a7b28"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-007-6/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-007-6/readback.json",
+      "sha256": "632f3f5297e445a27e845864a5a9c45045d841b2c37085569b9dbe40ed14ed2a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-008-7/environment.json",
+      "sha256": "f51cccbe2da715b4914ea0fd0dd4d39bd46edc4c9a5f6cfbfbe50eba210d83c1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/evidence/SEARCH-008-7/readback.json",
+      "sha256": "4ff3370ea57b65033f846eff21b7c007e71ba836fbc1eaaf0a6e1cbc611e12b8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-18-34-317Z-8edad5db/inventory.json",
+      "sha256": "a894f3010ddeec8c190a5c9a57853d0a7aa2a5b79a0a2e85939097d622c36dd8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/campaign.json",
+      "sha256": "d690fcc3eff0657eb8eb6f0eb0e302792acee6b9fc16cc5c634e7c83001fe9f0"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-001-0/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-001-0/readback.json",
+      "sha256": "7b5549e528d4efdab5ea6687d51e02ec61adb87fdaf8e60593b45c6f26085579"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-002-1/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-002-1/readback.json",
+      "sha256": "ba4b7e5761daa9edcf4a4793d532f6a1390af36ff5e6c1940ad986664ae64eaf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-003-2/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-003-2/readback.json",
+      "sha256": "0f57d78b445b0f0fad46012016421a1ae6f6b8580b939e6a74c82465bd2caf9e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-004-3/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-004-3/readback.json",
+      "sha256": "5eb85287735444683212a53190556dd463cd43e96713bb302ed23f992ad86984"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-005-4/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-005-4/readback.json",
+      "sha256": "c2168e82f81cb9f6cd47c7c196c6d6740f6ca6bfe1e5b54aaaf17896567b37f3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-006-5/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-006-5/readback.json",
+      "sha256": "da0fe59a41e9551d86eaee9ac880baced67247b190560e3f79f9b0d0dfdadee7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-007-6/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-007-6/readback.json",
+      "sha256": "ba46931b14256a84a4e0dfccb709f507bcd82ffd2d2a377eba3d1c7a91d019ec"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/environment.json",
+      "sha256": "b8303c4153ae5b5ee03a93c2a1f20ed801507de094a6f86862002afeb0a90d24"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-accessibility.json",
+      "sha256": "df2b1fa88d8e7f6849ca6a2f57b2c9cb15423808f15faa4d6b0142118b75b04f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-interaction.json",
+      "sha256": "7f9d613ebbbbd30d5724f4c2ded91fec386fb6e94c617e24f339c6996bdcf600"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "df2b1fa88d8e7f6849ca6a2f57b2c9cb15423808f15faa4d6b0142118b75b04f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "0e69cf6afc24d4723e5e90a089cc9d514626a11c86e4a5c34ea65c27ffc9e6e2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-390-en-accessibility.json",
+      "sha256": "c2cc5630fb90f2afb6b1d3e8a10018ac6e0cd585c4fd3ead3318434f1a1ed4a8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-390-en-interaction.json",
+      "sha256": "d0e6291129a4555a246c3c1362ba8ba4e4a142ec66069287594990bc086e6553"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "c2cc5630fb90f2afb6b1d3e8a10018ac6e0cd585c4fd3ead3318434f1a1ed4a8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "321ef13e6a4d51d8272c6fe1e4e2bf333f49d1ed14871c4ccc23664d928f0038"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-960-en-accessibility.json",
+      "sha256": "4dbe2916395ad0c3016d977869494f6ad7c3c384c758fd07f487b8608829e892"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-960-en-interaction.json",
+      "sha256": "1691c871d8562446707fe23fdf019328cd9fc2515f7030a9104f8b8546525ed6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "4dbe2916395ad0c3016d977869494f6ad7c3c384c758fd07f487b8608829e892"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "b9b8ad88599d8ac4ac6409b951d5f47efb3bd899ea987ff633189f1fb0677ebc"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "ae90d89194e9986a315ae6809bd9ae545585d5f8a37cdbd9c790352e9e0567ad"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "60bd9662196e7bc4c95950f562c651d3969e3e52959db4cf764d71942a0ff055"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "ae90d89194e9986a315ae6809bd9ae545585d5f8a37cdbd9c790352e9e0567ad"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "d79d466f8d09679d481d70c0c09f8cf7bd307bb9ede12a7f9067a013e5dd3162"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "addc91c5add202f9c3f1f2dd142a2fa487e035101d11463ce3694f3639f1b25e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "27ef30a6447a0947fff848d111f9f90f9c1e225dfcc63b18c8e96caaa00040b8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "addc91c5add202f9c3f1f2dd142a2fa487e035101d11463ce3694f3639f1b25e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "4158adfde1d09b2abebf1fdeb1191162e05c14f5b365070be93b39b4737730ba"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "f57b5a6efd9bca2b5d1c5e8cf35ba5c1e2987b20cd46aade13147479a242857c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "71dd2ccdbf937db5a895b11201904e6940bd694cb7c642225d905ab04c03d657"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "f57b5a6efd9bca2b5d1c5e8cf35ba5c1e2987b20cd46aade13147479a242857c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "e1b8eb654e67df9f4ac48cf253bbc6bb9ae17e13d96a96451165793ded86f9e0"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/readback.json",
+      "sha256": "02ffc8859fd969cfcbdda54e77f0c8dc0758ccc23b98755e1473cc00aa693bed"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-1440-en-accessibility.json",
+      "sha256": "de3cd21e4246ea5fed6c491611685a48a00a2ad66f5646f888fb8dea8c33ec44"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-1440-en-interaction.json",
+      "sha256": "f7246728d81779ee967be468d27952da19e1a0613998aab7708010b2d43abef9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "de3cd21e4246ea5fed6c491611685a48a00a2ad66f5646f888fb8dea8c33ec44"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "ac13aa0cc83a4ff1cc5268e00f4563418f78ee042deab220cde749805c0fe957"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-390-en-accessibility.json",
+      "sha256": "2c181fbb5ebe424b990d22db97bcac6c2107bc4e03c8abee52a2cdf07251e8ca"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-390-en-interaction.json",
+      "sha256": "24590ab23fea44a2c0e057ec1ccd29d7efd6fe93524a3068632a5dcc20204a02"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "2c181fbb5ebe424b990d22db97bcac6c2107bc4e03c8abee52a2cdf07251e8ca"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "9f26423e1f9925815cdc34d4a2dcfa8dfc4bca83826ba39fe7a533af3d2a6f75"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-960-en-accessibility.json",
+      "sha256": "2829193e4c217cf7e6fdf69882d0817d3c8ec8553a3f4c3923a06da98a362798"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-960-en-interaction.json",
+      "sha256": "6390e994297a7f86b79023a1bb544f174637aa5b88967f55dba3709dfa4ccb5a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "2829193e4c217cf7e6fdf69882d0817d3c8ec8553a3f4c3923a06da98a362798"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "1b632c733bb5f0ce722c5659a77f1c89406b3a1e81a4d4e132cb9a20d6fa3ab4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "5fddac99fdc41b105131ff604767881956a753277fdec82e22eaa215aa0fbfbf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "cb61d95c50d5bcca858356635f95a3099987f2b727a52ef79163c9a74972a0ee"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "5fddac99fdc41b105131ff604767881956a753277fdec82e22eaa215aa0fbfbf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "b60af578edd2a04cd3359d0740b138d8539b306d567e89a139931a358c44de20"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "7dc431e66d590b3f477ac5ac55457e9791d23d3c1f03f8ef15811fb644088024"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "3a7f6ad434e15a67380840221708906ee3ba5394a24758ba19c3d5c332a16d1c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "7dc431e66d590b3f477ac5ac55457e9791d23d3c1f03f8ef15811fb644088024"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "0a870737cdbf7382b804c0cfb978a034d701ded5632e7fbe9aa43780e680897a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "0c5fa872a108d9f0e3ac822bc08f5ce4e78425b8f52d453f0f3221f4bbd838be"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "8d8cf1e8365eb991b8e360d66abd7946b9015756d3503164f70ade109348a275"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "0c5fa872a108d9f0e3ac822bc08f5ce4e78425b8f52d453f0f3221f4bbd838be"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "4e8682f3169d4e8863790ec380ab4b75dd83a0885311fbd511078ad9c682703f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/evidence/SEARCH-008-7/surfaces.json",
+      "sha256": "28fb405a27bca864ddb214065bad9289b641fe8d793a3124815b1cbc4253d8f9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-22-52-637Z-5b00776e/inventory.json",
+      "sha256": "83ccd87c6a47d399b52bc53482e6a70f30c05b664811e902c4f85ec70eff8cbf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/campaign.json",
+      "sha256": "cd2e271605c33b19bcd95b49e2acb6e924fc712975242f8ad87d4da7f4b30a58"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-001-0/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-001-0/readback.json",
+      "sha256": "d749f5b1b29b75a0b073b685c8361aa598e0e89ed21a9b94d814dacc9abefb89"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-002-1/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-002-1/readback.json",
+      "sha256": "33edade065f0584f2e8f1609444d94c677f340a8b544fb91794d98e02cfbe827"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-003-2/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-003-2/readback.json",
+      "sha256": "e207ece49dd2a2373909c66e2f533d2a4c06cd6cfa54b9fc459f4bd7d9103104"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-004-3/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-004-3/readback.json",
+      "sha256": "13135c66c0994f00e1c099aeced086956b3f1fd19cb62f3ff594dc4a60074574"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-005-4/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-005-4/readback.json",
+      "sha256": "b92026df46a32989455f92937241158e1b7455e65b1d54f43ccb25236d26a7b9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-006-5/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-006-5/readback.json",
+      "sha256": "bf9605817293d8fe361db222f05ec81bfaa7f142b8fa8590b55bcc7a8cefdc52"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-007-6/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-007-6/readback.json",
+      "sha256": "a25ab5e039bddd2f93bafe4d22406fa522665712825988b27cff2d852c5fbd76"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/environment.json",
+      "sha256": "3d71a386784c0fce6592ae02be15e4caf244e2f3da5b1e59bbcd8d4ed622faa6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-accessibility.json",
+      "sha256": "4217370e5ed61d7333e1618e31c502289d90f5dd932b056852689b719599403e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-interaction.json",
+      "sha256": "3661f486f81a029f881da67e736d65648857f01642df5daf270acdb97c12e866"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "4217370e5ed61d7333e1618e31c502289d90f5dd932b056852689b719599403e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "f87a68eebc16f5ee0d020a3d41e7bb1d6b2c3e6206a7dcd249e640e87dba219b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-390-en-accessibility.json",
+      "sha256": "f830b56eb86c5aae9a27fd913f9210690787830598a27ba5e08fa8ff222229bf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-390-en-interaction.json",
+      "sha256": "b32f1a3e691256e23117932c51843cfcc0df4495759e256add19040d771ee2b8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "f830b56eb86c5aae9a27fd913f9210690787830598a27ba5e08fa8ff222229bf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "47a3004a6335cd6a00991a4eabaabee32ecf267bc1e6057ee3ab714998a342df"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-960-en-accessibility.json",
+      "sha256": "d7250c81fce33b5adbb18c7db5945150def8b8dba0794a1a732b1ff60032cc01"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-960-en-interaction.json",
+      "sha256": "1521541362bda3186815c0af8906ee4fddc183fa75b340d66345116a1f0dfd73"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "d7250c81fce33b5adbb18c7db5945150def8b8dba0794a1a732b1ff60032cc01"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "68fc5587e050713b0fd2d081bd2e5c7349e84acb206e363700b403d4d2b28000"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "4d244366912e837750cf58a4ae4856c85adea96eee6cfc2a802720eb81ba6ea1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "f0e46718a0709ecc4c2474e94e92bf0ecc4e5f1fdb5e8cebe7fa011227db1ada"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "4d244366912e837750cf58a4ae4856c85adea96eee6cfc2a802720eb81ba6ea1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "c1144b10209797f3fb7e43ecfc82124798a141603cdfdcf6c2eed4de1d4bb8fa"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "c6a238d16ccaffd3cc8afc06a3d00ff563df6a4166831a9f98e184ba2c8a97fe"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "ea01217bf0a914e5f93e112b78c91f91d000f2133377a49ea7a7bd3fe8d25e2f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "c6a238d16ccaffd3cc8afc06a3d00ff563df6a4166831a9f98e184ba2c8a97fe"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "68489e0446f6999d2f67a874be8c9c96dee20f34a871939c47aa88af62ddf8e8"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "036b7092a57d3254c4c003ccc48ea537ee823e5f537d9598035dbe6d163b1461"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "c06e1578d75b16f8e078a26650ca45dc2f821d165677bd089a16910089601c8d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "036b7092a57d3254c4c003ccc48ea537ee823e5f537d9598035dbe6d163b1461"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "a7f24a2d92e28d035383811c53dcd1b489a309af4bf4be5cebffd7183e8bd346"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/readback.json",
+      "sha256": "be92801e9c75d1562094925d13e8b73e0b1100f7b0f112012357761bc2debc70"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-1440-en-accessibility.json",
+      "sha256": "19b3b9111b90a502ce0eb6c25eb42c013187d62061b6afb3480df03975832b19"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-1440-en-interaction.json",
+      "sha256": "d2c6774d5be11e7218d59fc2eb8088c11986107e4c19d499afc368f9b5887a7b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "19b3b9111b90a502ce0eb6c25eb42c013187d62061b6afb3480df03975832b19"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "64d3000ab967608335d6d43c65f4cd6e02728e551e29a2afb54230272573724a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-390-en-accessibility.json",
+      "sha256": "2367b1b6d7fe73bab1ed24122d30336eb9519204d7264c2cbbb0546029c8d0a4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-390-en-interaction.json",
+      "sha256": "6d13f188416af78a9655cab4988e384902eb78559ba88e863cd22e12a8d8f704"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "2367b1b6d7fe73bab1ed24122d30336eb9519204d7264c2cbbb0546029c8d0a4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "f320a235115607676057470078e1b906f4681facc83b4cf5044890e262cbc1ad"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-960-en-accessibility.json",
+      "sha256": "841ac50e5222bd310bf48b83f46defbb217267b6cbb941074e40938b9cd566f2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-960-en-interaction.json",
+      "sha256": "6f8baf82b15e78c159865ecad43b9d896c25e3797b27c237bced1fc13d641ef6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "841ac50e5222bd310bf48b83f46defbb217267b6cbb941074e40938b9cd566f2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "2ab12a194c8798012ce0f20a1b464a2a20b2be22584b0bcc65aa39a2fe7082f3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "f1e6952808df03a1f38997a75b200adfe0d15247de2ca8219e0dc4c4be685acb"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "57f78843de6f5ea5268efa1b8c8158ea82c0d10a4ba8f420fca66e494f3dc0a4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "f1e6952808df03a1f38997a75b200adfe0d15247de2ca8219e0dc4c4be685acb"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "af2986680b1f98c4f839aee79179cd8b5d74ec5899fcb9182de6065c3c623ce6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "35b42f401f4ae0779367d0e43ac3a612dee2fa4ab0cfe9539c90948e96bb5f7a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "d52627e1f4952515e7f40bfcad73cdf386fb065d4c7b6c120da9625ec9b66f99"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "35b42f401f4ae0779367d0e43ac3a612dee2fa4ab0cfe9539c90948e96bb5f7a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "16a251cf8dc9fda7c180ab722da11f2d6422f5f048abc89edf713363d9463cd9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "82ae6e28a4b8af8723584be5a51fa8db97fa4f2ded7a259c1efc0c5f6f8e26b4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "3130c5bf21557a7bab9777b4be361632f5ed7208d9c7ce1f876bf10f289c6200"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "82ae6e28a4b8af8723584be5a51fa8db97fa4f2ded7a259c1efc0c5f6f8e26b4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "d25f19a3fb69547d2eb447ac0b622014e8600f10acef24b6cbba5dac35d371db"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/evidence/SEARCH-008-7/surfaces.json",
+      "sha256": "7ad8729a2004cf3a71d9b53fd623a8199ecbf20ee37be384993e5a508b7c8021"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-33-42-357Z-b273e624/inventory.json",
+      "sha256": "c777d7344e4628e54314dc8fae21fca49805c1e38f57d0d8da1613d83f175224"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/campaign.json",
+      "sha256": "e700798cdb6f5a674022b1e14cec9f8aa52aa976b732a6ff775a7d312fb83b0d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-001-0/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-001-0/readback.json",
+      "sha256": "74e4639c847fc2bffbe77b459a24d52418637b0efb108179b408de0d456a201e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-002-1/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-002-1/readback.json",
+      "sha256": "a1be0b054c62e2a5d1b676105a04e0902d84214ea04cf67aeea824d195d09988"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-003-2/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-003-2/readback.json",
+      "sha256": "154158488f5f942a37ee8d8ca91d2330f8a3f400a2341639c4ee14e356db02b5"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-004-3/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-004-3/readback.json",
+      "sha256": "092383a51116afcea500909059e97b892bb1d838930cd98cd86c24f2d39c8362"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-005-4/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-005-4/readback.json",
+      "sha256": "21bf1b5c63d6e0a21c78fce4e6c84903607eb3956f4870ea20ee21da24448a52"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-006-5/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-006-5/readback.json",
+      "sha256": "cceec7f2b66d81ce82c372692eb1d1f918cc35cb80f954d082a9e3dc51846771"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-007-6/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-007-6/readback.json",
+      "sha256": "4e9b795766b7c429615fd17cc063ce4b4aae5e44e7ed3d870ab4d253868d87f4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/environment.json",
+      "sha256": "cd6a31ffe3e05681482c4ee6490ebb86bf4df85eaeea52adbf0b61c1b3828439"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-accessibility.json",
+      "sha256": "d851b83722ef09156b79f46faeb63305150e7b75a4b727ad3df8be071b3b4e5d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-interaction.json",
+      "sha256": "8488f292aa2be13bb6b953b2db4568d5443604f3c46e1b727b8f4ae7524ceacf"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "d851b83722ef09156b79f46faeb63305150e7b75a4b727ad3df8be071b3b4e5d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "51f3196841336fb020e097ec2f72c8618380352c20ec3ab136be7eec1a59f1f5"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-390-en-accessibility.json",
+      "sha256": "b855d65d3b659548963036b897bc075d751c61f431418f64f68b93f4e984b8d3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-390-en-interaction.json",
+      "sha256": "14d077b82241985e1186cd11a3726f6d2febb7c6a2ff21f23204f265576bddc9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "b855d65d3b659548963036b897bc075d751c61f431418f64f68b93f4e984b8d3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "6092a0563c981939a556f1511342ff0886e5d6ae8eaab74872747a35d2f4be8e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-960-en-accessibility.json",
+      "sha256": "0c936e45b66b0a3d79301739e58cd686bbbf90d160307bc69789cee9de59e0d3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-960-en-interaction.json",
+      "sha256": "9edbc2af04a2ca2537af7b46c5cf581986ec917efd4e74c639068d55a27382a6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "0c936e45b66b0a3d79301739e58cd686bbbf90d160307bc69789cee9de59e0d3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "62606df2ee229f9f1b56e5ad365705110723bfbf204105e4ee4834847cf3482e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "0eca454440b85f770f32517258421e66f411e448eef9ade567d95fadf6fbb988"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "ea60a2346f73903336178091422a17685f531ded8427845953db65e4818a4997"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "0eca454440b85f770f32517258421e66f411e448eef9ade567d95fadf6fbb988"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "7749fc212d29a5aa9d5f6a4e8ba7166c265976d17fdb924d1bf5e8d48bc3c259"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "ff65a5f9ec90f599fbceea2acc43937364750dc4a58e10d5da946dde567337e6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "ecfba2546f43d6b767b07245e9946e4d99f761f2fee94c96d07cb0e87e3f16b9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "ff65a5f9ec90f599fbceea2acc43937364750dc4a58e10d5da946dde567337e6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "2d37052d30ab872e58222f100831fbcaa1dbdb77ccc820ed782ebf243d692ea5"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "dcbb8b8d1b2be003fedef78f6a4b78825cb0e4fd118ba061398e913ba992ce16"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "264e6b965442e0426caa95daf69ab3460c45a23f8ab9c37e19772be9ecfe00ff"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "dcbb8b8d1b2be003fedef78f6a4b78825cb0e4fd118ba061398e913ba992ce16"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "0cdf94389c7addcf6cffc05ba2db93f3c49100b4e14c8e29f84bb496a20b8cdd"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/readback.json",
+      "sha256": "4f4886adb45e93bcb265bc14570b0f569b95addb70889bc79d88be3499381e6b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-1440-en-accessibility.json",
+      "sha256": "6e5c099b3e01d6e1b71cf08cbeb02ea6dc7e2539fb00747af0245e5cc4c4b246"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-1440-en-interaction.json",
+      "sha256": "a2a4ce3f0382d5c75c3b46ff2b3f4b9679e546d32fbf0df978d9827f404fc05e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "6e5c099b3e01d6e1b71cf08cbeb02ea6dc7e2539fb00747af0245e5cc4c4b246"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "673442ae0e5a7bae3822e994a4a2b82897fa26f9e6a289e58857ca9d1e51a753"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-390-en-accessibility.json",
+      "sha256": "e2adf2ba55932d0a108f1483e7d0f2de68541ffe33244441a3c82ad2b61673e3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-390-en-interaction.json",
+      "sha256": "a2b29755fc090b3479aebd3a9af0217114f048c98645d6a9834003ecb4098965"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "e2adf2ba55932d0a108f1483e7d0f2de68541ffe33244441a3c82ad2b61673e3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "af15147c80112ea52632db9f3ffa18d2b37291118ea9ba0bac2501df37769f81"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-960-en-accessibility.json",
+      "sha256": "e0b65693a14b790d8ecaf435272aeff92d5a072000f6ba1a18f15e2a1c543929"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-960-en-interaction.json",
+      "sha256": "def4a217643a3e99318c8f4237c83fa5c601ee816497a3aafce9d0d7e6299cb0"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "e0b65693a14b790d8ecaf435272aeff92d5a072000f6ba1a18f15e2a1c543929"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "f542529e6c3a7e560ca4b34119b16a846037bf43813c1ac23a4e876ded0da2c6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "0844673aceae98c636022d79c74f4cfe9f4ad96d1df77f973167fd4a5508235a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "244f347efd8f0bd7a71219b4b59dce64e290e54c0fefa069ba996ba483368810"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "0844673aceae98c636022d79c74f4cfe9f4ad96d1df77f973167fd4a5508235a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "6e10ff7d9dd9e9a1768d0e910ad1bfe3d24e5a9b445f597ab20e4f96790ea42a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "17b46bc07eb9eef5a48bf723c7be030e83038a77eb3148547cd478df8bcc96fe"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "dbde184669bec42a7ed057c867758d0d66f5f3b2bc35633c70b26abb34e2c862"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "17b46bc07eb9eef5a48bf723c7be030e83038a77eb3148547cd478df8bcc96fe"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "e83ff80e7db45e61a2a823237db3a21800d814a6cbd15b30b0f5bc1f7dae5302"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "6e6469d45f0a272f95dd0e1dc6906e67048c6b45f43fdf2d7c593a8728dd3010"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "47091d10aa1339f90008df8752082c59aaad52b703b98e02b49a5b53e428889c"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "6e6469d45f0a272f95dd0e1dc6906e67048c6b45f43fdf2d7c593a8728dd3010"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "f2c375b38b0127d9a33d4eec701b300f990b4836fcacab4d0d491cfc605fe8d4"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/evidence/SEARCH-008-7/surfaces.json",
+      "sha256": "c38088058b94612d0cfbd5b75281476f32d289a0ebd9dc162d18e060a839032a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-46-38-040Z-207991e1/inventory.json",
+      "sha256": "3e009b6b8fe6233370566e7508dd18a7a079d741f7ba4212c9bb691924713f6b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/campaign.json",
+      "sha256": "1a49ae24271d0190db9336fe595e4c3e3460d8898fc793155c5b16693c22071e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/catalog/scenarios.json",
+      "sha256": "60b7c8d79f49aaebb295cd2bb403a8653378a7e08822b8efe5683343019e5136"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-001-0/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-001-0/readback.json",
+      "sha256": "68e15f0f18d17bb7b227b105a77f3d6942f3dc43ac5fa0184dd3be9f9efae0df"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-002-1/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-002-1/readback.json",
+      "sha256": "6bd699eeeaa14266126fd1946cb83a2dacce95fb33a8ca48adf6b17ec4e2d7e1"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-003-2/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-003-2/readback.json",
+      "sha256": "4ebc73f2aec2bcf4b217cfdd50a788041df0d06c297ac0a3a7f462ceaaf045fc"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-004-3/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-004-3/readback.json",
+      "sha256": "63d46e8a523ec7b36c07d3679b1063349fbbc3b6ca6303430e98103da5fa2da2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-005-4/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-005-4/readback.json",
+      "sha256": "2cdca9ff703d46f7d862bc19867f272fc4de52f286f15b3f6439c6e4aa2e6567"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-006-5/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-006-5/readback.json",
+      "sha256": "6848df3ea071dacee84e71d81c4f80d7964dcfc503358ee05e495e60fdcb99ca"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-007-6/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-007-6/readback.json",
+      "sha256": "930cbfda981063f982a7a070ea55d1ebc3e7b66ca823a6ebac0902b4b7fe9e12"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/environment.json",
+      "sha256": "7af0641185f41f0299964c59a0189c009469f461179eb69f776f4aea2502411e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-accessibility.json",
+      "sha256": "134477ea59b4f4cf972bf54f8d8d0a206de5b5d11882687bbd8ff824d8a2c780"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-1440-en-interaction.json",
+      "sha256": "ee00b4bd80ce484e253ea91cccc18db256ccd2a7adca37ef9dd21bd7a40d62e2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "134477ea59b4f4cf972bf54f8d8d0a206de5b5d11882687bbd8ff824d8a2c780"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "1004ca7c2d7adb3c2bb61f48c522f1bbbc9eaa9e2c8603244c43750d24f6bb3d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-390-en-accessibility.json",
+      "sha256": "e9e28625cfb8c49cfd41b2ee8a9bbddeca5dbc7977e877754f79e75fc15c8075"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-390-en-interaction.json",
+      "sha256": "d6cbde41dea68b91f5d8e0a9cf4ca2b7018748e014298f460a19badc5947bac5"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "e9e28625cfb8c49cfd41b2ee8a9bbddeca5dbc7977e877754f79e75fc15c8075"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "cf26b660bed9145cb57092b9fa2af5b52a80af0c61aa32d612e08fc1f4d8d893"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-960-en-accessibility.json",
+      "sha256": "3ad5d1317691b88da7c525a13161750c7b7f30121063658177f91be9198aac45"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-960-en-interaction.json",
+      "sha256": "874ae9496b5ed9304df3ca2b3bbd118081ffca7ae9115d89a6fb328f6466290d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "3ad5d1317691b88da7c525a13161750c7b7f30121063658177f91be9198aac45"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "8f8c76dad68f1e1f31e20580c71fba0682c5e1b8de8d42cc1e07ee530d533dd0"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "ab802f45332dcae6a731fd1639a2d151a3dd60dcefd590768663dcf140e3694a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "099710a542257e93fd703a325af0cb577cffc7be08cb07ea3cea7982d61ca15a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "ab802f45332dcae6a731fd1639a2d151a3dd60dcefd590768663dcf140e3694a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "8c89a96cbdc0f2a36f35074cde4f37cfee8e3215380efbdd880c6ecdc1e10e9b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "6aa55184e22ea49c1f063a265126e3b4912f7cba452d97640d2550e6f335cd27"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "b4913f9492e3d4315ddd73b6c787220ec9d1ab32a67ac562516061d18cdbcd9d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "6aa55184e22ea49c1f063a265126e3b4912f7cba452d97640d2550e6f335cd27"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "b1564051c50b1c3341e4045d160cadd028ab76a3dcd50cfd596cf7cf90b78874"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "7e25a6936353cba025b1d5cd14053428f3ea3a23b2b1edb25157571f0af2d45e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "a8687a2f90da7357b2adc586604becd34b686556c5f0dffa2c039441a9366f3e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "7e25a6936353cba025b1d5cd14053428f3ea3a23b2b1edb25157571f0af2d45e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/filters-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "464a4631875b8b7fd4c2b299eaff57c5400707b6b72488f9a8e9cf26db1c5f70"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/readback.json",
+      "sha256": "284937af3a2360041625d4f63b6a419374e9e544639211b8fea76af72d584f12"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-1440-en-accessibility.json",
+      "sha256": "fbff744f2fefb185568146c485e8e4bb458b2da4779af0bb567e6ee19f69ebb9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-1440-en-interaction.json",
+      "sha256": "b7743eb7c2fc215e2b5ce89eafabdc9a5d5698f7803b783be473e1995aa0220d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "fbff744f2fefb185568146c485e8e4bb458b2da4779af0bb567e6ee19f69ebb9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "ba170fdfab8fb3be2829edd9c0311cb4b65afdee951512db3b6eba6911f5f7d7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-390-en-accessibility.json",
+      "sha256": "d8f383b0bcc14ff3b5860060e5d97053080e30fec9db8ac5525178b65840e251"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-390-en-interaction.json",
+      "sha256": "de80585b36f2c64ed7c49ca40561b5d287843a428d744e1ade07950441bb4026"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "d8f383b0bcc14ff3b5860060e5d97053080e30fec9db8ac5525178b65840e251"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "f474c8b8314a949b102a39a9923ff7df4ba4f899202861b7a86630e540628090"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-960-en-accessibility.json",
+      "sha256": "cf530ca364ca929893ebeddf156423612d48e8adbc51c889b829346d7d905376"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-960-en-interaction.json",
+      "sha256": "7b1c46b7f941c78b7cae4ddfe6980085120b2dde96be138bb298c98ca918388a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "cf530ca364ca929893ebeddf156423612d48e8adbc51c889b829346d7d905376"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "0387035161c4d6882dda92a5f7dfefa2545365931d5153ddebf9fa83e6a92b74"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "e546dce291d5357a227eec1822ada3759f23d21d29c7a8c15fbcd6d6382a1d8d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "9c6182f45fd0124c02c31c5c2c53c14e3893d9077ce3c39adb0b6b6daa8cab32"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "e546dce291d5357a227eec1822ada3759f23d21d29c7a8c15fbcd6d6382a1d8d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "1c2ba6f504b0f48ca38fc48ec71cc6926af0fa45e89aae510fdd95ca88c4e6dc"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "bf86cc0ac34695d27ba930f522f9c22579f9f453b69691090338e68caa8707e3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "021103254bf8008e72eac63b97cd80f1b47ec5dcd04dbbb83b067f193ba30f33"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "bf86cc0ac34695d27ba930f522f9c22579f9f453b69691090338e68caa8707e3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "82caeef9b240378473e446ae9c40f38d2cd0129fb7b151b1b60426f50b8e8729"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "fcd7762b6fcb4af452157b395d72722314bcb17f08a6e3c00427c994ec79104e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "6587d436be30ccfffd98e380c11312c8fe0e279c5ecf8bb7f7fec1142c500315"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "fcd7762b6fcb4af452157b395d72722314bcb17f08a6e3c00427c994ec79104e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/search-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "d3bd242b8755db54db57cc0aaa1bf833172d698028b7f32579a0e7928b4d4366"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/evidence/SEARCH-008-7/surfaces.json",
+      "sha256": "a95533bd418130f2ae0d4766292b00334da2aaec0ee1295493e66ef5892ed821"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/findings.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "file": "apps/web/.impeccable/review/campaigns/search-2026-10-12T13-55-38-243Z-ad1d70fc/inventory.json",
+      "sha256": "0a0f5f6535d2b5d944c9a276351591a2423ea93f0c1fed7d6bd466dfeb5b268f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-1440-en-accessibility.json",
+      "sha256": "134477ea59b4f4cf972bf54f8d8d0a206de5b5d11882687bbd8ff824d8a2c780"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-1440-en-interaction.json",
+      "sha256": "ee00b4bd80ce484e253ea91cccc18db256ccd2a7adca37ef9dd21bd7a40d62e2"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "134477ea59b4f4cf972bf54f8d8d0a206de5b5d11882687bbd8ff824d8a2c780"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "1004ca7c2d7adb3c2bb61f48c522f1bbbc9eaa9e2c8603244c43750d24f6bb3d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-390-en-accessibility.json",
+      "sha256": "e9e28625cfb8c49cfd41b2ee8a9bbddeca5dbc7977e877754f79e75fc15c8075"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-390-en-interaction.json",
+      "sha256": "d6cbde41dea68b91f5d8e0a9cf4ca2b7018748e014298f460a19badc5947bac5"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "e9e28625cfb8c49cfd41b2ee8a9bbddeca5dbc7977e877754f79e75fc15c8075"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "cf26b660bed9145cb57092b9fa2af5b52a80af0c61aa32d612e08fc1f4d8d893"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-960-en-accessibility.json",
+      "sha256": "3ad5d1317691b88da7c525a13161750c7b7f30121063658177f91be9198aac45"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-960-en-interaction.json",
+      "sha256": "874ae9496b5ed9304df3ca2b3bbd118081ffca7ae9115d89a6fb328f6466290d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "3ad5d1317691b88da7c525a13161750c7b7f30121063658177f91be9198aac45"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "8f8c76dad68f1e1f31e20580c71fba0682c5e1b8de8d42cc1e07ee530d533dd0"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "ab802f45332dcae6a731fd1639a2d151a3dd60dcefd590768663dcf140e3694a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "099710a542257e93fd703a325af0cb577cffc7be08cb07ea3cea7982d61ca15a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "ab802f45332dcae6a731fd1639a2d151a3dd60dcefd590768663dcf140e3694a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "8c89a96cbdc0f2a36f35074cde4f37cfee8e3215380efbdd880c6ecdc1e10e9b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "6aa55184e22ea49c1f063a265126e3b4912f7cba452d97640d2550e6f335cd27"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "b4913f9492e3d4315ddd73b6c787220ec9d1ab32a67ac562516061d18cdbcd9d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "6aa55184e22ea49c1f063a265126e3b4912f7cba452d97640d2550e6f335cd27"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "b1564051c50b1c3341e4045d160cadd028ab76a3dcd50cfd596cf7cf90b78874"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "7e25a6936353cba025b1d5cd14053428f3ea3a23b2b1edb25157571f0af2d45e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "a8687a2f90da7357b2adc586604becd34b686556c5f0dffa2c039441a9366f3e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "7e25a6936353cba025b1d5cd14053428f3ea3a23b2b1edb25157571f0af2d45e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/filters-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "464a4631875b8b7fd4c2b299eaff57c5400707b6b72488f9a8e9cf26db1c5f70"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-1440-en-accessibility.json",
+      "sha256": "97e5472095b9a1671f063b1cdbff8d8237cb76ac2af58e8bcc252224614f179a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-1440-en-rendering.json",
+      "sha256": "816b81ad52c8bd2720ef37a49978e5be9edf3a4575626501b6c2e8f8a1a61e6f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-1440-pt-BR-accessibility.json",
+      "sha256": "f22e0243ce0db075f8a8b4fe0e346d6c05ebd1942649677c4a40db9b356ed62d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-1440-pt-BR-rendering.json",
+      "sha256": "816b81ad52c8bd2720ef37a49978e5be9edf3a4575626501b6c2e8f8a1a61e6f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-390-en-accessibility.json",
+      "sha256": "bda381fd622e877df7698a7130c2670c5be7308bae991956cebdddf7f0f16b57"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-390-en-rendering.json",
+      "sha256": "45d896285bd59f8fea62d462f84eaf6e726ad1fdb4285c24c3cafafd524d7ab9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-390-pt-BR-accessibility.json",
+      "sha256": "a3f354047a532a4ab34f3e53da53480ac19ecbadc8daf2729a07dd459577a5a3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-390-pt-BR-rendering.json",
+      "sha256": "45d896285bd59f8fea62d462f84eaf6e726ad1fdb4285c24c3cafafd524d7ab9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-960-en-accessibility.json",
+      "sha256": "617ba4c9a4e8c7ffa2b691e083b0707246eb4d40888e61ea797538b6fe98004f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-960-en-rendering.json",
+      "sha256": "46217220517f4498bce197468f7d3f7a3d35f540f916db80bf33f4d14d1ab6ec"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-960-pt-BR-accessibility.json",
+      "sha256": "f61a5e84ca5c0ebac5fd9f5fcddfbf8657ee15b262ad8ea9249d7a833f121de6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/landing-960-pt-BR-rendering.json",
+      "sha256": "46217220517f4498bce197468f7d3f7a3d35f540f916db80bf33f4d14d1ab6ec"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-1440-en-accessibility.json",
+      "sha256": "2ee1a587313fe5c9bfb1c2f4f52ea51be5a7880776c6f38a20d3cf5078231e8b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-1440-pt-BR-accessibility.json",
+      "sha256": "2ee1a587313fe5c9bfb1c2f4f52ea51be5a7880776c6f38a20d3cf5078231e8b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-390-en-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-390-pt-BR-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-960-en-accessibility.json",
+      "sha256": "756b820e4265cd0b1d531cec8de6c3f6b3e40e1337ec80f83218537683380d6d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-960-pt-BR-accessibility.json",
+      "sha256": "756b820e4265cd0b1d531cec8de6c3f6b3e40e1337ec80f83218537683380d6d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-expanded-1440-en-accessibility.json",
+      "sha256": "bcd97e1436c63b26e43908aa12083087094c30d32ad5cc4502df5b359ef09e33"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-expanded-1440-pt-BR-accessibility.json",
+      "sha256": "bcd97e1436c63b26e43908aa12083087094c30d32ad5cc4502df5b359ef09e33"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-expanded-390-en-accessibility.json",
+      "sha256": "f2a6e7a711b6586558570fef1273c0fdc5d2c04047d8836202ddaf2996d9d5c9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-expanded-390-pt-BR-accessibility.json",
+      "sha256": "f2a6e7a711b6586558570fef1273c0fdc5d2c04047d8836202ddaf2996d9d5c9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-expanded-960-en-accessibility.json",
+      "sha256": "5e91508f38dcb881e5ce5930c01c563da7155501ec684c1bbab52ac7c1d0eb44"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-expanded-960-pt-BR-accessibility.json",
+      "sha256": "5e91508f38dcb881e5ce5930c01c563da7155501ec684c1bbab52ac7c1d0eb44"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-recovered-1440-en-accessibility.json",
+      "sha256": "2ee1a587313fe5c9bfb1c2f4f52ea51be5a7880776c6f38a20d3cf5078231e8b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-recovered-1440-pt-BR-accessibility.json",
+      "sha256": "2ee1a587313fe5c9bfb1c2f4f52ea51be5a7880776c6f38a20d3cf5078231e8b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-recovered-390-en-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-recovered-390-pt-BR-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-recovered-960-en-accessibility.json",
+      "sha256": "756b820e4265cd0b1d531cec8de6c3f6b3e40e1337ec80f83218537683380d6d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-overview-recovered-960-pt-BR-accessibility.json",
+      "sha256": "756b820e4265cd0b1d531cec8de6c3f6b3e40e1337ec80f83218537683380d6d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-persisted-reduction-390-en-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/place-persisted-reduction-390-pt-BR-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-1440-en-accessibility.json",
+      "sha256": "4942569f10536feb27d069b28d3f357aa5cafb920c3a3a0c47aa5d3b3b65ef13"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-1440-pt-BR-accessibility.json",
+      "sha256": "4942569f10536feb27d069b28d3f357aa5cafb920c3a3a0c47aa5d3b3b65ef13"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-390-en-accessibility.json",
+      "sha256": "ddd25394676231f54505380428faff5195973cd168ff88bb04825e133888c85d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-390-pt-BR-accessibility.json",
+      "sha256": "ddd25394676231f54505380428faff5195973cd168ff88bb04825e133888c85d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-960-en-accessibility.json",
+      "sha256": "977cca6466345489ca885b4d31fbb4e798a7334e32a2a2285d41da66dc54cbea"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-960-pt-BR-accessibility.json",
+      "sha256": "977cca6466345489ca885b4d31fbb4e798a7334e32a2a2285d41da66dc54cbea"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-round2-2026-10-12-final-vitest.json",
+      "sha256": "3ace2ce1d2eccc2e22284d2fe0fd1e4f5971458348fbcdd14bcb2f5c0111b18f"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-round2-coverage/coverage-summary.json",
+      "sha256": "237a103e65200d4fc87cb2f643d4593fadcd959625ef6e6c7c6921b3a243f934"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-1440-en-accessibility.json",
+      "sha256": "fbff744f2fefb185568146c485e8e4bb458b2da4779af0bb567e6ee19f69ebb9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-1440-en-interaction.json",
+      "sha256": "b7743eb7c2fc215e2b5ce89eafabdc9a5d5698f7803b783be473e1995aa0220d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-1440-pt-BR-accessibility.json",
+      "sha256": "fbff744f2fefb185568146c485e8e4bb458b2da4779af0bb567e6ee19f69ebb9"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-1440-pt-BR-interaction.json",
+      "sha256": "ba170fdfab8fb3be2829edd9c0311cb4b65afdee951512db3b6eba6911f5f7d7"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-390-en-accessibility.json",
+      "sha256": "d8f383b0bcc14ff3b5860060e5d97053080e30fec9db8ac5525178b65840e251"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-390-en-interaction.json",
+      "sha256": "de80585b36f2c64ed7c49ca40561b5d287843a428d744e1ade07950441bb4026"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-390-pt-BR-accessibility.json",
+      "sha256": "d8f383b0bcc14ff3b5860060e5d97053080e30fec9db8ac5525178b65840e251"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-390-pt-BR-interaction.json",
+      "sha256": "f474c8b8314a949b102a39a9923ff7df4ba4f899202861b7a86630e540628090"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-960-en-accessibility.json",
+      "sha256": "cf530ca364ca929893ebeddf156423612d48e8adbc51c889b829346d7d905376"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-960-en-interaction.json",
+      "sha256": "7b1c46b7f941c78b7cae4ddfe6980085120b2dde96be138bb298c98ca918388a"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-960-pt-BR-accessibility.json",
+      "sha256": "cf530ca364ca929893ebeddf156423612d48e8adbc51c889b829346d7d905376"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-960-pt-BR-interaction.json",
+      "sha256": "0387035161c4d6882dda92a5f7dfefa2545365931d5153ddebf9fa83e6a92b74"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-1440-en-accessibility.json",
+      "sha256": "e546dce291d5357a227eec1822ada3759f23d21d29c7a8c15fbcd6d6382a1d8d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-1440-en-interaction.json",
+      "sha256": "9c6182f45fd0124c02c31c5c2c53c14e3893d9077ce3c39adb0b6b6daa8cab32"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-1440-pt-BR-accessibility.json",
+      "sha256": "e546dce291d5357a227eec1822ada3759f23d21d29c7a8c15fbcd6d6382a1d8d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-1440-pt-BR-interaction.json",
+      "sha256": "1c2ba6f504b0f48ca38fc48ec71cc6926af0fa45e89aae510fdd95ca88c4e6dc"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-390-en-accessibility.json",
+      "sha256": "bf86cc0ac34695d27ba930f522f9c22579f9f453b69691090338e68caa8707e3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-390-en-interaction.json",
+      "sha256": "021103254bf8008e72eac63b97cd80f1b47ec5dcd04dbbb83b067f193ba30f33"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-390-pt-BR-accessibility.json",
+      "sha256": "bf86cc0ac34695d27ba930f522f9c22579f9f453b69691090338e68caa8707e3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-390-pt-BR-interaction.json",
+      "sha256": "82caeef9b240378473e446ae9c40f38d2cd0129fb7b151b1b60426f50b8e8729"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-960-en-accessibility.json",
+      "sha256": "fcd7762b6fcb4af452157b395d72722314bcb17f08a6e3c00427c994ec79104e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-960-en-interaction.json",
+      "sha256": "6587d436be30ccfffd98e380c11312c8fe0e279c5ecf8bb7f7fec1142c500315"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-960-pt-BR-accessibility.json",
+      "sha256": "fcd7762b6fcb4af452157b395d72722314bcb17f08a6e3c00427c994ec79104e"
+    },
+    {
+      "file": "apps/web/.impeccable/review/search-sao-paulo-bela-vista-960-pt-BR-interaction.json",
+      "sha256": "d3bd242b8755db54db57cc0aaa1bf833172d698028b7f32579a0e7928b4d4366"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-id-1440-en-accessibility.json",
+      "sha256": "60141488e89aad2ed2faba502e2276fb62b9b274929ddca27b0a32022db6647d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-id-1440-pt-BR-accessibility.json",
+      "sha256": "60141488e89aad2ed2faba502e2276fb62b9b274929ddca27b0a32022db6647d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-id-390-en-accessibility.json",
+      "sha256": "ad00ef890f13dc1faa3e053f5cb3abb41eaf9d14e377f883a80a66588b09e505"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-id-390-pt-BR-accessibility.json",
+      "sha256": "ad00ef890f13dc1faa3e053f5cb3abb41eaf9d14e377f883a80a66588b09e505"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-id-960-en-accessibility.json",
+      "sha256": "5a9a2f4763753aeb638646da9b03d84203d8e5e3540fe8af03427a613fbc91d6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-id-960-pt-BR-accessibility.json",
+      "sha256": "5a9a2f4763753aeb638646da9b03d84203d8e5e3540fe8af03427a613fbc91d6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-no-id-1440-en-accessibility.json",
+      "sha256": "60141488e89aad2ed2faba502e2276fb62b9b274929ddca27b0a32022db6647d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-no-id-1440-pt-BR-accessibility.json",
+      "sha256": "60141488e89aad2ed2faba502e2276fb62b9b274929ddca27b0a32022db6647d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-no-id-390-en-accessibility.json",
+      "sha256": "ad00ef890f13dc1faa3e053f5cb3abb41eaf9d14e377f883a80a66588b09e505"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-no-id-390-pt-BR-accessibility.json",
+      "sha256": "ad00ef890f13dc1faa3e053f5cb3abb41eaf9d14e377f883a80a66588b09e505"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-no-id-960-en-accessibility.json",
+      "sha256": "5a9a2f4763753aeb638646da9b03d84203d8e5e3540fe8af03427a613fbc91d6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-failure-no-id-960-pt-BR-accessibility.json",
+      "sha256": "5a9a2f4763753aeb638646da9b03d84203d8e5e3540fe8af03427a613fbc91d6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-known-place-loading-1440-en-accessibility.json",
+      "sha256": "825df85cf312af190becfa5eb1caea8a3b335ed520a34d76ec3a06ac34f7c098"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-known-place-loading-1440-pt-BR-accessibility.json",
+      "sha256": "825df85cf312af190becfa5eb1caea8a3b335ed520a34d76ec3a06ac34f7c098"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-known-place-loading-390-en-accessibility.json",
+      "sha256": "0906021841ef2c60d7233b91b88ae30828b26579be29eec938374407e477d8eb"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-known-place-loading-390-pt-BR-accessibility.json",
+      "sha256": "0906021841ef2c60d7233b91b88ae30828b26579be29eec938374407e477d8eb"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-known-place-loading-960-en-accessibility.json",
+      "sha256": "052fc66323b7f4e552059820ec15332bc03cb239ce2040743011c3c4fd551b80"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-known-place-loading-960-pt-BR-accessibility.json",
+      "sha256": "052fc66323b7f4e552059820ec15332bc03cb239ce2040743011c3c4fd551b80"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-loading-1440-en-accessibility.json",
+      "sha256": "60141488e89aad2ed2faba502e2276fb62b9b274929ddca27b0a32022db6647d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-loading-1440-pt-BR-accessibility.json",
+      "sha256": "60141488e89aad2ed2faba502e2276fb62b9b274929ddca27b0a32022db6647d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-loading-390-en-accessibility.json",
+      "sha256": "ad00ef890f13dc1faa3e053f5cb3abb41eaf9d14e377f883a80a66588b09e505"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-loading-390-pt-BR-accessibility.json",
+      "sha256": "ad00ef890f13dc1faa3e053f5cb3abb41eaf9d14e377f883a80a66588b09e505"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-loading-960-en-accessibility.json",
+      "sha256": "5a9a2f4763753aeb638646da9b03d84203d8e5e3540fe8af03427a613fbc91d6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-loading-960-pt-BR-accessibility.json",
+      "sha256": "5a9a2f4763753aeb638646da9b03d84203d8e5e3540fe8af03427a613fbc91d6"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-retained-1440-en-accessibility.json",
+      "sha256": "2ee1a587313fe5c9bfb1c2f4f52ea51be5a7880776c6f38a20d3cf5078231e8b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-retained-1440-pt-BR-accessibility.json",
+      "sha256": "2ee1a587313fe5c9bfb1c2f4f52ea51be5a7880776c6f38a20d3cf5078231e8b"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-retained-390-en-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-retained-390-pt-BR-accessibility.json",
+      "sha256": "9f9518bbd2ff8f4e3b47d6cedecbc58976fcf70e0b1ba01da1c8cb14401f1cb3"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-retained-960-en-accessibility.json",
+      "sha256": "756b820e4265cd0b1d531cec8de6c3f6b3e40e1337ec80f83218537683380d6d"
+    },
+    {
+      "file": "apps/web/.impeccable/review/system-read-retained-960-pt-BR-accessibility.json",
+      "sha256": "756b820e4265cd0b1d531cec8de6c3f6b3e40e1337ec80f83218537683380d6d"
+    }
+  ]
+}
