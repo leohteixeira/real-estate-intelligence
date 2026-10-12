@@ -1274,6 +1274,8 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
     expect(await constraints()).toEqual(oldConstraints);
     await apply('6004_ask_ordered_delivery.sql');
     expect(await history()).toEqual(before);
+    await apply('6005_ask_model_explanations.sql');
+    expect(await history()).toEqual(before);
     expect(
       await context.database.query<{ sequence: string; lifetime: number }>(
         'SELECT admission_sequence::text AS sequence,EXTRACT(epoch FROM queue_expires_at-admitted_at)::integer AS lifetime FROM ask.run ORDER BY ask.run.admission_sequence',
