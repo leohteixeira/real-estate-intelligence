@@ -3,7 +3,7 @@ title: 'Threads, runs and checkpoints on PostgreSQL'
 type: 'feature'
 ticket: '6'
 created: '2026-10-11'
-status: 'built'
+status: done
 baseline_revision: 'ee8e3e967d2c6047ecb5a63c4195ed8471defa24'
 route: 'full'
 route_source: 'auto'
