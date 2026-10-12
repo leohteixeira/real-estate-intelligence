@@ -81,6 +81,7 @@ export interface StructuredExecutionInput extends AskRequestedIdentity {
   readonly locale: 'en' | 'pt-BR';
   readonly executionId: string;
   readonly toolGrant: string;
+  readonly checkpointGrant: string;
   readonly inputs: AskInputs;
 }
 export interface StructuredExecutionEvidence extends AskRequestedIdentity {

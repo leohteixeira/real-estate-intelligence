@@ -20,9 +20,13 @@ export class ResilientPricePerSquareMeterTool implements PricePerSquareMeterTool
   ) {
     const names = priceToolResilienceSettings.policies;
     this.#policy = ResiliencePolicy.wrap(
-      new FallbackPolicy<never>(() => Promise.reject(new PriceToolFailure()), {
-        name: names.fallback,
-      }),
+      new FallbackPolicy<never>(
+        (error) =>
+          Promise.reject(error instanceof PriceToolFailure ? error : new PriceToolFailure()),
+        {
+          name: names.fallback,
+        },
+      ),
       new BulkheadPolicy({ name: names.bulkhead, ...priceToolResilienceSettings.bulkhead }),
     );
     this.#breaker = new CircuitBreakerPolicy({
@@ -45,14 +49,15 @@ export class ResilientPricePerSquareMeterTool implements PricePerSquareMeterTool
     deadlineAt: number,
   ): Promise<PriceToolReceipt> {
     if (signal.aborted || !Number.isFinite(deadlineAt) || deadlineAt <= Date.now())
-      throw new PriceToolFailure();
+      throw new PriceToolFailure('cancelled');
     try {
       return await this.#policy.execute(
         ({ signal: admitted }) => this.logicalCall(request, grant, admitted, deadlineAt),
         { signal, source: 'PricePerSquareMeterTool' },
       );
-    } catch {
-      throw new PriceToolFailure();
+    } catch (error) {
+      if (error instanceof PriceToolFailure) throw error;
+      throw new PriceToolFailure(signal.aborted ? 'cancelled' : 'transient');
     }
   }
   private async logicalCall(

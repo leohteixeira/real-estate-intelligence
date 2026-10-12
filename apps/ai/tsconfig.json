@@ -6,7 +6,7 @@
     "target": "ES2023",
     "types": ["node"],
     "composite": false,
-    "declaration": false,
+    "declaration": true,
     "declarationMap": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

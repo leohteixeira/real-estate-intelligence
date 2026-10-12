@@ -29,7 +29,7 @@ export class HttpPricePerSquareMeterTool implements PricePerSquareMeterTool {
         throw new Error();
       this.#origin = url.origin;
     } catch {
-      throw new PriceToolFailure();
+      throw new PriceToolFailure('rejected');
     }
   }
   public async calculate(
@@ -40,13 +40,13 @@ export class HttpPricePerSquareMeterTool implements PricePerSquareMeterTool {
   ): Promise<PriceToolReceipt> {
     let request: PriceToolRequest;
     try {
-      signal.throwIfAborted();
       request = structuredClone(parsePriceToolRequest(untrusted));
       strongAskCapabilityWire(grant);
-      if (!Number.isFinite(deadlineAt) || deadlineAt <= Date.now()) throw new Error();
+      if (!Number.isFinite(deadlineAt)) throw new Error();
     } catch {
-      throw new PriceToolFailure();
+      throw new PriceToolFailure('rejected');
     }
+    if (signal.aborted || deadlineAt <= Date.now()) throw new PriceToolFailure('cancelled');
     const deadline = new AbortController();
     const combined = AbortSignal.any([signal, deadline.signal]);
     const timer = setTimeout(
@@ -55,7 +55,7 @@ export class HttpPricePerSquareMeterTool implements PricePerSquareMeterTool {
     );
     let abort: (() => void) | undefined;
     const stopped = new Promise<never>((_resolve, reject) => {
-      abort = () => reject(new PriceToolFailure());
+      abort = () => reject(new PriceToolFailure('cancelled'));
       combined.addEventListener('abort', abort, { once: true });
     });
     const attempt = async (): Promise<PriceToolReceipt> => {
@@ -73,14 +73,17 @@ export class HttpPricePerSquareMeterTool implements PricePerSquareMeterTool {
           body: JSON.stringify(request),
         },
       );
+      if (response.status !== 200) {
+        void response.body?.cancel().catch(() => {});
+        throw new PriceToolFailure(response.status >= 500 ? 'transient' : 'rejected');
+      }
       if (
-        response.status !== 200 ||
         !response.body ||
         !/^application\/json(?:\s*;|$)/i.test(response.headers.get('content-type') ?? '') ||
         Number(response.headers.get('content-length') ?? 0) > 16384
       ) {
         void response.body?.cancel().catch(() => {});
-        throw new PriceToolFailure();
+        throw new PriceToolFailure('rejected');
       }
       const reader = response.body.getReader();
       const cancel = () => {
@@ -94,18 +97,26 @@ export class HttpPricePerSquareMeterTool implements PricePerSquareMeterTool {
           const chunk = await reader.read();
           if (chunk.done) break;
           size += chunk.value.byteLength;
-          if (size > 16384) throw new Error();
+          if (size > 16384) throw new PriceToolFailure('rejected');
           chunks.push(chunk.value);
         }
-        const receipt = parsePriceToolReceipt(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+        let receipt: PriceToolReceipt;
+        try {
+          receipt = parsePriceToolReceipt(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+        } catch {
+          throw new PriceToolFailure('rejected');
+        }
         if (
           !sameAskIdentity(receipt, request) ||
           receipt.executionId !== request.executionId ||
           !sameAskInputs(receipt.inputs, request.inputs) ||
           receipt.operation !== request.operation
         )
-          throw new PriceToolFailure();
+          throw new PriceToolFailure('rejected');
         return structuredClone(receipt);
+      } catch (error) {
+        if (error instanceof PriceToolFailure) throw error;
+        throw new PriceToolFailure(combined.aborted ? 'cancelled' : 'transient');
       } finally {
         combined.removeEventListener('abort', cancel);
         cancel();
@@ -113,8 +124,9 @@ export class HttpPricePerSquareMeterTool implements PricePerSquareMeterTool {
     };
     try {
       return await Promise.race([attempt(), stopped]);
-    } catch {
-      throw new PriceToolFailure();
+    } catch (error) {
+      if (error instanceof PriceToolFailure) throw error;
+      throw new PriceToolFailure(combined.aborted ? 'cancelled' : 'transient');
     } finally {
       clearTimeout(timer);
       if (abort) combined.removeEventListener('abort', abort);

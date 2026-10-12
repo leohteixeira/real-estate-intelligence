@@ -61,7 +61,7 @@ export class ConsumeAskRunRequest {
       signal.throwIfAborted();
       if (
         Date.now() >= deadlineAt ||
-        (isExternalFailure(error) && (error.kind === 'cancelled' || error.kind === 'exhausted'))
+        (isExternalFailure(error) && ['transient', 'cancelled', 'exhausted'].includes(error.kind))
       )
         throw error;
       await this.dispatch.complete(

@@ -8,3 +8,5 @@ export * from './ask-run.service.js';
 export * from './run-dispatch.port.js';
 export * from './consume-ask-run-request.service.js';
 export { askAdmissionPolicy } from './ask-admission.policy.js';
+export * from './graph-checkpoint.port.js';
+export * from './graph-checkpoint.service.js';

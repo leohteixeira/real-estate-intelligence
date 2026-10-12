@@ -191,6 +191,7 @@ export interface StructuredExecutionRequest extends AskRequestedIdentity {
   readonly locale: 'en' | 'pt-BR';
   readonly executionId: string;
   readonly toolGrant: string;
+  readonly checkpointGrant: string;
   readonly inputs: AskInputs;
 }
 export interface StructuredExecutionResponse extends AskRequestedIdentity {
@@ -274,6 +275,7 @@ export const structuredExecutionWire = wireObject({
   locale: wireEnum(['en', 'pt-BR']),
   executionId: wireUuid,
   toolGrant: strongAskCapabilityWire,
+  checkpointGrant: strongAskCapabilityWire,
   inputs: askInputsWire,
 });
 export const structuredEvidenceWire = wireObject({
@@ -299,6 +301,7 @@ export const textExecutionWire = wireObject({
   locale: wireEnum(['en', 'pt-BR']),
   executionId: wireUuid,
   toolGrant: strongAskCapabilityWire,
+  checkpointGrant: strongAskCapabilityWire,
   inputs: askInputsWire,
 });
 export const textEvidenceWire = wireObject({

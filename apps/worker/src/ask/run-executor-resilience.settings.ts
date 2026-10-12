@@ -1,4 +1,4 @@
-/** D-044: no durable deduplication exists, so even transient failure gets exactly one attempt. */
+/** One attempt per worker admission; durable checkpoint/receipt replay belongs to a fresh claim. */
 export const runExecutorResilienceSettings = Object.freeze({
   dependency: 'run-executor',
   policies: Object.freeze({

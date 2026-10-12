@@ -1,53 +1,84 @@
 import { END, START, StateGraph } from '@langchain/langgraph';
+import type { BaseCheckpointSaver } from '@langchain/langgraph-checkpoint';
 import {
-  parseStructuredExecutionRequest,
-  parseTextExecutionRequest,
+  parsePriceToolReceipt,
+  sameAskIdentity,
+  sameAskInputs,
   type PriceToolReceipt,
-  type PriceExecutionRequest,
 } from '@rei/contracts';
 import { z } from 'zod';
-import type { PricePerSquareMeterTool } from '../tools/price-per-square-meter.port';
+import {
+  PriceToolFailure,
+  type PricePerSquareMeterTool,
+} from '../tools/price-per-square-meter.port';
 import { priceNodeSpan } from './price-telemetry';
+import type { DurablePriceInput } from './remote-checkpoint-saver';
 export const PRICE_GRAPH = Symbol('PRICE_GRAPH');
+export interface PriceAuthority {
+  readonly executionId: string;
+  readonly toolGrant: string;
+  readonly signal: AbortSignal;
+  readonly deadlineAt: number;
+}
 const PriceState = z.object({
-  input: z.custom<PriceExecutionRequest>(),
+  input: z.custom<DurablePriceInput>(),
   decision: z.boolean().optional(),
+  visitedNodes: z.array(z.string()).optional(),
   receipt: z.custom<PriceToolReceipt>().optional(),
 });
-export function compilePriceGraph(tool: PricePerSquareMeterTool) {
+export async function invokePriceTool(
+  tool: PricePerSquareMeterTool,
+  input: DurablePriceInput,
+  authority: PriceAuthority,
+): Promise<PriceToolReceipt> {
+  authority.signal.throwIfAborted();
+  const request = {
+    version: 1 as const,
+    eventId: input.eventId,
+    runId: input.runId,
+    threadId: input.threadId,
+    executionId: authority.executionId,
+    operation: 'price-per-square-meter' as const,
+    inputs: input.inputs,
+  };
+  const receipt = parsePriceToolReceipt(
+    await tool.calculate(request, authority.toolGrant, authority.signal, authority.deadlineAt),
+  );
+  if (
+    !sameAskIdentity(receipt, request) ||
+    receipt.executionId !== authority.executionId ||
+    !sameAskInputs(receipt.inputs, input.inputs)
+  )
+    throw new PriceToolFailure('rejected');
+  return receipt;
+}
+export function compilePriceGraph(
+  tool: PricePerSquareMeterTool,
+  authority: PriceAuthority,
+  saver: BaseCheckpointSaver,
+  interruptBefore?: ['priceTool'],
+) {
   return new StateGraph(PriceState)
     .addNode('fixedDecision', (state) =>
       priceNodeSpan('fixedDecision', state.input, async () => {
-        parseStructuredExecutionRequest(state.input);
-        return { decision: true };
+        authority.signal.throwIfAborted();
+        if (state.input.step !== 'structured-price-v1') throw new PriceToolFailure('rejected');
+        return { decision: true, visitedNodes: [...(state.visitedNodes ?? []), 'fixedDecision'] };
       }),
     )
     .addNode('validatedInputs', (state) =>
       priceNodeSpan('validatedInputs', state.input, async () => {
-        parseTextExecutionRequest(state.input);
-        return { decision: true };
+        authority.signal.throwIfAborted();
+        if (state.input.step !== 'text-price-v1') throw new PriceToolFailure('rejected');
+        return { decision: true, visitedNodes: [...(state.visitedNodes ?? []), 'validatedInputs'] };
       }),
     )
-    .addNode('priceTool', async (state, config) => {
-      if (!state.decision) throw new Error('Price execution unavailable.');
-      const input = state.input;
-      const receipt = await priceNodeSpan('priceTool', input, () =>
-        tool.calculate(
-          {
-            version: 1,
-            eventId: input.eventId,
-            runId: input.runId,
-            threadId: input.threadId,
-            executionId: input.executionId,
-            operation: 'price-per-square-meter',
-            inputs: input.inputs,
-          },
-          input.toolGrant,
-          config?.signal ?? new AbortController().signal,
-          Date.now() + 3500,
-        ),
+    .addNode('priceTool', async (state) => {
+      if (!state.decision) throw new PriceToolFailure('rejected');
+      const receipt = await priceNodeSpan('priceTool', state.input, () =>
+        invokePriceTool(tool, state.input, authority),
       );
-      return { receipt };
+      return { receipt, visitedNodes: [...(state.visitedNodes ?? []), 'priceTool'] };
     })
     .addConditionalEdges(START, (state) =>
       state.input.step === 'text-price-v1' ? 'validatedInputs' : 'fixedDecision',
@@ -55,6 +86,6 @@ export function compilePriceGraph(tool: PricePerSquareMeterTool) {
     .addEdge('fixedDecision', 'priceTool')
     .addEdge('validatedInputs', 'priceTool')
     .addEdge('priceTool', END)
-    .compile();
+    .compile({ checkpointer: saver, ...(interruptBefore ? { interruptBefore } : {}) });
 }
 export type PriceGraph = ReturnType<typeof compilePriceGraph>;

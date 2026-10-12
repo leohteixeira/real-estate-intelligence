@@ -5,6 +5,8 @@ import {
   ASK_LIVE_FACADE,
   AskQueryService,
   AskRunService,
+  GRAPH_CHECKPOINT_PORT,
+  GraphCheckpointService,
   MARKET_CALCULATION_FACADE,
   type MarketCalculationFacade,
   OUTBOX_APPEND_PORT,
@@ -15,6 +17,7 @@ import {
 import {
   SyntheticAskAdapter,
   PostgresAskRunRepository,
+  PostgresGraphCheckpointRepository,
   type DatabaseConnection,
 } from '@rei/infrastructure';
 import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
@@ -24,11 +27,26 @@ import { AskDispatchController } from './ask-dispatch.controller';
 import { AskToolController } from './ask-tool.controller';
 import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 import { MarketModule } from '../market/index';
+import { GraphCheckpointController } from './graph-checkpoint.controller';
+import { GraphCheckpointRetentionJob } from './graph-checkpoint-retention.job';
 
 @Module({
   imports: [MarketModule],
-  controllers: [AskController, AskLiveController, AskDispatchController, AskToolController],
+  controllers: [
+    AskController,
+    AskLiveController,
+    AskDispatchController,
+    AskToolController,
+    GraphCheckpointController,
+  ],
   providers: [
+    GraphCheckpointRetentionJob,
+    {
+      provide: GRAPH_CHECKPOINT_PORT,
+      inject: [DATABASE_CONNECTION, TRANSACTION_RUNNER],
+      useFactory: (connection: DatabaseConnection, transactions: TransactionRunner) =>
+        new GraphCheckpointService(new PostgresGraphCheckpointRepository(connection, transactions)),
+    },
     { provide: ASK_FACADE, useFactory: () => new AskQueryService(new SyntheticAskAdapter()) },
     {
       provide: ASK_LIVE_FACADE,

@@ -42,6 +42,7 @@ import type {
 import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
 import { PostgresInbox } from '../shared/persistence/postgres-inbox.js';
 import { askDigest, equalAskDigest } from './ask-authority.js';
+import { authorizeAskExecution, lockAskThread } from './ask-execution.authorization.js';
 import {
   activeAmqpTraceHeaders,
   extractAmqpTraceContext,
@@ -149,7 +150,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
     return rows[0]!.id;
   }
   private async lock(client: DatabaseClient, key: string): Promise<void> {
-    await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [`ask:${key}`]);
+    await lockAskThread(client, key);
   }
   public async create(
     untrusted: ValidatedAskCreate,
@@ -373,9 +374,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
         };
       const executionId = await this.uuid(client);
       const grant = randomBytes(32).toString('base64url');
+      const checkpointGrant = randomBytes(32).toString('base64url');
       const now = Date.now();
       const at = new Date(now).toISOString();
-      const expiresAt = new Date(now + 30_000).toISOString();
       if (run.state === 'queued')
         run = {
           ...run,
@@ -388,15 +389,15 @@ export class PostgresAskRunRepository implements AskRunRepository {
           },
           steps: [{ sequence: 1, phase: 'calculating', at }],
         };
-      await client.query(
-        `UPDATE ask.run SET state='running',execution_id=$2,claim_expires_at=$3,grant_digest=$4,document=$5 WHERE id=$1`,
-        [run.id, executionId, expiresAt, askDigest(grant), run],
+      const claims = await client.query<{ expires_at: Date }>(
+        `UPDATE ask.run SET state='running',execution_id=$2,claim_expires_at=clock_timestamp()+interval '30 seconds',grant_digest=$3,document=$4,checkpoint_grant_digest=$5 WHERE id=$1 RETURNING claim_expires_at AS expires_at`,
+        [run.id, executionId, askDigest(grant), run, askDigest(checkpointGrant)],
       );
       if (row.execution_id === null) await this.append(client, run);
       return {
         disposition: 'claimed',
         identity,
-        expiresAt,
+        expiresAt: claims[0]!.expires_at.toISOString(),
         input: {
           ...identity,
           step: run.basis,
@@ -404,19 +405,11 @@ export class PostgresAskRunRepository implements AskRunRepository {
           locale: run.locale,
           executionId,
           toolGrant: grant,
+          checkpointGrant,
           inputs: run.originalInputs,
         },
       };
     }, signal);
-  }
-  private active(row: StoredRun, executionId: string): void {
-    if (
-      row.execution_id !== executionId ||
-      !row.claim_expires_at ||
-      row.claim_expires_at.getTime() <= Date.now() ||
-      parseAskLiveRun(row.document).state !== 'running'
-    )
-      throw new AskLiveError('forbidden');
   }
   public async tool(
     untrusted: PriceToolRequest,
@@ -430,7 +423,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const row = await this.stored(client, request.runId);
       if (!row) throw new AskLiveError('forbidden');
       const run = this.identity(row, request);
-      this.active(row, request.executionId);
+      await authorizeAskExecution(client, request, { scope: 'tool', grant });
       if (
         !row.grant_digest ||
         !equalAskDigest(row.grant_digest, askDigest(grant)) ||
@@ -479,7 +472,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         (previous.terminal && previous.state !== (request.evidence ? 'completed' : 'failed'))
       )
         throw new AskLiveError('forbidden');
-      if (!previous.terminal) this.active(row, request.executionId);
+      if (!previous.terminal) await authorizeAskExecution(client, request);
       let result: PriceResult | null = null;
       if (request.evidence) {
         if (request.evidence.step !== previous.basis) throw new AskLiveError('forbidden');

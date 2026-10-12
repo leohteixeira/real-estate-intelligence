@@ -9,7 +9,7 @@ export interface PricePerSquareMeterTool {
   ): Promise<PriceToolReceipt>;
 }
 export class PriceToolFailure extends Error {
-  public constructor() {
+  public constructor(public readonly kind: 'transient' | 'rejected' | 'cancelled' = 'transient') {
     super('Price tool unavailable.');
   }
 }

@@ -43,7 +43,7 @@ export class ExecutionController {
         AbortSignal.any([
           disconnected.signal,
           AbortSignal.timeout(
-            input.step === 'structured-price-v1'
+            input.step === 'structured-price-v1' || input.step === 'text-price-v1'
               ? (readConfig(process.env).tracerDeadlineMs ?? 4500)
               : 2000,
           ),
