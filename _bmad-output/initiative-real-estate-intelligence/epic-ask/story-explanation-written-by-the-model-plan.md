@@ -3,7 +3,7 @@ title: 'Explanation written by the model'
 type: 'feature'
 ticket: 10
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '0814e091ecebc34f4f6ad274cc9e590c61eea969'
 route: 'full'
 route_source: 'auto'
@@ -719,3 +719,19 @@ independent provider retention attestation. No live provider, real source, key-f
 VPS unlock, deployment, push or browser campaign is claimed. The closed PT/EN factual grammar is
 not a verifier for arbitrary prose, and conservative reservations do not promise exactly-once
 provider network delivery. UI and general evaluation-pack work remain separate stories.
+
+### Acceptance and commits
+
+The build-auto iteration halted built after verification and normal-hook commits. The parent
+confirmed that all 67 reviewed files appear after the immutable baseline and none remains
+uncommitted; the working tree was clean. Only then did the ticket tool mark 5.10 done.
+This accepts this story, not the entire initiative or any VPS-dependent story.
+
+- Implementation: `de3ff816b2a52145383b82e6c2a33a3eed71795b`.
+- Tests: `2095452c30cd7503cf64898a7ddf93042639c04f`.
+- Documentation and review evidence: `41f96dd540e7bc304c4eb5aad61a4bd10a84b003`.
+
+All hooks passed without bypass, including secret scanning, formatting, ESLint, Markdownlint and
+the Conventional Commit message check. Hooks reported no content rewrites. Parent final verification
+passed 2,148 unit tests, 30 targeted integration cases and all 73 cases in the 29-file unfiltered
+suite, with unchanged 80/75 coverage floors. No push or deployment was performed.
