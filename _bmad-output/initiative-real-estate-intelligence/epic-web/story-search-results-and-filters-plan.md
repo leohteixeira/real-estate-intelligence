@@ -3,7 +3,7 @@ title: 'Search results and filters'
 type: 'feature'
 ticket: '6'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: 'f02018e3b2ac7201c44093ea83363dff08349233'
 route: 'full'
 route_source: 'auto'
@@ -534,3 +534,24 @@ truthfully. Automated axe/keyboard evidence does not claim a manual screen-reade
 pre-existing build chunk-size warning remains; no build gate was weakened. The failed locale fixture
 run and all historical verification snapshots remain available as explicitly historical evidence,
 not as the final verdict.
+
+## Parent Acceptance
+
+Accepted on 2026-10-12 after the full-route workflow halted built. The parent verified the
+ticket's actual list/filter/ordering and named-empty requirements through the executed outer
+component matrix and eight real Search scenarios. D-059 preserves truthful prepared outcomes;
+the dataset was not changed to fabricate distinct results for every option. Locale, current
+preview, A–B–A pagination, exact numeric units, recovery, history, PT/EN responsive surfaces and
+incumbent Place/navigation regression passed after the four review corrections.
+
+Reviewed implementation, tests and documentation/evidence were committed separately:
+
+- `712e0f86e1f8d797517dbdb11e60f3dab6ccb4f6` — Search/Filters implementation.
+- `ba3b4f27989533afb2d0f694ab0dc638a15935f8` — unit, typed lifecycle and real browser tests.
+- `f0a0455449c4ec492d331eb1b5570cc5f80fa10f` — reviewed plan and preserved evidence.
+
+All hooks passed without bypass. A post-hook audit verified all 480 manifest digests and the
+unchanged original archive hash. DESIGN, its sidecar and PRODUCT match the retained incumbent
+hashes. Every reviewed path appears in the change set since the canonical baseline, and the
+working copy was clean before this acceptance transition. `tickets.py mark 6.6 done` succeeded.
+No push, VPS access, production acceptance or owner-blocked story transition occurred.
