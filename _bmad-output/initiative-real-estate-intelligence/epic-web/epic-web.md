@@ -110,8 +110,28 @@ shared with another epic, Description says which part this epic delivers.
   fabricated figures, automatic retries, gate changes or VPS unlock
   (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-collection because: it needs the list of sources for the privacy notice.
+- Decision: D-057 completes entry 5 from validated public endpoints: retain event-fed place and
+  immediate-parent medians; label prepared counts/secondary figures/neighbours/monthly series
+  separately, with individual evidence, genuine zeros and unavailable sale/gaps. Use a labelled
+  place-identity schematic, never copied streets, tiles or geographic inference. Largest reductions
+  read persisted history only, bounded to three rows with abortable public detail enrichment;
+  keep historical percentage/source/date distinct from below-median deviation. Rows lead to the
+  existing place-scoped Search, not absent Property routes; an empty history stays empty. The
+  native question form forwards a draft through navigation state to the same-place Ask entry,
+  never URL/log/local storage, and explicitly does not execute a run before entry 9. Preserve
+  independent read recovery, Placa, both locales and all gates; no VPS unlock
+  (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-properties because: it needs the search, property, listing and largest-reductions
   shapes.
+- Decision: D-058 restores the authored compact overview after the independent finish review's
+  `fix` disposition. Keep every figure's origin, count, computation time and freshness identifiable;
+  retain full individual evidence and source links in keyboard-accessible native disclosures.
+  Place the complete twelve-month table under a labelled disclosure, preserve chart gaps and
+  equal values, and derive labelled chart ranges from supplied values for presentation only.
+  Restore compact neighbour comparisons, top-aligned panels and the porcelain phone question
+  below the plate; preserve the blue desktop header and unexecuted draft semantics. Apply only
+  the six material findings as one batch, recapture the same matrix, and obtain an independent
+  verdict without weakening tests, 44px targets or gates (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-market because: it needs the place-figure, neighbours and series shapes.
 - Waits on epic-ask because: it needs the run and SSE shapes.
 - Tracer bullet: entry 2; entry 1 precedes it because the router and data-fetching choice shapes

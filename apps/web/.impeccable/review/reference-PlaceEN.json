@@ -1,0 +1,20 @@
+{
+  "source": "docs/design/canvas/project/PlaceEN.dc.html",
+  "sourceSha256": "f2f902c0fc5e6c22f3d9a44a92c3414a643adb4c83bcd4e31eb4b4ad9b95a433",
+  "viewport": {
+    "width": 390,
+    "height": 1706
+  },
+  "fonts": [
+    "http://127.0.0.1:32849/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-400-normal.woff2",
+    "http://127.0.0.1:32849/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-500-normal.woff2",
+    "http://127.0.0.1:32849/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow-condensed@5.3.0/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2",
+    "http://127.0.0.1:32849/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2",
+    "http://127.0.0.1:32849/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow-condensed@5.3.0/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-500-normal.woff2"
+  ],
+  "outsideRequests": [],
+  "adaptations": [
+    "Google font link replaced with pinned bundled local fonts",
+    "Absent canvas-editor support.js omitted; static markup unchanged"
+  ]
+}

@@ -1,5 +1,5 @@
 {
-  "url": "http://127.0.0.1:36561/places/sao-paulo-bela-vista?owned-filter=retained",
+  "url": "http://127.0.0.1:36003/places/sao-paulo-bela-vista?owned-filter=retained",
   "engine": {
     "name": "axe-core",
     "version": "4.13.0"
@@ -24,18 +24,23 @@
     "aria-roles",
     "aria-valid-attr-value",
     "aria-valid-attr",
+    "avoid-inline-spacing",
     "button-name",
     "bypass",
     "color-contrast",
     "document-title",
     "duplicate-id-aria",
+    "form-field-multiple-labels",
     "html-has-lang",
     "html-lang-valid",
+    "label",
     "link-name",
     "list",
     "listitem",
     "meta-viewport",
     "nested-interactive",
+    "summary-name",
+    "svg-img-alt",
     "target-size",
     "valid-lang"
   ],
