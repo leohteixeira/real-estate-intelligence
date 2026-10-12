@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -8,7 +8,7 @@ import { MemoryRouter, useNavigate, useLocation } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../routes';
 import { createLocale } from '../places/locale';
-import { createReadCache } from '../places/place-queries';
+import { createReadCache, placesQuery } from '../places/place-queries';
 import {
   bela,
   marketFixture,
@@ -78,6 +78,40 @@ function mount(path: string) {
   return request;
 }
 describe('public shell', () => {
+  it('retains catalogue links on a failed refresh and recovers only through manual retry', async () => {
+    const request = mount(`/places/${bela.id}?filters=retained`);
+    await screen.findByText('R$ 9.515');
+    request.mockImplementation(async (input: string) =>
+      input === '/api/v1/places'
+        ? new Response('private catalogue body', { status: 503 })
+        : new Response(
+            JSON.stringify(input.endsWith('/market') ? marketFixture() : { metadata, place: bela }),
+          ),
+    );
+    await act(async () => {
+      await caches.at(-1)!.refetchQueries({ queryKey: placesQuery().queryKey });
+    });
+    const navigation = within(screen.getByRole('navigation', { name: 'Navegação de lugares' }));
+    expect(navigation.getByRole('link', { name: 'Bela Vista' })).toBeVisible();
+    expect(navigation.getByRole('link', { name: 'Pinheiros' })).toBeVisible();
+    expect(await navigation.findByRole('alert')).not.toHaveTextContent('private catalogue body');
+    const attempts = request.mock.calls.filter(([url]) => url === '/api/v1/places').length;
+    expect(attempts).toBe(2);
+    request.mockImplementation(
+      async (input: string) =>
+        new Response(
+          JSON.stringify(
+            placesFixture(input) ??
+              (input.endsWith('/market') ? marketFixture() : { metadata, place: bela }),
+          ),
+        ),
+    );
+    await userEvent.click(navigation.getByRole('button', { name: 'Tentar de novo' }));
+    await screen.findByText('R$ 9.515');
+    expect(request.mock.calls.filter(([url]) => url === '/api/v1/places')).toHaveLength(3);
+    await waitFor(() => expect(navigation.queryByRole('alert')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
+  });
   it('links three destinations with retained place, current state and browser history', async () => {
     const request = mount(`/places/${bela.id}`);
     await screen.findByText('R$ 9.515');

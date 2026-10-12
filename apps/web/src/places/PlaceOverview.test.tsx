@@ -174,7 +174,7 @@ describe('place tracer', () => {
       expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
       expect(screen.queryByText('private payload')).not.toBeInTheDocument();
       failing = false;
-      await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
       expect(await screen.findByText('R$ 9.515')).toBeVisible();
     },
   );
@@ -203,9 +203,9 @@ describe('place tracer', () => {
       expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
       expect(screen.getByRole('link', { name: 'Centro' })).toBeVisible();
       expect(screen.queryByText('private payload')).not.toBeInTheDocument();
-      expect(screen.queryByText('R$ 9.515')).not.toBeInTheDocument();
+      expect(screen.getByText('R$ 9.515')).toBeVisible();
       failing = false;
-      await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
       expect(await screen.findByText('R$ 9.515')).toBeVisible();
       expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
       expect(
@@ -220,7 +220,7 @@ describe('place tracer', () => {
     const request = mockReads();
     const view = mount('/places/BAD_ID', 'en');
     expect(screen.getByText('Invalid place identifier.')).toBeVisible();
-    await waitFor(() => expect(request).toHaveBeenCalled());
+    expect(request).not.toHaveBeenCalled();
     expect(request.mock.calls.some(([input]) => input.includes('BAD_ID'))).toBe(false);
     view.unmount();
     request.mockImplementation(async (input: string) =>
@@ -240,8 +240,57 @@ describe('place tracer', () => {
     ).toBeVisible();
     expect(await screen.findByText('Não foi possível carregar a lista de lugares.')).toBeVisible();
     mockReads();
-    for (const button of screen.getAllByRole('button', { name: 'Tentar novamente' }))
+    for (const button of screen.getAllByRole('button', { name: 'Tentar de novo' }))
       await userEvent.click(button);
+    expect(await screen.findByText('R$ 9.515')).toBeVisible();
+  });
+  it('retains the exact median and selected query context after a failed background refresh', async () => {
+    const request = mockReads();
+    const base = request.getMockImplementation()!;
+    let failing = false;
+    request.mockImplementation(async (input: string) =>
+      input.endsWith('/market') && failing
+        ? new Response('secret payload', {
+            status: 503,
+            headers: { 'x-request-id': 'd392f952-20fa-49b4-8cf6-4da26c8d7abc' },
+          })
+        : base(input),
+    );
+    const { cache } = mount(`/places/${bela.id}?owned-filter=retained`);
+    await screen.findByText('R$ 9.515');
+    failing = true;
+    await act(async () => {
+      await cache.refetchQueries({ queryKey: ['place', bela.id, 'market'], exact: true });
+    });
+    expect(
+      await screen.findByText('Não foi possível carregar a mediana. Tente novamente.'),
+    ).toBeVisible();
+    expect(screen.getByText('R$ 9.515')).toBeVisible();
+    expect(screen.getByText('1 imóvel contribuinte')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
+    expect(document.body).not.toHaveTextContent('secret payload');
+    failing = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(screen.getByText('R$ 9.515')).toBeVisible();
+  });
+  it('renders a genuinely known catalogue plate before its delayed detail without adding a cache', async () => {
+    const request = mockReads();
+    const base = request.getMockImplementation()!;
+    let resolveDetail: ((value: Response) => void) | undefined;
+    request.mockImplementation(async (input: string) =>
+      input === `/api/v1/places/${bela.id}`
+        ? new Promise<Response>((resolve) => {
+            resolveDetail = resolve;
+          })
+        : base(input),
+    );
+    mount();
+    expect(await screen.findByRole('heading', { name: 'Bela Vista' })).toBeVisible();
+    expect(screen.getByText('Carregando lugar…')).toBeVisible();
+    await act(async () => {
+      resolveDetail?.(new Response(JSON.stringify({ metadata, place: bela })));
+    });
     expect(await screen.findByText('R$ 9.515')).toBeVisible();
   });
   it('keeps long canonical names and reports untracked evidence', async () => {

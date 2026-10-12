@@ -15,7 +15,13 @@ export default defineConfig({
       configureServer(server) {
         // Fixed, dev-only files: never expose a repository directory or accept a path.
         const files = new Map(
-          ['Components.dc.html', 'Search.dc.html', 'tokens.css', 'components.css'].map((name) => [
+          [
+            'Components.dc.html',
+            'Search.dc.html',
+            'States.dc.html',
+            'tokens.css',
+            'components.css',
+          ].map((name) => [
             `/test-fixtures/artboards/${name}`,
             {
               file: new URL(`../../docs/design/canvas/project/${name}`, import.meta.url),

@@ -10,6 +10,7 @@ import {
 import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
+import { exerciseSystemStateReads } from './support/system-state-reads.ts';
 
 test('web place tracer follows production acquisition, proxy and browser journeys', async () => {
   await withCampaign(async ({ command }) => {
@@ -243,6 +244,11 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 await page.screenshot({
                   path: new URL(`place-${width}-${locale}-top.png`, captures).pathname,
                 });
+                await exerciseSystemStateReads(page, base, width, locale, captures);
+                await page.goto(`${base}/places/${bela}`);
+                await expect
+                  .poll(() => page.locator('.fig__value').textContent())
+                  .toBe(expectedFigure);
                 const publicNavigation = page.locator(
                   width === 390 ? '.public-tabs' : '.public-rail-navigation',
                 );

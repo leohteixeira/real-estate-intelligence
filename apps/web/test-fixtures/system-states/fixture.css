@@ -1,0 +1,58 @@
+.system-fixture {
+  padding: 40px;
+}
+.system-fixture > h1 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--s-3);
+}
+.system-fixture > p {
+  max-width: 70ch;
+  margin-bottom: var(--s-8);
+}
+.system-fixture__columns {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px 24px;
+}
+.system-fixture__columns > section {
+  min-width: 0;
+}
+.system-fixture h2 {
+  font-size: var(--text-lg);
+  margin-bottom: 10px;
+}
+.system-fixture__columns .panel {
+  min-height: 460px;
+}
+.system-fixture__columns .place-head {
+  padding: 16px;
+  border-radius: var(--r-md);
+}
+.system-fixture__columns .plate__name {
+  font-size: 36px;
+}
+.system-fixture .crumbs a {
+  min-width: var(--target);
+}
+.system-fixture__edges {
+  margin-block: var(--s-8);
+}
+.system-fixture__edges .system-state {
+  max-width: 70ch;
+}
+.system-fixture section[id^='owned-'] {
+  margin-top: var(--s-8);
+}
+@media (max-width: 1100px) {
+  .system-fixture__columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .system-fixture {
+    padding: 16px;
+  }
+  .system-fixture__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

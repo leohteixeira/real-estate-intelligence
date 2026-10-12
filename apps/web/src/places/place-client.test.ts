@@ -4,6 +4,28 @@ import { bela, marketFixture, metadata, pinheiros, placesFixture } from './place
 
 afterEach(() => vi.unstubAllGlobals());
 describe('public place reads', () => {
+  it('preserves public support evidence through wrappers and exact abort identity', async () => {
+    const requestId = 'd392f952-20fa-49b4-8cf6-4da26c8d7abc';
+    const request = vi.fn().mockResolvedValue(
+      new Response('private payload', {
+        status: 503,
+        headers: { 'x-request-id': requestId },
+      }),
+    );
+    vi.stubGlobal('fetch', request);
+    await expect(
+      createPlaceClient().place(bela.id, new AbortController().signal),
+    ).rejects.toMatchObject({
+      status: 503,
+      requestId,
+      message: 'The place contract could not be read.',
+    });
+    const abort = new DOMException('Aborted', 'AbortError');
+    request.mockRejectedValue(abort);
+    await expect(createPlaceClient().market(bela.id, new AbortController().signal)).rejects.toBe(
+      abort,
+    );
+  });
   it.each([undefined, '', '../secret', 'Bela-Vista', 'bad_id', 'a'.repeat(201)])(
     'rejects invalid ID %s',
     (id) => {

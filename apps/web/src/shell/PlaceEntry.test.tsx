@@ -87,6 +87,7 @@ describe('geographic public entries', () => {
       mount(`/${destination}/BAD_ID`);
       expect(screen.getByText('Identificador de lugar inválido.')).toBeVisible();
       expect(request.mock.calls.some(([url]) => url.includes('BAD_ID'))).toBe(false);
+      expect(request).not.toHaveBeenCalled();
       expect(screen.queryByRole('heading', { name: 'Bela Vista' })).not.toBeInTheDocument();
     },
   );
@@ -111,13 +112,15 @@ describe('geographic public entries', () => {
             : 'Não foi possível carregar o lugar. Tente novamente.',
         ),
       ).toBeVisible();
-      expect(screen.queryByRole('heading', { name: 'Bela Vista' })).not.toBeInTheDocument();
+      if (failure === 'missing')
+        expect(screen.queryByRole('heading', { name: 'Bela Vista' })).not.toBeInTheDocument();
+      else expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
       expect(screen.queryByText('private body')).not.toBeInTheDocument();
       expect(
         screen.queryByText('A tela de execuções ainda não está disponível nesta versão.'),
       ).not.toBeInTheDocument();
       failing = false;
-      await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
       expect(await screen.findByRole('heading', { name: 'Bela Vista' })).toBeVisible();
     },
   );
@@ -139,7 +142,7 @@ describe('geographic public entries', () => {
     ).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Bela Vista' })).toBeVisible();
     failing = false;
-    await userEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }));
     expect(await screen.findByRole('heading', { name: 'Buscar' })).toBeVisible();
   });
   it('cancels delayed superseded reads and never shows the prior-place plate', async () => {

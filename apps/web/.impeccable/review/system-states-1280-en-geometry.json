@@ -1,0 +1,278 @@
+{
+  "width": 1280,
+  "locale": "en",
+  "constructedCases": ["empty filter counts/prices", "stale age/source failure", "support UUID"],
+  "actualData": "Parsed owned synthetic API median, provenance and place",
+  "fonts": [
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-400-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow-condensed@5.3.0/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-500-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow-condensed@5.3.0/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-400-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow@5.3.0/node_modules/@fontsource/barlow/files/barlow-latin-600-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow-condensed@5.3.0/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-500-normal.woff2",
+    "http://127.0.0.1:33929/@fs/workspace/repos/real-estate-intelligence/node_modules/.pnpm/@fontsource+barlow-condensed@5.3.0/node_modules/@fontsource/barlow-condensed/files/barlow-condensed-latin-600-normal.woff2"
+  ],
+  "geometry": [
+    {
+      "tag": "SECTION",
+      "className": "",
+      "x": 40,
+      "y": 137.640625,
+      "width": 282,
+      "height": 780.4375,
+      "scrollWidth": 282,
+      "clientWidth": 282
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "x": 57,
+      "y": 190.734375,
+      "width": 44,
+      "height": 44,
+      "scrollWidth": 44,
+      "clientWidth": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "x": 118.203125,
+      "y": 190.734375,
+      "width": 114.03125,
+      "height": 44,
+      "scrollWidth": 114,
+      "clientWidth": 114
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "x": 249.4375,
+      "y": 190.734375,
+      "width": 55.140625,
+      "height": 44,
+      "scrollWidth": 55,
+      "clientWidth": 55
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "x": 68.203125,
+      "y": 236.734375,
+      "width": 68.78125,
+      "height": 44,
+      "scrollWidth": 69,
+      "clientWidth": 69
+    },
+    {
+      "tag": "DIV",
+      "className": "system-state system-loading system-loading--place",
+      "x": 41,
+      "y": 423.328125,
+      "width": 280,
+      "height": 493.75,
+      "scrollWidth": 280,
+      "clientWidth": 280
+    },
+    {
+      "tag": "SECTION",
+      "className": "",
+      "x": 346,
+      "y": 137.640625,
+      "width": 282,
+      "height": 780.4375,
+      "scrollWidth": 282,
+      "clientWidth": 282
+    },
+    {
+      "tag": "DIV",
+      "className": "system-state system-empty",
+      "x": 347,
+      "y": 174.734375,
+      "width": 280,
+      "height": 351.78125,
+      "scrollWidth": 280,
+      "clientWidth": 280
+    },
+    {
+      "tag": "BUTTON",
+      "className": "btn btn--block btn--primary",
+      "x": 363,
+      "y": 362.515625,
+      "width": 248,
+      "height": 44,
+      "scrollWidth": 246,
+      "clientWidth": 246
+    },
+    {
+      "tag": "A",
+      "className": "btn btn--block ",
+      "x": 363,
+      "y": 414.515625,
+      "width": 248,
+      "height": 44,
+      "scrollWidth": 246,
+      "clientWidth": 246
+    },
+    {
+      "tag": "A",
+      "className": "btn btn--block btn--quiet",
+      "x": 363,
+      "y": 466.515625,
+      "width": 248,
+      "height": 44,
+      "scrollWidth": 246,
+      "clientWidth": 246
+    },
+    {
+      "tag": "SECTION",
+      "className": "",
+      "x": 652,
+      "y": 137.640625,
+      "width": 282,
+      "height": 780.4375,
+      "scrollWidth": 282,
+      "clientWidth": 282
+    },
+    {
+      "tag": "DIV",
+      "className": "system-state system-error",
+      "x": 653,
+      "y": 174.734375,
+      "width": 280,
+      "height": 238.28125,
+      "scrollWidth": 280,
+      "clientWidth": 280
+    },
+    {
+      "tag": "BUTTON",
+      "className": "btn btn--primary btn--block",
+      "x": 669,
+      "y": 305.015625,
+      "width": 248,
+      "height": 44,
+      "scrollWidth": 246,
+      "clientWidth": 246
+    },
+    {
+      "tag": "SECTION",
+      "className": "",
+      "x": 958,
+      "y": 137.640625,
+      "width": 282,
+      "height": 780.4375,
+      "scrollWidth": 282,
+      "clientWidth": 282
+    },
+    {
+      "tag": "DIV",
+      "className": "system-stale",
+      "x": 959,
+      "y": 174.734375,
+      "width": 280,
+      "height": 99.4375,
+      "scrollWidth": 280,
+      "clientWidth": 280
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "x": 975,
+      "y": 432.265625,
+      "width": 127.53125,
+      "height": 44,
+      "scrollWidth": 128,
+      "clientWidth": 128
+    },
+    {
+      "tag": "DIV",
+      "className": "system-state system-empty",
+      "x": 40,
+      "y": 986.171875,
+      "width": 593.25,
+      "height": 462.765625,
+      "scrollWidth": 593,
+      "clientWidth": 593
+    },
+    {
+      "tag": "A",
+      "className": "btn btn--block btn--primary",
+      "x": 56,
+      "y": 1336.9375,
+      "width": 561.25,
+      "height": 44,
+      "scrollWidth": 559,
+      "clientWidth": 559
+    },
+    {
+      "tag": "A",
+      "className": "btn btn--block ",
+      "x": 56,
+      "y": 1388.9375,
+      "width": 561.25,
+      "height": 44,
+      "scrollWidth": 559,
+      "clientWidth": 559
+    },
+    {
+      "tag": "DIV",
+      "className": "system-stale",
+      "x": 40,
+      "y": 1448.9375,
+      "width": 1200,
+      "height": 237.65625,
+      "scrollWidth": 1200,
+      "clientWidth": 1200
+    },
+    {
+      "tag": "A",
+      "className": "btn btn--quiet",
+      "x": 56,
+      "y": 1642.59375,
+      "width": 229.515625,
+      "height": 44,
+      "scrollWidth": 228,
+      "clientWidth": 228
+    },
+    {
+      "tag": "DIV",
+      "className": "system-stale",
+      "x": 40,
+      "y": 1686.59375,
+      "width": 1200,
+      "height": 80.59375,
+      "scrollWidth": 1200,
+      "clientWidth": 1200
+    },
+    {
+      "tag": "DIV",
+      "className": "system-state system-error",
+      "x": 40,
+      "y": 1767.1875,
+      "width": 593.25,
+      "height": 134,
+      "scrollWidth": 593,
+      "clientWidth": 593
+    },
+    {
+      "tag": "BUTTON",
+      "className": "btn btn--primary btn--block",
+      "x": 56,
+      "y": 1841.1875,
+      "width": 561.25,
+      "height": 44,
+      "scrollWidth": 559,
+      "clientWidth": 559
+    }
+  ],
+  "outside": [],
+  "actions": [
+    "relax limit",
+    "widen place",
+    "alert destination",
+    "retry callback",
+    "independent no-ID keyboard retry in both orders",
+    "authorized collection destination"
+  ],
+  "errors": []
+}
