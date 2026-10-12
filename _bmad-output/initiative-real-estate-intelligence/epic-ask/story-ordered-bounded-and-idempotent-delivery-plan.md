@@ -3,7 +3,7 @@ title: 'Ordered, bounded and idempotent delivery'
 type: 'feature'
 ticket: 7
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '16363f5021067df106e96a9b06566bfde8e3bd81'
 route: 'full'
 route_source: 'auto'
@@ -540,3 +540,18 @@ The preexisting large web-chunk warning and generated-render Markdown/format fin
 unchanged; no rule, threshold, hook or assertion was weakened. Temporary parent campaign logs
 remain local verification artifacts, not committed payloads. Story acceptance and the next ticket
 are orchestrator steps after this built artifact is committed; the initiative is not complete.
+
+### Orchestrator acceptance — 2026-10-12
+
+The build workflow finished with status built and a clean working copy. Every one of the forty
+reviewed files appears in the committed change set after the preserved canonical baseline.
+The orchestrator marks only story 5.7 done: its public redelivery/capacity/expiry verification,
+every root gate, unchanged coverage and the mandatory zero-finding review passed independently.
+
+- Implementation: `5e64443` — `feat: enforce ordered and bounded Ask delivery`.
+- Tests: `c63df56` — `test: verify Ask capacity expiry and replay guarantees`.
+- Documentation: `9d71166` — `docs: record verified ordered Ask delivery`.
+- Normal secrets, formatting, ESLint/Markdown and Conventional Commit hooks passed for each
+  applicable commit; no hook changed the verified implementation or tests.
+- No push, deployment, VPS access or external action occurred. Production stories remain for
+  the owner to unblock. Remaining initiative stories and the final E2E campaign are not complete.
