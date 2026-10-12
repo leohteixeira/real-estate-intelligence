@@ -25,6 +25,7 @@ pnpm run test:integration:market-price-facts
 pnpm run test:integration:ask
 pnpm run test:integration:ask-tracer
 pnpm run test:integration:ask-text-price
+pnpm run test:integration:ask-model-explanation
 pnpm run test:integration:ask-checkpoints
 pnpm run test:integration:ask-delivery
 pnpm run test:integration:run-executor
@@ -79,6 +80,7 @@ API-owned retention job without business history deletion, and long escaped/Unic
 queries. Native cases also
 cover both persistence gaps, concurrent fork admission, transaction rollback, SQL disconnect
 cancellation, invalid serialized state and a genuine populated 6002-to-6003-to-6004 upgrade.
+The same populated baseline now applies additive 6005 and rechecks historical digests.
 Historical documents, receipts, fingerprints and events are compared before and after the additive
 migrations; twelve historical turns prove numeric ordering beyond single digits. Retention includes
 a real queue-expired terminal in its eight-turn ranking. Its Node
@@ -116,10 +118,25 @@ worker/graph/Market tool, finite no-effect refusals, immutable replay and mixed-
 It attacks operation/input/execution/grant scope, exercises expired-claim recovery and checks
 sanitized runtime logs. Its second owned PostgreSQL fixture applies 6001, populates structured
 history/events/receipts/outbox/inbox/idempotency records using only historical columns, applies
-additive 6002 followed by 6003/6004 and compares exact retained row/evidence digests before
+additive 6002 followed by 6003/6004/6005 and compares exact retained row/evidence digests before
 executing a text run in that legacy thread with the current repository. Malicious SQL
 basis/source/input/unknown-key changes must still fail. No historical migration is edited or
 historical evidence rewritten.
+
+The model-explanation campaign mounts an explicit TypeScript bootstrap inside an owned production
+AI container. It composes the production Nest modules and overrides only `LanguageModel` with a
+scripted test implementation; production startup has no fake selector. The real API, Market tool,
+worker, RabbitMQ, PostgreSQL budget/accepted evidence and native remote saver remain in the flow.
+PT/EN inspect/thread/SSE, idempotency, approved/transient-secondary output, invented figures,
+missing ZDR acknowledgement, authentication and malformed usage are checked without a live model
+request. Real concurrent reservations enforce the 1,000-token budget across reclaim; FIFO admission,
+capacity and queued expiry retain their existing semantics. Pre-aborted requests, cancelled probes
+and an HTTP caller disconnect during generation leave conservative spend without a fallback.
+Checkpoint-ACK failure after accepted evidence and completed-before-terminal recovery restart only
+the owned AI process, then check stable receipt/explanation IDs, fresh authority, unchanged spend
+and zero new model calls. A genuine populated pre-6005 native graph checks exact historical
+checkpoint/pending-write/document digests, old recovery and an explained run in the same thread.
+See [the implemented model protocol](../api/ask-model-explanation.md).
 
 The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
 campaign against the production AI image, and a production worker-command E2E journey resolving

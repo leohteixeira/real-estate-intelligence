@@ -66,6 +66,14 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Decision: D-050 / ADR 0027 opens an explicitly versioned text-price explanation graph while
+  preserving historical tracers. A bounded PT/EN factual grammar, validated twice against the
+  retained same-run Market receipt, prevents invented figures and unsupported prose. Persistent
+  generation reservations survive retry/reclaim; accepted explanation receipts close recovery
+  gaps. Gateway-only ZDR evidence comes from a fixed public capability probe before user-derived
+  transmission, never a catalogue or configuration assertion; policy/cancellation fail closed.
+  Tests use explicit fake composition, never production fake defaults. No Jev, quotas, UI or
+  VPS work is advanced (agent, on the owner's behalf, 2026-10-12).
 - Decision: D-049 / ADR 0026 defines three pending as three total nonterminal runs per thread.
   PostgreSQL-clock deadlines and numeric admission order fence concurrent creation, reversed
   delivery and expired-claim recovery. Honest queued expiry records an expired terminal without

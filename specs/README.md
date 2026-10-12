@@ -39,6 +39,8 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0023         | Structured Ask tracer, API-owned state and scoped execution authority                  |
 | 0024         | Deterministic text-price admission and typed input refusals                            |
 | 0025         | Run-scoped remote graph checkpoints, fenced grants and bounded retention               |
+| 0026         | FIFO admission, three pending runs and truthful queued expiry                          |
+| 0027         | Versioned receipt-bound model explanations and pre-transmission privacy                |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.
