@@ -4,6 +4,7 @@ import { LandingPage } from './landing/LandingPage';
 import { PlaceOverview } from './places/PlaceOverview';
 import { AppShell } from './shell/AppShell';
 import { PlaceEntry } from './shell/PlaceEntry';
+import { SearchResults } from './search/SearchResults';
 import { defaultPlaceId, destinationPath, publicRoutes } from './shell/public-routes';
 
 export function AppRoutes() {
@@ -25,6 +26,8 @@ export function AppRoutes() {
               element={
                 destination === 'places' ? (
                   <PlaceOverview />
+                ) : destination === 'search' ? (
+                  <SearchResults />
                 ) : (
                   <PlaceEntry destination={destination} />
                 )

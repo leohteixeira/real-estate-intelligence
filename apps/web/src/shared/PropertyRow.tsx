@@ -5,14 +5,16 @@ import type { Locale } from '../places/locale';
 
 export interface PropertyRowProps {
   readonly property: PropertySummary;
-  readonly href: string;
+  readonly href?: string;
+  readonly blockLabel?: string;
 }
-export function PropertyRow({ property, href }: PropertyRowProps) {
+export function PropertyRow({ property, href, blockLabel }: PropertyRowProps) {
   const { t, i18n } = useTranslation('shared');
   const locale = i18n.language as Locale;
   const comparison = property.belowMedianPercent;
+  const Row = href === undefined ? 'div' : 'a';
   return (
-    <a className="prow" href={href}>
+    <Row className="prow" {...(href === undefined ? {} : { href })}>
       <div>
         <p className="prow__t">
           {t(property.propertyType)} ·{' '}
@@ -24,7 +26,7 @@ export function PropertyRow({ property, href }: PropertyRowProps) {
             ? t('areaUnavailable')
             : `${formatQuantity(property.areaSquareMeters, locale)} m²`}
         </p>
-        <p className="prow__s">{property.place.name.ptBR}</p>
+        <p className="prow__s">{blockLabel ?? property.place.name.ptBR}</p>
       </div>
       <div className="prow__price">
         <span className="tag">{t('asking')}</span>
@@ -66,6 +68,6 @@ export function PropertyRow({ property, href }: PropertyRowProps) {
               })}
         </span>
       </div>
-    </a>
+    </Row>
   );
 }

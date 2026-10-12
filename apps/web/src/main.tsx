@@ -6,6 +6,7 @@ import './styles/tokens.css';
 import './styles/components.css';
 import './styles/place.css';
 import './styles/system-states.css';
+import './styles/search.css';
 import '@fontsource/barlow/latin-400.css';
 import '@fontsource/barlow/latin-500.css';
 import '@fontsource/barlow/latin-600.css';

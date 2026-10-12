@@ -1,3 +1,5 @@
+import { searchEnglish, searchPortuguese } from '../search/search-resources.js';
+
 export const portuguese = {
   places: 'Lugares',
   home: 'Página inicial',
@@ -319,6 +321,18 @@ const sharedEN: { readonly [K in keyof typeof sharedPT]: string } = {
 };
 
 export const resources = {
-  'pt-BR': { shell: shellPT, place: portuguese, search: searchPT, ask: askPT, shared: sharedPT },
-  en: { shell: shellEN, place: english, search: searchEN, ask: askEN, shared: sharedEN },
+  'pt-BR': {
+    shell: shellPT,
+    place: portuguese,
+    search: { ...searchPT, ...searchPortuguese },
+    ask: askPT,
+    shared: sharedPT,
+  },
+  en: {
+    shell: shellEN,
+    place: english,
+    search: { ...searchEN, ...searchEnglish },
+    ask: askEN,
+    shared: sharedEN,
+  },
 } as const;

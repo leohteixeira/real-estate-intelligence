@@ -18,7 +18,23 @@ export function formatMedian(minorUnits: number, locale: Locale): string {
 }
 
 export function formatExactMoney(minorUnits: number, locale: Locale): string {
-  return money(minorUnits, locale, 2);
+  if (!Number.isInteger(minorUnits)) return money(minorUnits, locale, 2);
+  const value = BigInt(minorUnits);
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+    .formatToParts(value < 0n && value / 100n === 0n ? -0 : value / 100n)
+    .map((part) =>
+      part.type === 'fraction'
+        ? String(value < 0n ? -(value % 100n) : value % 100n).padStart(2, '0')
+        : part.value,
+    )
+    .join('')
+    .replace(/\u00a0/g, ' ')
+    .replace(/^R\$\s*/, 'R$ ');
 }
 
 export function formatCount(count: number, locale: Locale): string {

@@ -119,6 +119,35 @@ export interface LoadErrorStateProps {
   readonly retry: () => void;
   readonly requestId?: string;
 }
+
+export function FilterNoResultsState({
+  title,
+  reason,
+  relax,
+  widen,
+}: {
+  readonly title: string;
+  readonly reason?: {
+    readonly filter: string;
+    readonly excludedCount: number;
+    readonly description: string;
+  };
+  readonly relax?: StateAction;
+  readonly widen?: StateAction;
+}) {
+  return (
+    <div className="system-state system-empty">
+      <div role="status">
+        <h3>{title}</h3>
+        {reason ? <p className="muted">{reason.description}</p> : null}
+      </div>
+      <div className="system-state__actions">
+        {relax ? <RecoveryAction action={relax} variant="btn--primary" /> : null}
+        {widen ? <RecoveryAction action={widen} /> : null}
+      </div>
+    </div>
+  );
+}
 export function LoadErrorState({ description, context, retry, requestId }: LoadErrorStateProps) {
   const { t } = useTranslation('shared');
   const id = publicRequestId(requestId);

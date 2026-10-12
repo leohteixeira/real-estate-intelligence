@@ -18,6 +18,7 @@ export default defineConfig({
           [
             'Components.dc.html',
             'Search.dc.html',
+            'Filters.dc.html',
             'States.dc.html',
             'Main.dc.html',
             'PlaceEN.dc.html',
