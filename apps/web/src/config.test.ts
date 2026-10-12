@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { readConfig } from './config';
 
 describe('readConfig', () => {
-  it('falls back to the port assigned to this product', () => {
-    expect(readConfig({}).apiBaseUrl).toBe('http://localhost:8200');
+  it('uses the same-origin versioned API proxy by default', () => {
+    expect(readConfig({}).apiBaseUrl).toBe('');
   });
 
   it('prefers an explicitly configured base url', () => {
@@ -14,7 +14,7 @@ describe('readConfig', () => {
   });
 
   it('ignores a blank base url', () => {
-    expect(readConfig({ VITE_API_BASE_URL: '   ' }).apiBaseUrl).toBe('http://localhost:8200');
+    expect(readConfig({ VITE_API_BASE_URL: '   ' }).apiBaseUrl).toBe('');
   });
 
   it('has no demo or repository link until one is configured', () => {
