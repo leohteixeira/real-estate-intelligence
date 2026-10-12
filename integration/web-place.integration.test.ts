@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright';
 import { expect, test } from 'vitest';
@@ -9,6 +9,7 @@ import {
 } from '../packages/contracts/dist/index.js';
 import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
+import { checkAccessibility } from './support/accessibility.ts';
 
 test('web place tracer follows production acquisition, proxy and browser journeys', async () => {
   await withCampaign(async ({ command }) => {
@@ -90,9 +91,20 @@ test('web place tracer follows production acquisition, proxy and browser journey
     expect(median.recordCount).toBe(1);
     expect(median.sources.map((source) => source.label)).toEqual(['synthetic-data']);
     expect(median.value?.minorUnits).toBe(951515);
+    const browserEnv = { ...process.env };
+    // This container inherits DISPLAY=:0 but has no X11 socket. Keep ANGLE truly headless.
+    delete browserEnv.DISPLAY;
     const browser = await chromium.launch({
-      executablePath: '/usr/bin/chromium',
+      executablePath: chromium.executablePath(),
       chromiumSandbox: true,
+      env: browserEnv,
+      args: [
+        '--ozone-platform=headless',
+        '--disable-vulkan-surface',
+        '--use-gl=angle',
+        '--use-angle=swiftshader-webgl',
+      ],
+      ignoreDefaultArgs: ['--enable-unsafe-swiftshader'],
     });
     await preserveCleanup(
       async () => {
@@ -122,6 +134,11 @@ test('web place tracer follows production acquisition, proxy and browser journey
                     localStorage.setItem('rei.locale', choice);
                 }, locale);
                 const page = await context.newPage();
+                const landingErrors: string[] = [];
+                page.on('console', (message) => {
+                  if (message.type() === 'error') landingErrors.push(message.text());
+                });
+                page.on('pageerror', (error) => landingErrors.push(error.message));
                 page.on('request', (request) => {
                   const url = new URL(request.url());
                   if (url.pathname.startsWith('/api/')) {
@@ -222,6 +239,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   capture: capture.pathname,
                 });
                 await page.screenshot({ path: capture.pathname, fullPage: true });
+                await checkAccessibility(page, `place-${width}-${locale}`);
                 await page.screenshot({
                   path: new URL(`place-${width}-${locale}-top.png`, captures).pathname,
                 });
@@ -321,6 +339,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                     ),
                   ).toBe(true);
                   await page.evaluate(() => document.fonts.ready);
+                  await checkAccessibility(page, `${destination}-${width}-${locale}`);
                   await page.evaluate(() => window.scrollTo(0, 0));
                   await page.screenshot({
                     path: new URL(`${destination}-${width}-${locale}.png`, captures).pathname,
@@ -465,9 +484,61 @@ test('web place tracer follows production acquisition, proxy and browser journey
                       .count(),
                   )
                   .toBe(1);
+                landingErrors.length = 0;
                 await page.goto(base);
                 expect(await page.locator('.lp').count()).toBe(1);
                 expect(await page.locator('.lp-h1').first().isVisible()).toBe(true);
+                await expect
+                  .poll(() =>
+                    page.evaluate(
+                      () =>
+                        document.querySelector('.lp')?.classList.contains('lp--flat') ||
+                        Boolean(
+                          (document.querySelector('.lp-here') as HTMLElement | null)?.style
+                            .transform,
+                        ),
+                    ),
+                  )
+                  .toBe(true);
+                const rendering = {
+                  ...(await page.evaluate(() => {
+                    const canvas = document.querySelector<HTMLCanvasElement>('.lp-canvas');
+                    const gl = canvas?.getContext('webgl2');
+                    const debug = gl?.getExtension('WEBGL_debug_renderer_info');
+                    return {
+                      flat: document.querySelector('.lp')?.classList.contains('lp--flat'),
+                      anchor: (document.querySelector('.lp-here') as HTMLElement | null)?.style
+                        .transform,
+                      canvas: { width: canvas?.width, height: canvas?.height },
+                      contextLost: gl?.isContextLost() ?? null,
+                      renderer: debug ? gl?.getParameter(debug.UNMASKED_RENDERER_WEBGL) : null,
+                    };
+                  })),
+                  errors: [...landingErrors],
+                  backend:
+                    'ANGLE SwiftShader WebGL (explicit, headless, sandboxed; unsafe fallback disabled)',
+                  browser: await browser.version(),
+                };
+                await writeFile(
+                  new URL(`landing-${width}-${nextLocale}-rendering.json`, captures),
+                  JSON.stringify(rendering, null, 2),
+                );
+                expect(rendering, JSON.stringify(rendering, null, 2)).toMatchObject({
+                  flat: false,
+                  anchor: expect.stringContaining('translate3d'),
+                  contextLost: false,
+                  renderer: expect.stringContaining('SwiftShader'),
+                  errors: [],
+                });
+                await checkAccessibility(page, `landing-${width}-${nextLocale}`);
+                await page.evaluate(() => window.scrollTo(0, 0));
+                await page.screenshot({
+                  path: new URL(`landing-${width}-${nextLocale}.png`, captures).pathname,
+                  fullPage: true,
+                });
+                await page.screenshot({
+                  path: new URL(`landing-${width}-${nextLocale}-top.png`, captures).pathname,
+                });
                 expect(external).toEqual([]);
                 expect(forbiddenRequests).toEqual([]);
               },
