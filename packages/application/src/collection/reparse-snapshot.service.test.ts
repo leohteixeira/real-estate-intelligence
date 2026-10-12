@@ -204,22 +204,59 @@ describe('ReparseSnapshot', () => {
   });
   it('bounds an uncooperative parser and redacts its failure payload', async () => {
     const f = fixture();
-    f.parser.parse.mockImplementation(() => new Promise(() => {}));
-    await expect(
-      f.service.execute(
+    // Node's native AbortSignal.timeout is not driven by Vitest fake timers.
+    // Control that boundary and wait for parser entry before advancing expiry.
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(new Date('2026-10-12T00:00:00.000Z'));
+    const deadline = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, 'timeout').mockImplementation((milliseconds) => {
+      setTimeout(() => deadline.abort(new DOMException('Expired', 'TimeoutError')), milliseconds);
+      return deadline.signal;
+    });
+    try {
+      let entered = () => {};
+      const parserEntered = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      f.parser.parse.mockImplementation(() => {
+        entered();
+        return new Promise(() => {});
+      });
+      const execution = f.service.execute(
         snapshotId,
         'parser-v2',
         'deadline',
         null,
         new AbortController().signal,
         Date.now() + 20,
-      ),
-    ).rejects.toMatchObject({ kind: 'cancelled' });
-    expect(f.outbox.append).not.toHaveBeenCalled();
-    f.parser.parse.mockRejectedValue(new Error('private@example.test secret-token'));
-    await expect(
-      f.service.execute(snapshotId, 'parser-v2', 'failure', null, new AbortController().signal),
-    ).rejects.not.toThrow('private@example.test');
+      );
+      const cancelled = expect(execution).rejects.toMatchObject({ kind: 'cancelled' });
+      await parserEntered;
+      expect(f.parser.parse).toHaveBeenCalledOnce();
+      expect(timeout).toHaveBeenCalledExactlyOnceWith(20);
+      expect(deadline.signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(19);
+      expect(deadline.signal.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      await cancelled;
+      expect(deadline.signal.aborted).toBe(true);
+      expect(f.outbox.append).not.toHaveBeenCalled();
+      f.parser.parse.mockRejectedValue(new Error('private@example.test secret-token'));
+      const failure = f.service.execute(
+        snapshotId,
+        'parser-v2',
+        'failure',
+        null,
+        new AbortController().signal,
+      );
+      await expect(failure).rejects.toMatchObject({ kind: 'rejected' });
+      await expect(failure).rejects.not.toThrow('private@example.test');
+      await expect(failure).rejects.not.toThrow('secret-token');
+    } finally {
+      timeout.mockRestore();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    }
   });
   it('rejects original provenance mutation under commit lock', async () => {
     const f = fixture();
