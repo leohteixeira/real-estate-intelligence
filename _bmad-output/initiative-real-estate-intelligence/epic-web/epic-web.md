@@ -99,6 +99,16 @@ shared with another epic, Description says which part this epic delivers.
   Keep TypeScript/Vitest integration, supply-chain gates and sandbox security unchanged
   (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-platform-baseline because: it needs the contract conventions and the deployed stack.
+- Decision: D-056 delivers shared loading, no-results, read-error and stale-figure states in both
+  locales, preserving Placa and backend evidence. Preserve a known plate, filters, retained
+  figures and explicit manual retry; expose only a valid public request UUID, never raw errors.
+  Failure-source evidence and authorized collection destinations are optional caller inputs,
+  never inferred from collection timestamps. Empty results receive genuine relax/widen actions
+  and an optional available/authorized alert action. Keep the incremental Search boundary;
+  exercise unused states through labelled test-only fixtures outside production routes/build,
+  plus forced conditions and recovery on the actual owned Compose UI. No protected navigation,
+  fabricated figures, automatic retries, gate changes or VPS unlock
+  (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-collection because: it needs the list of sources for the privacy notice.
 - Waits on epic-properties because: it needs the search, property, listing and largest-reductions
   shapes.
