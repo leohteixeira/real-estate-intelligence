@@ -3,7 +3,7 @@ title: 'System states'
 type: 'feature'
 ticket: '4'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '79a850541b493af628d93d5c479130f42cdf6e37'
 route: 'full'
 route_source: 'auto'
@@ -334,6 +334,18 @@ one detector on changed targets. Mandatory fresh finish reviewer must return shi
 documenter records actual contracts/provenance; no shipping raster asset is introduced.
 
 ## Auto Run Result
+
+### Orchestrator acceptance — 2026-10-12
+
+Accepted after the built handoff and commits `570c3f8`, `fef9cb0` and `229f8c0`.
+The current tree retains the reviewed implementation, immutable intent contract and complete
+forced-state browser evidence. A fresh web run passes 16 files / 164 tests; reparsing all 46
+state accessibility reports yields zero violations and incomplete checks, with 48 final
+captures, eight geometry reports and an unchanged source-hashed reference. The preceding
+root gates, coverage and combined real-service browser verification remain applicable:
+only this acceptance record/status changes. No skipped matrix row, pending review finding,
+production gallery or VPS unlock is introduced. The broader WCAG/manual and future-screen
+limits remain explicit; acceptance is for entry 4, not for the unfinished web epic.
 
 Four typed shared states and real consumers preserve place, figures, provenance and manual
 recovery. The internal gallery remains outside production routes/build. The Quick lens reported
