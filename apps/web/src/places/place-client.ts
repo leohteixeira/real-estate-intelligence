@@ -1,5 +1,21 @@
-import { parsePlaceResponse, parsePlacesResponse, parsePlaceMarketResponse } from '@rei/contracts';
-import type { PlaceMarketResponse, PlaceResponse, PlacesResponse } from '@rei/contracts';
+import {
+  parsePlaceResponse,
+  parsePlacesResponse,
+  parsePlaceMarketResponse,
+  parsePlaceMarketNeighboursResponse,
+  parsePlaceMarketSeriesResponse,
+  parseReductionsResponse,
+  parsePropertyResponse,
+} from '@rei/contracts';
+import type {
+  PlaceMarketResponse,
+  PlaceResponse,
+  PlacesResponse,
+  PlaceMarketNeighboursResponse,
+  PlaceMarketSeriesResponse,
+  ReductionsResponse,
+  PropertyResponse,
+} from '@rei/contracts';
 import { config } from '../config';
 import { ApiReadError, createApiClient } from '../api/client';
 
@@ -17,6 +33,10 @@ export interface PlaceClient {
   places(signal: AbortSignal): Promise<PlacesResponse>;
   place(id: string, signal: AbortSignal): Promise<PlaceResponse>;
   market(id: string, signal: AbortSignal): Promise<PlaceMarketResponse>;
+  neighbours(id: string, signal: AbortSignal): Promise<PlaceMarketNeighboursResponse>;
+  series(id: string, signal: AbortSignal): Promise<PlaceMarketSeriesResponse>;
+  reductions(id: string, signal: AbortSignal): Promise<ReductionsResponse>;
+  property(id: string, signal: AbortSignal): Promise<PropertyResponse>;
 }
 
 export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
@@ -70,6 +90,43 @@ export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
       if (result.place.id !== id || result.basis !== 'event-fed-median-with-prepared-sections') {
         throw new PlaceReadError(502);
       }
+      return result;
+    },
+    async neighbours(id: string, signal: AbortSignal) {
+      validate(id);
+      const result = await read(
+        `/places/${id}/market/neighbours`,
+        signal,
+        parsePlaceMarketNeighboursResponse,
+      );
+      if (result.place.id !== id) throw new PlaceReadError(502);
+      return result;
+    },
+    async series(id: string, signal: AbortSignal) {
+      validate(id);
+      const result = await read(
+        `/places/${id}/market/monthly-series`,
+        signal,
+        parsePlaceMarketSeriesResponse,
+      );
+      if (result.place.id !== id) throw new PlaceReadError(502);
+      return result;
+    },
+    async reductions(id: string, signal: AbortSignal) {
+      validate(id);
+      const result = await read(
+        `/places/${id}/largest-reductions?pageSize=3`,
+        signal,
+        parseReductionsResponse,
+      );
+      if (result.items.length > 3) throw new PlaceReadError(502);
+      return result;
+    },
+    async property(id: string, signal: AbortSignal) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+        throw new PlaceReadError(400);
+      const result = await read(`/properties/${id}`, signal, parsePropertyResponse);
+      if (result.property.summary.id !== id) throw new PlaceReadError(502);
       return result;
     },
   };

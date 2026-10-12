@@ -1,6 +1,6 @@
 import type { MarketEvidence } from '@rei/contracts';
 import { useTranslation } from 'react-i18next';
-import { formatComputedAt } from '../places/formatters';
+import { formatComputedAt, formatCount } from '../places/formatters';
 import type { Locale } from '../places/locale';
 
 export interface MethodLink {
@@ -11,16 +11,27 @@ export interface ProvenanceProps {
   readonly evidence: MarketEvidence;
   readonly synthetic: boolean;
   readonly method?: MethodLink;
+  readonly contributorUnit?: 'properties' | 'listings';
 }
-export function Provenance({ evidence, synthetic, method }: ProvenanceProps) {
+export function Provenance({
+  evidence,
+  synthetic,
+  method,
+  contributorUnit = 'properties',
+}: ProvenanceProps) {
   const { t, i18n } = useTranslation('shared');
   return (
     <div className="prov place-provenance">
-      <span>{t('contributors', { count: evidence.recordCount })}</span>
+      <span>
+        {t(contributorUnit === 'listings' ? 'listingContributors' : 'contributors', {
+          count: evidence.recordCount,
+          formattedCount: formatCount(evidence.recordCount, i18n.language as Locale),
+        })}
+      </span>
       <span className="prov__sources">
         {evidence.sources.map((source, index) => (
           <span key={source.id}>
-            {index > 0 ? ', ' : ''}
+            {index > 0 ? <span className="prov__separator">, </span> : null}
             <a href={source.url}>
               {index === 0 ? `${t('sources')} ` : ''}
               {source.label}

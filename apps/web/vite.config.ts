@@ -19,6 +19,10 @@ export default defineConfig({
             'Components.dc.html',
             'Search.dc.html',
             'States.dc.html',
+            'Main.dc.html',
+            'PlaceEN.dc.html',
+            'DesktopPlace.dc.html',
+            'map-neighborhood.svg',
             'tokens.css',
             'components.css',
           ].map((name) => [
@@ -44,7 +48,14 @@ export default defineConfig({
                   '<link rel="stylesheet" href="./fonts.css">',
                 );
             }
-            response.setHeader('Content-Type', entry.html ? 'text/html' : 'text/css');
+            response.setHeader(
+              'Content-Type',
+              entry.html
+                ? 'text/html'
+                : entry.file.pathname.endsWith('.svg')
+                  ? 'image/svg+xml'
+                  : 'text/css',
+            );
             response.end(content);
           } catch (error) {
             next(error);

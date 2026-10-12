@@ -32,3 +32,28 @@ export const marketQuery = (id: string) =>
     queryKey: ['place', id, 'market'],
     queryFn: ({ signal }) => client.market(id, signal),
   });
+
+export const neighboursQuery = (id: string) =>
+  queryOptions({
+    ...readPolicy,
+    queryKey: ['place', id, 'neighbours'],
+    queryFn: ({ signal }) => client.neighbours(id, signal),
+  });
+export const seriesQuery = (id: string) =>
+  queryOptions({
+    ...readPolicy,
+    queryKey: ['place', id, 'series'],
+    queryFn: ({ signal }) => client.series(id, signal),
+  });
+export const reductionsQuery = (id: string) =>
+  queryOptions({
+    ...readPolicy,
+    queryKey: ['place', id, 'reductions'],
+    queryFn: ({ signal }) => client.reductions(id, signal),
+  });
+export const propertyQuery = (placeId: string, propertyId: string) =>
+  queryOptions({
+    ...readPolicy,
+    queryKey: ['place', placeId, 'property', propertyId],
+    queryFn: ({ signal }) => client.property(propertyId, signal),
+  });
