@@ -6,10 +6,12 @@ RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json ./apps/web/
+COPY packages/contracts/package.json ./packages/contracts/
 RUN pnpm install --frozen-lockfile --filter "@rei/web..."
 
 COPY apps/web/ ./apps/web/
-RUN pnpm --filter "@rei/web" build
+COPY packages/contracts/ ./packages/contracts/
+RUN pnpm --filter "@rei/web..." build
 
 FROM nginx:1.29-alpine AS runtime
 

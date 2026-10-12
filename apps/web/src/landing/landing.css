@@ -2,11 +2,11 @@
  * Landing page ("city in relief"). Persuade surface of the Placa world:
  * tokens come from ../styles/tokens.css, nothing here redefines them.
  */
-html {
+html:has(.lp) {
   scroll-behavior: smooth;
   scrollbar-color: var(--enamel-600) var(--enamel-900);
 }
-body {
+body:has(.lp) {
   margin: 0;
   background: var(--enamel-900);
 }

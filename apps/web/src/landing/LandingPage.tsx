@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { saveLocale } from '../places/locale';
 
 import type { CityScene } from './CityScene';
 import { LAST_STAGE } from './cityLayout';
@@ -12,17 +14,7 @@ export interface LandingPageProps {
   readonly repositoryUrl: string | null;
 }
 
-const LOCALE_STORAGE_KEY = 'rei.locale';
 const LOCALE_NAMES: Record<Locale, string> = { en: 'English', pt: 'Português' };
-
-function initialLocale(): Locale {
-  try {
-    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    return stored === 'en' ? 'en' : 'pt';
-  } catch {
-    return 'pt';
-  }
-}
 
 function Arrow({ down = false }: { readonly down?: boolean }) {
   return (
@@ -76,7 +68,8 @@ function Stop({ stop, copy }: { readonly stop: StopCopy; readonly copy: LandingC
 }
 
 export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
-  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const { i18n } = useTranslation();
+  const locale: Locale = i18n.language === 'en' ? 'en' : 'pt';
   const [stage, setStage] = useState(0);
   const [flat, setFlat] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -182,12 +175,9 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
   }, []);
 
   function chooseLocale(next: Locale): void {
-    setLocale(next);
-    try {
-      window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
-    } catch {
-      // Storage can be blocked; the choice then lasts for this visit only.
-    }
+    const choice = next === 'en' ? 'en' : 'pt-BR';
+    saveLocale(choice);
+    void i18n.changeLanguage(choice);
   }
 
   // In-page links scroll by hand so they also work where the document has a base URL.

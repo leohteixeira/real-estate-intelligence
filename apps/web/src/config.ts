@@ -10,7 +10,7 @@ export interface WebConfig {
   readonly repositoryUrl: string | null;
 }
 
-const DEFAULT_API_BASE_URL = 'http://localhost:8200';
+const DEFAULT_API_BASE_URL = '';
 
 function optionalUrl(value: string | undefined): string | null {
   const trimmed = value?.trim();
