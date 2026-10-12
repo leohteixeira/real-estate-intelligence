@@ -66,6 +66,18 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Decision: D-048 / ADR 0025 makes graph checkpoints and pending writes API-owned and remotely
+  saved through a run/event/thread/version-scoped contract with a separate fenced checkpoint
+  grant. Canonical graph state excludes authority; synchronous same-thread recovery preserves
+  actual node evidence and reauthorizes retained Market receipts. Transient interruption uses
+  bounded durable redelivery, not a manufactured failed terminal. A turn is a terminal run:
+  checkpoint lineage expires 30 days after first persistence and is retained for up to eight
+  recent terminal turns plus unexpired active work. API maintenance preserves business terminal,
+  receipts, SSE and replay fences; a durable marker refuses reset after pruning. Nullable reserved
+  principal ownership stays null. Real three-process restarts and saver pause/resume must pass;
+  Jev/public confirmation, quotas, model explanation, UI and VPS remain later increments. D-012
+  and ADR 0020 override Nest stack examples; BMAD planning/handoff overrides interactive planning
+  defaults (agent, on the owner's behalf, 2026-10-11).
 - Decision: this tracer runs in parallel with the data tracer (owner, 2026-10-10).
 - Unknown: the global daily cap of runs; the quota entry asks the owner for its value.
 - Waits on epic-platform-baseline because: it needs NestJS 12 without Mastra, the outbox and relay,

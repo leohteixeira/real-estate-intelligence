@@ -25,6 +25,7 @@ pnpm run test:integration:market-price-facts
 pnpm run test:integration:ask
 pnpm run test:integration:ask-tracer
 pnpm run test:integration:ask-text-price
+pnpm run test:integration:ask-checkpoints
 pnpm run test:integration:run-executor
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
@@ -64,9 +65,29 @@ migrations, API, RabbitMQ, production worker and isolated AI graph with ephemera
 It verifies the 785,000 BRL / 68 m² result, concurrent creation replay, ownership/input refusals,
 creation/outbox/inbox rollback, claim replacement, retained Market receipts, SQL JSON constraints,
 durable terminal SSE and API restart recovery. Pruning delivery/idempotency records cannot duplicate
-a result even with AI stopped; a new run with unavailable AI reaches a safe failed terminal.
+a result even with AI stopped; definitive AI authentication refusal reaches a safe failed terminal.
+Transient AI outage preserves the claim without a false terminal; restart/redelivery completes it.
 It uses Vitest, strict TypeScript, Supertest and the same Testcontainers fixture/teardown standard.
 See [the structured tracer reference](../api/ask-tracer.md).
+
+The checkpoint campaign (`integration/ask-checkpoints.integration.test.ts`) uses an owned SQL
+advisory barrier to observe a committed decision before killing API, worker or AI. It verifies
+one retained receipt, decision checkpoint and terminal/inbox outcome, contiguous public SSE,
+fresh-process native pause/reclaim, isolated grants, immutable checkpoint/write replay, the real
+API-owned retention job without business history deletion, and long escaped/Unicode accepted
+queries. Native cases also
+cover both persistence gaps, concurrent fork admission, transaction rollback, SQL disconnect
+cancellation, invalid serialized state and a genuine populated 6002-to-6003 upgrade. Its Node
+TypeScript probe imports compiled AI declarations and never imports a test framework. See
+[the saver protocol](../api/ask-checkpoints.md).
+
+Restart cases resolve the single owned container using exact Compose project/service labels before
+signalling it and start that same container promptly. They do not change broker delivery limits or
+republish dead letters. An API outage that exceeds the existing delivery budget can still leave a
+running run with a dead-lettered delivery; successful brief restart evidence does not establish
+unlimited outage recovery. The SQL disconnect case observes actual backend disappearance and no
+committed checkpoint: socket destruction alone can leave a lock wait until the unchanged five-second
+PostgreSQL statement timeout.
 
 The text-price campaign (`integration/ask-text-price-run.integration.test.ts`) submits only prose
 in PT and EN, then proves equal canonical inputs, exact completed SSE results through the real

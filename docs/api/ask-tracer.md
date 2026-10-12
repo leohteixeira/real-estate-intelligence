@@ -3,8 +3,9 @@
 The `structured-price-v1` mode is a real persisted Ask run, separate from the
 [prepared fixture API](ask.md). It calculates BRL centavos per square metre from explicit inputs.
 The separate `text-price-v1` mode extracts and validates explicit price/area mentions deterministically.
-Neither mode invokes a model, confirms edits, enforces visitor quota or
-save graph checkpoints. See [ADR 0023](../../specs/adrs/0023-structured-ask-tracer-and-scoped-authority.md).
+Neither mode invokes a model, confirms edits or enforces visitor quota. Both persist
+[run-scoped graph checkpoints](ask-checkpoints.md). See
+[ADR 0023](../../specs/adrs/0023-structured-ask-tracer-and-scoped-authority.md).
 
 ## Public routes and authority
 
@@ -118,7 +119,7 @@ decision `source: "validated-text-v1"`. The validation node is not a model decis
 claim. A thread containing both kinds reports `basis: "mixed-price-v1"`; each run keeps its own
 basis. Both branches share the same fixed Market tool, fenced grants, receipt, durable SSE and
 authorization. Prepared examples stay separate and non-live. Jev, confidence gates, explanations,
-editable confirmations, quotas, graph checkpoints and UI are not part of text admission.
+editable confirmations, quotas and UI are not part of text admission.
 
 ### Durable execution
 
@@ -127,7 +128,7 @@ event through bounded authenticated API calls. A 30-second fenced claim serializ
 thread. Busy retry hints are at most one second so a completed sibling does not leave another
 run waiting for its old lease expiry. Busy admission waits are cancellable and bounded separately
 from the ten-second active
-execution/commit budget. Replacement invalidates the previous execution and tool grant.
+execution/commit budget. Replacement invalidates the previous execution and both tool/checkpoint grants.
 
 The AI receives an ephemeral scoped grant and traverses the actual
 `START → fixedDecision → priceTool → END` graph. Its fixed HTTP tool reaches the API's Ask tool
@@ -147,9 +148,12 @@ Definitive dependency failure retains null result and terminal reason `execution
 Terminal snapshot, event, outbox and inbox effects commit atomically; broker acknowledgement follows
 commit. Terminal replay restores a pruned inbox without invoking AI.
 
-Controlled cancellation and exhausted executor policies, including the five-second attempt timeout
-inside the ten-second consumer budget, do not submit a failed completion or acknowledge delivery.
+Transient transport failure, controlled cancellation and exhausted executor policies, including
+the five-second attempt timeout inside the ten-second consumer budget, do not submit a failed
+completion or acknowledge delivery.
 They preserve the retained claim and receipt for fenced recovery through broker redelivery.
+The graph saver resumes saved canonical state with fresh invocation authority. A completed graph
+rebinds its retained receipt through the authorized tool before submitting current execution evidence.
 
 ## Durable SSE and errors
 

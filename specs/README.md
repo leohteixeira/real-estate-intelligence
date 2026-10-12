@@ -37,9 +37,14 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0021         | Event-fed Market median and explicit staged read provenance                            |
 | 0022         | Causal property membership and complete Market price facts                             |
 | 0023         | Structured Ask tracer, API-owned state and scoped execution authority                  |
+| 0024         | Deterministic text-price admission and typed input refusals                            |
+| 0025         | Run-scoped remote graph checkpoints, fenced grants and bounded retention               |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.
+
+The [Ask checkpoint protocol reference](../docs/api/ask-checkpoints.md) documents the
+implemented internal transport and recovery/retention boundaries of ADR 0025.
 
 Specifications and user-facing documentation are written in English, like the rest of the
 repository: code, identifiers, comments, branch names and commit messages.
