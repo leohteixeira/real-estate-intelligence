@@ -1,7 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createLocale, readLocale, saveLocale } from './locale';
+import { resources } from './resources';
 
 describe('locale preference', () => {
+  it('bundles complete shell/place/search/ask namespace pairs', () => {
+    expect(Object.keys(resources['pt-BR'])).toEqual(['shell', 'place', 'search', 'ask']);
+    for (const namespace of ['shell', 'place', 'search', 'ask'] as const) {
+      expect(Object.keys(resources.en[namespace])).toEqual(
+        Object.keys(resources['pt-BR'][namespace]),
+      );
+      expect(Object.values(resources.en[namespace]).every((value) => value.length > 0)).toBe(true);
+    }
+    expect(createLocale('en').t('title', { ns: 'ask' })).toBe('Ask');
+    expect(createLocale('pt-BR').t('title', { ns: 'search' })).toBe('Buscar');
+  });
   it.each(['pt', 'pt-BR', null, 'fr'])('safely defaults %s to Portuguese', (stored) => {
     expect(readLocale({ getItem: () => stored })).toBe('pt-BR');
   });

@@ -108,6 +108,8 @@ test('web place tracer follows production acquisition, proxy and browser journey
               async () => {
                 const external: string[] = [];
                 const loadedFonts: string[] = [];
+                const forbiddenRequests: string[] = [];
+                const detailReads: string[] = [];
                 await context.route('**/*', async (route) => {
                   const url = new URL(route.request().url());
                   if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) {
@@ -120,6 +122,19 @@ test('web place tracer follows production acquisition, proxy and browser journey
                     localStorage.setItem('rei.locale', choice);
                 }, locale);
                 const page = await context.newPage();
+                page.on('request', (request) => {
+                  const url = new URL(request.url());
+                  if (url.pathname.startsWith('/api/')) {
+                    if (
+                      request.method() !== 'GET' ||
+                      !/^\/api\/v1\/places(?:\/[a-z0-9-]+(?:\/(?:children|market))?)?$/.test(
+                        url.pathname,
+                      )
+                    )
+                      forbiddenRequests.push(`${request.method()} ${url.pathname}`);
+                    if (url.pathname === `/api/v1/places/${bela}`) detailReads.push(url.pathname);
+                  }
+                });
                 page.on('response', (response) => {
                   if (response.url().endsWith('.woff2') && response.ok())
                     loadedFonts.push(response.url());
@@ -129,6 +144,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 await expect
                   .poll(() => page.locator('.fig__value').textContent())
                   .toBe(expectedFigure);
+                await expect.poll(() => page.locator('.place-navigation a').count()).toBe(5);
                 expect(
                   await page.getByRole('heading', { name: 'Bela Vista', exact: true }).isVisible(),
                 ).toBe(true);
@@ -143,6 +159,11 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   const home = page.locator('.place-top .brand');
                   expect(await home.getAttribute('href')).toBe('/');
                   expect((await home.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+                  expect(
+                    await page
+                      .locator('.public-footer .lang button[aria-pressed="false"]')
+                      .evaluate((element) => getComputedStyle(element).color),
+                  ).toBe('rgb(11, 44, 107)');
                 }
                 expect(await page.locator('.place-provenance').textContent()).toContain(
                   locale === 'en' ? '1 contributing property' : '1 imóvel contribuinte',
@@ -183,7 +204,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 expect(
                   await page
                     .getByRole('link', {
-                      name: /Operations|Operações|Ask|Perguntar|Search|Buscar|Market|Mercado/,
+                      name: /Operations|Operações|Market|Mercado|Alerts|Alertas|Privacy|Privacidade|More|Mais|Review/,
                     })
                     .count(),
                 ).toBe(0);
@@ -201,6 +222,185 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   capture: capture.pathname,
                 });
                 await page.screenshot({ path: capture.pathname, fullPage: true });
+                await page.screenshot({
+                  path: new URL(`place-${width}-${locale}-top.png`, captures).pathname,
+                });
+                const publicNavigation = page.locator(
+                  width === 390 ? '.public-tabs' : '.public-rail-navigation',
+                );
+                const labels =
+                  locale === 'en'
+                    ? { places: 'Places', search: 'Search', ask: 'Ask' }
+                    : { places: 'Lugares', search: 'Buscar', ask: 'Perguntar' };
+                expect(await publicNavigation.getByRole('link').count()).toBe(3);
+                for (const link of await publicNavigation.getByRole('link').all())
+                  expect((await link.boundingBox())?.height).toBeGreaterThanOrEqual(44);
+                for (const [accepted, destination, suffix] of [
+                  ['places', 'places', '/'],
+                  ['search', 'search', '/'],
+                  ['ask', 'ask', '/'],
+                  ['Search', 'search', ''],
+                  ['Ask', 'ask', ''],
+                ] as const) {
+                  await page.goto(`${base}/${accepted}/${bela}${suffix}`);
+                  await expect
+                    .poll(() =>
+                      page.getByRole('heading', { name: 'Bela Vista', exact: true }).count(),
+                    )
+                    .toBe(1);
+                  await expect.poll(() => page.locator('.place-navigation a').count()).toBe(5);
+                  expect(await publicNavigation.locator('[aria-current="page"]').count()).toBe(1);
+                  expect(
+                    await publicNavigation.locator('[aria-current="page"]').textContent(),
+                  ).toBe(labels[destination]);
+                  expect(await page.title()).toBe(
+                    `${labels[destination]} · Real Estate Intelligence`,
+                  );
+                  expect(
+                    await page.locator('.place-navigation [aria-current="page"]').count(),
+                  ).toBe(1);
+                  expect(
+                    await page.locator('.place-navigation [aria-current="page"]').textContent(),
+                  ).toBe('Bela Vista');
+                  expect(
+                    await page
+                      .locator('.place-navigation')
+                      .getByRole('link', { name: 'Pinheiros', exact: true })
+                      .getAttribute('href'),
+                  ).toBe(`/${destination}/sao-paulo-pinheiros`);
+                }
+                await page.goto(`${base}/places/${bela}`);
+                await expect
+                  .poll(() => page.locator('.fig__value').textContent())
+                  .toBe(expectedFigure);
+                for (const destination of ['search', 'ask'] as const) {
+                  await publicNavigation
+                    .getByRole('link', { name: labels[destination], exact: true })
+                    .click();
+                  await expect.poll(() => page.url()).toBe(`${base}/${destination}/${bela}`);
+                  await expect
+                    .poll(() =>
+                      page.getByRole('heading', { name: labels[destination], exact: true }).count(),
+                    )
+                    .toBe(1);
+                  expect(
+                    await page
+                      .getByRole('heading', { name: 'Bela Vista', exact: true })
+                      .isVisible(),
+                  ).toBe(true);
+                  expect(await publicNavigation.locator('[aria-current="page"]').count()).toBe(1);
+                  expect(
+                    await publicNavigation.locator('[aria-current="page"]').textContent(),
+                  ).toBe(labels[destination]);
+                  expect(await page.title()).toBe(
+                    `${labels[destination]} · Real Estate Intelligence`,
+                  );
+                  expect(await page.locator('.place-entry').textContent()).toContain(
+                    destination === 'search'
+                      ? locale === 'en'
+                        ? 'The results and filters screen is not yet available in this version.'
+                        : 'A tela de resultados e filtros ainda não está disponível nesta versão.'
+                      : locale === 'en'
+                        ? 'The runs screen is not yet available in this version.'
+                        : 'A tela de execuções ainda não está disponível nesta versão.',
+                  );
+                  expect(await page.locator('form, .fig__value').count()).toBe(0);
+                  expect(
+                    await page.locator('.place-entry').evaluate((element) => {
+                      const css = getComputedStyle(element);
+                      return {
+                        left: css.paddingLeft,
+                        right: css.paddingRight,
+                        top: css.paddingTop,
+                      };
+                    }),
+                  ).toEqual({ left: '16px', right: '16px', top: '16px' });
+                  expect(
+                    await page.evaluate(
+                      () => document.documentElement.scrollWidth <= window.innerWidth,
+                    ),
+                  ).toBe(true);
+                  await page.evaluate(() => document.fonts.ready);
+                  await page.evaluate(() => window.scrollTo(0, 0));
+                  await page.screenshot({
+                    path: new URL(`${destination}-${width}-${locale}.png`, captures).pathname,
+                    fullPage: true,
+                  });
+                  await page.screenshot({
+                    path: new URL(`${destination}-${width}-${locale}-top.png`, captures).pathname,
+                  });
+                  const beforeSwitch = detailReads.length;
+                  const otherLocale = locale === 'en' ? 'pt-BR' : 'en';
+                  await page
+                    .getByRole('button', { name: locale === 'en' ? 'Português' : 'English' })
+                    .filter({ visible: true })
+                    .first()
+                    .click();
+                  await expect
+                    .poll(() => page.locator('html').getAttribute('lang'))
+                    .toBe(otherLocale);
+                  expect(
+                    await page
+                      .getByRole('heading', {
+                        name:
+                          destination === 'search'
+                            ? otherLocale === 'en'
+                              ? 'Search'
+                              : 'Buscar'
+                            : otherLocale === 'en'
+                              ? 'Ask'
+                              : 'Perguntar',
+                        exact: true,
+                      })
+                      .isVisible(),
+                  ).toBe(true);
+                  expect(page.url()).toBe(`${base}/${destination}/${bela}`);
+                  expect(detailReads.length).toBe(beforeSwitch);
+                  await page
+                    .getByRole('button', { name: locale === 'en' ? 'English' : 'Português' })
+                    .filter({ visible: true })
+                    .first()
+                    .click();
+                  await expect.poll(() => page.locator('html').getAttribute('lang')).toBe(locale);
+                  await page.reload();
+                  await expect
+                    .poll(() =>
+                      page.getByRole('heading', { name: labels[destination], exact: true }).count(),
+                    )
+                    .toBe(1);
+                }
+                await page.goBack();
+                await expect.poll(() => page.url()).toBe(`${base}/search/${bela}`);
+                await expect
+                  .poll(() =>
+                    page.getByRole('heading', { name: labels.search, exact: true }).count(),
+                  )
+                  .toBe(1);
+                await page.goForward();
+                await expect.poll(() => page.url()).toBe(`${base}/ask/${bela}`);
+                await page
+                  .getByRole('link', {
+                    name: locale === 'en' ? 'View the place median' : 'Ver a mediana do lugar',
+                  })
+                  .click();
+                await expect
+                  .poll(() => page.locator('.fig__value').textContent())
+                  .toBe(expectedFigure);
+                await page.goto(`${base}/ask/${bela}`);
+                await expect
+                  .poll(() => page.getByRole('heading', { name: labels.ask, exact: true }).count())
+                  .toBe(1);
+                await publicNavigation
+                  .getByRole('link', { name: labels.places, exact: true })
+                  .click();
+                await expect.poll(() => page.url()).toBe(`${base}/places/${bela}`);
+                await expect
+                  .poll(() => page.locator('.fig__value').textContent())
+                  .toBe(expectedFigure);
+                expect(await publicNavigation.locator('[aria-current="page"]').textContent()).toBe(
+                  labels.places,
+                );
+                expect(forbiddenRequests).toEqual([]);
                 await page.reload();
                 await expect
                   .poll(() => page.locator('.fig__value').textContent())
@@ -227,7 +427,8 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   .toBe(expectedFigure);
                 const switchButton = page
                   .getByRole('button', { name: locale === 'en' ? 'Português' : 'English' })
-                  .filter({ visible: true });
+                  .filter({ visible: true })
+                  .first();
                 await switchButton.focus();
                 expect(
                   await switchButton.evaluate((element) => element.matches(':focus-visible')),
@@ -268,6 +469,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 expect(await page.locator('.lp').count()).toBe(1);
                 expect(await page.locator('.lp-h1').first().isVisible()).toBe(true);
                 expect(external).toEqual([]);
+                expect(forbiddenRequests).toEqual([]);
               },
               () => context.close(),
             );

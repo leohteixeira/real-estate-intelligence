@@ -1,7 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { formatComputedAt, formatMedian } from './formatters';
+import {
+  formatComputedAt,
+  formatMedian,
+  formatExactMoney,
+  formatCount,
+  formatPercentage,
+  formatProbability,
+} from './formatters';
 
 describe('backend value presentation', () => {
+  it.each(['pt-BR', 'en'] as const)('formats design values in %s', (locale) => {
+    const pt = locale === 'pt-BR';
+    expect(formatExactMoney(1154412, locale)).toBe(pt ? 'R$ 11.544,12' : 'R$ 11,544.12');
+    expect(formatCount(12480, locale)).toBe(pt ? '12.480' : '12,480');
+    expect(formatPercentage(0.031, locale)).toBe(pt ? '+3,1%' : '+3.1%');
+    expect(formatPercentage(-0.008, locale)).toBe(pt ? '−0,8%' : '−0.8%');
+    expect(formatPercentage(0, locale)).toBe(pt ? '0,0%' : '0.0%');
+    expect(formatProbability(0.91, locale)).toBe(pt ? '0,91' : '0.91');
+  });
   it('rounds server centavos to whole reais without changing the currency', () => {
     expect(formatMedian(951515, 'pt-BR')).toBe('R$ 9.515');
     expect(formatMedian(951515, 'en')).toBe('R$ 9,515');
