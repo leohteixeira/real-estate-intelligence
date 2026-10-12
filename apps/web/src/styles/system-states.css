@@ -1,0 +1,104 @@
+.system-state,
+.system-stale {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.system-state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-4);
+}
+.system-state p,
+.system-stale p {
+  margin: 0;
+  max-width: 70ch;
+}
+.system-empty h3 {
+  font-size: var(--text-xl);
+  line-height: 1.2;
+  margin-bottom: var(--s-3);
+}
+.system-state__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding-top: var(--s-2);
+}
+.system-state .btn,
+.system-stale .btn {
+  min-height: var(--target);
+  height: auto;
+  min-width: var(--target);
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-block: var(--s-2);
+  text-align: center;
+  margin-top: 0;
+}
+.system-error__reference {
+  align-items: center;
+}
+.system-loading__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.system-loading__skeleton > .sk:nth-child(1) {
+  width: 55%;
+}
+.system-loading__skeleton > .sk:nth-child(3) {
+  width: 90%;
+}
+.system-loading__name {
+  width: 78%;
+  height: 44px;
+}
+.system-loading__pair {
+  display: flex;
+  gap: var(--s-3);
+  margin-block: var(--s-4);
+}
+.system-loading__pair .sk {
+  flex: 1;
+  height: 56px;
+}
+.system-loading__body {
+  height: 120px;
+  margin-bottom: var(--s-4);
+}
+.system-loading__skeleton > .sk:nth-last-child(4) {
+  width: 70%;
+}
+.system-loading__skeleton > .sk:nth-last-child(3) {
+  width: 48%;
+}
+.system-loading__skeleton > .sk:nth-last-child(2) {
+  width: 74%;
+  margin-top: var(--s-3);
+}
+.system-loading__skeleton > .sk:last-child {
+  width: 52%;
+}
+.system-loading--figure {
+  padding-inline: 0;
+}
+.system-loading--figure .system-loading__value {
+  width: min(100%, 180px);
+  height: 48px;
+}
+.system-stale {
+  padding: var(--s-4) var(--gutter) 0;
+}
+.place-navigation .system-error {
+  flex-basis: 100%;
+  max-width: 560px;
+  padding-inline: 0;
+}
+.place-navigation .system-error .note {
+  color: var(--danger-ink);
+}
+.place-navigation .system-error__reference {
+  color: var(--enamel-200);
+}

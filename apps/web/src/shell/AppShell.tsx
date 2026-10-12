@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useMatch } from 'react-router';
 import { LocaleControls } from '../places/LocaleControls';
 import { placesQuery } from '../places/place-queries';
-import { isPlaceId } from '../places/place-client';
+import { isPlaceId, PlaceReadError } from '../places/place-client';
+import { LoadErrorState } from '../shared/SystemStates';
 import { PublicNavigation } from './PublicNavigation';
 import { defaultPlaceId, destinationPath, publicRoutes } from './public-routes';
 
@@ -16,7 +17,10 @@ export function AppShell() {
     publicRoutes.find((route) => route.destination === match?.params.destination?.toLowerCase())
       ?.destination ?? 'places';
   const placeId = isPlaceId(match?.params.placeId) ? match.params.placeId : defaultPlaceId;
-  const places = useQuery(placesQuery());
+  const places = useQuery({
+    ...placesQuery(),
+    enabled: match === null || isPlaceId(match.params.placeId),
+  });
   useEffect(() => {
     document.documentElement.lang = i18n.language;
     document.title = `${t(destination)} · Real Estate Intelligence`;
@@ -54,17 +58,15 @@ export function AppShell() {
               </NavLink>
             ))}
           {places.isError ? (
-            <span role="alert">
-              {placeText('failedNavigation')}{' '}
-              <button
-                className="btn"
-                onClick={() => {
-                  void places.refetch();
-                }}
-              >
-                {placeText('retry')}
-              </button>
-            </span>
+            <LoadErrorState
+              description={placeText('failedNavigation')}
+              retry={() => {
+                void places.refetch();
+              }}
+              {...(places.error instanceof PlaceReadError && places.error.requestId
+                ? { requestId: places.error.requestId }
+                : {})}
+            />
           ) : null}
         </nav>
         <Outlet />

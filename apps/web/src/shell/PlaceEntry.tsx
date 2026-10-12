@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { PlacePlate } from '../places/PlacePlate';
+import { LoadErrorState, LoadingState } from '../shared/SystemStates';
 import { isPlaceId, PlaceReadError } from '../places/place-client';
-import { placeQuery } from '../places/place-queries';
+import { placeQuery, placesQuery } from '../places/place-queries';
 import { destinationPath } from './public-routes';
 
 type EntryDestination = 'search' | 'ask';
@@ -17,34 +18,36 @@ function ValidPlaceEntry({
   const { t } = useTranslation(destination);
   const { t: placeText } = useTranslation('place');
   const place = useQuery(placeQuery(id));
+  const catalogue = useQuery({ ...placesQuery(), enabled: false });
+  const knownPlace = place.data?.place ?? catalogue.data?.items.find((item) => item.id === id);
+  const missing =
+    place.isError &&
+    place.error instanceof PlaceReadError &&
+    place.error.status === 404 &&
+    !place.data;
   if (place.isPending)
     return (
-      <main className="place-state" role="status">
-        {placeText('loadingPlace')}
-        <span className="sk" />
+      <main id={`${destination}-entry`}>
+        {knownPlace ? <PlacePlate place={knownPlace} destination={destination} /> : null}
+        <LoadingState label={placeText('loadingPlace')} />
       </main>
     );
   return (
     <main id={`${destination}-entry`}>
-      {place.data ? <PlacePlate place={place.data.place} destination={destination} /> : null}
+      {knownPlace && !missing ? <PlacePlate place={knownPlace} destination={destination} /> : null}
       {place.isError ? (
-        <div className="place-state" role="alert">
-          <h1>
-            {placeText(
-              place.error instanceof PlaceReadError && place.error.status === 404
-                ? 'missingPlace'
-                : 'failedPlace',
-            )}
-          </h1>
-          <p>{placeText('choosePlace')}</p>
-          <button
-            className="btn"
-            onClick={() => {
+        <div className="place-state">
+          {missing ? <h1>{placeText('missingPlace')}</h1> : null}
+          <LoadErrorState
+            description={placeText('failedPlace')}
+            context={placeText('choosePlace')}
+            retry={() => {
               void place.refetch();
             }}
-          >
-            {placeText('retry')}
-          </button>
+            {...(place.error instanceof PlaceReadError && place.error.requestId
+              ? { requestId: place.error.requestId }
+              : {})}
+          />
         </div>
       ) : (
         <div className="place-body">

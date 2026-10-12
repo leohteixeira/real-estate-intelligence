@@ -106,6 +106,16 @@ const askEN: { readonly [K in keyof typeof askPT]: string } = {
 };
 
 const sharedPT = {
+  retry: 'Tentar de novo',
+  noResults_one: 'Nenhum imóvel em {{place}} atende ao {{formatted}} filtro',
+  noResults_other: 'Nenhum imóvel em {{place}} atende aos {{formatted}} filtros',
+  emptyReason:
+    'O filtro {{filter}}, com limite de {{limit}}, elimina os últimos {{excluded}} imóveis. O menor preço pedido por m² aqui é {{minimum}}.',
+  supportReference: 'Referência para o suporte: {{id}}',
+  staleAge: 'Os números têm {{age}}',
+  staleAgeUnavailable: 'Dados desatualizados · idade não disponível',
+  staleExplanation: 'Os números abaixo foram mantidos, mas podem não refletir mudanças recentes.',
+  collectionFailure: 'A coleta da {{source}} falha desde {{since}}.',
   asking: 'Pedido',
   sale: 'Venda',
   synthetic: 'Dados sintéticos',
@@ -142,6 +152,16 @@ const sharedPT = {
   returned: 'Voltou ao mercado',
 } as const;
 const sharedEN: { readonly [K in keyof typeof sharedPT]: string } = {
+  retry: 'Try again',
+  noResults_one: 'No property in {{place}} meets the {{formatted}} filter',
+  noResults_other: 'No property in {{place}} meets the {{formatted}} filters',
+  emptyReason:
+    'The {{filter}} filter, with a limit of {{limit}}, excludes the last {{excluded}} properties. The lowest asking price per m² here is {{minimum}}.',
+  supportReference: 'Support reference: {{id}}',
+  staleAge: 'The figures are {{age}} old',
+  staleAgeUnavailable: 'Stale data · Age unavailable',
+  staleExplanation: 'The figures below have been retained, but may not reflect recent changes.',
+  collectionFailure: 'Collection from {{source}} has failed since {{since}}.',
   asking: 'Asking',
   sale: 'Sale',
   synthetic: 'Synthetic data',

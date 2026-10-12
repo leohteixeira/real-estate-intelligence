@@ -4,8 +4,8 @@ import { config } from '../config';
 import { ApiReadError, createApiClient } from '../api/client';
 
 export class PlaceReadError extends ApiReadError {
-  constructor(status: number) {
-    super(status, 'The place contract could not be read.');
+  constructor(status: number, requestId?: string) {
+    super(status, 'The place contract could not be read.', requestId);
   }
 }
 
@@ -29,7 +29,7 @@ export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
     try {
       return await transport.read(path, signal, parse);
     } catch (error) {
-      if (error instanceof ApiReadError) throw new PlaceReadError(error.status);
+      if (error instanceof ApiReadError) throw new PlaceReadError(error.status, error.requestId);
       throw error;
     }
   }

@@ -5,6 +5,7 @@ import { App } from './App';
 import './styles/tokens.css';
 import './styles/components.css';
 import './styles/place.css';
+import './styles/system-states.css';
 import '@fontsource/barlow/latin-400.css';
 import '@fontsource/barlow/latin-500.css';
 import '@fontsource/barlow/latin-600.css';
