@@ -41,7 +41,11 @@ lists may return fewer records. Other API routes retain their 100 KiB parser lim
 
 First checkpoint fixes a 30-day horizon. API retention runs every 60 seconds,
 up to 50 runs with a five-second deadline, retaining unexpired active lineage and
-the latest eight terminal turns. Expiry/pruning markers prevent an empty reset;
+the latest eight terminal turns, including completed, failed and queue-expired runs. An expired
+turn consumes one terminal position but owns no checkpoint or pending writes; it can therefore
+reduce the number of retained checkpoint-owning turns below eight. Running heads remain active
+even after their original queue deadline or execution lease expires.
+Expiry/pruning markers prevent an empty reset;
 business runs, events, receipts and replay fences are preserved. AI uses sync
 durability and null-input resume; actual saved node evidence survives replacement.
 Completed recovery verifies an authorized tool-rebound retained receipt.

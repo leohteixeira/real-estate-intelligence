@@ -26,6 +26,7 @@ pnpm run test:integration:ask
 pnpm run test:integration:ask-tracer
 pnpm run test:integration:ask-text-price
 pnpm run test:integration:ask-checkpoints
+pnpm run test:integration:ask-delivery
 pnpm run test:integration:run-executor
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
@@ -77,9 +78,29 @@ fresh-process native pause/reclaim, isolated grants, immutable checkpoint/write 
 API-owned retention job without business history deletion, and long escaped/Unicode accepted
 queries. Native cases also
 cover both persistence gaps, concurrent fork admission, transaction rollback, SQL disconnect
-cancellation, invalid serialized state and a genuine populated 6002-to-6003 upgrade. Its Node
+cancellation, invalid serialized state and a genuine populated 6002-to-6003-to-6004 upgrade.
+Historical documents, receipts, fingerprints and events are compared before and after the additive
+migrations; twelve historical turns prove numeric ordering beyond single digits. Retention includes
+a real queue-expired terminal in its eight-turn ranking. Its Node
 TypeScript probe imports compiled AI declarations and never imports a test framework. See
 [the saver protocol](../api/ask-checkpoints.md).
+
+The ordered-delivery campaign (`integration/ask-delivery.integration.test.ts`) uses owned real
+PostgreSQL, RabbitMQ, API, worker and AI fixtures. It races public admission at three total pending,
+checks replay/conflict/foreign-authority no-effects, expires queued work with the worker stopped,
+and reverses delivery under both default prefetch two and prefetch one while another thread progresses.
+Original retained envelopes are published through the production broker; only the explicit
+attempt-three header fault case uses direct mandatory confirmed publication. A separate run-scoped
+executor fault accumulates genuine failures, observes more than five deferrals at an earned attempt,
+and proves the fifth genuine failure reaches the durable DLQ without automatic replay.
+Additional cases exercise SQL deadline boundaries despite application-clock drift, busy-lock fairness,
+expiry outbox/inbox rollback and cancellation, retained completed graph/receipt recovery, and
+creation/delivery replay after temporary platform records are pruned. Rabbit firehose observation
+parses the original message body and reads delivery metadata from trace headers.
+Before opening AMQP, the fixture waits once for Rabbit application startup; the Compose ping
+only establishes runtime availability. See [the Rabbit CLI readiness semantics](https://www.rabbitmq.com/docs/man/rabbitmqctl.8).
+Run these Docker campaigns serially: each teardown verifies that foreign containers and volumes
+remain exactly unchanged. All campaign helpers, fixtures and probes are strict TypeScript.
 
 Restart cases resolve the single owned container using exact Compose project/service labels before
 signalling it and start that same container promptly. They do not change broker delivery limits or
@@ -94,9 +115,11 @@ in PT and EN, then proves equal canonical inputs, exact completed SSE results th
 worker/graph/Market tool, finite no-effect refusals, immutable replay and mixed-thread ownership.
 It attacks operation/input/execution/grant scope, exercises expired-claim recovery and checks
 sanitized runtime logs. Its second owned PostgreSQL fixture applies 6001, populates structured
-history/events/receipts/outbox, applies additive 6002 and compares exact document digests before
-executing a text run in that legacy thread. Malicious SQL basis/source/input/unknown-key changes
-must still fail. No historical migration is edited or historical evidence rewritten.
+history/events/receipts/outbox/inbox/idempotency records using only historical columns, applies
+additive 6002 followed by 6003/6004 and compares exact retained row/evidence digests before
+executing a text run in that legacy thread with the current repository. Malicious SQL
+basis/source/input/unknown-key changes must still fail. No historical migration is edited or
+historical evidence rewritten.
 
 The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
 campaign against the production AI image, and a production worker-command E2E journey resolving

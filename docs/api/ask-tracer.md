@@ -124,11 +124,25 @@ editable confirmations, quotas and UI are not part of text admission.
 ### Durable execution
 
 The API owns Ask lifecycle SQL. A production RabbitMQ worker dispatches the retained requested
-event through bounded authenticated API calls. A 30-second fenced claim serializes active work per
-thread. Busy retry hints are at most one second so a completed sibling does not leave another
-run waiting for its old lease expiry. Busy admission waits are cancellable and bounded separately
-from the ten-second active
-execution/commit budget. Replacement invalidates the previous execution and both tool/checkpoint grants.
+event through bounded authenticated API calls. Admission is serialized under the thread lock and
+assigns a numeric sequence. A thread admits at most three total queued/running runs; an authorized
+identical-key replay is resolved before this bound and returns the original IDs without new effects.
+Only the oldest unfinished sequence can receive a 30-second fenced claim. An expired running lease
+is reclaimed before its successors; replacement rotates both tool and checkpoint grants.
+
+A busy delivery returns promptly without calling AI or completion. After a cancellable one-second
+delay, the broker transfers the original envelope persistently to the source queue's tail using
+mandatory publication and confirmation, retaining its current failure attempt. It acknowledges the
+source only after confirmation; an uncertain transfer retires that channel generation with the
+source unsettled. Deferrals do not consume the normal five-genuine-failure DLQ budget. A DLQ entry
+is not replayed automatically: its recoverable running head still blocks successors while other
+threads progress. Active execution and commit retain their independent ten-second budget.
+
+Each queued run has a fixed 120-second deadline measured from one PostgreSQL admission observation.
+At or after that database-time deadline, the API expires unexecuted work under the same thread
+fence, including when the worker is stopped. API maintenance is nonoverlapping, runs every second,
+scans at most 100 candidates within five seconds, rotates fairly and skips busy thread locks.
+Running work never becomes queue-expired, regardless of its original queue deadline.
 
 The AI receives an ephemeral scoped grant and traverses the actual
 `START → fixedDecision → priceTool → END` graph. Its fixed HTTP tool reaches the API's Ask tool
@@ -142,11 +156,15 @@ The receipt identifies `provenance: "market-domain-v1"`. Completion compares ret
 semantically with that retained receipt, independent of PostgreSQL JSONB key order.
 
 Snapshots use `basis: "structured-price-v1"`, not fixture metadata. States are `queued`, `running`,
-`completed` and `failed`. A fixed decision records `source: "fixed-structured-v1"`; steps are
+`completed`, `failed` and `expired`. A fixed decision records `source: "fixed-structured-v1"`;
+steps are
 `calculating` then `completed` or `failed`. Completed runs retain original inputs and typed result.
 Definitive dependency failure retains null result and terminal reason `execution_unavailable`.
 Terminal snapshot, event, outbox and inbox effects commit atomically; broker acknowledgement follows
 commit. Terminal replay restores a pruned inbox without invoking AI.
+An expired run has reason `queue_expired`, exactly one `expired` step, null decision and result,
+and no execution authority, tool receipt or graph lineage. Its terminal event uses `ask.expired`;
+no calculation or decision is invented.
 
 Transient transport failure, controlled cancellation and exhausted executor policies, including
 the five-second attempt timeout inside the ten-second consumer budget, do not submit a failed
@@ -159,7 +177,8 @@ rebinds its retained receipt through the authorized tool before submitting curre
 
 Streams poll persisted snapshots with bounded cancellation. Envelope and transport IDs match
 `<runId>:v1:<sequence>`. Nonterminal events use `ask.progress`; a single explicit `ask.completed`
-or `ask.failed` closes the stream. A same-run `Last-Event-ID` replays only later retained events.
+or `ask.failed` or `ask.expired` closes the stream. A same-run `Last-Event-ID` replays only later
+retained events.
 Consumed terminal replay is an empty successful stream. Persistence survives API restarts; this
 does not claim unlimited retention.
 
@@ -175,9 +194,11 @@ headers closes the connection without inventing a business terminal; reconnect r
 | 404    | Authorized missing read view                                            |
 | 409    | Same idempotency key with different immutable request                   |
 | 422    | Valid text contract with refused price/area extraction or arithmetic    |
+| 429    | Three total pending runs; exact `{code:"thread_pending_limit",limit:3}` |
 | 503    | Admission disabled or transactional/dependency operation unavailable    |
 
-Public errors use sanitized API envelopes and server-generated request identifiers. Tokens, queries,
+Except for the closed capacity refusal above, public errors use sanitized API envelopes.
+Responses retain server-generated request identifiers. Tokens, queries,
 grants, connection strings and raw dependency errors are excluded from diagnostics.
 
 ## Private boundaries and verification

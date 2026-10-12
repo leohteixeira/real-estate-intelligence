@@ -66,6 +66,16 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Decision: D-049 / ADR 0026 defines three pending as three total nonterminal runs per thread.
+  PostgreSQL-clock deadlines and numeric admission order fence concurrent creation, reversed
+  delivery and expired-claim recovery. Honest queued expiry records an expired terminal without
+  execution; bounded API maintenance materializes it with the worker stopped. Confirmed source
+  queue deferral preserves genuine failure attempts and frees prefetch for other threads. A
+  deadlettered running head remains recoverable and blocks successors under D-048; no automatic
+  replay or fabricated terminal is introduced. Each transition changes one run per transaction,
+  and additive migration preserves historical evidence. D-012 and ADR 0020 override Nest stack
+  examples; BMAD planning/handoff overrides interactive planning defaults
+  (agent, on the owner's behalf, 2026-10-12).
 - Decision: D-048 / ADR 0025 makes graph checkpoints and pending writes API-owned and remotely
   saved through a run/event/thread/version-scoped contract with a separate fenced checkpoint
   grant. Canonical graph state excludes authority; synchronous same-thread recovery preserves
