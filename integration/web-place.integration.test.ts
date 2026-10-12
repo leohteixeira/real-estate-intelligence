@@ -162,7 +162,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                       !(
                         /^\/api\/v1\/places(?:\/[a-z0-9-]+(?:\/(?:children|market(?:\/(?:neighbours|monthly-series))?|largest-reductions))?)?$/.test(
                           url.pathname,
-                        ) || /^\/api\/v1\/properties\/[0-9a-f-]{36}$/.test(url.pathname)
+                        ) || /^\/api\/v1\/properties(?:\/[0-9a-f-]{36})?$/.test(url.pathname)
                       )
                     )
                       forbiddenRequests.push(`${request.method()} ${url.pathname}`);
@@ -384,26 +384,32 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   expect(await page.title()).toBe(
                     `${labels[destination]} · Real Estate Intelligence`,
                   );
-                  expect(await page.locator('.place-entry').textContent()).toContain(
-                    destination === 'search'
-                      ? locale === 'en'
-                        ? 'The results and filters screen is not yet available in this version.'
-                        : 'A tela de resultados e filtros ainda não está disponível nesta versão.'
-                      : locale === 'en'
+                  if (destination === 'search') {
+                    await expect.poll(() => page.locator('.search-rows li').count()).toBe(1);
+                    expect(await page.locator('.search-median').textContent()).toContain(
+                      locale === 'en' ? 'Prepared results' : 'Resultados preparados',
+                    );
+                    expect(await page.locator('.search-toolbar a').getAttribute('href')).toBe(
+                      `/search/${bela}?view=filters`,
+                    );
+                  } else {
+                    expect(await page.locator('.place-entry').textContent()).toContain(
+                      locale === 'en'
                         ? 'The runs screen is not yet available in this version.'
                         : 'A tela de execuções ainda não está disponível nesta versão.',
-                  );
-                  expect(await page.locator('form, .fig__value').count()).toBe(0);
-                  expect(
-                    await page.locator('.place-entry').evaluate((element) => {
-                      const css = getComputedStyle(element);
-                      return {
-                        left: css.paddingLeft,
-                        right: css.paddingRight,
-                        top: css.paddingTop,
-                      };
-                    }),
-                  ).toEqual({ left: '16px', right: '16px', top: '16px' });
+                    );
+                    expect(await page.locator('form, .fig__value').count()).toBe(0);
+                    expect(
+                      await page.locator('.place-entry').evaluate((element) => {
+                        const css = getComputedStyle(element);
+                        return {
+                          left: css.paddingLeft,
+                          right: css.paddingRight,
+                          top: css.paddingTop,
+                        };
+                      }),
+                    ).toEqual({ left: '16px', right: '16px', top: '16px' });
+                  }
                   expect(
                     await page.evaluate(
                       () => document.documentElement.scrollWidth <= window.innerWidth,

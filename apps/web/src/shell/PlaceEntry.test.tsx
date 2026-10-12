@@ -79,17 +79,21 @@ describe('geographic public entries', () => {
       const request = reads();
       mount(`/${destination}/${bela.id}`);
       expect(await screen.findByRole('heading', { name: 'Bela Vista' })).toBeVisible();
-      expect(
-        screen.getByText(
-          destination === 'search'
-            ? 'A tela de resultados e filtros ainda não está disponível nesta versão.'
-            : 'A tela de execuções ainda não está disponível nesta versão.',
-        ),
-      ).toBeVisible();
-      expect(screen.getByRole('link', { name: 'Ver a mediana do lugar' })).toHaveAttribute(
-        'href',
-        `/places/${bela.id}`,
-      );
+      if (destination === 'search') {
+        expect(screen.getByRole('link', { name: 'Filtros' })).toHaveAttribute(
+          'href',
+          `/search/${bela.id}?view=filters`,
+        );
+        expect(screen.getByRole('combobox', { name: 'Ordenar' })).toBeVisible();
+      } else {
+        expect(
+          screen.getByText('A tela de execuções ainda não está disponível nesta versão.'),
+        ).toBeVisible();
+        expect(screen.getByRole('link', { name: 'Ver a mediana do lugar' })).toHaveAttribute(
+          'href',
+          `/places/${bela.id}`,
+        );
+      }
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(
         request.mock.calls.some(([url]) => url.endsWith('/market') || url.includes('/ask')),

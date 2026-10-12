@@ -23,6 +23,15 @@ describe('backend value presentation', () => {
     expect(formatMedian(951515, 'en')).toBe('R$ 9,515');
     expect(formatMedian(951550, 'en')).toBe('R$ 9,516');
   });
+  it('keeps the exact last cent at the public safe-integer bound', () => {
+    expect(formatExactMoney(Number.MAX_SAFE_INTEGER, 'pt-BR')).toBe('R$ 90.071.992.547.409,91');
+    expect(formatExactMoney(Number.MAX_SAFE_INTEGER, 'en')).toBe('R$ 90,071,992,547,409.91');
+  });
+  it('preserves fractional backend medians and negative sub-real values', () => {
+    expect(formatExactMoney(970401.5, 'pt-BR')).toBe('R$ 9.704,02');
+    expect(formatExactMoney(970401.5, 'en')).toBe('R$ 9,704.02');
+    expect(formatExactMoney(-1, 'en')).toBe('-R$0.01');
+  });
   it('renders the server computation instant with an explicit UTC zone', () => {
     expect(formatComputedAt('2026-10-12T12:30:00.000Z', 'en')).toContain('12:30');
     expect(formatComputedAt('2026-10-12T12:30:00.000Z', 'pt-BR')).toContain('UTC');
