@@ -78,6 +78,13 @@ shared with another epic, Description says which part this epic delivers.
 - Decision: D-053 pins Query 5.104.1, published on 2026-10-02 and compatible with React 19,
   rather than adding release-age exclusions for the newly published 5.104.2. Existing supply-chain
   and verification gates remain unchanged (agent, on the owner's behalf, 2026-10-12).
+- Decision: D-054 completes the public shell with Places, Search and Ask only. Place-scoped
+  `/search/:placeId` and `/ask/:placeId` are genuine contract-backed entry screens, explicitly
+  stating that their full web workflows are not yet included; no inert forms, prepared figures
+  or simulated errors. Full screens remain entries 6/9/16; Privacy body and real footer links
+  remain entry 10. Index routes open Bela Vista. Preserve selected place, Placa, local fonts,
+  bundled per-screen catalogues, abortable validated API reads and formatting conventions;
+  no V2/protected navigation or VPS unlock (agent, on the owner's behalf, 2026-10-12).
 - Parked: the third success signal names a real source in the privacy notice; it waits with
   epic-collection.
 - Waits on epic-platform-baseline because: it needs the contract conventions and the deployed stack.
