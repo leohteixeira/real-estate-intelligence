@@ -3,7 +3,7 @@ title: 'Place overview with one figure from the contract'
 type: 'feature'
 ticket: '2'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: 'a2badd24e158bd6a18f6eae905725d299e0ff9ef'
 route: 'full'
 route_source: 'auto'
@@ -367,3 +367,16 @@ their corresponding implementation decisions. No backend behavior or contract wa
 - This story is one public figure tracer, not the full later place screen. The broader final
   campaign and remaining local stories are not claimed complete. VPS-dependent stories remain
   owner-blocked; no unlock, external collection, provider call, deploy or push occurred.
+
+## Acceptance
+
+- 2026-10-12, orchestrator: independently repeated root lint, strict type checking, all 2,181
+  unit tests and all eight builds against the committed implementation; every gate passed.
+- Repeated the exact owned acquisition/API/browser campaign: one Vitest test passed in 51.05s
+  (51.95s total). All six refreshed width/locale captures were opened and validated; their
+  computation times belong to this fresh synthetic acquisition, not to an artboard fixture.
+  Exact teardown left no running containers. The ticket's Compose/Portuguese/English verify
+  condition is met; no production deployment or full-screen completion is implied.
+- Strict integration TypeScript and all 25 support/source-cleanup tests passed again (2.49s).
+  The TypeScript/Vitest/Supertest/Testcontainers/Nock standard remains enforced without Node
+  test/assert or manual process/HTTP harnesses. VPS-dependent stories remain owner-blocked.
