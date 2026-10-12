@@ -68,6 +68,16 @@ shared with another epic, Description says which part this epic delivers.
   under ADR 0020 (agent, on the owner's behalf, 2026-10-12; D-051).
 - Open question (spec): who designs the sign-in entry, the signed-in shell and the theme switch. No
   MVP entry waits on it.
+- Decision: D-052 scopes entry 2 to the existing Placa shell/plate and one event-fed median with
+  actual contributor/source/time evidence, not prepared counts or illustrated artboard values.
+  `/places` opens the registered synthetic Bela Vista neighborhood; `/` preserves the landing.
+  Same-origin `/api/v1` proxies and self-hosted existing Barlow faces support real browser proof.
+  Unimplemented/V2/protected controls stay absent; proper place names stay untranslated. The
+  complete shell and remaining panels belong to later entries (agent, on the owner's behalf,
+  2026-10-12).
+- Decision: D-053 pins Query 5.104.1, published on 2026-10-02 and compatible with React 19,
+  rather than adding release-age exclusions for the newly published 5.104.2. Existing supply-chain
+  and verification gates remain unchanged (agent, on the owner's behalf, 2026-10-12).
 - Parked: the third success signal names a real source in the privacy notice; it waits with
   epic-collection.
 - Waits on epic-platform-baseline because: it needs the contract conventions and the deployed stack.
