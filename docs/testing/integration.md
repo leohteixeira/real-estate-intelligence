@@ -147,6 +147,45 @@ The worker command uses bounded stdin and the production worker image without DB
 wrong or absent authority fails categorically. Shared exact-label teardown verifies foreign Docker
 containers and volumes survive. See [the RunExecutor reference](../api/run-executor.md).
 
+## Adopt the web accessibility harness
+
+After building, run the production entries and isolated shared components together:
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts integration/web-place.integration.test.ts integration/web-components.integration.test.ts
+```
+
+Both campaigns own their Compose resources and launch sandboxed loopback Chromium. The component
+campaign serves `apps/web/test-fixtures/shared-components/` through an owned Vite process; this
+entry is strictly typechecked but absent from the production build and public router. It consumes
+parsed synthetic API properties and an event-fed median, then separately labels constructed null,
+zero, comparison, returned-to-market and long-content cases. Captures identify the Components and
+Search artboards; production captures identify the actual public entries.
+
+For every future screen entry, import `checkAccessibility` from
+`integration/support/accessibility.ts`, await its fonts/content readiness, then scan its complete
+page at 390, 960 and 1440px in PT/EN. Use a unique evidence name per screen, width, locale and state.
+The harness pins axe 4.13.0, runs WCAG 2/2.1/2.2 A/AA tags without disabled rules or excluded regions,
+and fails with rule IDs, target selectors, explanations and help links. JSON evidence under
+`apps/web/.impeccable/review/` preserves violations, passed rules and incomplete checks separately.
+Add keyboard activation, visible focus, 44px target geometry, local-font, overflow and screenshot
+checks alongside the scan; axe cannot establish those requirements by itself.
+
+The component campaign also injects one intentionally unnamed button, verifies that the shared
+helper rejects with its rule, help URL and selector, removes the node and scans the restored page.
+`expected-failure-unnamed-button-accessibility.json` is evidence of that negative control, not a
+production page report or an ignored violation. Normal screen reports must still have no violations.
+
+The web unit suite also checks the semantic text, focus and essential-control token inventory in
+`src/shared/token-contrast.test.ts`. Normal text requires 4.5:1 and essential borders/focus require
+3:1. Decorative hairlines are not essential control boundaries. D-055 changes Line Strong to
+`#7f8ba2`; a regression proves the original value fails against Surface and Porcelain.
+
+Automated passes do not certify all WCAG requirements. Review every axe incomplete result and
+manually assess screen-reader reading order/pronunciation, focus under daylight, zoom/reflow,
+canonical-name comprehension and interaction states introduced by later entries. Search results
+and full system states remain owned by their respective stories.
+
 ## Strict TypeScript checking
 
 Every campaign, shared helper, fresh-process probe and `vitest.integration.config.ts` is included in

@@ -15,7 +15,7 @@ colors:
   ink-2: '#3d4a66'
   ink-3: '#5a6781'
   line: '#d5dbe6'
-  line-strong: '#9aa6bb'
+  line-strong: '#7f8ba2'
   here: '#f2b705'
   here-ink: '#3a2c00'
   zone-centro: '#c8402a'
@@ -232,7 +232,10 @@ decoration.
 - **Surface** (`#ffffff`): bands, panels, sheets, rows.
 - **Ink** (`#101b33`), **Ink 2** (`#3d4a66`), **Ink 3** (`#5a6781`): text, secondary text, inactive
   navigation and placeholders.
-- **Line** (`#d5dbe6`) and **Line Strong** (`#9aa6bb`): hairlines and control borders.
+- **Line** (`#d5dbe6`) and **Line Strong** (`#7f8ba2`): hairlines and essential control borders.
+  D-055 darkens only the control border to meet 3:1 against Surface, Porcelain and Enamel 50.
+  Line Strong is not an essential marker on Enamel 100; yellow alone is not an essential marker
+  on a light ground.
 
 ### Named Rules
 
@@ -377,15 +380,30 @@ name in condensed capitals; a strip with the zone and one count.
 
 ### Figure with provenance
 
-`.fig`: label with its price tag, value in the Figure style, a movement line, then the provenance
-line stating how many records, which sources and when it was computed, with a link to the method.
-Figures sit in bands divided by hairlines (`.figs`), not in separate cards.
+`.fig`: label with its explicit Asking or Sale tag, value in the Figure style (48 px), optional
+unit (22 px), then the provenance line (12 px). The shared `Figure` used by the live place median
+has no movement line. It formats the supplied backend value and evidence; it computes no market
+statistic. Figures sit in bands divided by hairlines (`.figs`), not in separate cards.
+
+`Provenance` states the contributing-property count, source links, UTC computation time and
+fresh/stale/untracked status, with the dashed Synthetic data tag when applicable. A method link
+appears only when the caller supplies a genuine destination. Source and method links have a
+minimum 44 px width and height; evidence items center vertically and wrap with long source names.
+Source names and place names remain canonical in both locales. The first source link retains its
+visible localized Sources prefix in its accessible name.
 
 ### Rows and tables
 
 - **Property row** (`.prow`): two columns. Left: type, bedrooms and area, then the street block.
-  Right: price and price per square meter. A meta line holds movement, listing count and time on
-  market. A row is a property and carries no photograph.
+  Right: the outlined Asking tag, asking price and price per square meter. A meta line holds the
+  backend comparison, listing count and time on market. The shared `PropertyRow` is one native
+  link to a caller-supplied destination, with no nested links, a visible enamel focus outline and
+  Enamel 50 hover. It carries no photograph. Missing bedrooms, area or prices remain unavailable;
+  numeric zero remains zero. Positive/negative comparison percentages use below/above words
+  with blue/orange; zero says equal and null omits the comparison. Returned-to-market wording
+  replaces the days wording. Long blocks, prices and metadata wrap without ellipsis or smaller
+  type; the canonical block name is retained in both locales. Search results remain a later
+  workflow; this reusable row is currently exercised through the test-only fixture.
 - **Table** (`.tbl`): fixed columns, sortable header buttons, right-aligned numbers. Hover Enamel
   50, selected Enamel 100 with the yellow square. A state change restyles the row in place.
 

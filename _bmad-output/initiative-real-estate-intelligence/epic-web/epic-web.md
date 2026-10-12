@@ -87,6 +87,17 @@ shared with another epic, Description says which part this epic delivers.
   no V2/protected navigation or VPS unlock (agent, on the owner's behalf, 2026-10-12).
 - Parked: the third success signal names a real source in the privacy notice; it waits with
   epic-collection.
+- Decision: D-055 extracts the live median's Figure/Provenance and implements contract-typed
+  PropertyRow without shipping Search early. A test-only Vite entry outside production routes
+  verifies shared rows in Chromium; the owned Compose campaign verifies the actual shell/figure.
+  Adopt @axe-core/playwright 4.13.0 as a shared WCAG 2.2 AA harness, without rule/region exclusions;
+  record incomplete/manual checks rather than claiming full conformance before entry 12.
+  Semantic token contrast checks require only real foreground/background roles. Accept
+  `line-strong = #7f8ba2` for essential borders on white, porcelain and enamel-50, synchronizing
+  DESIGN.md, its sidecar and the canvas mirror; preserve the remaining Placa world. Never use
+  that border as an essential marker on enamel-100 or yellow alone on light backgrounds.
+  Keep TypeScript/Vitest integration, supply-chain gates and sandbox security unchanged
+  (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-platform-baseline because: it needs the contract conventions and the deployed stack.
 - Waits on epic-collection because: it needs the list of sources for the privacy notice.
 - Waits on epic-properties because: it needs the search, property, listing and largest-reductions

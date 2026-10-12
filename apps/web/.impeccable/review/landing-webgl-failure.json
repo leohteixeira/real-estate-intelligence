@@ -1,0 +1,33 @@
+{
+  "diagnostic": "The first Landing full/top captures showed the genuine no-WebGL fallback, not the city scene. They are invalid as city-rendering evidence.",
+  "observed": {
+    "flat": true,
+    "anchor": "",
+    "canvas": { "width": 300, "height": 150 },
+    "contextLost": null,
+    "renderer": null
+  },
+  "console": [
+    "THREE.WebGLRenderer: A WebGL context could not be created. Reason:  Could not create a WebGL context, VENDOR = 0xffff, DEVICE = 0xffff, Sandboxed = yes, Optimus = no, AMD switchable = no, Reset notification strategy = 0x0000, ErrorMessage = BindToCurrentSequence failed: .",
+    "THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context."
+  ],
+  "browserStderr": [
+    "DisplayVkXcb.cpp:59 (initialize): xcb_connect() failed, error 1",
+    "eglInitialize SwANGLE failed with error EGL_NOT_INITIALIZED"
+  ],
+  "environment": "DISPLAY=:0 was inherited, but /tmp/.X11-unix was absent.",
+  "safeProbe": {
+    "runtime": "Playwright matching bundled Chromium",
+    "sandbox": true,
+    "unsafeSwiftshaderDefaultRemoved": true,
+    "displayUnset": true,
+    "args": [
+      "--ozone-platform=headless",
+      "--disable-vulkan-surface",
+      "--use-gl=angle",
+      "--use-angle=swiftshader-webgl"
+    ],
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "contextLost": false
+  }
+}

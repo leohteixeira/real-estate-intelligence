@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-09T22:30:00Z",
+  "generatedAt": "2026-10-12T09:16:00Z",
   "title": "Design System: Real Estate Intelligence",
   "extensions": {
     "colorMeta": {
@@ -57,7 +57,7 @@
           "#101b33",
           "#3d4a66",
           "#5a6781",
-          "#9aa6bb",
+          "#7f8ba2",
           "#d5dbe6",
           "#e9edf3",
           "#f4f6f9",
@@ -143,7 +143,7 @@
       "refersTo": "button",
       "description": "Secondary actions.",
       "html": "<button class=\"ds-btn\">Create alert</button>",
-      "css": ".ds-btn { min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #9aa6bb; background: #fff; color: #101b33; font: 600 15px/1.1 'Barlow', system-ui, sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn:hover { background: #f0f4fb; border-color: #1a4fb3; } .ds-btn:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
+      "css": ".ds-btn { min-height: 44px; padding: 0 16px; border-radius: 6px; border: 1px solid #7f8ba2; background: #fff; color: #101b33; font: 600 15px/1.1 'Barlow', system-ui, sans-serif; cursor: pointer; transition: background 150ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn:hover { background: #f0f4fb; border-color: #1a4fb3; } .ds-btn:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
     },
     {
       "name": "Field",
@@ -151,7 +151,7 @@
       "refersTo": "field",
       "description": "Text input with its label above.",
       "html": "<label class=\"ds-field\">Minimum area (m²)<input value=\"60\" inputmode=\"numeric\"></label>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font: 600 13px/1.45 'Barlow', system-ui, sans-serif; color: #101b33; max-width: 240px; } .ds-field input { height: 44px; border: 1px solid #9aa6bb; border-radius: 6px; padding: 0 12px; font: 400 15px 'Barlow', system-ui, sans-serif; color: #101b33; } .ds-field input:hover { border-color: #3d4a66; } .ds-field input:focus-visible { outline: 0; border-color: #1a4fb3; box-shadow: 0 0 0 3px #e1e9f7; }"
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font: 600 13px/1.45 'Barlow', system-ui, sans-serif; color: #101b33; max-width: 240px; } .ds-field input { height: 44px; border: 1px solid #7f8ba2; border-radius: 6px; padding: 0 12px; font: 400 15px 'Barlow', system-ui, sans-serif; color: #101b33; } .ds-field input:hover { border-color: #3d4a66; } .ds-field input:focus-visible { outline: 0; border-color: #1a4fb3; box-shadow: 0 0 0 3px #e1e9f7; }"
     },
     {
       "name": "Filter chip",
@@ -159,15 +159,22 @@
       "refersTo": "chip-selected",
       "description": "A toggled filter.",
       "html": "<button class=\"ds-chip\" aria-pressed=\"true\">2+ bedrooms</button>",
-      "css": ".ds-chip { height: 36px; padding: 0 12px; border: 1px solid #9aa6bb; border-radius: 999px; background: #fff; color: #101b33; font: 500 13px/1 'Barlow', system-ui, sans-serif; cursor: pointer; } .ds-chip:hover { border-color: #1a4fb3; } .ds-chip[aria-pressed='true'] { background: #e1e9f7; border-color: #1a4fb3; color: #0b2c6b; font-weight: 600; } .ds-chip:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
+      "css": ".ds-chip { height: 36px; padding: 0 12px; border: 1px solid #7f8ba2; border-radius: 999px; background: #fff; color: #101b33; font: 500 13px/1 'Barlow', system-ui, sans-serif; cursor: pointer; } .ds-chip:hover { border-color: #1a4fb3; } .ds-chip[aria-pressed='true'] { background: #e1e9f7; border-color: #1a4fb3; color: #0b2c6b; font-weight: 600; } .ds-chip:focus-visible { outline: 3px solid #1a4fb3; outline-offset: 2px; }"
     },
     {
       "name": "Figure with provenance",
       "kind": "custom",
       "refersTo": "tag",
-      "description": "A number with its tag, movement and source line.",
-      "html": "<div class=\"ds-fig\"><p class=\"ds-fig-label\">Median asking price per m² <span class=\"ds-tag\">Asking</span></p><p class=\"ds-fig-value\">R$ 12,480 <small>/m²</small></p><p class=\"ds-fig-prov\">1,284 active listings · 2 sources · Computed 9 Oct 2026, 06:00</p></div>",
-      "css": ".ds-fig { font-family: 'Barlow', system-ui, sans-serif; color: #101b33; padding: 16px; background: #fff; border-block: 1px solid #d5dbe6; font-variant-numeric: tabular-nums lining-nums; } .ds-fig p { margin: 0; } .ds-fig-label { font-size: 13px; font-weight: 500; color: #3d4a66; display: flex; gap: 6px; align-items: center; } .ds-tag { height: 20px; display: inline-flex; align-items: center; padding: 0 6px; border: 1px solid #3d4a66; border-radius: 4px; font: 600 13px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; } .ds-fig-value { font: 600 48px/1 'Barlow Condensed', 'Arial Narrow', sans-serif; } .ds-fig-value small { font-size: 22px; font-weight: 500; color: #3d4a66; } .ds-fig-prov { font-size: 12px; color: #3d4a66; padding-top: 6px; }"
+      "description": "A supplied backend value with an explicit price tag and required count/source/UTC/freshness evidence; no movement line. This static synthetic preview omits source navigation. The live component uses native source links with 44px targets and an optional genuine method destination.",
+      "html": "<div class=\"ds-fig\"><h2 class=\"ds-fig-label\">Median asking price per m² <span class=\"ds-tag\">Asking</span></h2><p class=\"ds-fig-value\">R$ 12,480 <small>/m²</small></p><div class=\"ds-fig-prov\"><span>1,284 contributing properties</span><span>Sources: Synthetic source</span><span>Computed 9 Oct 2026, 06:00 UTC</span><span>Fresh data</span><span class=\"ds-tag ds-tag-synthetic\">Synthetic data</span></div></div>",
+      "css": ".ds-fig { font-family: var(--font-ui); color: var(--ink); padding: var(--s-4) var(--gutter); background: var(--surface); min-width: 0; overflow-wrap: anywhere; display: flex; flex-direction: column; gap: 2px; font-variant-numeric: tabular-nums lining-nums; } .ds-fig-label { margin: 0; font-size: var(--text-sm); font-weight: 500; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .ds-tag { height: 20px; display: inline-flex; align-items: center; padding: 0 6px; border: 1px solid var(--ink-2); border-radius: var(--r-sm); color: var(--ink-2); font: 600 var(--text-sm)/1 var(--font-plate); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; } .ds-tag-synthetic { border-style: dashed; } .ds-fig-value { margin: 0; font: 600 var(--text-4xl)/1 var(--font-plate); } .ds-fig-value small { font-size: var(--text-xl); font-weight: 500; color: var(--ink-2); } .ds-fig-prov { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; margin-top: var(--s-2); font-size: var(--text-xs); line-height: 1.5; color: var(--ink-2); }"
+    },
+    {
+      "name": "Property row",
+      "kind": "custom",
+      "description": "One native property link: identity/block left, outlined Asking price/per-m² right, comparison/listings/time below. Backend null/zero/sign semantics are retained; returned-to-market replaces days. This constructed preview owns its fragment destination; Search results do not ship yet.",
+      "html": "<div><p>Constructed synthetic component example</p><a class=\"ds-prow\" href=\"#ds-property-destination\"><div><p class=\"ds-prow-title\">Apartment · 2 bedrooms · 66 m²</p><p class=\"ds-prow-secondary\">Rua Bela — 1200–1298</p></div><div class=\"ds-prow-price\"><span class=\"ds-prow-tag\">Asking</span><p class=\"ds-prow-value\">R$ 628,000</p><p class=\"ds-prow-per-meter\">R$ 9,515 /m²</p></div><div class=\"ds-prow-meta\"><span class=\"ds-prow-below\">3.1% below median</span><span>2 active listings</span><span>90 days on market</span></div></a><p id=\"ds-property-destination\">Constructed property destination (preview only)</p></div>",
+      "css": ".ds-prow { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 2px var(--s-3); padding: var(--s-3) var(--gutter); font-family: var(--font-ui); font-size: var(--text-md); line-height: 1.45; color: var(--ink); text-decoration: none; background: var(--surface); font-variant-numeric: tabular-nums lining-nums; } .ds-prow > div { min-width: 0; overflow-wrap: anywhere; } .ds-prow p { margin: 0; } .ds-prow:hover { background: var(--enamel-50); color: var(--ink); } .ds-prow:focus-visible { outline: 3px solid var(--enamel-600); outline-offset: 2px; } .ds-prow-title { font-weight: 600; } .ds-prow-secondary, .ds-prow-per-meter { font-size: var(--text-sm); color: var(--ink-2); } .ds-prow-per-meter { text-align: right; } .ds-prow-value { font: 600 var(--text-xl)/1.1 var(--font-plate); text-align: right; } .ds-prow-tag { display: inline-flex; align-items: center; height: 20px; margin-bottom: var(--s-1); padding: 0 6px; border: 1px solid var(--ink-2); border-radius: var(--r-sm); color: var(--ink-2); font: 600 var(--text-sm)/1 var(--font-plate); letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; } .ds-prow-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding-top: 4px; font-size: var(--text-xs); color: var(--ink-2); } .ds-prow-below { color: var(--down); }"
     },
     {
       "name": "Tab bar",
