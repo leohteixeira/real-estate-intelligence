@@ -10,6 +10,7 @@ import {
   parseTextAskRefused,
   parseTextExecutionEvidence,
   parseAskRequestedIdentity,
+  parsePriceToolReceipt,
   type TextAskCreate,
   type AskLiveEvent,
 } from '../packages/contracts/dist/index.js';
@@ -19,7 +20,9 @@ import {
   PostgresTransactionRunner,
   PostgresOutbox,
   askDispatchProof,
+  askDigest,
 } from '../packages/infrastructure/dist/index.js';
+import { AskRunRequested } from '../packages/domain/dist/index.js';
 import { PricePerSquareMeterService } from '../packages/application/dist/index.js';
 import { allocatePorts, cleanupAll, ComposeFixture, preserveCleanup } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
@@ -562,7 +565,7 @@ test('6002 upgrades populated structured history without rewriting evidence and 
     const migrationFiles = (await readdir(new URL('../migrations/', import.meta.url)))
       .filter((file) => /^\d{4}_[a-z0-9_]+\.sql$/.test(file))
       .sort();
-    for (const file of migrationFiles.filter((file) => file !== '6002_ask_text_price_runs.sql')) {
+    const apply = async (file: string) => {
       const client = await database.leaseClient();
       try {
         await client.query('BEGIN');
@@ -579,75 +582,197 @@ test('6002 upgrades populated structured history without rewriting evidence and 
       } finally {
         client.release();
       }
-    }
+    };
+    for (const file of migrationFiles.filter((file) => file < '6002')) await apply(file);
+    expect(
+      await database.query<{ present: boolean }>(
+        "SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='ask' AND table_name='run' AND column_name='admission_sequence') AS present",
+      ),
+    ).toEqual([{ present: false }]);
+    const market = new PricePerSquareMeterService();
+    // Historical fixture SQL names only 6001 columns; current repositories never
+    // run against an older schema or select a compatibility fallback.
+    const allocated = await database.query<{
+      id: string;
+      thread_id: string;
+      event_id: string;
+      execution_id: string;
+      receipt_id: string;
+      terminal_event_id: string;
+      at: Date;
+    }>(
+      'SELECT uuidv7()::text AS id,uuidv7()::text AS thread_id,uuidv7()::text AS event_id,uuidv7()::text AS execution_id,uuidv7()::text AS receipt_id,uuidv7()::text AS terminal_event_id,clock_timestamp() AS at',
+    );
+    const allocation = allocated[0]!;
+    const at = allocation.at.toISOString();
+    const creationKey = askDigest(secret());
+    const fingerprint = askDigest(
+      JSON.stringify([
+        'structured-price-v1',
+        null,
+        null,
+        'Legacy structured synthetic question',
+        'en',
+        inputs.priceMinorUnits,
+        inputs.currency,
+        inputs.areaSquareMeters,
+      ]),
+    );
+    const run = parseAskLiveRun({
+      basis: 'structured-price-v1',
+      id: allocation.id,
+      threadId: allocation.thread_id,
+      principalId: null,
+      question: 'Legacy structured synthetic question',
+      locale: 'en',
+      placeId: null,
+      createdAt: at,
+      updatedAt: at,
+      state: 'queued',
+      originalInputs: inputs,
+      decision: null,
+      result: null,
+      terminal: null,
+      steps: [],
+    });
+    const identity = {
+      version: 1 as const,
+      eventId: allocation.event_id,
+      runId: run.id,
+      threadId: run.threadId,
+    };
+    const running = parseAskLiveRun({
+      ...run,
+      state: 'running',
+      decision: {
+        source: 'fixed-structured-v1',
+        intent: 'price_per_square_meter',
+        decidedAt: at,
+      },
+      steps: [{ sequence: 1, phase: 'calculating', at }],
+    });
+    const receipt = parsePriceToolReceipt({
+      ...identity,
+      executionId: allocation.execution_id,
+      operation: 'price-per-square-meter',
+      inputs,
+      receiptId: allocation.receipt_id,
+      provenance: 'market-domain-v1',
+      result: market.pricePerSquareMeter(inputs, at),
+    });
+    const completed = parseAskLiveRun({
+      ...running,
+      state: 'completed',
+      result: receipt.result,
+      terminal: { state: 'completed', reason: null, at },
+      steps: [...running.steps, { sequence: 2, phase: 'completed', at }],
+    });
+    const client = await database.leaseClient();
+    let committed = false;
+    await preserveCleanup(
+      async () => {
+        await client.query('BEGIN');
+        await client.query(
+          'INSERT INTO ask.thread(id,authority_digest,preparation_key) VALUES($1,$2,$3)',
+          [run.threadId, askDigest(capability), creationKey],
+        );
+        await client.query(
+          "INSERT INTO ask.run(id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,execution_id,claim_expires_at,grant_digest,document) VALUES($1,$2,$3,$4,$5,'completed',$6,$7,$8,clock_timestamp()+interval '30 seconds',$9,$10)",
+          [
+            run.id,
+            run.threadId,
+            creationKey,
+            fingerprint,
+            identity.eventId,
+            inputs.priceMinorUnits,
+            inputs.areaSquareMeters,
+            allocation.execution_id,
+            askDigest(secret()),
+            completed,
+          ],
+        );
+        for (const [index, document] of [run, running, completed].entries()) {
+          const sequence = index + 1;
+          await client.query(
+            'INSERT INTO ask.run_event(run_id,sequence,document) VALUES($1,$2,$3)',
+            [
+              run.id,
+              sequence,
+              parseAskLiveEvent({
+                version: 1,
+                id: `${run.id}:v1:${sequence}`,
+                runId: run.id,
+                sequence,
+                event: sequence === 3 ? 'ask.completed' : 'ask.progress',
+                terminal: sequence === 3,
+                run: document,
+              }),
+            ],
+          );
+        }
+        await client.query('INSERT INTO ask.tool_receipt(run_id,id,document) VALUES($1,$2,$3)', [
+          run.id,
+          receipt.receiptId,
+          receipt,
+        ]);
+        await client.query(
+          "INSERT INTO platform.inbox(event_id,consumer_name) VALUES($1,'ask.structured-run')",
+          [identity.eventId],
+        );
+        await client.query(
+          "INSERT INTO platform.idempotency_key(scope,idempotency_key,request_fingerprint,result_reference,expires_at) VALUES('ask.structured-create',$1,$2,$3,clock_timestamp()+interval '24 hours')",
+          [creationKey, fingerprint, run.id],
+        );
+        const requested = new AskRunRequested(identity, at);
+        await client.query(
+          'INSERT INTO platform.outbox(event_id,event_type,event_version,aggregate_id,occurred_at,trace_context,payload) VALUES($1,$2,$3,$4,$5,$6,$7)',
+          [
+            requested.eventId,
+            requested.type,
+            requested.version,
+            requested.aggregateId,
+            requested.occurredAt,
+            requested.traceContext,
+            requested.payload,
+          ],
+        );
+        await client.query(
+          "INSERT INTO platform.outbox(event_id,event_type,event_version,aggregate_id,occurred_at,payload) VALUES($1,'ask.run.completed',1,$2,$3,$4)",
+          [allocation.terminal_event_id, run.id, at, { runId: run.id, threadId: run.threadId }],
+        );
+        await client.query('COMMIT');
+        committed = true;
+      },
+      () =>
+        cleanupAll(
+          async () => {
+            if (!committed) await client.query('ROLLBACK');
+          },
+          async () => client.release(),
+        ),
+    );
+    const digest = () =>
+      database.query<{
+        runs: string;
+        events: string;
+        receipts: string;
+        outbox: string;
+        inbox: string;
+        idempotency: string;
+      }>(
+        `SELECT (SELECT md5(string_agg((to_jsonb(r)-ARRAY['checkpoint_grant_digest','graph_started_at','graph_expires_at','graph_pruned_at','admission_sequence','admitted_at','queue_expires_at'])::text,'' ORDER BY id)) FROM ask.run r) AS runs, (SELECT md5(string_agg(document::text,'' ORDER BY run_id,sequence)) FROM ask.run_event) AS events, (SELECT md5(string_agg(document::text,'' ORDER BY run_id)) FROM ask.tool_receipt) AS receipts, (SELECT md5(string_agg(row_to_json(o)::text,'' ORDER BY event_id)) FROM platform.outbox o) AS outbox, (SELECT md5(string_agg(row_to_json(i)::text,'' ORDER BY event_id)) FROM platform.inbox i) AS inbox, (SELECT md5(string_agg(row_to_json(k)::text,'' ORDER BY idempotency_key)) FROM platform.idempotency_key k) AS idempotency`,
+      );
+    const before = await digest();
+    await apply('6002_ask_text_price_runs.sql');
+    expect(await digest()).toEqual(before);
+    for (const file of migrationFiles.filter((file) => file > '6002_ask_text_price_runs.sql'))
+      await apply(file);
+    expect(await digest()).toEqual(before);
     const repository = new PostgresAskRunRepository(
       database,
       new PostgresTransactionRunner(database),
       new PostgresOutbox(database),
     );
-    const market = new PricePerSquareMeterService();
-    const run = await repository.create(
-      {
-        mode: 'structured-price-v1',
-        threadId: null,
-        placeId: null,
-        query: 'Legacy structured synthetic question',
-        locale: 'en',
-        inputs,
-      },
-      capability,
-      secret(),
-    );
-    const row = await database.query<{ event_id: string }>(
-      'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
-      [run.id],
-    );
-    const identity = {
-      version: 1 as const,
-      eventId: row[0]!.event_id,
-      runId: run.id,
-      threadId: run.threadId,
-    };
-    const claim = await repository.claim(identity);
-    if (claim.disposition !== 'claimed') throw new Error('Expected structured claim.');
-    const receipt = await repository.tool(
-      {
-        ...identity,
-        executionId: claim.input.executionId,
-        operation: 'price-per-square-meter',
-        inputs,
-      },
-      claim.input.toolGrant,
-      (at) => market.pricePerSquareMeter(inputs, at),
-    );
-    const completed = await repository.complete({
-      ...identity,
-      executionId: claim.input.executionId,
-      failure: null,
-      evidence: {
-        ...identity,
-        executionId: claim.input.executionId,
-        step: 'structured-price-v1',
-        outcome: 'price-calculated',
-        visitedNodes: ['fixedDecision', 'priceTool'],
-        receipt,
-      },
-    });
-    const digest = () =>
-      database.query<{ runs: string; events: string; receipts: string; outbox: string }>(
-        `SELECT (SELECT md5(string_agg(document::text,'' ORDER BY id)) FROM ask.run) AS runs, (SELECT md5(string_agg(document::text,'' ORDER BY run_id,sequence)) FROM ask.run_event) AS events, (SELECT md5(string_agg(document::text,'' ORDER BY run_id)) FROM ask.tool_receipt) AS receipts, (SELECT md5(string_agg(payload::text,'' ORDER BY event_id)) FROM platform.outbox) AS outbox`,
-      );
-    const before = await digest();
-    await database.query(
-      await readFile(
-        new URL('../migrations/6002_ask_text_price_runs.sql', import.meta.url),
-        'utf8',
-      ),
-    );
-    await database.query('INSERT INTO schema_migrations(version) VALUES($1)', [
-      '6002_ask_text_price_runs',
-    ]);
-    expect(await digest()).toEqual(before);
     expect(await repository.run(run.id, capability)).toEqual(completed);
     const history = await repository.events(run.id, capability, 0);
     expect(history).toHaveLength(3);

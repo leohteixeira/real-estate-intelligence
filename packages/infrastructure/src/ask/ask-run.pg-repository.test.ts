@@ -18,6 +18,213 @@ const original = parseStructuredAskCreate({
   locale: 'en',
   inputs: { priceMinorUnits: 100, currency: 'BRL', areaSquareMeters: 2 },
 });
+
+describe('ordered admission and atomic queued expiry', () => {
+  const identity = {
+    version: 1 as const,
+    eventId: '0199c8f2-2394-7ba0-8f9e-286378779212',
+    runId: '0199c8f2-2394-7ba0-8f9e-286378779210',
+    threadId: original.threadId!,
+  };
+  async function fixture<T>(
+    rows: readonly (readonly object[])[],
+    work: (
+      repository: PostgresAskRunRepository,
+      query: ReturnType<typeof vi.fn<DatabaseClient['query']>>,
+      outbox: { append: ReturnType<typeof vi.fn> },
+      release: ReturnType<typeof vi.fn>,
+    ) => Promise<T>,
+  ): Promise<T> {
+    const connection = new DatabaseConnection('postgres://synthetic.invalid/ask');
+    const query = vi.fn<DatabaseClient['query']>();
+    for (const result of rows) query.mockResolvedValueOnce(result);
+    const release = vi.fn(),
+      outbox = { append: vi.fn().mockResolvedValue(undefined) };
+    vi.spyOn(connection, 'leaseClient').mockResolvedValue({ query, release });
+    try {
+      return await work(
+        new PostgresAskRunRepository(connection, new PostgresTransactionRunner(connection), outbox),
+        query,
+        outbox,
+        release,
+      );
+    } finally {
+      await connection.close();
+    }
+  }
+  it('defers a younger queued request before looking at leases or generating authority', async () => {
+    await fixture(
+      [
+        [],
+        [],
+        [{ ...stored, requested_event_id: identity.eventId }],
+        [],
+        [{ id: identity.eventId }],
+        [],
+      ],
+      async (repository, query, outbox) => {
+        await expect(repository.claim(identity)).resolves.toEqual({
+          disposition: 'busy',
+          identity,
+          retryAfterMs: 1000,
+        });
+        expect(query.mock.calls.map(([sql]) => sql)).toContainEqual(
+          expect.stringContaining('ORDER BY admission_sequence LIMIT 1'),
+        );
+        expect(
+          query.mock.calls.some(
+            ([sql]) => sql.includes('claim_expires_at>') || /^(INSERT|UPDATE|DELETE)/.test(sql),
+          ),
+        ).toBe(false);
+        expect(outbox.append).not.toHaveBeenCalled();
+      },
+    );
+  });
+  it('treats a missing pending head as unavailable instead of falsely reporting contention', async () => {
+    await fixture(
+      [[], [], [{ ...stored, requested_event_id: identity.eventId }], [], [], []],
+      async (repository, query) => {
+        await expect(repository.claim(identity)).rejects.toMatchObject({ kind: 'unavailable' });
+        expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
+      },
+    );
+  });
+  it('claims the old running head again even though a younger command is queued', async () => {
+    const at = run.createdAt;
+    const running = parseAskLiveRun({
+      ...run,
+      state: 'running',
+      decision: { source: 'fixed-structured-v1', intent: 'price_per_square_meter', decidedAt: at },
+      steps: [{ sequence: 1, phase: 'calculating', at }],
+    });
+    await fixture(
+      [
+        [],
+        [],
+        [
+          {
+            ...stored,
+            document: running,
+            requested_event_id: identity.eventId,
+            execution_id: identity.eventId,
+          },
+        ],
+        [{ id: run.id }],
+        [],
+        [{ id: identity.eventId }],
+        [{ at: new Date('2026-10-11T00:00:00Z') }],
+        [{ expires_at: new Date('2026-10-11T00:01:00Z') }],
+        [],
+      ],
+      async (repository, query) => {
+        const claimed = await repository.claim(identity);
+        expect(claimed.disposition).toBe('claimed');
+        expect(query.mock.calls.some(([sql]) => sql.includes('queue_expires_at<='))).toBe(false);
+        expect(query.mock.calls.some(([sql]) => sql.startsWith('INSERT INTO ask.run_event'))).toBe(
+          false,
+        );
+      },
+    );
+  });
+  it('commits one honest expired aggregate, event, outbox and inbox using SQL time', async () => {
+    const at = new Date('2026-10-11T00:02:00.000Z');
+    await fixture(
+      [
+        [],
+        [],
+        [{ ...stored, requested_event_id: identity.eventId }],
+        [{ at }],
+        [],
+        [{ sequence: 2 }],
+        [],
+        [{ id: identity.eventId }],
+        [],
+        [],
+      ],
+      async (repository, query, outbox, release) => {
+        const terminal = await repository.claim(identity);
+        expect(terminal.disposition).toBe('terminal');
+        if (terminal.disposition !== 'terminal') throw new Error('Expected expired terminal.');
+        expect(terminal.run).toMatchObject({
+          state: 'expired',
+          decision: null,
+          result: null,
+          terminal: { state: 'expired', reason: 'queue_expired', at: at.toISOString() },
+          steps: [{ sequence: 1, phase: 'expired', at: at.toISOString() }],
+        });
+        expect(
+          query.mock.calls.some(([sql]) => sql.includes('queue_expires_at<=clock_timestamp()')),
+        ).toBe(true);
+        expect(query.mock.calls.filter(([sql]) => sql === 'BEGIN')).toHaveLength(1);
+        expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
+        expect(outbox.append).toHaveBeenCalledWith(expect.anything(), [
+          expect.objectContaining({ type: 'ask.run.expired', aggregateId: run.id }),
+        ]);
+        expect(release).toHaveBeenCalledOnce();
+      },
+    );
+  });
+  it('rolls back expiry when terminal outbox insertion fails before recording inbox', async () => {
+    await fixture(
+      [
+        [],
+        [],
+        [{ ...stored, requested_event_id: identity.eventId }],
+        [{ at: new Date('2026-10-11T00:02:00Z') }],
+        [],
+        [{ sequence: 2 }],
+        [],
+        [{ id: identity.eventId }],
+        [],
+      ],
+      async (repository, query, outbox, release) => {
+        outbox.append.mockRejectedValueOnce(new Error('Synthetic outbox failure'));
+        await expect(repository.claim(identity)).rejects.toMatchObject({ kind: 'unavailable' });
+        expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
+        expect(query.mock.calls.some(([sql]) => sql.startsWith('INSERT INTO platform.inbox'))).toBe(
+          false,
+        );
+        expect(release).toHaveBeenCalledOnce();
+      },
+    );
+  });
+  it('rotates numeric scan frontier after skipping an occupied thread without waiting', async () => {
+    const candidate = { id: run.id, thread_id: run.threadId, admission_sequence: '10' };
+    await fixture(
+      [[], [candidate], [], [], [{ locked: false }], [], [], [], []],
+      async (repository, query) => {
+        expect(await repository.expireQueued(1)).toBe(0);
+        expect(await repository.expireQueued(1)).toBe(0);
+        const scans = query.mock.calls.filter(([sql]) => sql.includes('ORDER BY CASE'));
+        expect(scans.map(([, parameters]) => parameters)).toEqual([
+          ['0', 1],
+          ['10', 1],
+        ]);
+        expect(scans[0]?.[0]).toContain('ask.run.admission_sequence>$1::bigint');
+        expect(scans[0]?.[0]).toContain('END, ask.run.admission_sequence LIMIT');
+        expect(query.mock.calls.some(([sql]) => sql.includes('pg_advisory_xact_lock('))).toBe(
+          false,
+        );
+      },
+    );
+  });
+  it.each([0, 101, 1.5, Number.NaN])(
+    'rejects an unbounded expiry scan %s before leasing SQL',
+    async (limit) => {
+      await fixture([], async (repository, query) => {
+        await expect(repository.expireQueued(limit)).rejects.toMatchObject({ kind: 'invalid' });
+        expect(query).not.toHaveBeenCalled();
+      });
+    },
+  );
+  it('propagates already-aborted maintenance without leasing SQL', async () => {
+    await fixture([], async (repository, query) => {
+      const reason = new Error('Synthetic shutdown');
+      await expect(repository.expireQueued(100, AbortSignal.abort(reason))).rejects.toBe(reason);
+      expect(query).not.toHaveBeenCalled();
+    });
+  });
+});
 const run = parseAskLiveRun({
   basis: 'structured-price-v1',
   id: '0199c8f2-2394-7ba0-8f9e-286378779210',
@@ -66,6 +273,8 @@ describe('retained Ask creation fence before thread preparation', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ ...stored, requested_event_id: identity.eventId }])
+      .mockResolvedValueOnce([]) // still before the fixed queue deadline
+      .mockResolvedValueOnce([{ id: run.id }]) // numeric unfinished head
       .mockResolvedValueOnce([{ delay: 30000 }])
       .mockResolvedValueOnce([]);
     vi.spyOn(connection, 'leaseClient').mockResolvedValue({ query, release: vi.fn() });

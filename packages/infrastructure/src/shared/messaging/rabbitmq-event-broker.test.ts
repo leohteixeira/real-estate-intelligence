@@ -159,12 +159,14 @@ function brokerDouble(
   publishResult = true,
   publisherOutcomes: readonly PublisherOutcome[] = ['ack'],
   publisherCloseOutcomes: readonly PublisherCloseOutcome[] = [],
+  handlerTimeoutMs = 1_000,
 ) {
   const generation = generationDouble(publishResult, publisherOutcomes, publisherCloseOutcomes);
   const broker = new RabbitMqEventBroker(
     {
       url: 'amqp://redacted:redacted@broker/vhost',
       operationTimeoutMs: 1_000,
+      handlerTimeoutMs,
       deliveryLimit: 5,
       redeliveryDelayMs: 1,
     },
@@ -216,6 +218,101 @@ describe('parseAuditTraceRequestedMessage', () => {
 });
 
 describe('RabbitMqEventBroker', () => {
+  it('confirms more than five source-tail deferrals while retaining prior genuine failures', async () => {
+    vi.useFakeTimers();
+    const h = brokerDouble(true, ['ack'], [], 10_000);
+    let confirm: (() => void) | undefined;
+    h.channel.waitForConfirms.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          confirm = resolve;
+        }),
+    );
+    try {
+      await h.broker.subscribe(subscription, async () => ({ disposition: 'deferred' }));
+      await h.broker.start();
+      for (let index = 0; index < 7; index++) {
+        const original = message(3, tracedEvent, traceContext);
+        h.delivery()!(original);
+        await vi.advanceTimersByTimeAsync(999);
+        expect(h.channel.publish).toHaveBeenCalledTimes(index);
+        await vi.advanceTimersByTimeAsync(1);
+        expect(h.channel.ack).toHaveBeenCalledTimes(index);
+        expect(h.channel.publish).toHaveBeenLastCalledWith(
+          '',
+          subscription.consumerName,
+          original.content,
+          expect.objectContaining({
+            persistent: true,
+            mandatory: true,
+            headers: {
+              ...traceContext,
+              'x-rei-delivery-attempt': 3,
+              'x-rei-dead-letter-reason': 'admission-deferred',
+            },
+          }),
+        );
+        confirm!();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(h.channel.ack).toHaveBeenLastCalledWith(original);
+      }
+      expect(h.channel.close).not.toHaveBeenCalled();
+    } finally {
+      await h.broker.close();
+      vi.useRealTimers();
+    }
+  });
+  it.each(['unconfirmed', 'unroutable', 'lost-generation'] as const)(
+    'leaves deferred %s transfers unsettled without normal retry accounting',
+    async (failure) => {
+      vi.useFakeTimers();
+      const h = brokerDouble(true, ['ack'], [], 10_000);
+      if (failure === 'unconfirmed')
+        h.channel.waitForConfirms.mockRejectedValue(new Error('ambiguous confirmation'));
+      if (failure === 'unroutable')
+        h.channel.publish.mockImplementation((_exchange, _queue, content, options) => {
+          h.emitReturn({ content, properties: { correlationId: options.correlationId } });
+          return true;
+        });
+      if (failure === 'lost-generation')
+        h.channel.waitForConfirms.mockImplementation(async () => {
+          h.emitConnection('close');
+        });
+      try {
+        await h.broker.subscribe(subscription, async () => ({ disposition: 'deferred' }));
+        await h.broker.start();
+        h.delivery()!(message(4));
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(h.channel.publish).toHaveBeenCalledOnce();
+        expect(h.channel.publish.mock.calls[0]![3]).toMatchObject({
+          headers: {
+            'x-rei-delivery-attempt': 4,
+            'x-rei-dead-letter-reason': 'admission-deferred',
+          },
+        });
+        expect(h.channel.ack).not.toHaveBeenCalled();
+        expect(h.channel.close).toHaveBeenCalled();
+      } finally {
+        await h.broker.close();
+        vi.useRealTimers();
+      }
+    },
+  );
+  it('aborts a deferred delay on shutdown without copying or acknowledging the source', async () => {
+    vi.useFakeTimers();
+    const h = brokerDouble();
+    try {
+      await h.broker.subscribe(subscription, async () => ({ disposition: 'deferred' }));
+      await h.broker.start();
+      h.delivery()!(message());
+      await vi.advanceTimersByTimeAsync(0);
+      await h.broker.close();
+      expect(h.channel.publish).not.toHaveBeenCalled();
+      expect(h.channel.ack).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('retains a subscription descriptor without requiring a live connection', async () => {
     const connector = vi.fn().mockRejectedValue(new Error('broker unavailable'));
     const broker = new RabbitMqEventBroker(

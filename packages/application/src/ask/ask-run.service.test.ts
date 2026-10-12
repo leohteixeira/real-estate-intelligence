@@ -6,6 +6,7 @@ describe('Ask lifecycle facade', () => {
   it('forwards every operation, cancellation and authority without replacing repository failures', async () => {
     const failure = new AskLiveError('forbidden');
     const repository = {
+      expireQueued: vi.fn<AskRunRepository['expireQueued']>().mockRejectedValue(failure),
       create: vi.fn<AskRunRepository['create']>().mockRejectedValue(failure),
       run: vi.fn<AskRunRepository['run']>().mockRejectedValue(failure),
       thread: vi.fn<AskRunRepository['thread']>().mockRejectedValue(failure),
@@ -54,6 +55,7 @@ describe('Ask lifecycle facade', () => {
       service.claim(identity, signal),
       service.tool(tool, 'grant', calculate, signal),
       service.complete(complete, signal),
+      service.expireQueued(100, signal),
     ])
       await expect(work).rejects.toBe(failure);
     expect(repository.create).toHaveBeenCalledExactlyOnceWith(create, 'authority', 'key', signal);
@@ -63,6 +65,7 @@ describe('Ask lifecycle facade', () => {
     expect(repository.claim).toHaveBeenCalledExactlyOnceWith(identity, signal);
     expect(repository.tool).toHaveBeenCalledExactlyOnceWith(tool, 'grant', calculate, signal);
     expect(repository.complete).toHaveBeenCalledExactlyOnceWith(complete, signal);
+    expect(repository.expireQueued).toHaveBeenCalledExactlyOnceWith(100, signal);
     expect(failure.message).toBe('Ask operation unavailable.');
     const text = {
       mode: 'text-price-v1' as const,

@@ -79,7 +79,7 @@ export async function captureAskDiagnostics(
       );
       if (safeFailure) return [safeFailure[0]];
       const signal = line.match(
-        /received SIGTERM|the worker started|database available: (?:true|false)|ECONNREFUSED|ETIMEDOUT|execution_unavailable|messaging_failed|Nest application successfully started/,
+        /received SIGTERM|the worker started|database available: (?:true|false)|ECONNREFUSED|ETIMEDOUT|execution_unavailable|messaging_failed|Ask queue expiry failed\.|Nest application successfully started/,
       );
       return signal ? [signal[0]] : [];
     });

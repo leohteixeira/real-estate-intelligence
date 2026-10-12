@@ -15,6 +15,7 @@ import {
   parseTextAskRefused,
   parseTextExecutionRequest,
   parseTextExecutionEvidence,
+  parseAskPendingLimit,
 } from './ask-live.dto.js';
 const runId = '0199c8f2-2394-7ba0-8f9e-286378779210',
   threadId = '0199c8f2-2394-7ba0-8f9e-286378779211',
@@ -79,6 +80,47 @@ const completed = {
   steps: [...running.steps, { sequence: 2, phase: 'completed', at }],
 };
 describe('structured Ask closed wire contracts', () => {
+  it('accepts only a truthful unexecuted queue expiry and closed capacity refusal', () => {
+    const expired = {
+      ...queued,
+      state: 'expired',
+      terminal: { state: 'expired', reason: 'queue_expired', at },
+      steps: [{ sequence: 1, phase: 'expired', at }],
+    };
+    expect(parseAskLiveRun(expired).terminal?.reason).toBe('queue_expired');
+    expect(parseAskClaim({ disposition: 'terminal', identity, run: expired }).disposition).toBe(
+      'terminal',
+    );
+    expect(
+      parseAskLiveEvent({
+        version: 1,
+        id: `${runId}:v1:2`,
+        runId,
+        sequence: 2,
+        event: 'ask.expired',
+        terminal: true,
+        run: expired,
+      }).terminal,
+    ).toBe(true);
+    for (const forged of [
+      { ...expired, decision: running.decision },
+      { ...expired, result },
+      { ...expired, executionId },
+      { ...expired, steps: running.steps },
+      { ...expired, terminal: { state: 'expired', reason: 'execution_unavailable', at } },
+    ])
+      expect(() => parseAskLiveRun(forged)).toThrow();
+    expect(parseAskPendingLimit({ code: 'thread_pending_limit', limit: 3 })).toEqual({
+      code: 'thread_pending_limit',
+      limit: 3,
+    });
+    for (const refusal of [
+      { code: 'thread_pending_limit', limit: 4 },
+      { code: 'thread_pending_limit', limit: 3, reopensAt: at },
+      { code: 'thread_pending_limit', limit: 3, query: 'echo' },
+    ])
+      expect(() => parseAskPendingLimit(refusal)).toThrow();
+  });
   it('admits only closed text creation, acceptance and finite non-echoing refusals', () => {
     const body = {
       mode: 'text-price-v1',

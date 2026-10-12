@@ -8,7 +8,6 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ExternalFailure } from '../shared/external-failure.js';
 import { ConsumeAskRunRequest } from './consume-ask-run-request.service.js';
-import { askAdmissionPolicy } from './ask-admission.policy.js';
 const identity = {
   version: 1 as const,
   eventId: '0199c8f2-2394-7ba0-8f9e-286378779212',
@@ -92,15 +91,14 @@ describe('Ask requested delivery orchestration', () => {
       failure: 'execution_unavailable',
     });
   });
-  it('bounds repeated busy admission to forty seconds without starting execution', async () => {
+  it('returns prompt nonfailure deferral without starting execution or a polling timer', async () => {
     vi.useFakeTimers();
     const h = harness();
     h.claim.mockResolvedValue({ disposition: 'busy', identity, retryAfterMs: 30000 });
-    const pending = h.service.execute(event, new AbortController().signal, Date.now() + 60000);
-    const rejected = expect(pending).rejects.toThrow('Ask admission unavailable.');
-    await vi.advanceTimersByTimeAsync(40000);
-    await rejected;
-    expect(h.claim).toHaveBeenCalledTimes(2);
+    await expect(
+      h.service.execute(event, new AbortController().signal, Date.now() + 60000),
+    ).resolves.toEqual({ disposition: 'deferred' });
+    expect(h.claim).toHaveBeenCalledOnce();
     expect(h.execute).not.toHaveBeenCalled();
     expect(h.complete).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
@@ -132,34 +130,32 @@ describe('Ask requested delivery orchestration', () => {
     await pending;
     expect(acknowledged).toBe(true);
   });
-  it('waits through a valid 30-second busy lease without burning broker retries', async () => {
+  it('leaves a busy claim to subsequent broker delivery', async () => {
     vi.useFakeTimers();
     const h = harness();
     h.claim.mockResolvedValueOnce({ disposition: 'busy', identity, retryAfterMs: 30000 });
-    const pending = h.service.execute(event, new AbortController().signal, Date.now() + 60000);
-    await vi.advanceTimersByTimeAsync(29999);
+    await expect(
+      h.service.execute(event, new AbortController().signal, Date.now() + 60000),
+    ).resolves.toEqual({ disposition: 'deferred' });
     expect(h.execute).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
-    await pending;
+    await h.service.execute(event, new AbortController().signal, Date.now() + 60000);
     expect(h.claim).toHaveBeenCalledTimes(2);
     expect(h.execute).toHaveBeenCalledOnce();
   });
-  it('rechecks a released sibling at the bounded policy hint without burning a broker retry', async () => {
+  it('propagates cancellation during the single admission request', async () => {
     vi.useFakeTimers();
     const h = harness();
-    h.claim.mockResolvedValueOnce({
-      disposition: 'busy',
-      identity,
-      retryAfterMs: askAdmissionPolicy.maximumBusyRetryAfterMs,
+    const stop = new AbortController();
+    h.claim.mockImplementation(async () => {
+      stop.abort(new Error('Stopped'));
+      return { disposition: 'busy', identity, retryAfterMs: 1000 };
     });
-    const pending = h.service.execute(event, new AbortController().signal, Date.now() + 60000);
-    await vi.advanceTimersByTimeAsync(999);
+    await expect(h.service.execute(event, stop.signal, Date.now() + 60000)).rejects.toThrow(
+      'Stopped',
+    );
+    expect(h.claim).toHaveBeenCalledOnce();
     expect(h.execute).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(1);
-    await pending;
-    expect(h.claim).toHaveBeenCalledTimes(2);
-    expect(h.execute).toHaveBeenCalledOnce();
-    expect(h.complete).toHaveBeenCalledOnce();
+    expect(h.complete).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
   });
   it('replays terminal inbox acknowledgement without invoking executor', async () => {
@@ -208,11 +204,12 @@ describe('Ask requested delivery orchestration', () => {
     vi.useFakeTimers();
     const h = harness(),
       stop = new AbortController();
-    h.claim.mockResolvedValue({ disposition: 'busy', identity, retryAfterMs: 30000 });
+    h.claim.mockImplementation(async () => {
+      stop.abort(new Error('Stopped'));
+      return { disposition: 'busy', identity, retryAfterMs: 30000 };
+    });
     const pending = h.service.execute(event, stop.signal, Date.now() + 60000);
     const rejected = expect(pending).rejects.toThrow('Stopped');
-    await vi.advanceTimersByTimeAsync(1);
-    stop.abort(new Error('Stopped'));
     await rejected;
     expect(vi.getTimerCount()).toBe(0);
     expect(h.execute).not.toHaveBeenCalled();

@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { execa } from 'execa';
 import { readFile, readdir } from 'node:fs/promises';
 import { expect, test, vi } from 'vitest';
+import { getContainerRuntimeClient, getReaper } from 'testcontainers';
 import {
   parseAskClaim,
   parseAskLiveRun,
@@ -25,6 +26,7 @@ import {
   askDispatchProof,
 } from '../packages/infrastructure/dist/index.js';
 import { PricePerSquareMeterService } from '../packages/application/dist/index.js';
+import { AskRunRequested } from '../packages/domain/dist/index.js';
 import { allocatePorts, ComposeFixture, preserveCleanup, cleanupAll } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 import { captureAskDiagnostics } from './support/ask-diagnostics.ts';
@@ -49,6 +51,7 @@ type Context = {
   command: (args: string[]) => Promise<{ stdout: string; stderr?: string }>;
 };
 async function owned(work: (context: Context) => Promise<void>, legacy = false) {
+  await getReaper(await getContainerRuntimeClient());
   const [postgres, api, ai, rabbit, management, minio, consolePort] = await allocatePorts(7);
   const token = secret(),
     dispatch = secret(),
@@ -923,8 +926,22 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
         threadId: input.threadId,
         query: `Retained terminal turn ${turn}`,
       });
-      const turnInput = await claim(context, acceptedTurn.runId);
-      await complete(context, parseRunExecutionEvidence(await probe(context, turnInput, 'resume')));
+      if (turn === 8) {
+        await context.database.query(
+          "WITH observed AS MATERIALIZED (SELECT clock_timestamp()-interval '121 seconds' AS at) UPDATE ask.run SET admitted_at=observed.at,queue_expires_at=observed.at+interval '120 seconds' FROM observed WHERE id=$1",
+          [acceptedTurn.runId],
+        );
+        await vi.waitFor(
+          async () => expect((await snapshot(context, acceptedTurn.runId)).state).toBe('expired'),
+          { timeout: 10000, interval: 100 },
+        );
+      } else {
+        const turnInput = await claim(context, acceptedTurn.runId);
+        await complete(
+          context,
+          parseRunExecutionEvidence(await probe(context, turnInput, 'resume')),
+        );
+      }
       if (turn === 7) expect(await repository.prune(50, AbortSignal.timeout(5000))).toBe(0);
     }
     await vi.waitFor(
@@ -934,7 +951,7 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
             'SELECT count(DISTINCT c.run_id)::integer AS count FROM ask.graph_checkpoint c JOIN ask.run r ON r.id=c.run_id WHERE r.thread_id=$1',
             [input.threadId],
           ),
-        ).toEqual([{ count: 8 }]),
+        ).toEqual([{ count: 7 }]),
       { timeout: 75000, interval: 200 },
     );
     expect(await repository.prune(50, AbortSignal.timeout(5000))).toBe(0);
@@ -943,7 +960,7 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
         'SELECT count(DISTINCT c.run_id)::integer AS count FROM ask.graph_checkpoint c JOIN ask.run r ON r.id=c.run_id WHERE r.thread_id=$1',
         [input.threadId],
       ),
-    ).toEqual([{ count: 8 }]);
+    ).toEqual([{ count: 7 }]);
     expect(
       await context.database.query<{ count: number }>(
         'SELECT count(*)::integer AS count FROM ask.graph_checkpoint WHERE run_id=$1',
@@ -1010,14 +1027,17 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
         "SELECT to_regclass('ask.graph_checkpoint') IS NOT NULL AS present",
       ),
     ).toEqual([{ present: false }]);
-    const repository = new PostgresAskRunRepository(
-        context.database,
-        new PostgresTransactionRunner(context.database),
-        new PostgresOutbox(context.database),
-      ),
-      market = new PricePerSquareMeterService();
+    const market = new PricePerSquareMeterService();
+    const replays: {
+      request:
+        | StructuredAskCreate
+        | (Omit<StructuredAskCreate, 'mode'> & { mode: 'text-price-v1' });
+      key: string;
+      run: ReturnType<typeof parseAskLiveRun>;
+    }[] = [];
     let threadId: string | null = null;
-    for (const mode of ['structured-price-v1', 'text-price-v1'] as const) {
+    for (let position = 0; position < 12; position++) {
+      const mode = position % 2 === 0 ? 'structured-price-v1' : 'text-price-v1';
       const query =
         mode === 'text-price-v1'
           ? 'What is the price per square meter for BRL 785,000.00 and 68 square meters?'
@@ -1025,9 +1045,125 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
       const extraction = market.extractPriceInputs(query, 'en');
       if (mode === 'text-price-v1' && extraction.kind !== 'extracted')
         throw new Error('Historical text admission required.');
-      const historicalRequest = { ...body, mode, threadId, query };
-      const key = secret(),
-        run = await repository.create(historicalRequest, context.capability, key);
+      const historicalRequest: (typeof replays)[number]['request'] = {
+        ...body,
+        mode,
+        threadId,
+        query,
+      };
+      // Seed the genuine historical schema explicitly. Current production repositories require
+      // 6004 and must never detect or fall back to a historical shape.
+      const key = secret();
+      const allocated = await context.database.query<{
+        id: string;
+        thread_id: string;
+        event_id: string;
+        at: Date;
+      }>(
+        'SELECT uuidv7()::text AS id,uuidv7()::text AS thread_id,uuidv7()::text AS event_id,clock_timestamp() AS at',
+      );
+      const allocation = allocated[0]!;
+      const creationKey = askDigest(key);
+      if (!threadId)
+        await context.database.query(
+          'INSERT INTO ask.thread(id,authority_digest,preparation_key) VALUES($1,$2,$3)',
+          [allocation.thread_id, askDigest(context.capability), creationKey],
+        );
+      const atCreated = allocation.at.toISOString();
+      const run = parseAskLiveRun({
+        basis: mode,
+        id: allocation.id,
+        threadId: threadId ?? allocation.thread_id,
+        principalId: null,
+        question: query,
+        locale: body.locale,
+        placeId: body.placeId,
+        createdAt: atCreated,
+        updatedAt: atCreated,
+        state: 'queued',
+        originalInputs: body.inputs,
+        decision: null,
+        result: null,
+        terminal: null,
+        steps: [],
+      });
+      const fingerprint = askDigest(
+        JSON.stringify([
+          mode,
+          historicalRequest.threadId,
+          body.placeId,
+          query,
+          body.locale,
+          body.inputs.priceMinorUnits,
+          body.inputs.currency,
+          body.inputs.areaSquareMeters,
+        ]),
+      );
+      const historical = await context.database.leaseClient();
+      let committed = false;
+      await preserveCleanup(
+        async () => {
+          // SQL seeding intentionally uses only 6002 columns and one native transaction.
+          await historical.query('BEGIN');
+          await historical.query(
+            "INSERT INTO ask.run(id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document) VALUES($1,$2,$3,$4,$5,'queued',$6,$7,$8)",
+            [
+              run.id,
+              run.threadId,
+              creationKey,
+              fingerprint,
+              allocation.event_id,
+              body.inputs.priceMinorUnits,
+              body.inputs.areaSquareMeters,
+              run,
+            ],
+          );
+          await historical.query(
+            'INSERT INTO ask.run_event(run_id,sequence,document) VALUES($1,1,$2)',
+            [
+              run.id,
+              parseAskLiveEvent({
+                version: 1,
+                id: `${run.id}:v1:1`,
+                runId: run.id,
+                sequence: 1,
+                event: 'ask.progress',
+                terminal: false,
+                run,
+              }),
+            ],
+          );
+          await historical.query(
+            "INSERT INTO platform.idempotency_key(scope,idempotency_key,request_fingerprint,result_reference,expires_at) VALUES('ask.structured-create',$1,$2,$3,clock_timestamp()+interval '24 hours')",
+            [creationKey, fingerprint, run.id],
+          );
+          const requested = new AskRunRequested(
+            { version: 1, eventId: allocation.event_id, runId: run.id, threadId: run.threadId },
+            atCreated,
+          );
+          await historical.query(
+            'INSERT INTO platform.outbox(event_id,event_type,event_version,aggregate_id,occurred_at,trace_context,payload) VALUES($1,$2,$3,$4,$5,$6,$7)',
+            [
+              requested.eventId,
+              requested.type,
+              requested.version,
+              requested.aggregateId,
+              requested.occurredAt,
+              requested.traceContext,
+              requested.payload,
+            ],
+          );
+          await historical.query('COMMIT');
+          committed = true;
+        },
+        () =>
+          cleanupAll(
+            async () => {
+              if (!committed) await historical.query('ROLLBACK');
+            },
+            async () => historical.release(),
+          ),
+      );
       threadId = run.threadId;
       // Historical rows are fixture data, not recovery results. The real 6002 constraints and
       // closed public parsers admit both complete timelines and deterministic Market receipts.
@@ -1114,9 +1250,7 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
       } finally {
         client.release();
       }
-      expect(await repository.create(historicalRequest, context.capability, key)).toEqual(
-        completed,
-      );
+      replays.push({ request: historicalRequest, key, run: completed });
     }
     const history = () =>
       context.database.query<{
@@ -1127,7 +1261,7 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
         inbox: string;
         idempotency: string;
       }>(
-        "SELECT (SELECT md5(string_agg(document::text,'' ORDER BY id)) FROM ask.run) AS runs,(SELECT md5(string_agg(document::text,'' ORDER BY run_id,sequence)) FROM ask.run_event) AS events,(SELECT md5(string_agg(document::text,'' ORDER BY run_id)) FROM ask.tool_receipt) AS receipts,(SELECT md5(string_agg(payload::text,'' ORDER BY event_id)) FROM platform.outbox) AS outbox,(SELECT md5(string_agg(event_id::text,'' ORDER BY event_id)) FROM platform.inbox) AS inbox,(SELECT md5(string_agg(row_to_json(k)::text,'' ORDER BY idempotency_key)) FROM platform.idempotency_key k) AS idempotency",
+        "SELECT (SELECT md5(string_agg((to_jsonb(r)-ARRAY['checkpoint_grant_digest','graph_started_at','graph_expires_at','graph_pruned_at','admission_sequence','admitted_at','queue_expires_at'])::text,'' ORDER BY id)) FROM ask.run r) AS runs,(SELECT md5(string_agg(document::text,'' ORDER BY run_id,sequence)) FROM ask.run_event) AS events,(SELECT md5(string_agg(document::text,'' ORDER BY run_id)) FROM ask.tool_receipt) AS receipts,(SELECT md5(string_agg(row_to_json(o)::text,'' ORDER BY event_id)) FROM platform.outbox o) AS outbox,(SELECT md5(string_agg(row_to_json(i)::text,'' ORDER BY event_id)) FROM platform.inbox i) AS inbox,(SELECT md5(string_agg(row_to_json(k)::text,'' ORDER BY idempotency_key)) FROM platform.idempotency_key k) AS idempotency",
       );
     const constraints = () =>
       context.database.query<{ name: string; definition: string }>(
@@ -1138,6 +1272,24 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
     await apply('6003_ask_graph_checkpoints.sql');
     expect(await history()).toEqual(before);
     expect(await constraints()).toEqual(oldConstraints);
+    await apply('6004_ask_ordered_delivery.sql');
+    expect(await history()).toEqual(before);
+    expect(
+      await context.database.query<{ sequence: string; lifetime: number }>(
+        'SELECT admission_sequence::text AS sequence,EXTRACT(epoch FROM queue_expires_at-admitted_at)::integer AS lifetime FROM ask.run ORDER BY ask.run.admission_sequence',
+      ),
+    ).toEqual(
+      Array.from({ length: 12 }, (_, index) => ({ sequence: String(index + 1), lifetime: 120 })),
+    );
+    const repository = new PostgresAskRunRepository(
+      context.database,
+      new PostgresTransactionRunner(context.database),
+      new PostgresOutbox(context.database),
+    );
+    for (const replay of replays)
+      expect(await repository.create(replay.request, context.capability, replay.key)).toEqual(
+        replay.run,
+      );
     expect(
       await context.database.query<{ count: number }>(
         'SELECT count(*)::integer AS count FROM ask.thread WHERE principal_id IS NOT NULL',
@@ -1154,7 +1306,8 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
     expect(threadResponse.status).toBe(200);
     const retained = await repository.thread(threadId!, context.capability);
     expect(retained?.basis).toBe('mixed-price-v1');
-    expect(retained?.runs).toHaveLength(2);
+    expect(retained?.runs).toHaveLength(12);
+    expect(retained?.runs.map((run) => run.id)).toEqual(replays.map((replay) => replay.run.id));
     for (const run of retained!.runs) {
       const replay = await requestHttp(`${context.api}/api/v1/runs/${run.id}/events`, {
         headers: { Authorization: `Bearer ${context.capability}` },

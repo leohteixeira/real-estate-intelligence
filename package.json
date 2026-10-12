@@ -26,6 +26,7 @@
     "test:integration:ask-tracer": "vitest run --config vitest.integration.config.ts integration/ask-price-run.integration.test.ts",
     "test:integration:ask-text-price": "vitest run --config vitest.integration.config.ts integration/ask-text-price-run.integration.test.ts",
     "test:integration:ask-checkpoints": "vitest run --config vitest.integration.config.ts integration/ask-checkpoints.integration.test.ts",
+    "test:integration:ask-delivery": "vitest run --config vitest.integration.config.ts integration/ask-delivery.integration.test.ts",
     "test:integration:run-executor": "vitest run --config vitest.integration.config.ts integration/run-executor.integration.test.ts",
     "run:foundation": "pnpm --filter @rei/worker run:foundation",
     "test:integration:market-median": "vitest run --config vitest.integration.config.ts integration/market-median.integration.test.ts",

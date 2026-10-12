@@ -1,4 +1,5 @@
 import { EventEmitter } from 'node:events';
+import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
 import { AskLiveError } from '@rei/application';
 import { parseAskLiveRun } from '@rei/contracts';
@@ -62,6 +63,7 @@ function req(authorization?: string, originalUrl = '/api/v1/runs') {
 }
 function facade() {
   return {
+    expireQueued: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(queued),
     createText: vi
       .fn()
@@ -76,6 +78,27 @@ function facade() {
 }
 afterEach(() => vi.unstubAllEnvs());
 describe('scoped Ask command, dispatch and tool boundaries', () => {
+  it('maps capacity independently of quotas for both public admission modes', async () => {
+    vi.stubEnv('ASK_DISPATCH_SECRET', secret);
+    const live = facade(),
+      controller = new AskLiveController(live);
+    live.create.mockRejectedValue(new AskLiveError('capacity'));
+    live.createText.mockRejectedValue(new AskLiveError('capacity'));
+    for (const mode of ['structured-price-v1', 'text-price-v1']) {
+      const body =
+        mode === 'structured-price-v1'
+          ? create
+          : { mode, threadId: null, placeId: null, query: 'Price 10, area 2 m2', locale: 'en' };
+      const failure: unknown = await controller
+        .create(body, req(`Bearer ${capability}`))
+        .catch((error: unknown) => error);
+      expect(failure).toBeInstanceOf(HttpException);
+      if (!(failure instanceof HttpException))
+        throw new Error('Expected typed HTTP capacity refusal.');
+      expect(failure.getStatus()).toBe(429);
+      expect(failure.getResponse()).toEqual({ code: 'thread_pending_limit', limit: 3 });
+    }
+  });
   it('returns text acceptance or a strict 422 refusal after auth/config/key checks', async () => {
     vi.stubEnv('ASK_DISPATCH_SECRET', secret);
     const live = facade(),
