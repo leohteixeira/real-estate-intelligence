@@ -94,7 +94,9 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       (values.runId !== undefined && values.runId !== this.#input.runId) ||
       (values.eventId !== undefined && values.eventId !== this.#input.eventId) ||
       (values.executionId !== undefined && values.executionId !== this.#input.executionId) ||
-      (values.graphVersion !== undefined && values.graphVersion !== 'price-v1')
+      (values.graphVersion !== undefined &&
+        values.graphVersion !==
+          (this.#input.step === 'text-price-explanation-v1' ? 'price-explanation-v1' : 'price-v1'))
     )
       throw new GraphCheckpointFailure('rejected');
     const namespace: unknown = values.checkpoint_ns ?? '';
@@ -107,7 +109,10 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       runId: this.#input.runId,
       threadId: this.#input.threadId,
       executionId: this.#input.executionId,
-      graphVersion: 'price-v1' as const,
+      graphVersion:
+        this.#input.step === 'text-price-explanation-v1'
+          ? ('price-explanation-v1' as const)
+          : ('price-v1' as const),
       namespace,
     };
     try {

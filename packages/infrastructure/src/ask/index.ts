@@ -6,3 +6,4 @@ export * from './ask-run.pg-repository.js';
 export * from './http-run-dispatch.adapter.js';
 export * from './in-memory-run-dispatch.adapter.js';
 export * from './graph-checkpoint.pg-repository.js';
+export * from './model-explanation.pg-repository.js';

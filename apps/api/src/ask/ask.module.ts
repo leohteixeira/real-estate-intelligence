@@ -13,12 +13,14 @@ import {
   TRANSACTION_RUNNER,
   type OutboxAppendPort,
   type TransactionRunner,
+  MODEL_EXPLANATION_REPOSITORY,
 } from '@rei/application';
 import {
   SyntheticAskAdapter,
   PostgresAskRunRepository,
   PostgresGraphCheckpointRepository,
   type DatabaseConnection,
+  PostgresModelExplanationRepository,
 } from '@rei/infrastructure';
 import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
 import { AskController } from './ask.controller';
@@ -30,6 +32,7 @@ import { MarketModule } from '../market/index';
 import { GraphCheckpointController } from './graph-checkpoint.controller';
 import { GraphCheckpointRetentionJob } from './graph-checkpoint-retention.job';
 import { AskQueueExpiryJob } from './ask-queue-expiry.job';
+import { AskInternalController } from './ask-internal.controller';
 
 @Module({
   imports: [MarketModule],
@@ -39,8 +42,15 @@ import { AskQueueExpiryJob } from './ask-queue-expiry.job';
     AskDispatchController,
     AskToolController,
     GraphCheckpointController,
+    AskInternalController,
   ],
   providers: [
+    {
+      provide: MODEL_EXPLANATION_REPOSITORY,
+      inject: [DATABASE_CONNECTION, TRANSACTION_RUNNER],
+      useFactory: (connection: DatabaseConnection, transactions: TransactionRunner) =>
+        new PostgresModelExplanationRepository(connection, transactions),
+    },
     AskQueueExpiryJob,
     GraphCheckpointRetentionJob,
     {

@@ -6,3 +6,4 @@ export * from './ask.sse.dto.js';
 export * from './run-execution.dto.js';
 export * from './ask-live.dto.js';
 export * from './graph-checkpoint.dto.js';
+export * from './model-explanation.dto.js';

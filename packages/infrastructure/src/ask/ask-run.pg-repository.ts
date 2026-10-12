@@ -23,6 +23,8 @@ import {
   type PriceToolReceipt,
   type PriceToolRequest,
   type ValidatedAskCreate,
+  validModelExplanation,
+  sameModelExplanation,
 } from '@rei/domain';
 import {
   parseAskCompletion,
@@ -33,6 +35,8 @@ import {
   parsePriceToolRequest,
   parseStructuredAskCreate,
   parseTextAskCreate,
+  parseExplainedAskCreate,
+  parseModelExplanation,
   sameAskIdentity,
   sameAskInputs,
 } from '@rei/contracts';
@@ -175,9 +179,11 @@ export class PostgresAskRunRepository implements AskRunRepository {
     signal?: AbortSignal,
   ): Promise<AskLiveRun> {
     const request: ValidatedAskCreate = structuredClone(
-      untrusted.mode === 'text-price-v1'
+      untrusted.mode !== 'structured-price-v1'
         ? {
-            ...parseTextAskCreate({
+            ...(untrusted.mode === 'text-price-explanation-v1'
+              ? parseExplainedAskCreate
+              : parseTextAskCreate)({
               mode: untrusted.mode,
               threadId: untrusted.threadId,
               placeId: untrusted.placeId,
@@ -272,7 +278,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) SELECT at, at + interval '120 seconds' AS deadline FROM observed",
       );
       const at = clock[0]!.at.toISOString();
-      const run: AskLiveRun = {
+      const run = parseAskLiveRun({
         basis: request.mode,
         id,
         threadId,
@@ -288,7 +294,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
         result: null,
         terminal: null,
         steps: [],
-      };
+        ...(request.mode === 'text-price-explanation-v1' ? { explanation: null } : {}),
+      });
       await client.query(
         `INSERT INTO ask.run (id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document,admitted_at,queue_expires_at) VALUES ($1,$2,$3,$4,$5,'queued',$6,$7,$8,$9,$10)`,
         [
@@ -431,7 +438,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
           state: 'running',
           updatedAt: at,
           decision: {
-            source: run.basis === 'text-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1',
+            source:
+              run.basis !== 'structured-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1',
             intent: 'price_per_square_meter',
             decidedAt: at,
           },
@@ -623,6 +631,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
         throw new AskLiveError('forbidden');
       if (!previous.terminal) await authorizeAskExecution(client, request);
       let result: PriceResult | null = null;
+      let explanation = null;
       if (request.evidence) {
         if (request.evidence.step !== previous.basis) throw new AskLiveError('forbidden');
         const rows = await client.query<{ document: unknown }>(
@@ -649,6 +658,21 @@ export class PostgresAskRunRepository implements AskRunRepository {
         )
           throw new AskLiveError('forbidden');
         result = receipt.result;
+        if (previous.basis === 'text-price-explanation-v1') {
+          if (request.evidence.step !== 'text-price-explanation-v1')
+            throw new AskLiveError('forbidden');
+          const accepted = await client.query<{ document: unknown }>(
+            'SELECT document FROM ask.model_explanation WHERE run_id=$1',
+            [request.runId],
+          );
+          if (!accepted[0]) throw new AskLiveError('forbidden');
+          explanation = parseModelExplanation(accepted[0].document);
+          if (
+            !validModelExplanation(explanation, receipt, previous.locale) ||
+            !sameModelExplanation(explanation, request.evidence.explanation)
+          )
+            throw new AskLiveError('forbidden');
+        }
       }
       if (previous.terminal) {
         await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(request.eventId));
@@ -656,14 +680,15 @@ export class PostgresAskRunRepository implements AskRunRepository {
       }
       const at = await this.lifecycleAt(client, result?.computedAt ?? previous.updatedAt);
       const state = result ? 'completed' : 'failed';
-      const run: AskLiveRun = {
+      const run = parseAskLiveRun({
         ...previous,
         state,
         updatedAt: at,
         result,
         terminal: { state, reason: result ? null : 'execution_unavailable', at },
         steps: [...previous.steps, { sequence: previous.steps.length + 1, phase: state, at }],
-      };
+        ...(previous.basis === 'text-price-explanation-v1' ? { explanation } : {}),
+      });
       await client.query('UPDATE ask.run SET state=$2,document=$3 WHERE id=$1', [
         run.id,
         state,

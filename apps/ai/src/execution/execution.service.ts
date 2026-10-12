@@ -19,6 +19,7 @@ import { PriceGraphFactory } from '../graph/price-graph.factory';
 import { GraphCheckpointFailure } from '../graph/graph-checkpoint.port';
 import { PriceToolFailure } from '../tools/price-per-square-meter.port';
 import { readConfig } from '../config';
+import { ModelExplanationFailure } from '../models/language-model.port';
 
 @Injectable()
 export class ExecutionService {
@@ -44,7 +45,9 @@ export class ExecutionService {
         JSON.stringify({
           event: 'ask.execution.unavailable',
           category:
-            error instanceof GraphCheckpointFailure || error instanceof PriceToolFailure
+            error instanceof GraphCheckpointFailure ||
+            error instanceof PriceToolFailure ||
+            error instanceof ModelExplanationFailure
               ? error.kind
               : signal.aborted
                 ? 'cancelled'
@@ -54,15 +57,19 @@ export class ExecutionService {
               ? error.source
               : error instanceof PriceToolFailure
                 ? 'price-tool'
-                : 'execution',
+                : error instanceof ModelExplanationFailure
+                  ? 'model-explanation'
+                  : 'execution',
           ...(error instanceof GraphCheckpointFailure && error.operation
             ? { operation: error.operation }
             : {}),
         }),
       );
       if (
-        (error instanceof GraphCheckpointFailure || error instanceof PriceToolFailure) &&
-        error.kind === 'rejected'
+        ((error instanceof GraphCheckpointFailure || error instanceof PriceToolFailure) &&
+          error.kind === 'rejected') ||
+        (error instanceof ModelExplanationFailure &&
+          ['policy', 'rejected', 'authentication', 'budget'].includes(error.kind))
       )
         throw new BadRequestException('Execution unavailable.');
       throw new ServiceUnavailableException('Execution unavailable.');
@@ -74,7 +81,7 @@ export class ExecutionService {
     input: RunExecutionInput,
     signal: AbortSignal,
   ): Promise<RunExecutionEvidence> {
-    if (input.step === 'structured-price-v1' || input.step === 'text-price-v1') {
+    if (input.step !== 'foundation') {
       if (!this.priceFactory) throw new GraphCheckpointFailure('rejected');
       const invocation = this.priceFactory.create(
         input,
@@ -142,6 +149,9 @@ export class ExecutionService {
           executionId: input.executionId,
           visitedNodes: final.values.visitedNodes,
           receipt,
+          ...(input.step === 'text-price-explanation-v1'
+            ? { explanation: 'explanation' in final.values ? final.values.explanation : undefined }
+            : {}),
         });
       } catch {
         throw new PriceToolFailure('rejected');

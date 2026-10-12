@@ -5,6 +5,7 @@ export interface AiConfig {
   internalToken?: string;
   apiBaseUrl?: string;
   tracerDeadlineMs?: number;
+  gatewayApiKey?: string;
 }
 
 const DEFAULT_PORT = 4111;
@@ -45,6 +46,7 @@ export function readConfig(env: NodeJS.ProcessEnv): AiConfig {
   )
     throw new Error('Invalid AI tracer deadline.');
   const execution = {
+    ...(env.AI_GATEWAY_API_KEY ? { gatewayApiKey: env.AI_GATEWAY_API_KEY } : {}),
     ...(token ? { internalToken: token } : {}),
     ...(apiBaseUrl ? { apiBaseUrl } : {}),
     ...(rawDeadline ? { tracerDeadlineMs: Number(rawDeadline) } : {}),

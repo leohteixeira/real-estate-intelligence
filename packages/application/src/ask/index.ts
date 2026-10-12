@@ -10,3 +10,4 @@ export * from './consume-ask-run-request.service.js';
 export { askAdmissionPolicy } from './ask-admission.policy.js';
 export * from './graph-checkpoint.port.js';
 export * from './graph-checkpoint.service.js';
+export * from './model-explanation.repository.js';

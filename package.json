@@ -25,6 +25,7 @@
     "test:integration:ask": "vitest run --config vitest.integration.config.ts integration/ask-contracts.integration.test.ts",
     "test:integration:ask-tracer": "vitest run --config vitest.integration.config.ts integration/ask-price-run.integration.test.ts",
     "test:integration:ask-text-price": "vitest run --config vitest.integration.config.ts integration/ask-text-price-run.integration.test.ts",
+    "test:integration:ask-model-explanation": "vitest run --config vitest.integration.config.ts integration/ask-model-explanation.integration.test.ts",
     "test:integration:ask-checkpoints": "vitest run --config vitest.integration.config.ts integration/ask-checkpoints.integration.test.ts",
     "test:integration:ask-delivery": "vitest run --config vitest.integration.config.ts integration/ask-delivery.integration.test.ts",
     "test:integration:run-executor": "vitest run --config vitest.integration.config.ts integration/run-executor.integration.test.ts",

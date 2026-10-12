@@ -11,8 +11,12 @@ export interface StructuredAskCreate {
 export type TextAskCreate = Omit<StructuredAskCreate, 'mode' | 'inputs'> & {
   readonly mode: 'text-price-v1';
 };
+export type ExplainedAskCreate = Omit<TextAskCreate, 'mode'> & {
+  readonly mode: 'text-price-explanation-v1';
+};
+export type TextAskCreateInput = TextAskCreate | ExplainedAskCreate;
 /** Internal admission only: these inputs are derived by Market, never supplied by text callers. */
-export type ValidatedTextAskCreate = TextAskCreate & { readonly inputs: AskInputs };
+export type ValidatedTextAskCreate = TextAskCreateInput & { readonly inputs: AskInputs };
 export type ValidatedAskCreate = StructuredAskCreate | ValidatedTextAskCreate;
 export type PriceResult = Extract<AskResult, { kind: 'price_per_square_meter' }>;
 export interface AskRequestedIdentity {
@@ -21,7 +25,7 @@ export interface AskRequestedIdentity {
   readonly runId: string;
   readonly threadId: string;
 }
-export interface AskLiveRun {
+export interface HistoricalAskLiveRun {
   readonly basis: 'structured-price-v1' | 'text-price-v1';
   readonly id: string;
   readonly threadId: string;
@@ -50,8 +54,17 @@ export interface AskLiveRun {
     readonly at: string;
   }[];
 }
+export type ExplainedAskLiveRun = Omit<HistoricalAskLiveRun, 'basis'> & {
+  readonly basis: 'text-price-explanation-v1';
+  readonly explanation: import('./model-explanation.js').ModelExplanation | null;
+};
+export type AskLiveRun = HistoricalAskLiveRun | ExplainedAskLiveRun;
 export interface AskLiveThread {
-  readonly basis: 'structured-price-v1' | 'text-price-v1' | 'mixed-price-v1';
+  readonly basis:
+    | 'structured-price-v1'
+    | 'text-price-v1'
+    | 'text-price-explanation-v1'
+    | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
   readonly runs: readonly AskLiveRun[];
@@ -98,8 +111,25 @@ export type TextExecutionEvidence = Omit<StructuredExecutionEvidence, 'step' | '
   readonly step: 'text-price-v1';
   readonly visitedNodes: readonly ['validatedInputs', 'priceTool'];
 };
-export type PriceExecutionInput = StructuredExecutionInput | TextExecutionInput;
-export type PriceExecutionEvidence = StructuredExecutionEvidence | TextExecutionEvidence;
+export type ExplainedExecutionInput = Omit<StructuredExecutionInput, 'step'> & {
+  readonly step: 'text-price-explanation-v1';
+};
+export type ExplainedExecutionEvidence = Omit<
+  StructuredExecutionEvidence,
+  'step' | 'visitedNodes'
+> & {
+  readonly step: 'text-price-explanation-v1';
+  readonly visitedNodes: readonly ['validatedInputs', 'priceTool', 'modelExplanation'];
+  readonly explanation: import('./model-explanation.js').ModelExplanation;
+};
+export type PriceExecutionInput =
+  | StructuredExecutionInput
+  | TextExecutionInput
+  | ExplainedExecutionInput;
+export type PriceExecutionEvidence =
+  | StructuredExecutionEvidence
+  | TextExecutionEvidence
+  | ExplainedExecutionEvidence;
 export type AskClaim =
   | {
       readonly disposition: 'busy';

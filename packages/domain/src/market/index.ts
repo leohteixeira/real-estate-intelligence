@@ -3,3 +3,4 @@ export type { PricePerSquareMeterInput } from './price-per-square-meter.js';
 export * from './market.read.types.js';
 export * from './asking-price-median.js';
 export * from './price-input-extraction.js';
+export * from './price-explanation-facts.js';

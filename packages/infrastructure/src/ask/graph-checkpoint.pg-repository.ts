@@ -77,7 +77,15 @@ export class PostgresGraphCheckpointRepository implements GraphCheckpointPort {
     }
     return this.transaction(signal, async (client) => {
       await lockAskThread(client, request.threadId);
-      await authorizeAskExecution(client, request, { scope: 'checkpoint', grant });
+      const authorized = await authorizeAskExecution(client, request, {
+        scope: 'checkpoint',
+        grant,
+      });
+      if (
+        request.graphVersion !==
+        (authorized.basis === 'text-price-explanation-v1' ? 'price-explanation-v1' : 'price-v1')
+      )
+        throw new AskLiveError('forbidden');
       const horizon = await client.query<{ expired: boolean }>(
         'SELECT (graph_pruned_at IS NOT NULL OR graph_expires_at<=clock_timestamp()) AS expired FROM ask.run WHERE id=$1',
         [request.runId],

@@ -16,6 +16,7 @@ import {
 } from '../shared/wire.js';
 import { askInputsWire, askQueryWire } from './ask.read.dto.js';
 import type { AskInputs } from './ask.read.types.js';
+import { modelExplanationWire, type ModelExplanation } from './model-explanation.dto.js';
 
 // These contracts deliberately own their types independently of the domain package.
 export interface AskPendingLimit {
@@ -48,6 +49,44 @@ export type TextAskCreate = Omit<StructuredAskCreate, 'mode' | 'inputs'> & {
 export type TextAskAccepted = Omit<StructuredAskAccepted, 'mode'> & {
   readonly mode: 'text-price-v1';
 };
+export type ExplainedAskAccepted = Omit<TextAskAccepted, 'mode'> & {
+  readonly mode: 'text-price-explanation-v1';
+};
+export type ExplainedAskRefused = Omit<TextAskRefused, 'mode'> & {
+  readonly mode: 'text-price-explanation-v1';
+};
+export function parseExplainedAskAccepted(value: unknown): ExplainedAskAccepted {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['text-price-explanation-v1']),
+      runId: wireUuid,
+      threadId: wireUuid,
+      state: wireEnum(['queued']),
+    }),
+  );
+}
+export function parseExplainedAskRefused(value: unknown): ExplainedAskRefused {
+  const result = parseWire<ExplainedAskRefused>(
+    value,
+    wireObject({
+      mode: wireEnum(['text-price-explanation-v1']),
+      code: wireEnum(['price_input_refused']),
+      reason: wireEnum([
+        'missing_price',
+        'missing_area',
+        'ambiguous_price',
+        'ambiguous_area',
+        'invalid_price',
+        'invalid_area',
+        'unsupported_currency',
+        'unsupported_area_unit',
+        'unsafe_result',
+      ]),
+    }),
+  );
+  return result;
+}
 export type PriceInputRefusalReason =
   | 'missing_price'
   | 'missing_area'
@@ -141,7 +180,7 @@ export interface AskRequestedIdentity {
   readonly runId: string;
   readonly threadId: string;
 }
-export interface AskLiveRun {
+export interface HistoricalAskLiveRun {
   readonly basis: 'structured-price-v1' | 'text-price-v1';
   readonly id: string;
   readonly threadId: string;
@@ -170,8 +209,17 @@ export interface AskLiveRun {
     readonly at: string;
   }[];
 }
+export type ExplainedAskLiveRun = Omit<HistoricalAskLiveRun, 'basis'> & {
+  readonly basis: 'text-price-explanation-v1';
+  readonly explanation: ModelExplanation | null;
+};
+export type AskLiveRun = HistoricalAskLiveRun | ExplainedAskLiveRun;
 export interface AskLiveThread {
-  readonly basis: 'structured-price-v1' | 'text-price-v1' | 'mixed-price-v1';
+  readonly basis:
+    | 'structured-price-v1'
+    | 'text-price-v1'
+    | 'text-price-explanation-v1'
+    | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
   readonly runs: readonly AskLiveRun[];
@@ -218,8 +266,28 @@ export type TextExecutionResponse = Omit<StructuredExecutionResponse, 'step' | '
   readonly step: 'text-price-v1';
   readonly visitedNodes: readonly ['validatedInputs', 'priceTool'];
 };
-export type PriceExecutionRequest = StructuredExecutionRequest | TextExecutionRequest;
-export type PriceExecutionResponse = StructuredExecutionResponse | TextExecutionResponse;
+export type ExplainedAskCreate = Omit<TextAskCreate, 'mode'> & {
+  readonly mode: 'text-price-explanation-v1';
+};
+export type ExplainedExecutionRequest = Omit<StructuredExecutionRequest, 'step'> & {
+  readonly step: 'text-price-explanation-v1';
+};
+export type ExplainedExecutionResponse = Omit<
+  StructuredExecutionResponse,
+  'step' | 'visitedNodes'
+> & {
+  readonly step: 'text-price-explanation-v1';
+  readonly visitedNodes: readonly ['validatedInputs', 'priceTool', 'modelExplanation'];
+  readonly explanation: ModelExplanation;
+};
+export type PriceExecutionRequest =
+  | StructuredExecutionRequest
+  | TextExecutionRequest
+  | ExplainedExecutionRequest;
+export type PriceExecutionResponse =
+  | StructuredExecutionResponse
+  | TextExecutionResponse
+  | ExplainedExecutionResponse;
 export type AskClaim =
   | {
       readonly disposition: 'busy';
@@ -348,6 +416,13 @@ const priceExecutionWire = (value: unknown) => {
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
+    value.step === 'text-price-explanation-v1'
+  )
+    return explainedExecutionWire(value);
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
     value.step === 'text-price-v1'
   )
     textExecutionWire(value);
@@ -358,12 +433,19 @@ const priceEvidenceWire = (value: unknown) => {
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
+    value.step === 'text-price-explanation-v1'
+  )
+    return explainedEvidenceWire(value);
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
     value.step === 'text-price-v1'
   )
     textEvidenceWire(value);
   else structuredEvidenceWire(value);
 };
-const liveRunWire = wireObject({
+const liveRunFields = {
   basis: wireEnum(['structured-price-v1', 'text-price-v1']),
   id: wireUuid,
   threadId: wireUuid,
@@ -397,7 +479,78 @@ const liveRunWire = wireObject({
       at: wireDate,
     }),
   ),
+};
+const historicalLiveRunWire = wireObject(liveRunFields);
+const explainedLiveRunWire = wireObject({
+  ...liveRunFields,
+  basis: wireEnum(['text-price-explanation-v1']),
+  explanation: wireNullable(modelExplanationWire),
 });
+const liveRunWire = (value: unknown) => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'basis' in value &&
+    value.basis === 'text-price-explanation-v1'
+  )
+    explainedLiveRunWire(value);
+  else historicalLiveRunWire(value);
+};
+const explainedExecutionWire = wireObject({
+  ...identityFields,
+  step: wireEnum(['text-price-explanation-v1']),
+  query: textQueryWire,
+  locale: wireEnum(['en', 'pt-BR']),
+  executionId: wireUuid,
+  toolGrant: strongAskCapabilityWire,
+  checkpointGrant: strongAskCapabilityWire,
+  inputs: askInputsWire,
+});
+const explainedEvidenceWire = wireObject({
+  ...identityFields,
+  step: wireEnum(['text-price-explanation-v1']),
+  outcome: wireEnum(['price-calculated']),
+  executionId: wireUuid,
+  visitedNodes: (nodes) => {
+    if (
+      !Array.isArray(nodes) ||
+      nodes.length !== 3 ||
+      nodes[0] !== 'validatedInputs' ||
+      nodes[1] !== 'priceTool' ||
+      nodes[2] !== 'modelExplanation'
+    )
+      invalidWire();
+  },
+  receipt: priceToolReceiptWire,
+  explanation: modelExplanationWire,
+});
+export function parseExplainedAskCreate(value: unknown): ExplainedAskCreate {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['text-price-explanation-v1']),
+      threadId: wireNullable(wireUuid),
+      placeId: wireNullable(wireSlug),
+      query: textQueryWire,
+      locale: wireEnum(['en', 'pt-BR']),
+    }),
+  );
+}
+export function parseExplainedExecutionRequest(value: unknown): ExplainedExecutionRequest {
+  return parseWire(value, explainedExecutionWire);
+}
+export function parseExplainedExecutionEvidence(value: unknown): ExplainedExecutionResponse {
+  const evidence = parseWire<ExplainedExecutionResponse>(value, explainedEvidenceWire);
+  parsePriceToolReceipt(evidence.receipt);
+  if (
+    !sameAskIdentity(evidence, evidence.receipt) ||
+    evidence.executionId !== evidence.receipt.executionId ||
+    !sameAskIdentity(evidence, evidence.explanation) ||
+    evidence.receipt.receiptId !== evidence.explanation.toolReceiptId
+  )
+    invalidWire();
+  return evidence;
+}
 export function sameAskInputs(a: AskInputs, b: AskInputs): boolean {
   return (
     a.currency === b.currency &&
@@ -460,11 +613,20 @@ export function parseStructuredExecutionEvidence(value: unknown): StructuredExec
 }
 export function parseAskLiveRun(value: unknown): AskLiveRun {
   const run = parseWire<AskLiveRun>(value, liveRunWire);
-  if (run.basis === 'text-price-v1') textQueryWire(run.question);
+  if (run.basis !== 'structured-price-v1') textQueryWire(run.question);
+  if (
+    run.basis === 'text-price-explanation-v1' &&
+    ((run.state === 'completed') !== (run.explanation !== null) ||
+      (run.explanation !== null &&
+        (run.explanation.runId !== run.id ||
+          run.explanation.threadId !== run.threadId ||
+          run.explanation.locale !== run.locale)))
+  )
+    invalidWire();
   if (
     run.decision &&
     run.decision.source !==
-      (run.basis === 'text-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1')
+      (run.basis !== 'structured-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1')
   )
     invalidWire();
   const terminal = run.state === 'completed' || run.state === 'failed' || run.state === 'expired';
@@ -530,7 +692,12 @@ export function parseAskLiveThread(value: unknown): AskLiveThread {
   const thread = parseWire<AskLiveThread>(
     value,
     wireObject({
-      basis: wireEnum(['structured-price-v1', 'text-price-v1', 'mixed-price-v1']),
+      basis: wireEnum([
+        'structured-price-v1',
+        'text-price-v1',
+        'text-price-explanation-v1',
+        'mixed-price-v1',
+      ]),
       id: wireUuid,
       principalId: wireNull,
       runs: wireArray(liveRunWire),
@@ -627,7 +794,9 @@ export function parseAskCompletion(value: unknown): AskCompletion {
   );
   if ((result.evidence === null) === (result.failure === null)) invalidWire();
   if (result.evidence) {
-    if (result.evidence.step === 'text-price-v1') parseTextExecutionEvidence(result.evidence);
+    if (result.evidence.step === 'text-price-explanation-v1')
+      parseExplainedExecutionEvidence(result.evidence);
+    else if (result.evidence.step === 'text-price-v1') parseTextExecutionEvidence(result.evidence);
     else parseStructuredExecutionEvidence(result.evidence);
     if (
       !sameAskIdentity(result, result.evidence) ||

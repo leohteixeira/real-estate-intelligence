@@ -1,0 +1,27 @@
+export const modelExplanationSettings = Object.freeze({
+  primary: 'anthropic/claude-haiku-5.5',
+  secondary: 'deepseek/deepseek-v4-flash-0731',
+  route: 'vercel-ai-gateway' as const,
+  probeText: 'Return the single public word: ready.',
+  probeTokens: 16,
+  explanationTokens: 224,
+  evidenceTtlMs: 30000,
+  timeoutMs: 3500,
+  policies: {
+    fallback: 'model-explanation.eligible-fallback',
+    bulkhead: 'model-explanation.bulkhead',
+    circuitBreaker: 'model-explanation.circuit-breaker',
+    retry: 'model-explanation.single-attempt',
+    rateLimit: 'model-explanation.rate-limit',
+    timeout: 'model-explanation.attempt-timeout',
+  },
+  bulkhead: { maxConcurrent: 3, maxQueue: 6, queueTimeout: 500 },
+  breaker: {
+    failureRateThreshold: 50,
+    minimumCalls: 20,
+    slidingWindow: { type: 'time' as const, size: 10000 },
+    openDuration: 30000,
+    halfOpenMaxCalls: 1,
+  },
+  rateLimit: { limit: 10, interval: 1000, maxWait: 0 },
+});

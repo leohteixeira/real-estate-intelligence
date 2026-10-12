@@ -9,7 +9,7 @@ export function priceTraceHeaders(): Readonly<Record<string, string>> {
 }
 /** No questions, inputs, tool grants, error text or model payloads enter telemetry. */
 export async function priceNodeSpan<T>(
-  node: 'fixedDecision' | 'validatedInputs' | 'priceTool',
+  node: 'fixedDecision' | 'validatedInputs' | 'priceTool' | 'modelExplanation',
   input: AskRequestedIdentity,
   work: () => Promise<T>,
 ): Promise<T> {

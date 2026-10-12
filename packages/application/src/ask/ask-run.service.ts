@@ -1,5 +1,5 @@
 import type { AskRunRepository } from './ask-run.repository.js';
-import type { TextAskCreate } from '@rei/domain';
+import type { TextAskCreateInput } from '@rei/domain';
 import type { MarketCalculationFacade } from '../market/index.js';
 import type { AskLiveFacade, TextAskAdmission } from './ask-live.facade.js';
 export class AskRunService implements AskLiveFacade {
@@ -8,7 +8,7 @@ export class AskRunService implements AskLiveFacade {
     private readonly market?: MarketCalculationFacade,
   ) {}
   public async createText(
-    request: TextAskCreate,
+    request: TextAskCreateInput,
     capability: string,
     key: string,
     signal?: AbortSignal,

@@ -19,6 +19,7 @@ import {
   parseStructuredAskCreate,
   parseTextAskCreate,
   parseTextAskRefused,
+  parseExplainedAskCreate,
 } from '@rei/contracts';
 import type { Request, Response } from 'express';
 import { DomainValidationError } from '@rei/domain';
@@ -69,6 +70,15 @@ export class AskLiveController {
       intent: 'price_per_square_meter',
     };
   }
+  @Get('ask/text-price-explanation-capabilities')
+  public explanationCapabilities(@Req() request: Request) {
+    readQuery(request, 'none');
+    return {
+      mode: 'text-price-explanation-v1',
+      available: !!readAskConfig(process.env).secret,
+      intent: 'price_per_square_meter',
+    };
+  }
   @Post('runs')
   @HttpCode(202)
   public async create(
@@ -83,26 +93,35 @@ export class AskLiveController {
     let key;
     try {
       input =
-        typeof body === 'object' && body !== null && 'mode' in body && body.mode === 'text-price-v1'
-          ? parseTextAskCreate(body)
-          : parseStructuredAskCreate(body);
+        typeof body === 'object' &&
+        body !== null &&
+        'mode' in body &&
+        body.mode === 'text-price-explanation-v1'
+          ? parseExplainedAskCreate(body)
+          : typeof body === 'object' &&
+              body !== null &&
+              'mode' in body &&
+              body.mode === 'text-price-v1'
+            ? parseTextAskCreate(body)
+            : parseStructuredAskCreate(body);
       key = parseAskCommandHeaders({
         idempotencyKey: request.headers['idempotency-key'],
       }).idempotencyKey;
     } catch {
       throw new BadRequestException();
     }
-    if (input.mode === 'text-price-v1') {
+    if (input.mode !== 'structured-price-v1') {
       const result = await askRequestWork(request, (signal) =>
         liveAuthorized(() => this.live.createText(input, capability, key, signal)),
       );
       if (result.kind === 'refused') {
         response?.status(422);
-        return parseTextAskRefused({
-          mode: input.mode,
+        const refusal = parseTextAskRefused({
+          mode: 'text-price-v1',
           code: 'price_input_refused',
           reason: result.reason,
         });
+        return { ...refusal, mode: input.mode };
       }
       return {
         mode: input.mode,

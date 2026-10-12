@@ -1,5 +1,11 @@
 import { ExternalFailure, type ExternalFailureKind, type RunExecutor } from '@rei/application';
-import type { RunExecutionEvidence, RunExecutionInput, PriceToolReceipt } from '@rei/domain';
+import {
+  validModelExplanation,
+  type RunExecutionEvidence,
+  type RunExecutionInput,
+  type PriceToolReceipt,
+  type ModelExplanation,
+} from '@rei/domain';
 import {
   parseRunExecutionRequest,
   parseRunExecutionEvidence,
@@ -13,6 +19,7 @@ export class InMemoryRunExecutor implements RunExecutor {
   public constructor(
     private readonly failure?: ExternalFailureKind,
     private readonly priceReceipt?: PriceToolReceipt,
+    private readonly explanation?: ModelExplanation,
   ) {}
   public get inputs(): readonly RunExecutionInput[] {
     return structuredClone(this.#inputs);
@@ -48,7 +55,9 @@ export class InMemoryRunExecutor implements RunExecutor {
         !receipt ||
         !sameAskIdentity(input, receipt) ||
         input.executionId !== receipt.executionId ||
-        !sameAskInputs(input.inputs, receipt.inputs)
+        !sameAskInputs(input.inputs, receipt.inputs) ||
+        (input.step === 'text-price-explanation-v1' &&
+          (!this.explanation || !validModelExplanation(this.explanation, receipt, input.locale)))
       )
         return Promise.reject(
           new ExternalFailure({ kind: 'rejected', operation: 'run-executor.execute' }),
@@ -63,11 +72,17 @@ export class InMemoryRunExecutor implements RunExecutor {
             executionId: input.executionId,
             step: input.step,
             outcome: 'price-calculated',
-            visitedNodes: [
-              input.step === 'text-price-v1' ? 'validatedInputs' : 'fixedDecision',
-              'priceTool',
-            ],
+            visitedNodes:
+              input.step === 'text-price-explanation-v1'
+                ? ['validatedInputs', 'priceTool', 'modelExplanation']
+                : [
+                    input.step === 'text-price-v1' ? 'validatedInputs' : 'fixedDecision',
+                    'priceTool',
+                  ],
             receipt,
+            ...(input.step === 'text-price-explanation-v1'
+              ? { explanation: this.explanation }
+              : {}),
           }),
         ),
       );
