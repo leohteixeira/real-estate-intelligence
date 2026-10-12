@@ -3,7 +3,7 @@ title: 'ADR for routing and data fetching in the web application'
 type: 'chore'
 ticket: '1'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '9ec426167d07e4ce6dd0f1f0efe325f7c94c3998'
 route: 'oneshot'
 route_source: 'auto'
@@ -126,3 +126,11 @@ Dependency installation, components, actual data reads and browser/visual/access
 belong to subsequent Web entries. The existing WebGL chunk-size warning remains; no thresholds,
 hooks or test expectations were weakened. No secret files, VPS, real source or provider calls,
 external writes, push or deployment occurred. VPS-dependent entries remain owner-controlled.
+
+### Ticket acceptance
+
+Accepted entry 6.1 as done on 2026-10-12 after all verification and normal hooks passed, the four
+reviewed files appeared in baseline-to-HEAD changes and the working copy was clean. Delivered in
+`6da7ed1b7511e60a6e814c6487556ffdd5c17219` (`docs: define web routing data and component-test choices`).
+The immutable intent SHA-256 remains
+`ab79f5f82a8b8aeca06d57ce555d5f1ed0687f1559588384035ba5efc2176442`.
