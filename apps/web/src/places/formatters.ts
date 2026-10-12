@@ -27,6 +27,12 @@ export function formatCount(count: number, locale: Locale): string {
   }).format(count);
 }
 
+export function formatQuantity(value: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
 export function formatPercentage(value: number, locale: Locale): string {
   return new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
     style: 'percent',
