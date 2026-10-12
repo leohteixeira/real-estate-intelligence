@@ -3,7 +3,7 @@ title: 'Shell, navigation and conventions'
 type: 'feature'
 ticket: '3'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '58701af163ece0131f5fab44bae7a24be8cd9b6e'
 route: 'full'
 route_source: 'auto'
@@ -321,3 +321,12 @@ VPS-dependent work remains blocked for the owner. The existing production chunk-
 not a failed gate. Pre-existing global design narrative/sidecar scope differences are reported
 and preserved, not silently repaired. No backend change, dependency addition, secret-file read,
 real collection, deployment, push or external write occurred.
+
+## Orchestrator acceptance
+
+Accepted as done on 2026-10-12 by the agent on the owner's behalf under the unattended mandate.
+Build-auto first halted at built with a clean worktree. All 63 reviewed paths, counting both sides
+of the shell rename, occur after the full pinned baseline; implementation, tests and documentation
+were committed separately with normal hooks. The two review patches, root gates, unchanged coverage,
+25 support tests, discovery, real Compose/browser journeys, current SHIP finish and COMPLETE
+documentation satisfy this entry's verify. No dependent VPS story is unlocked or marked done.
