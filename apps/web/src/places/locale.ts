@@ -1,6 +1,6 @@
 import { createInstance } from 'i18next';
 import type { i18n } from 'i18next';
-import { english, portuguese } from './resources';
+import { resources } from './resources';
 
 export type Locale = 'pt-BR' | 'en';
 const storageKey = 'rei.locale';
@@ -28,7 +28,9 @@ export function createLocale(locale: Locale = readLocale()): i18n {
     fallbackLng: 'pt-BR',
     supportedLngs: ['pt-BR', 'en'],
     initAsync: false,
-    resources: { 'pt-BR': { translation: portuguese }, en: { translation: english } },
+    defaultNS: 'place',
+    ns: ['shell', 'place', 'search', 'ask'],
+    resources,
     interpolation: { escapeValue: false },
   });
   return instance;

@@ -67,3 +67,45 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   untracked: 'Freshness not tracked',
   preparedPlace: 'Place hierarchy prepared with synthetic data.',
 };
+
+const shellPT = {
+  places: 'Lugares',
+  search: 'Buscar',
+  ask: 'Perguntar',
+  language: 'Idioma',
+  navigation: 'Navegação principal',
+  synthetic: 'Dados sintéticos',
+};
+const shellEN: { readonly [K in keyof typeof shellPT]: string } = {
+  places: 'Places',
+  search: 'Search',
+  ask: 'Ask',
+  language: 'Language',
+  navigation: 'Main navigation',
+  synthetic: 'Synthetic data',
+};
+const searchPT = {
+  title: 'Buscar',
+  boundary: 'A tela de resultados e filtros ainda não está disponível nesta versão.',
+  medianLink: 'Ver a mediana do lugar',
+};
+const searchEN: { readonly [K in keyof typeof searchPT]: string } = {
+  title: 'Search',
+  boundary: 'The results and filters screen is not yet available in this version.',
+  medianLink: 'View the place median',
+};
+const askPT = {
+  title: 'Perguntar',
+  boundary: 'A tela de execuções ainda não está disponível nesta versão.',
+  medianLink: 'Ver a mediana do lugar',
+};
+const askEN: { readonly [K in keyof typeof askPT]: string } = {
+  title: 'Ask',
+  boundary: 'The runs screen is not yet available in this version.',
+  medianLink: 'View the place median',
+};
+
+export const resources = {
+  'pt-BR': { shell: shellPT, place: portuguese, search: searchPT, ask: askPT },
+  en: { shell: shellEN, place: english, search: searchEN, ask: askEN },
+} as const;

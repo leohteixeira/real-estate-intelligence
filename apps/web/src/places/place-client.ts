@@ -1,12 +1,11 @@
 import { parsePlaceResponse, parsePlacesResponse, parsePlaceMarketResponse } from '@rei/contracts';
 import type { PlaceMarketResponse, PlaceResponse, PlacesResponse } from '@rei/contracts';
 import { config } from '../config';
+import { ApiReadError, createApiClient } from '../api/client';
 
-export class PlaceReadError extends Error {
-  readonly status: number;
+export class PlaceReadError extends ApiReadError {
   constructor(status: number) {
-    super('The place contract could not be read.');
-    this.status = status;
+    super(status, 'The place contract could not be read.');
   }
 }
 
@@ -21,18 +20,18 @@ export interface PlaceClient {
 }
 
 export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
+  const transport = createApiClient(baseUrl);
   async function read<T>(
-    path: string,
+    path: `/${string}`,
     signal: AbortSignal,
     parse: (value: unknown) => T,
   ): Promise<T> {
-    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1${path}`, {
-      signal,
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) throw new PlaceReadError(response.status);
-    const value: unknown = await response.json();
-    return parse(value);
+    try {
+      return await transport.read(path, signal, parse);
+    } catch (error) {
+      if (error instanceof ApiReadError) throw new PlaceReadError(error.status);
+      throw error;
+    }
   }
   function validate(id: string) {
     if (!isPlaceId(id)) throw new PlaceReadError(400);

@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { saveLocale } from './locale';
 
 export function LocaleControls() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation('shell');
   return (
     <div className="lang" role="group" aria-label={t('language')}>
       {(['en', 'pt-BR'] as const).map((locale) => (
