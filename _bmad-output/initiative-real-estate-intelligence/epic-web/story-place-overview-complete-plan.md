@@ -3,7 +3,7 @@ title: 'Place overview complete'
 type: 'feature'
 ticket: '5'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '051b56748e8454821b478672ab59d958d39b2310'
 route: 'full'
 route_source: 'auto'
@@ -557,9 +557,9 @@ then obtains the fresh finish review and documentation outcome. Automated axe is
 
 ## Auto Run Result
 
-Status: built. The implementation, executed verification matrix, independent technical review,
-finite visual review and documentation verification are complete. Ticket acceptance is a separate
-orchestrator action after the reviewed changes are committed.
+Build result: built. The implementation, executed verification matrix, independent technical review,
+finite visual review and documentation verification are complete. The separate orchestrator acceptance
+below closes this ticket after committing and checking the reviewed changes.
 
 ### Delivered change and files
 
@@ -609,3 +609,20 @@ has no prepared fallback. Property routes, full Search filters, executed Ask run
 stories remain later work, not simulated here. The build retains its non-failing chunk-size advisory.
 No coverage floor, test assertion, type rule, world/token or secret policy was weakened. No VPS,
 live-source access, push or owner-reserved production story is included.
+
+## Orchestrator Acceptance
+
+Accepted on 2026-10-12 under the owner's unattended execution mandate. `tickets.py mark epic-web 5 done`
+records story 6.5 as done only after the complete verification and independent reviews above passed.
+The reviewed implementation, tests and documentation were committed separately:
+
+- `e42a428ec2377638ff8c63f195db1586485e6270` — implementation.
+- `a33961e7cfcfe0d1be1e0c78ad954b5fe3e71d37` — unit and typed integration/browser tests.
+- `af3581d73db07eec4aec8f991abfe5c024b619f1` — verified evidence and review record.
+
+The parent verified the working copy was clean after those commits and that the reviewed changed
+paths appear after baseline `051b56748e8454821b478672ab59d958d39b2310`. Git hooks passed without
+bypass: the documentation commit's initial MD013 refusal was corrected by formatting the plan's
+long commands, then retried as a new commit. No code, requirement or gate was changed by that repair.
+No push occurred; VPS-dependent stories remain owner-reserved. This acceptance covers this story,
+not the remaining epic, later full WCAG assessment or the final initiative E2E campaign.
