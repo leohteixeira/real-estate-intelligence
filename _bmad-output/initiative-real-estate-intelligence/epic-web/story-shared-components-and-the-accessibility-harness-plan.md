@@ -3,7 +3,7 @@ title: 'Shared components and the accessibility harness'
 type: 'feature'
 ticket: '15'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: 'c0e71431cfd58d85bc0d99de66ee24940f06efee'
 route: 'full'
 route_source: 'auto'
@@ -476,3 +476,25 @@ screens. Later stories must reuse the harness for their new states. No new envir
 live model/source request, external write, VPS action, push or production-deployment claim is
 introduced. VPS-dependent stories remain owner-locked. This built result is one story's completion,
 not completion of Epics 1–6 or the final E2E campaign.
+
+## Acceptance
+
+Accepted by the orchestrating agent on the owner's behalf on 2026-10-12 under the unattended
+Epics 1–6 objective. The story verify is proven by the executed component tests, full-page shell
+and shared-component browser harness, actual-CSS contrast tests and final independent root gates.
+The BMad workflow reached terminal `built` before orchestration marked ticket 6.15 `done`.
+
+Reviewed commits:
+
+- `2f90ca271b465c646ca95c54004799dd71e4e1f2` — shared-component implementation.
+- `a2faab9edeb40b613d1ec3c7246ec607dcd52170` — component/accessibility/browser coverage.
+- `e07bae66940d154a613e9169f6e8ed16558a12fd` — deterministic parser cancellation regression.
+- `ec8a67c2f11e8965fdcc283ddc30ecbc20d2ba85` — contracts, design and verified evidence.
+
+All 130 reviewed paths appear in the change set after the canonical baseline; none remained
+uncommitted and the working tree was clean at workflow finalization. Normal hooks passed without
+exceptions. The documentation hook initially rejected long prose lines; whitespace-only wrapping
+and a multiline rendering of the same browser command resolved this without changing the intent
+contract or lint configuration. No push, deployment, new environment variable or VPS unlock was
+performed. The explicit manual/incomplete accessibility limits remain for later screen/state work
+and the dedicated complete-MVP accessibility story; this acceptance does not certify full WCAG.
