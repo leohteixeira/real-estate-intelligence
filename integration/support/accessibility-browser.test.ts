@@ -366,6 +366,60 @@ test('actual segmented and language CSS keeps native forward/reverse outlines pa
   );
 });
 
+test('Ask submit inset is stable before, during and after native traversal', async () => {
+  const env = { ...process.env };
+  delete env.DISPLAY;
+  const browser = await chromium.launch({
+    channel: 'chromium',
+    chromiumSandbox: true,
+    env,
+    args: ['--ozone-platform=headless'],
+  });
+  await preserveCleanup(
+    async () => {
+      const page = await browser.newPage({
+        viewport: { width: 390, height: 1142 },
+        reducedMotion: 'reduce',
+      });
+      const css = (
+        await Promise.all(
+          ['tokens', 'components', 'place'].map((file) =>
+            readFile(new URL(`../../apps/web/src/styles/${file}.css`, import.meta.url), 'utf8'),
+          ),
+        )
+      ).join('\n');
+      await page.setContent(
+        `<style>${css}</style><div class="rei place-app"><main id="place-overview"><header class="place-head"><div class="place-question-region"><form class="ask place-question"><label for="place-question">Ask about Bela Vista</label><div class="ask__box"><input id="place-question" required><button type="submit">Continue</button></div></form></div></header><details><summary>Evidence</summary><a href="#place-question">Source</a></details><button>Try again</button></main></div>`,
+      );
+      const inset = () =>
+        page
+          .locator('.ask__box button')
+          .evaluate((button) => getComputedStyle(button).outlineOffset);
+      expect(
+        await inset(),
+        'The clipped submit keeps its inset before focus style publication',
+      ).toBe('-5px');
+      for (let cycle = 0; cycle < 4; cycle++) {
+        const receipt = await walkKeyboard(page);
+        for (const direction of receipt.directions) {
+          expect(direction.missing).toEqual([]);
+          const submit = direction.steps.find((step) => step.name === 'Continue')!;
+          expect(
+            submit.outline.offset,
+            JSON.stringify({ cycle, direction: direction.key, submit }),
+          ).toBe('-5px');
+          expect(submit.clippedBy).toEqual([]);
+          expect(assessContrast(submit.focusContrast, 3).ratio).toBeGreaterThanOrEqual(3);
+        }
+        expect(await inset(), 'Leaving native focus must not reset its clipped-ring geometry').toBe(
+          '-5px',
+        );
+      }
+    },
+    () => browser.close(),
+  );
+});
+
 test('landing sticky controls keep their visual footprint inside the scene at the journey boundary', async () => {
   const env = { ...process.env };
   delete env.DISPLAY;

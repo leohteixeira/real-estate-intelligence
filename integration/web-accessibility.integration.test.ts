@@ -518,6 +518,30 @@ test.each(accessibilityPartitions)(
           page!,
           async ({ direction, index, identity, problem }) => {
             const file = `evidence/${name}-focused-${direction}-${index}.png`;
+            const observeFocusPaint = () =>
+              page!.evaluate(() => {
+                const element = document.activeElement;
+                if (!(element instanceof HTMLElement)) return null;
+                const style = getComputedStyle(element);
+                const parent = element.parentElement;
+                return {
+                  documentFocused: document.hasFocus(),
+                  tag: element.tagName,
+                  id: element.id,
+                  className: element.className,
+                  focus: element.matches(':focus'),
+                  focusVisible: element.matches(':focus-visible'),
+                  parentFocusWithin: parent?.matches(':focus-within') ?? false,
+                  outline: style.outline,
+                  outlineOffset: style.outlineOffset,
+                  background: style.backgroundColor,
+                  parentBackground: parent ? getComputedStyle(parent).backgroundColor : null,
+                  parentShadow: parent ? getComputedStyle(parent).boxShadow : null,
+                  inlineOutline: element.style.outline,
+                  inlineOutlineOffset: element.style.outlineOffset,
+                };
+              });
+            const beforeCapture = await observeFocusPaint();
             // Capture while native focus/scroll is untouched, before the next traversal step.
             await page!.screenshot({
               path: new URL(file, directory).pathname,
@@ -530,6 +554,8 @@ test.each(accessibilityPartitions)(
               direction,
               index,
               file,
+              beforeCapture,
+              afterCapture: await observeFocusPaint(),
             });
           },
         );
