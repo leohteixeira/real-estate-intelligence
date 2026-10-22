@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { AskAvailability, AskRun, AskThread as Thread } from '@rei/contracts';
+import {
+  ASK_STATES,
+  type AskAvailability,
+  type AskRun,
+  type AskState,
+  type AskThread as Thread,
+} from '@rei/contracts';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useParams } from 'react-router';
 import { ApiReadError } from '../api/client';
@@ -13,6 +19,7 @@ import { AskSession } from './ask-session';
 import { sameAskRun } from './ask-equality';
 import { AskRunRecord } from './AskRunRecord';
 import { AskThread } from './AskThread';
+import { AskConfirmation, type OperandDraft } from './AskConfirmation';
 
 function incomingDraft(state: unknown, id: string): string {
   if (
@@ -44,6 +51,10 @@ function ValidAskScreen({ id }: { readonly id: string }) {
   const [selected, setSelected] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<ApiReadError>();
+  const [inspection, setInspection] = useState<AskState>('queued');
+  const [operandDrafts, setOperandDrafts] = useState<Readonly<Record<string, OperandDraft>>>({});
+  const draftInput = useRef<HTMLTextAreaElement>(null);
+  const recovery = useRef({ state: 'queued' as AskState, preview: true });
   const place = useQuery(placeQuery(id));
   const catalogue = useQuery({ ...placesQuery(), enabled: false });
   const knownPlace = place.data?.place ?? catalogue.data?.items.find((item) => item.id === id);
@@ -75,7 +86,8 @@ function ValidAskScreen({ id }: { readonly id: string }) {
     },
     [cache],
   );
-  async function follow(resume = false) {
+  async function readExample(state: AskState, preview: boolean, resume = false) {
+    recovery.current = { state, preview };
     let current = resume ? authority.current : undefined;
     if (resume && current?.session.terminal) {
       setFailure(undefined);
@@ -107,7 +119,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
           read('fixtures', (signal) => client.catalogue(signal)),
           read('availability', (signal) => client.availability(signal)),
         ]);
-        const example = fixtures.items.find((item) => item.state === 'queued');
+        const example = fixtures.items.find((item) => item.state === state);
         if (!example) throw new ApiReadError(502);
         const [snapshot, history] = await Promise.all([
           read('run', (signal) => client.run(example.runId, example.grant.capability, signal)),
@@ -117,6 +129,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
         ]);
         if (
           snapshot.id !== example.runId ||
+          snapshot.state !== example.state ||
           snapshot.threadId !== example.threadId ||
           history.id !== example.threadId ||
           !sameAskRun(
@@ -137,6 +150,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
         setRun(snapshot);
         setSelected(snapshot.id);
       }
+      if (!preview) return;
       await followAsk(
         client,
         current.session,
@@ -167,6 +181,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
             <label htmlFor="ask-draft">{t('draftTitle')}</label>
             <textarea
               id="ask-draft"
+              ref={draftInput}
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder={t('draftPlaceholder')}
@@ -212,11 +227,48 @@ function ValidAskScreen({ id }: { readonly id: string }) {
               className="btn btn--primary"
               disabled={busy}
               onClick={() => {
-                void follow();
+                setInspection('queued');
+                void readExample('queued', true);
               }}
             >
               {t('follow')}
             </button>
+          </section>
+          <section className="ask-inspection band" aria-labelledby="ask-inspection-title">
+            <div>
+              <h2 id="ask-inspection-title">{t('inspectTitle')}</h2>
+              <p className="small">{t('inspectHint')}</p>
+            </div>
+            <div className="ask-inspection__controls">
+              <label htmlFor="ask-state">{t('inspectState')}</label>
+              <select
+                id="ask-state"
+                value={inspection}
+                onChange={(event) => {
+                  const state = ASK_STATES.find((item) => item === event.target.value);
+                  if (state) {
+                    setInspection(state);
+                    void readExample(state, false);
+                  }
+                }}
+              >
+                {ASK_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {t(state)}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  void readExample(inspection, false);
+                }}
+              >
+                {t('inspect')}
+              </button>
+            </div>
+            <p className="ask-origin">{t('runtimeUnknown')}</p>
           </section>
           {busy ? (
             <p className="ask-session-status" role="status">
@@ -233,7 +285,11 @@ function ValidAskScreen({ id }: { readonly id: string }) {
               description={run ? t('interrupted') : t('failedRead')}
               context={t('recovery')}
               retry={() => {
-                void follow(Boolean(authority.current));
+                void readExample(
+                  recovery.current.state,
+                  recovery.current.preview,
+                  Boolean(authority.current),
+                );
               }}
               {...(failure.requestId ? { requestId: failure.requestId } : {})}
             />
@@ -246,6 +302,31 @@ function ValidAskScreen({ id }: { readonly id: string }) {
                 onSelect={setSelected}
               />
               <div className="ask-main-record">
+                {selectedRun.decision?.requiresConfirmation && selectedRun.originalInputs ? (
+                  <AskConfirmation
+                    run={selectedRun}
+                    draft={operandDrafts[selectedRun.id]}
+                    onChange={(value) =>
+                      setOperandDrafts((previous) => ({ ...previous, [selectedRun.id]: value }))
+                    }
+                    onRephrase={() => draftInput.current?.focus()}
+                  />
+                ) : null}
+                {selectedRun.id === run.id && !run.terminal ? (
+                  <section className="ask-preview band">
+                    <p>{t('previewHint')}</p>
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={busy}
+                      onClick={() => {
+                        void readExample(inspection, true, true);
+                      }}
+                    >
+                      {t('readPreview')}
+                    </button>
+                  </section>
+                ) : null}
                 <AskRunRecord run={selectedRun} placeId={id} />
                 {availability ? (
                   <section

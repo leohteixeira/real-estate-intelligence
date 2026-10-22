@@ -24,6 +24,7 @@ export const askPortuguese = {
   question: 'Pergunta registrada',
   result: 'Preço por m²',
   noResult: 'Ainda não há resultado retornado.',
+  terminalNoResult: 'Este registro terminou sem retornar um resultado.',
   unavailableResult: 'Esta intenção não está disponível no exemplo preparado.',
   search: 'Buscar imóveis',
   asking: 'Pedido',
@@ -60,7 +61,48 @@ export const askPortuguese = {
   interpreting: 'Interpretando',
   confirmed: 'Confirmação registrada',
   calculating: 'Calculando',
-  terminal: 'O stream recebeu um evento terminal explícito.',
+  terminal: 'O registro contém um estado terminal explícito.',
+  inspectTitle: 'Inspecionar um estado preparado',
+  inspectState: 'Estado da execução',
+  inspect: 'Ler o estado selecionado',
+  inspectHint: 'A seleção lê um retrato real do catálogo. O estado não avança automaticamente.',
+  runtimeUnknown:
+    'Cotas, vagas da conversa, posição na fila e prazo de expiração não estão disponíveis nesta base. O rascunho e a navegação continuam disponíveis.',
+  previewHint:
+    'A continuação preparada contém etapas e edições predefinidas. Esta leitura não envia seus valores nem confirma ou cancela uma execução.',
+  readPreview: 'Ler a continuação gravada',
+  proposal: 'Conferir a proposta',
+  historicalProposal: 'Proposta registrada',
+  historicalIntent: 'Intenção proposta neste registro: {{intent}}.',
+  historicalDegraded:
+    'Este registro usou uma interpretação degradada. Não há confirmação pendente neste estado; os valores locais continuam sendo apenas um rascunho.',
+  proposalQuestion: 'A intenção proposta é “{{intent}}”?',
+  confidence: 'Confiança registrada',
+  threshold: 'Limiar de confirmação',
+  gateLabel: 'Confiança {{confidence}}, limiar {{threshold}}',
+  degraded:
+    'Interpretação degradada registrada. Confira a proposta e os valores; a confirmação exige inspeção explícita.',
+  originalInputs: 'Entradas originais',
+  operandDraft: 'Valores locais, não enviados',
+  operandDraftHint:
+    'Você pode editar ou deixar estes campos vazios. Nada é enviado ou calculado; a continuação usa somente as edições já gravadas no exemplo.',
+  draftPrice: 'Preço pedido local (BRL)',
+  draftArea: 'Área local (m²)',
+  restoreOperands: 'Restaurar valores originais',
+  rephrase: 'Reformular meu rascunho',
+  recordedInputs: 'Entradas da confirmação gravada',
+  recordedBoundary:
+    'Confirmação sintética gravada (recorded-synthetic), recebida do backend. Não é uma aceitação dos seus valores locais.',
+  reasonCompleted: 'O registro preparado terminou e retornou o resultado disponível abaixo.',
+  fixture_failure:
+    'O exemplo terminou com uma falha preparada. Reler o estado ou o exemplo não cria uma execução.',
+  preview_unavailable: 'A continuação deste exemplo não está disponível.',
+  visitor_cancelled:
+    'O exemplo registra um cancelamento sintético. Nenhuma ação sua cancelou esta execução.',
+  confirmation_expired:
+    'O exemplo registra a expiração da confirmação. Nenhum prazo ou contador ao vivo foi retornado.',
+  recognizedUnavailable:
+    'Intenção reconhecida neste registro: não disponível. Consulte a pergunta registrada acima; a busca continua disponível para este lugar.',
 } as const;
 export const askEnglish: { readonly [K in keyof typeof askPortuguese]: string } = {
   title: 'Ask',
@@ -89,6 +131,7 @@ export const askEnglish: { readonly [K in keyof typeof askPortuguese]: string } 
   question: 'Recorded question',
   result: 'Price per m²',
   noResult: 'No result has been returned yet.',
+  terminalNoResult: 'This record ended without returning a result.',
   unavailableResult: 'This intent is not available in the prepared example.',
   search: 'Search properties',
   asking: 'Asking',
@@ -125,5 +168,47 @@ export const askEnglish: { readonly [K in keyof typeof askPortuguese]: string } 
   interpreting: 'Interpreting',
   confirmed: 'Recorded confirmation',
   calculating: 'Calculating',
-  terminal: 'The stream received an explicit terminal event.',
+  terminal: 'The record contains an explicit terminal state.',
+  inspectTitle: 'Inspect a prepared state',
+  inspectState: 'Run state',
+  inspect: 'Read the selected state',
+  inspectHint:
+    'Selection reads a real catalogue snapshot. Its state does not advance automatically.',
+  runtimeUnknown:
+    'Quotas, thread slots, queue position and expiry deadline are unavailable in this basis. Draft editing and browsing remain available.',
+  previewHint:
+    'The prepared continuation contains preset steps and edits. Reading it does not submit your values, confirm or cancel a run.',
+  readPreview: 'Read the recorded continuation',
+  proposal: 'Check the proposal',
+  historicalProposal: 'Recorded proposal',
+  historicalIntent: 'Proposed intent in this record: {{intent}}.',
+  historicalDegraded:
+    'This record used a degraded interpretation. No confirmation is pending in this state; local values remain a draft only.',
+  proposalQuestion: 'Is the proposed intent “{{intent}}”?',
+  confidence: 'Recorded confidence',
+  threshold: 'Confirmation threshold',
+  gateLabel: 'Confidence {{confidence}}, threshold {{threshold}}',
+  degraded:
+    'A degraded interpretation was recorded. Check the proposal and values; confirmation requires explicit inspection.',
+  originalInputs: 'Original inputs',
+  operandDraft: 'Local values, not submitted',
+  operandDraftHint:
+    'You may edit or empty these fields. Nothing is submitted or calculated; the continuation uses only edits already recorded in the example.',
+  draftPrice: 'Local asking price (BRL)',
+  draftArea: 'Local area (m²)',
+  restoreOperands: 'Restore original values',
+  rephrase: 'Rephrase my draft',
+  recordedInputs: 'Recorded confirmation inputs',
+  recordedBoundary:
+    'Recorded synthetic confirmation (recorded-synthetic), received from the backend. This is not acceptance of your local values.',
+  reasonCompleted: 'The prepared record ended and returned the available result below.',
+  fixture_failure:
+    'The example ended with a prepared failure. Rereading its state or example does not create a run.',
+  preview_unavailable: 'The continuation for this example is unavailable.',
+  visitor_cancelled:
+    'The example records a synthetic cancellation. No action of yours cancelled this run.',
+  confirmation_expired:
+    'The example records confirmation expiry. No live deadline or countdown was returned.',
+  recognizedUnavailable:
+    'Recognized intent in this record: unavailable. See the recorded question above; Search remains available for this place.',
 };

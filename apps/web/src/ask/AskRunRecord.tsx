@@ -21,7 +21,7 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
       <div className="ask-record__head">
         <div className="spread">
           <span
-            className={`st ${run.state === 'completed' ? 'st--ok' : run.state === 'running' ? 'st--running' : run.state === 'failed' ? 'st--fail' : ''}`}
+            className={`st ${run.state === 'completed' ? 'st--ok' : run.state === 'running' ? 'st--running' : run.state === 'failed' ? 'st--fail' : run.state === 'awaiting_confirmation' ? 'st--wait' : ''}`}
           >
             {t(run.state)}
           </span>
@@ -35,6 +35,39 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
           {run.placeId === null ? t('unscoped') : t('fixturePlace', { id: run.placeId })}
         </p>
       </div>
+      {run.terminal ? (
+        <p className="ask-terminal-reason">
+          {run.terminal.reason === null ? t('reasonCompleted') : t(run.terminal.reason)}
+        </p>
+      ) : null}
+      {run.confirmation ? (
+        <section className="ask-recorded-confirmation" aria-labelledby="ask-recorded-title">
+          <h3 id="ask-recorded-title">{t('recordedInputs')}</h3>
+          <p className="small">{t('recordedBoundary')}</p>
+          <dl className="kv">
+            {run.originalInputs ? (
+              <>
+                <dt>{t('originalInputs')}</dt>
+                <dd>
+                  {formatExactMoney(run.originalInputs.priceMinorUnits, locale)} ·{' '}
+                  {formatArea(run.originalInputs.areaSquareMeters, locale)} m²
+                </dd>
+              </>
+            ) : null}
+            <dt>{t('recordedInputs')}</dt>
+            <dd>
+              {formatExactMoney(run.confirmation.inputs.priceMinorUnits, locale)} ·{' '}
+              {formatArea(run.confirmation.inputs.areaSquareMeters, locale)} m²
+            </dd>
+            <dt>{t('confirmed')}</dt>
+            <dd>
+              <time dateTime={run.confirmation.confirmedAt}>
+                {formatComputedAt(run.confirmation.confirmedAt, locale)}
+              </time>
+            </dd>
+          </dl>
+        </section>
+      ) : null}
       <div className="ask-record__result">
         <div className="fig">
           {result?.kind === 'price_per_square_meter' ? (
@@ -62,12 +95,13 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
           ) : result?.kind === 'unavailable_intent' ? (
             <>
               <p className="ask-unavailable">{t('unavailableResult')}</p>
+              <p className="small">{t('recognizedUnavailable')}</p>
               <Link className="btn" to={destinationPath('search', placeId)}>
                 {t('search')}
               </Link>
             </>
           ) : (
-            <p className="muted">{t('noResult')}</p>
+            <p className="muted">{t(run.terminal ? 'terminalNoResult' : 'noResult')}</p>
           )}
           <p className="ask-origin">{t('noCitations')}</p>
         </div>
@@ -85,7 +119,10 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
         {run.steps.length ? (
           <ol className="steps small">
             {run.steps.map((step) => (
-              <li key={step.sequence}>
+              <li
+                key={step.sequence}
+                className={step.phase === 'awaiting_confirmation' ? 'wait' : undefined}
+              >
                 <div>
                   <h4>{t(step.phase)}</h4>
                   <time className="muted" dateTime={step.at}>
