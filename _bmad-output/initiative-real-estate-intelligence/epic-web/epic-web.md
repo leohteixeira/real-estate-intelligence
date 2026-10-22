@@ -143,6 +143,30 @@ shared with another epic, Description says which part this epic delivers.
   preserve Placa/PT/EN/manual recovery and strict typed Vitest integration, all gates and VPS blocks
   (agent, on the owner's behalf, 2026-10-12).
 - Waits on epic-ask because: it needs the run and SSE shapes.
+- Decision: D-060 delivers entry 7 through the validated public Property detail, using actual
+  street/block hierarchy, backend Asking/history/lifelines, explicit no recorded Sale, feature
+  reporters and source disagreements. Keep unavailable neighborhood comparison and fingerprints
+  visible; prepared probability is uncalibrated and reason bars encode reported participation, not
+  invented strengths. Creation chronology never fabricates an initial dated price. Safe raw snapshot
+  metadata is not a download or Operations link. Local listing evidence anchors remain until entry
+  8; compare/alert/comparables are ticket exceptions. Connect Search rows to real
+  `/properties/:propertyId` with validated internal return URL and actual neighborhood shell
+  context, Search current; preserve D-057 Overview links. Ask forwards only a labelled draft in
+  navigation state, never URL/log/storage or execution. Preserve retained reads/manual recovery,
+  Placa/code-led inherited seed, finite independent finish review/documentation, strict typed Vitest
+  integration and all gates; no VPS unlock (agent, on the owner's behalf, 2026-10-12).
+- Decision: D-061 applies the first Property visual inspection's findings in one batch. Preserve all
+  contract facts, nine visible participation bars and canonical attributes; group full reason,
+  source-attribute and provenance detail in labelled keyboard-operable native expansions. Local
+  source links open their containing expansion and reach meaningful evidence. Use the reported
+  street without invented unit numbers, a Property-only compact shell and accessible ancestry;
+  retain the real neighborhood, porcelain phone summary/Ask and paired blue desktop composition.
+  Price/date labels stay legible without an invented dated initial price; shared monthly lifelines
+  adapt labels without overlap. Localize prepared warnings and retain the raw label in metadata.
+  Preserve 44px targets, unknowns, disagreements, unavailable states and behavioral tests. Capture
+  full/top images from asserted document scroll zero, record actual content fonts, keep earlier
+  evidence historical, then use the second parent inspection and independent finish handoffs; no
+  unlimited polishing or gate-only fidelity claim (agent, on the owner's behalf, 2026-10-12).
 - Tracer bullet: entry 2; entry 1 precedes it because the router and data-fetching choice shapes
   every screen.
 - Assumption: the map view of Search is absent from the MVP, as the map is CAP-24.

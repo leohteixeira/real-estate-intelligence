@@ -55,12 +55,11 @@ snapshot; foreign projects and volumes remain outside its lifecycle.
 The Ask campaign checks seven prepared run snapshots and finite scripted SSE previews through public
 contract parsers, capability refusals, fixture replay, full ordered threads, edited confirmation
 inputs, absent confirmation/cancellation handlers and disabled structured admission. A distinct API
-E2E test opens a catalogue grant, reads its
-run/thread and reaches an explicit edited-confirmation terminal. Both use the production
-PostgreSQL/migrations/API images and compare every owned table count/content digest before and
-after: migrated Ask tables stay empty; no retained caller text, outbox write or live AI execution is
-added. See the
-[Ask API reference](../api/ask.md) for the prepared-only contract and replay limitations.
+E2E test opens a catalogue grant, reads its run/thread and reaches an explicit edited-confirmation
+terminal. Both use the production PostgreSQL/migrations/API images and compare every owned table
+count/content digest before and after: migrated Ask tables stay empty; no retained caller text,
+outbox write or live AI execution is added. See the [Ask API reference](../api/ask.md) for the
+prepared-only contract and replay limitations.
 
 The structured price campaign (`integration/ask-price-run.integration.test.ts`) runs PostgreSQL,
 migrations, API, RabbitMQ, production worker and isolated AI graph with ephemeral scoped authority.
@@ -73,36 +72,36 @@ It uses Vitest, strict TypeScript, Supertest and the same Testcontainers fixture
 See [the structured tracer reference](../api/ask-tracer.md).
 
 The checkpoint campaign (`integration/ask-checkpoints.integration.test.ts`) uses an owned SQL
-advisory barrier to observe a committed decision before killing API, worker or AI. It verifies
-one retained receipt, decision checkpoint and terminal/inbox outcome, contiguous public SSE,
+advisory barrier to observe a committed decision before killing API, worker or AI. It verifies one
+retained receipt, decision checkpoint and terminal/inbox outcome, contiguous public SSE,
 fresh-process native pause/reclaim, isolated grants, immutable checkpoint/write replay, the real
 API-owned retention job without business history deletion, and long escaped/Unicode accepted
-queries. Native cases also
-cover both persistence gaps, concurrent fork admission, transaction rollback, SQL disconnect
-cancellation, invalid serialized state and a genuine populated 6002-to-6003-to-6004 upgrade.
-The same populated baseline now applies additive 6005 and rechecks historical digests.
-Historical documents, receipts, fingerprints and events are compared before and after the additive
-migrations; twelve historical turns prove numeric ordering beyond single digits. Retention includes
-a real queue-expired terminal in its eight-turn ranking. Its Node
-TypeScript probe imports compiled AI declarations and never imports a test framework. See
+queries. Native cases also cover both persistence gaps, concurrent fork admission, transaction
+rollback, SQL disconnect cancellation, invalid serialized state and a genuine populated
+6002-to-6003-to-6004 upgrade. The same populated baseline now applies additive 6005 and rechecks
+historical digests. Historical documents, receipts, fingerprints and events are compared before and
+after the additive migrations; twelve historical turns prove numeric ordering beyond single digits.
+Retention includes a real queue-expired terminal in its eight-turn ranking. Its Node TypeScript
+probe imports compiled AI declarations and never imports a test framework. See
 [the saver protocol](../api/ask-checkpoints.md).
 
 The ordered-delivery campaign (`integration/ask-delivery.integration.test.ts`) uses owned real
 PostgreSQL, RabbitMQ, API, worker and AI fixtures. It races public admission at three total pending,
 checks replay/conflict/foreign-authority no-effects, expires queued work with the worker stopped,
-and reverses delivery under both default prefetch two and prefetch one while another thread progresses.
-Original retained envelopes are published through the production broker; only the explicit
-attempt-three header fault case uses direct mandatory confirmed publication. A separate run-scoped
-executor fault accumulates genuine failures, observes more than five deferrals at an earned attempt,
-and proves the fifth genuine failure reaches the durable DLQ without automatic replay.
-Additional cases exercise SQL deadline boundaries despite application-clock drift, busy-lock fairness,
-expiry outbox/inbox rollback and cancellation, retained completed graph/receipt recovery, and
-creation/delivery replay after temporary platform records are pruned. Rabbit firehose observation
-parses the original message body and reads delivery metadata from trace headers.
-Before opening AMQP, the fixture waits once for Rabbit application startup; the Compose ping
-only establishes runtime availability. See [the Rabbit CLI readiness semantics](https://www.rabbitmq.com/docs/man/rabbitmqctl.8).
-Run these Docker campaigns serially: each teardown verifies that foreign containers and volumes
-remain exactly unchanged. All campaign helpers, fixtures and probes are strict TypeScript.
+and reverses delivery under both default prefetch two and prefetch one while another thread
+progresses. Original retained envelopes are published through the production broker; only the
+explicit attempt-three header fault case uses direct mandatory confirmed publication. A separate
+run-scoped executor fault accumulates genuine failures, observes more than five deferrals at an
+earned attempt, and proves the fifth genuine failure reaches the durable DLQ without automatic
+replay. Additional cases exercise SQL deadline boundaries despite application-clock drift, busy-lock
+fairness, expiry outbox/inbox rollback and cancellation, retained completed graph/receipt recovery,
+and creation/delivery replay after temporary platform records are pruned. Rabbit firehose
+observation parses the original message body and reads delivery metadata from trace headers. Before
+opening AMQP, the fixture waits once for Rabbit application startup; the Compose ping only
+establishes runtime availability. See
+[the Rabbit CLI readiness semantics](https://www.rabbitmq.com/docs/man/rabbitmqctl.8). Run these
+Docker campaigns serially: each teardown verifies that foreign containers and volumes remain exactly
+unchanged. All campaign helpers, fixtures and probes are strict TypeScript.
 
 Restart cases resolve the single owned container using exact Compose project/service labels before
 signalling it and start that same container promptly. They do not change broker delivery limits or
@@ -112,19 +111,19 @@ unlimited outage recovery. The SQL disconnect case observes actual backend disap
 committed checkpoint: socket destruction alone can leave a lock wait until the unchanged five-second
 PostgreSQL statement timeout.
 
-The text-price campaign (`integration/ask-text-price-run.integration.test.ts`) submits only prose
-in PT and EN, then proves equal canonical inputs, exact completed SSE results through the real
-worker/graph/Market tool, finite no-effect refusals, immutable replay and mixed-thread ownership.
-It attacks operation/input/execution/grant scope, exercises expired-claim recovery and checks
-sanitized runtime logs. Its second owned PostgreSQL fixture applies 6001, populates structured
+The text-price campaign (`integration/ask-text-price-run.integration.test.ts`) submits only prose in
+PT and EN, then proves equal canonical inputs, exact completed SSE results through the real
+worker/graph/Market tool, finite no-effect refusals, immutable replay and mixed-thread ownership. It
+attacks operation/input/execution/grant scope, exercises expired-claim recovery and checks sanitized
+runtime logs. Its second owned PostgreSQL fixture applies 6001, populates structured
 history/events/receipts/outbox/inbox/idempotency records using only historical columns, applies
 additive 6002 followed by 6003/6004/6005 and compares exact retained row/evidence digests before
 executing a text run in that legacy thread with the current repository. Malicious SQL
 basis/source/input/unknown-key changes must still fail. No historical migration is edited or
 historical evidence rewritten.
 
-The model-explanation campaign mounts an explicit TypeScript bootstrap inside an owned production
-AI container. It composes the production Nest modules and overrides only `LanguageModel` with a
+The model-explanation campaign mounts an explicit TypeScript bootstrap inside an owned production AI
+container. It composes the production Nest modules and overrides only `LanguageModel` with a
 scripted test implementation; production startup has no fake selector. The real API, Market tool,
 worker, RabbitMQ, PostgreSQL budget/accepted evidence and native remote saver remain in the flow.
 PT/EN inspect/thread/SSE, idempotency, approved/transient-secondary output, invented figures,
@@ -135,16 +134,16 @@ and an HTTP caller disconnect during generation leave conservative spend without
 Checkpoint-ACK failure after accepted evidence and completed-before-terminal recovery restart only
 the owned AI process, then check stable receipt/explanation IDs, fresh authority, unchanged spend
 and zero new model calls. A genuine populated pre-6005 native graph checks exact historical
-checkpoint/pending-write/document digests, old recovery and an explained run in the same thread.
-See [the implemented model protocol](../api/ask-model-explanation.md).
+checkpoint/pending-write/document digests, old recovery and an explained run in the same thread. See
+[the implemented model protocol](../api/ask-model-explanation.md).
 
 The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
-campaign against the production AI image, and a production worker-command E2E journey resolving
-the Nest `RUN_EXECUTOR` port and traversing the real no-op graph. Each owns PostgreSQL, migrations,
-API and AI fixtures, generates fresh internal authority, verifies no token/question logging or AI
-infrastructure credentials, and compares every SQL digest and public Ask catalogue before/after.
-The worker command uses bounded stdin and the production worker image without DB/broker modules;
-wrong or absent authority fails categorically. Shared exact-label teardown verifies foreign Docker
+campaign against the production AI image, and a production worker-command E2E journey resolving the
+Nest `RUN_EXECUTOR` port and traversing the real no-op graph. Each owns PostgreSQL, migrations, API
+and AI fixtures, generates fresh internal authority, verifies no token/question logging or AI
+infrastructure credentials, and compares every SQL digest and public Ask catalogue before/after. The
+worker command uses bounded stdin and the production worker image without DB/broker modules; wrong
+or absent authority fails categorically. Shared exact-label teardown verifies foreign Docker
 containers and volumes survive. See [the RunExecutor reference](../api/run-executor.md).
 
 ## Adopt the web accessibility harness
@@ -164,9 +163,9 @@ Search artboards; production captures identify the actual public entries.
 
 For every future screen entry, import `checkAccessibility` from
 `integration/support/accessibility.ts`, await its fonts/content readiness, then scan its complete
-page at 390, 960 and 1440px in PT/EN. Use a unique evidence name per screen, width, locale and state.
-The harness pins axe 4.13.0, runs WCAG 2/2.1/2.2 A/AA tags without disabled rules or excluded regions,
-and fails with rule IDs, target selectors, explanations and help links. JSON evidence under
+page at 390, 960 and 1440px in PT/EN. Use a unique evidence name per screen, width, locale and
+state. The harness pins axe 4.13.0, runs WCAG 2/2.1/2.2 A/AA tags without disabled rules or excluded
+regions, and fails with rule IDs, target selectors, explanations and help links. JSON evidence under
 `apps/web/.impeccable/review/` preserves violations, passed rules and incomplete checks separately.
 Add keyboard activation, visible focus, 44px target geometry, local-font, overflow and screenshot
 checks alongside the scan; axe cannot establish those requirements by itself.
@@ -183,8 +182,41 @@ The web unit suite also checks the semantic text, focus and essential-control to
 
 Automated passes do not certify all WCAG requirements. Review every axe incomplete result and
 manually assess screen-reader reading order/pronunciation, focus under daylight, zoom/reflow,
-canonical-name comprehension and interaction states introduced by later entries. Search results
-and full system states remain owned by their respective stories.
+canonical-name comprehension and interaction states introduced by later entries. Search results and
+full system states remain owned by their respective stories.
+
+## Verify the Property journey
+
+Build first, then run the owned Property campaign alongside its public navigation regressions:
+
+```bash
+pnpm run build
+pnpm exec vitest run --config vitest.integration.config.ts integration/web-property.integration.test.ts integration/web-search.integration.test.ts integration/web-place.integration.test.ts
+```
+
+Property owns PostgreSQL, migrations, API and production web services, plus a bounded local Vite
+process for the authored Property references. Supertest parses actual public responses before
+Chromium checks Search return, draft-only Ask, real neighborhood context, removed intervals, denied
+descriptions, expired snapshots, no-active/null data, UUIDv7 validation and manual recovery. A
+bounded browser read fault exercises both initial failure and retained-data refetch; recovery
+returns to the actual API. No external source, model or mutation request is permitted.
+
+The complete PT/EN surface is captured at 390, 960 and 1440px with whole-page axe, keyboard focus,
+44px control bounds, local font and overflow checks. Authored references are separately captured at
+390×1842 and 1440×1207. Keyboard and local source-link checks open real native evidence targets;
+each full-page and viewport capture separately settles fonts, blurs focus, scrolls to document zero
+and asserts both window and document scroll coordinates. Interaction metadata records these two
+capture-start receipts, the actual visible content paragraph font, local Barlow/Barlow Condensed
+font checks and document height. Documents taller than 2400px also receive evidence/source regional
+captures. Body-inherited fonts are not evidence of visible content font coverage. Each unique
+`property-*` run under `apps/web/.impeccable/review/campaigns/` retains its semantic catalog,
+append-only attempts, parsed fixtures, version hashes, immutable evidence copies and exact-label
+teardown receipt. Failed attempts remain historical evidence; a later pass does not rewrite them.
+
+Prepared public reads do not establish persisted unresolved membership. That unavailable branch is
+explicitly covered by an isolated parser-validated component regression. Captures and automated
+checks do not replace the separate parent-owned visual comparison, finish review or human
+screen-reader/daylight/zoom assessment.
 
 ## Strict TypeScript checking
 

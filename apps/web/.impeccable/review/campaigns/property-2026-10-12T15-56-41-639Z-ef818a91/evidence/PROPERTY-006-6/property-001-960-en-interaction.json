@@ -1,0 +1,442 @@
+{
+  "url": "http://127.0.0.1:43521/properties/0199a3e0-0000-7000-8000-000000000001#property-listing-0199a3e0-0000-7000-8000-000000000101",
+  "version": {
+    "commit": "1d9080a42c82db5c0dcd4a791cf042379adc3ef6",
+    "dirty": true,
+    "webArtifactHash": "9b23eceda4b0554e3e0f00364ebed1298f5c276aba45f7f506fc13c8c6807b13",
+    "propertySourceHash": "3bd5945e4eae4e7c7407bc5722ef9c2bb90b92ed90981ec9f4bbfb32e41144ba",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "artifactScope": "Local production build and owned production images, not a production release identity",
+    "project": "rei-web-property-1d3e0fb7-41ed-49b1-8a45-0a14c2388ca8",
+    "observedUtc": "2026-10-12T15:56:41.650Z"
+  },
+  "width": 960,
+  "documentHeight": 1990,
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "label": "Real EstateIntelligence",
+      "width": 208,
+      "height": 55.59375
+    },
+    {
+      "label": "Places",
+      "width": 208,
+      "height": 44
+    },
+    {
+      "label": "Search",
+      "width": 208,
+      "height": 44
+    },
+    {
+      "label": "Ask",
+      "width": 208,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Back to Search",
+      "width": 133.046875,
+      "height": 44
+    },
+    {
+      "label": "Bela Vista",
+      "width": 64.515625,
+      "height": 44
+    },
+    {
+      "label": "Location",
+      "width": 74.40625,
+      "height": 44
+    },
+    {
+      "label": "Brasil",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Estado de São Paulo",
+      "width": 63.203125,
+      "height": 44
+    },
+    {
+      "label": "São Paulo",
+      "width": 55.140625,
+      "height": 44
+    },
+    {
+      "label": "Zona Centro",
+      "width": 63.203125,
+      "height": 44
+    },
+    {
+      "label": "Bela Vista",
+      "width": 55.90625,
+      "height": 44
+    },
+    {
+      "label": "Ask about this property",
+      "width": 188.65625,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 125.65625,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 125.65625,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 125.65625,
+      "height": 44
+    },
+    {
+      "label": "Evidence",
+      "width": 52.765625,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 106,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 106,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 106,
+      "height": 44
+    },
+    {
+      "label": "Chronology by source",
+      "width": 379.03125,
+      "height": 45.75
+    },
+    {
+      "label": "Reasons and sources",
+      "width": 208.953125,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 154.171875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Attributes by source",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 135,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 135,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 135,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 135,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 135,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Aurora",
+      "width": 135,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Features by source",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Aurora1 active listing · Available · 13 Collections",
+      "width": 294,
+      "height": 63.296875
+    },
+    {
+      "label": "Safe metadata",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Description permitted by the source",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Brisa1 active listing · Available · 13 Collections",
+      "width": 294,
+      "height": 63.296875
+    },
+    {
+      "label": "Safe metadata",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Description permitted by the source",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Cobalto1 active listing · Available · 13 Collections",
+      "width": 294,
+      "height": 63.296875
+    },
+    {
+      "label": "Safe metadata",
+      "width": 294,
+      "height": 45.75
+    },
+    {
+      "label": "Description permitted by the source",
+      "width": 294,
+      "height": 45.75
+    }
+  ],
+  "fonts": {
+    "heading": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "content": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "barlowLoaded": true,
+    "barlowCondensedLoaded": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manual": [
+    "Screen-reader pronunciation/reading order, daylight focus and zoom require parent/human assessment"
+  ]
+}

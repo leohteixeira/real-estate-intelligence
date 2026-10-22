@@ -1,0 +1,12 @@
+{
+  "owner": "rei-web-property-33ca06b7-6ab7-41ef-808f-dc3c8dc6a51b",
+  "publicIds": [
+    "0199a3e0-0000-7000-8000-000000000001",
+    "0199a3e0-0000-7000-8000-000000000004",
+    "0199a3e0-0000-7000-8000-000000000901",
+    "0199a3e0-0000-7000-8000-000000000902",
+    "0199a3e0-0000-7000-8000-000000000903"
+  ],
+  "preparation": "Repository-owned migrations and prepared synthetic adapter; no acquisition/membership mutation.",
+  "unresolved": "Parser-validated isolated component regression only; not an actual persisted read."
+}

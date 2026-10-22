@@ -1,0 +1,66 @@
+{
+  "url": "http://127.0.0.1:44659/search/sao-paulo",
+  "locale": "en",
+  "width": 1440,
+  "observedUtc": "2026-10-12T15:30:48.515Z",
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "label": "<a href=\"/search/brazil\" data-discover=\"true\">Brasil</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-state\" data-discover=\"true\">Estado de São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a class=\"btn\" href=\"/search/sao-paulo?view=filters\" data-discover=\"true\">Filters</a>",
+      "height": 44
+    },
+    {
+      "label": "<select id=\"search-sort\"><option value=\"furthest-below-median\">Furthest below median</option><option value=\"lowest-price-per-square-meter\">Lowest R$/m²</option><option value=\"longest-on-market\">Longest on market</option><option value=\"most-recent\">Most recent</option></select>",
+      "height": 44
+    },
+    {
+      "label": "<summary>Prepared result evidence</summary>",
+      "height": 44
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000003?returnTo=%2Fsearch%2Fsao-paulo\"><div><p class=\"prow__t\">Apartment · 3 bedrooms · 74 m²</p><p class=\"prow__s\">Quarteirão fictício Santana</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 655,000</p><p class=\"prow__r\">R$ 8,851 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison down\">6.95% below median</span><span>2 listings</span><span>438 days on market</span></div></a>",
+      "height": 115.84375
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000004?returnTo=%2Fsearch%2Fsao-paulo\"><div><p class=\"prow__t\">House · 3 bedrooms · 135 m²</p><p class=\"prow__s\">Quarteirão fictício Vila Mariana</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 1,240,000</p><p class=\"prow__r\">R$ 9,185 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison down\">3.44% below median</span><span>2 listings</span><span>Returned to market</span></div></a>",
+      "height": 115.84375
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000001?returnTo=%2Fsearch%2Fsao-paulo\"><div><p class=\"prow__t\">Apartment · 2 bedrooms · 82 m²</p><p class=\"prow__s\">Quarteirão fictício Bela Vista</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 780,000</p><p class=\"prow__r\">R$ 9,512 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison\">At the median</span><span>3 listings</span><span>412 days on market</span></div></a>",
+      "height": 115.84375
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000005?returnTo=%2Fsearch%2Fsao-paulo\"><div><p class=\"prow__t\">Apartment · 3 bedrooms · 96 m²</p><p class=\"prow__s\">Quarteirão fictício Tatuapé</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 920,000</p><p class=\"prow__r\">R$ 9,583 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison up\">0.75% above median</span><span>1 listing</span><span>386 days on market</span></div></a>",
+      "height": 115.84375
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000002?returnTo=%2Fsearch%2Fsao-paulo\"><div><p class=\"prow__t\">Apartment · 2 bedrooms · 82 m²</p><p class=\"prow__s\">Quarteirão fictício Pinheiros</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 815,000</p><p class=\"prow__r\">R$ 9,939 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison up\">4.49% above median</span><span>1 listing</span><span>394 days on market</span></div></a>",
+      "height": 115.84375
+    },
+    {
+      "label": "<summary>Sources and dates of properties on this page</summary>",
+      "height": 44
+    }
+  ],
+  "shell": {
+    "top": false,
+    "navigation": true,
+    "plate": true,
+    "footer": false,
+    "tabs": false,
+    "rail": true
+  },
+  "keyboard": {
+    "actions": ["Focus evidence disclosure", "Enter"],
+    "open": true
+  },
+  "exclusions": ["Ambient-daylight focus visibility and screen-reader speech require human review"]
+}

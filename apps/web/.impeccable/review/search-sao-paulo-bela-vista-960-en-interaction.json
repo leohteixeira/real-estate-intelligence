@@ -1,8 +1,8 @@
 {
-  "url": "http://127.0.0.1:45373/search/sao-paulo-bela-vista",
+  "url": "http://127.0.0.1:44983/search/sao-paulo-bela-vista",
   "locale": "en",
   "width": 960,
-  "observedUtc": "2026-10-12T14:32:55.051Z",
+  "observedUtc": "2026-10-22T06:59:13.696Z",
   "horizontalOverflow": false,
   "targets": [
     {
@@ -32,6 +32,10 @@
     {
       "label": "<summary>Prepared result evidence</summary>",
       "height": 44
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000001?returnTo=%2Fsearch%2Fsao-paulo-bela-vista\"><div><p class=\"prow__t\">Apartment · 2 bedrooms · 82 m²</p><p class=\"prow__s\">Quarteirão fictício Bela Vista</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 780,000</p><p class=\"prow__r\">R$ 9,512 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison\">At the median</span><span>3 listings</span><span>412 days on market</span></div></a>",
+      "height": 115.84375
     },
     {
       "label": "<summary>Sources and dates of properties on this page</summary>",

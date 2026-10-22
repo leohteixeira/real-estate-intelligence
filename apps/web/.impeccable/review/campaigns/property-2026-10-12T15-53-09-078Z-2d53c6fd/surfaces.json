@@ -1,0 +1,165 @@
+{
+  "version": {
+    "commit": "1d9080a42c82db5c0dcd4a791cf042379adc3ef6",
+    "dirty": true,
+    "webArtifactHash": "5e58748eac88b7d7805ffc58e33f9654194bff0659f7511d081f30e175968b0f",
+    "propertySourceHash": "95564fab9c9d73d391071d353cd70089ca74117fba0a2eeb13f187aa203aa899",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "artifactScope": "Local production build and owned production images, not a production release identity",
+    "project": "rei-web-property-38416ae2-5f00-47c7-bf6c-5275746c33ba",
+    "observedUtc": "2026-10-12T15:53:09.090Z"
+  },
+  "files": [
+    {
+      "file": "property-004-390-pt-BR.png",
+      "evidencePath": "evidence/PROPERTY-003-3/property-004-390-pt-BR.png",
+      "hash": "62943d94e66efe8e320c192cea10fd4f8d7b635047ac8ecdcae847ff3a2bb175"
+    },
+    {
+      "file": "property-004-390-pt-BR-top.png",
+      "evidencePath": "evidence/PROPERTY-003-3/property-004-390-pt-BR-top.png",
+      "hash": "1172b4482711586944df75c15096c8174073f6618099a60672ca4e3fbb1bd993"
+    },
+    {
+      "file": "property-004-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/PROPERTY-003-3/property-004-390-pt-BR-accessibility.json",
+      "hash": "81dc381b1187f57325a626c3acb95f374dcb8cfb7ecf6f2b819f9f9832898d02"
+    },
+    {
+      "file": "property-004-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/PROPERTY-003-3/property-004-390-pt-BR-interaction.json",
+      "hash": "aa09bd18db65dd373e5fa73fdc0ebc962636310ed9586534b39f6e7114c36cc5"
+    },
+    {
+      "file": "property-004-390-pt-BR-region-evidence.png",
+      "evidencePath": "evidence/PROPERTY-003-3/property-004-390-pt-BR-region-evidence.png",
+      "hash": "db136d5237e870ad68ab827ba03a82fad70489168727f1bf29894611666191d3"
+    },
+    {
+      "file": "property-004-390-pt-BR-region-sources.png",
+      "evidencePath": "evidence/PROPERTY-003-3/property-004-390-pt-BR-region-sources.png",
+      "hash": "9f5d9e896b1dc1fcd2c5498348f0c38fd4c553caf6c3ae074465aad96715217b"
+    },
+    {
+      "file": "property-901-390-pt-BR.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-901-390-pt-BR.png",
+      "hash": "ae87268455dede7706908564eb3efb2403cd0f86af363513aa76391434d39b2d"
+    },
+    {
+      "file": "property-901-390-pt-BR-top.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-901-390-pt-BR-top.png",
+      "hash": "30b9aed492ea3da593980e03ef6f6f3b7e3a1da6ef808461d12c5069766a9988"
+    },
+    {
+      "file": "property-901-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/PROPERTY-004-4/property-901-390-pt-BR-accessibility.json",
+      "hash": "020b2415cb958360b8a42ea030ca855e500ebef43e90303a8b205164cf0dce18"
+    },
+    {
+      "file": "property-901-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/PROPERTY-004-4/property-901-390-pt-BR-interaction.json",
+      "hash": "5205295b0287dd6b60650f632376a9b7ef1d459fe68e1eab243103bc558e4a23"
+    },
+    {
+      "file": "property-901-390-pt-BR-region-evidence.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-901-390-pt-BR-region-evidence.png",
+      "hash": "cd244583b52ff07e2d9f6b2a6889053d11d6105101327e900da6e175b11cc7a1"
+    },
+    {
+      "file": "property-901-390-pt-BR-region-sources.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-901-390-pt-BR-region-sources.png",
+      "hash": "006f76fd5ca387669df395b9174665fa812c1bbe5e605f6f82732c1120fa72b4"
+    },
+    {
+      "file": "property-902-390-pt-BR.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-902-390-pt-BR.png",
+      "hash": "730614157bf067ea9b57235994ce28e92405dc3d4183e30e2bc43d99b569d0ec"
+    },
+    {
+      "file": "property-902-390-pt-BR-top.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-902-390-pt-BR-top.png",
+      "hash": "2502d931100e780fb388f7371cb094e402ce60db18e5ae5f390e3ea4ba500161"
+    },
+    {
+      "file": "property-902-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/PROPERTY-004-4/property-902-390-pt-BR-accessibility.json",
+      "hash": "14b600bbe56d05618253e8252fd3f1c2d8ea63fadfe666ac23385a86bed964eb"
+    },
+    {
+      "file": "property-902-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/PROPERTY-004-4/property-902-390-pt-BR-interaction.json",
+      "hash": "7e5241f501a08a631154db48092c288e4727bffddce32248387945094c18330f"
+    },
+    {
+      "file": "property-902-390-pt-BR-region-evidence.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-902-390-pt-BR-region-evidence.png",
+      "hash": "cd244583b52ff07e2d9f6b2a6889053d11d6105101327e900da6e175b11cc7a1"
+    },
+    {
+      "file": "property-902-390-pt-BR-region-sources.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-902-390-pt-BR-region-sources.png",
+      "hash": "1be5c7c1f4ea52100bacd6e93a4631945403c328cfac600ffc9091c5f2fbba30"
+    },
+    {
+      "file": "property-903-390-pt-BR.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-903-390-pt-BR.png",
+      "hash": "60d44334cc3bf7c9d5d84b7d6a3f45703c677ce70f8879060f3a5db1e8701efb"
+    },
+    {
+      "file": "property-903-390-pt-BR-top.png",
+      "evidencePath": "evidence/PROPERTY-004-4/property-903-390-pt-BR-top.png",
+      "hash": "4ec0480bdb4b47d9272b5921932ae5c8f07acf9a57e2d4ac3da45e1dfa3fa80c"
+    },
+    {
+      "file": "property-903-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/PROPERTY-004-4/property-903-390-pt-BR-accessibility.json",
+      "hash": "deda2d4699c143b05201f70069800ca8109a73933e0f469b0a35fc1f04b86e06"
+    },
+    {
+      "file": "property-903-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/PROPERTY-004-4/property-903-390-pt-BR-interaction.json",
+      "hash": "ea5118595b5f19b8ef0032609af585ba76862038aaccfb4607a6cc1cba32acc0"
+    },
+    {
+      "file": "property-missing-390-pt-BR.png",
+      "evidencePath": "evidence/PROPERTY-005-5/property-missing-390-pt-BR.png",
+      "hash": "aa3d9ee7a177baea35a07dd8c08b5161fa77082665d756466055d6f5ec058c17"
+    },
+    {
+      "file": "property-missing-390-pt-BR-top.png",
+      "evidencePath": "evidence/PROPERTY-005-5/property-missing-390-pt-BR-top.png",
+      "hash": "aa3d9ee7a177baea35a07dd8c08b5161fa77082665d756466055d6f5ec058c17"
+    },
+    {
+      "file": "property-missing-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/PROPERTY-005-5/property-missing-390-pt-BR-accessibility.json",
+      "hash": "e653d6eb40be2d8d76757cd8420d79fb9f92385fd7693f6b6605a0b5d2490e82"
+    },
+    {
+      "file": "property-missing-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/PROPERTY-005-5/property-missing-390-pt-BR-interaction.json",
+      "hash": "edabce4358df277ebf743ad81248be7a01025d36bcda508f7263f8cbcfe52faf"
+    },
+    {
+      "file": "property-failed-390-pt-BR.png",
+      "evidencePath": "evidence/PROPERTY-005-5/property-failed-390-pt-BR.png",
+      "hash": "9ad379ae766cc71fc0704dc483b7303d4fceaaba25a39e94ba35f34aacab3399"
+    },
+    {
+      "file": "property-failed-390-pt-BR-top.png",
+      "evidencePath": "evidence/PROPERTY-005-5/property-failed-390-pt-BR-top.png",
+      "hash": "9ad379ae766cc71fc0704dc483b7303d4fceaaba25a39e94ba35f34aacab3399"
+    },
+    {
+      "file": "property-failed-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/PROPERTY-005-5/property-failed-390-pt-BR-accessibility.json",
+      "hash": "c3d183980bf992c22dde947d9a19cac094c490a2984b80c04c07092b3a77a50d"
+    },
+    {
+      "file": "property-failed-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/PROPERTY-005-5/property-failed-390-pt-BR-interaction.json",
+      "hash": "a897d4e67844f52dd0b3b19c68d1dae7e5ab0d4f9326012cb1fa1fdd3ce5aae4"
+    }
+  ],
+  "immutableCopies": "Each file also resides under its scenario evidence directory; copied bytes were formatted before hashing."
+}

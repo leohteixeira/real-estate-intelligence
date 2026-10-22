@@ -1,0 +1,20 @@
+{
+  "runId": "property-2026-10-22T06-55-26-598Z-5b5ac9f8",
+  "status": "complete",
+  "scope": "Story 6.7 complete prepared Property read-only production-stack campaign",
+  "exclusions": [
+    "Persisted unresolved membership: isolated parser-validated component regression, not prepared API proof",
+    "Live sources/models, production/VPS, protected Operations/Listing and V2 actions",
+    "Parent finite visual comparison, detector and independent finish acceptance"
+  ],
+  "targetUrls": ["http://127.0.0.1:37907", "http://127.0.0.1:40347"],
+  "personas": ["public visitor"],
+  "dataOwnership": "rei-web-property-6bc0e9f1-3431-4a8e-b7bd-46f1c0abf10b",
+  "allowedSideEffects": [
+    "Own Compose containers/network/volumes",
+    "Own Vite reference process",
+    "Local test evidence"
+  ],
+  "completionCriteria": "Seven distinct semantic scenarios, six complete locale/viewport surfaces, explicit boundary captures, authored references and owned teardown",
+  "stackTornDownUtc": "2026-10-22T06:57:22.965Z"
+}

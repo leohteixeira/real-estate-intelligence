@@ -1,0 +1,17 @@
+{
+  "file": "DesktopProperty.dc.html",
+  "width": 1440,
+  "height": 1207,
+  "sourceHash": "2e53140fe939947e775e2821a82b4a3ac8d1b491b8380b4ccca08eb6611b4916",
+  "external": [],
+  "version": {
+    "commit": "1d9080a42c82db5c0dcd4a791cf042379adc3ef6",
+    "dirty": true,
+    "webArtifactHash": "e46b9b67908f16a32428d5b87e1077d73c541c84305c7df620b2353864bb081d",
+    "propertySourceHash": "4c3e440e2c82f8e0cec849209bada9e9163d868f03a52a40ad8be1b09d7ef0e2",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "artifactScope": "Local production build and owned production images, not a production release identity",
+    "project": "rei-web-property-6ef66af8-658f-40f4-9733-c278e6f6c1f4",
+    "observedUtc": "2026-10-12T15:33:28.454Z"
+  }
+}

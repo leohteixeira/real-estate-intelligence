@@ -1,0 +1,12 @@
+{
+  "version": {
+    "commit": "1d9080a42c82db5c0dcd4a791cf042379adc3ef6",
+    "dirty": true,
+    "webArtifactHash": "7d7d53b7ae1f0881d0b10fe677be522f7dc6a62c54731ec455d35f53ab07f9ce",
+    "propertySourceHash": "de2e6c22904bd3296e076c0d34f968ece24fe7a1d776d886742c9e0c477e3ddb",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "artifactScope": "Local production build and owned production images, not a production release identity",
+    "project": "rei-web-property-d9a8e081-fc02-4575-a663-8a66e98e9ad4",
+    "observedUtc": "2026-10-12T15:18:16.379Z"
+  }
+}

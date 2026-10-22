@@ -1,0 +1,347 @@
+{
+  "url": "http://127.0.0.1:40339/properties/0199a3e0-0000-7000-8000-000000000004",
+  "version": {
+    "commit": "1d9080a42c82db5c0dcd4a791cf042379adc3ef6",
+    "dirty": true,
+    "webArtifactHash": "5e58748eac88b7d7805ffc58e33f9654194bff0659f7511d081f30e175968b0f",
+    "propertySourceHash": "95564fab9c9d73d391071d353cd70089ca74117fba0a2eeb13f187aa203aa899",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "artifactScope": "Local production build and owned production images, not a production release identity",
+    "project": "rei-web-property-38416ae2-5f00-47c7-bf6c-5275746c33ba",
+    "observedUtc": "2026-10-12T15:53:09.090Z"
+  },
+  "width": 390,
+  "documentHeight": 3784,
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "label": "Real Estate Intelligence",
+      "width": 159.9375,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Voltar à busca",
+      "width": 126.828125,
+      "height": 44
+    },
+    {
+      "label": "Vila Mariana",
+      "width": 77.875,
+      "height": 44
+    },
+    {
+      "label": "Localização",
+      "width": 94.734375,
+      "height": 44
+    },
+    {
+      "label": "Brasil",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Estado de São Paulo",
+      "width": 83.53125,
+      "height": 44
+    },
+    {
+      "label": "São Paulo",
+      "width": 55.140625,
+      "height": 44
+    },
+    {
+      "label": "Zona Sul",
+      "width": 48.03125,
+      "height": 44
+    },
+    {
+      "label": "Vila Mariana",
+      "width": 67.484375,
+      "height": 44
+    },
+    {
+      "label": "Perguntar sobre este imóvel",
+      "width": 218.15625,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 130.4375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 130.4375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 116.8125,
+      "height": 44
+    },
+    {
+      "label": "Evidências",
+      "width": 62.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 99.421875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 99.421875,
+      "height": 44
+    },
+    {
+      "label": "Cronologia por fonte",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Razões e fontes",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 143.953125,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 160.359375,
+      "height": 44
+    },
+    {
+      "label": "Atributos por fonte",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Brisa",
+      "width": 125.6875,
+      "height": 44
+    },
+    {
+      "label": "Synthetic data — Cobalto",
+      "width": 140.296875,
+      "height": 44
+    },
+    {
+      "label": "Características por fonte",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Brisa1 anúncio ativo · Disponível · 13 Coletas",
+      "width": 356,
+      "height": 63.296875
+    },
+    {
+      "label": "Metadados seguros",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Descrição permitida pela fonte",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Synthetic data — Cobalto1 anúncio ativo · Disponível · 11 Coletas",
+      "width": 356,
+      "height": 63.296875
+    },
+    {
+      "label": "Metadados seguros",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Descrição permitida pela fonte",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Lugares",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Buscar",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Perguntar",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "heading": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "content": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "barlowLoaded": true,
+    "barlowCondensedLoaded": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manual": [
+    "Screen-reader pronunciation/reading order, daylight focus and zoom require parent/human assessment"
+  ]
+}
