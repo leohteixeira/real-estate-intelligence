@@ -219,6 +219,7 @@ export async function captureAskSurface(
   for (const [region, selector] of [
     ['record', '.ask-main-record'],
     ['thread', '.ask-thread'],
+    ['confirmation', '.ask-confirmation'],
   ] as const) {
     if (await page.locator(selector).count()) {
       await page
