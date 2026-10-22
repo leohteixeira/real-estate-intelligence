@@ -3,7 +3,7 @@ title: 'Property screen'
 type: 'feature'
 ticket: '7'
 created: '2026-10-12'
-status: 'built'
+status: done
 baseline_revision: '1d9080a42c82db5c0dcd4a791cf042379adc3ef6'
 route: 'full'
 route_source: 'auto'
@@ -136,7 +136,7 @@ system. Ask handoff stays draft-only until 6.9, text never in URL/log/local stor
       authored reference dimensions, keyboard/focus/all44px controls/no overflow/local
       fonts/full-page axe; source-hashed artifacts and exact teardown retain failed attempts.
       Evidence manifests formatted before hashing.
-- [ ] `_bmad-output/initiative-real-estate-intelligence/epic-web/story-property-screen-plan.md`,
+- [x] `_bmad-output/initiative-real-estate-intelligence/epic-web/story-property-screen-plan.md`,
       `apps/web/.impeccable/surfaces/src-properties-propertydetails-tsx.md`,
       `apps/web/.impeccable/review/property-*.md`, `docs/testing/integration.md`: append actual
       evidence, perform finite parent visual comparison with rendered artboards, once-only detector,
@@ -507,3 +507,24 @@ all eight workspaces and 2,466 tests passed, including strict integration checki
 large-chunk advisory remains a build warning, not a gate failure. The reviewed plan and new exact
 commit inventory pass Prettier; scoped Markdownlint reports zero errors. The final build status is
 `built`; orchestrator acceptance and ticket `done` are separate, subsequent steps.
+
+### Orchestrator acceptance — 2026-10-22
+
+Accepted against ticket 6.7's actual `verify` and the Property section of `ux.md`, with the
+existing D-060 contract-gap and D-061 finish decisions, not by inventing absent backend fields.
+The three-listing fixture's asking/provenance, no-recorded-sale explanation, summary, both dated
+price changes, shared listing lifelines, nine reasons, feature agreement and safe first/last/
+snapshot evidence are covered by the passing real-API/browser assertions. Comparables, compare
+and alert remain the ticket's explicit exceptions; Ask is draft-only until its later story.
+
+The reviewed build was committed, in order, as
+`df49fd449c15c1c934bcda506806569e05e31fc0` (implementation),
+`29eae3874db3979f42105d3b2f2a0e3eb2bd3b70` (tests) and
+`e9e41896969519e0018bf4e9a91a9dbb13e4724d` (documentation/evidence). All 1,296 inventoried paths
+appear in the change set after the canonical baseline; the working copy was clean after those
+commits. Normal formatting, Markdownlint, ESLint, secret and commit-message hooks passed without
+bypass. A post-hook check again verified all 1,402 manifest entries across 21 manifests; current
+Property source, web build and API build hashes still equal the accepted visual/browser evidence.
+No product or test behavior changed during commit finalization. The separate acceptance commit
+changes only this plan's completed execution item, acceptance record and ticket status. This
+accepts the local story, not VPS work, deployment, human accessibility certification or the goal.
