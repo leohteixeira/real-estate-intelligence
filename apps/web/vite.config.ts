@@ -23,6 +23,8 @@ export default defineConfig({
             'Main.dc.html',
             'PlaceEN.dc.html',
             'DesktopPlace.dc.html',
+            'Property.dc.html',
+            'DesktopProperty.dc.html',
             'map-neighborhood.svg',
             'tokens.css',
             'components.css',

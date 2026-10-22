@@ -1,4 +1,5 @@
 import { searchEnglish, searchPortuguese } from '../search/search-resources.js';
+import { propertyEnglish, propertyPortuguese } from '../properties/property-resources.js';
 
 export const portuguese = {
   places: 'Lugares',
@@ -327,6 +328,7 @@ export const resources = {
     search: { ...searchPT, ...searchPortuguese },
     ask: askPT,
     shared: sharedPT,
+    property: propertyPortuguese,
   },
   en: {
     shell: shellEN,
@@ -334,5 +336,6 @@ export const resources = {
     search: { ...searchEN, ...searchEnglish },
     ask: askEN,
     shared: sharedEN,
+    property: propertyEnglish,
   },
 } as const;

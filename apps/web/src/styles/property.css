@@ -1,0 +1,373 @@
+.property-details {
+  min-width: 0;
+}
+.property-return {
+  padding: 0 var(--gutter);
+  background: var(--enamel-800);
+}
+.rei .property-return .btn {
+  color: var(--surface);
+  --focus: var(--here);
+}
+.rei .property-return .btn:hover {
+  background: var(--enamel-50);
+  color: var(--enamel-800);
+}
+.property-head .crumbs a {
+  min-width: var(--target);
+}
+.property-app .place-top {
+  padding-block: var(--s-2) 0;
+}
+.property-location {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--s-3);
+}
+.property-location > a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target);
+  min-width: var(--target);
+}
+.property-location .property-ancestry {
+  border: 0;
+  margin: 0;
+}
+.property-location .property-ancestry summary {
+  color: var(--surface);
+  padding: var(--s-2) 0;
+}
+.property-location .property-ancestry[open] {
+  flex-basis: 100%;
+}
+.property-head {
+  gap: 0;
+  padding-bottom: 0;
+}
+.property-head .place-head__content {
+  gap: var(--s-3);
+}
+.rei .property-head .plate__name {
+  font-size: var(--text-2xl);
+}
+.property-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  min-width: 0;
+  background: var(--porcelain);
+  color: var(--ink);
+  padding: var(--s-3) var(--gutter);
+  margin-inline: calc(-1 * var(--gutter));
+  --focus: var(--enamel-600);
+}
+.property-summary > p:first-child {
+  font-weight: 600;
+}
+.property-summary .btn {
+  border-color: var(--enamel-600);
+}
+.rei .property-summary .btn {
+  color: var(--surface);
+}
+.property-summary .small {
+  color: var(--ink-2);
+  font-size: var(--text-xs);
+}
+.property-body {
+  min-width: 0;
+}
+.property-basis {
+  padding: var(--s-3) var(--gutter);
+}
+.property-pair {
+  min-width: 0;
+}
+.property-details .panel {
+  min-width: 0;
+  border-radius: 0;
+}
+.property-panel-body {
+  padding: 0 var(--s-4) var(--s-4);
+  min-width: 0;
+}
+.property-details .prov,
+.property-details .small {
+  line-height: 1.35;
+}
+.property-details .sec {
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.property-details .sec h2 {
+  min-width: 0;
+}
+.property-details .sec a,
+.property-details .prov a,
+.property-details .life > a,
+.property-details details a,
+.property-features dd a {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--target);
+  min-height: var(--target);
+}
+.property-details details {
+  border-top: 1px solid var(--line);
+  margin-top: var(--s-3);
+}
+.property-location details summary {
+  min-width: var(--target);
+}
+.property-details summary {
+  min-height: var(--target);
+  padding: var(--s-3) 0;
+  cursor: pointer;
+  color: var(--enamel-700);
+  font-weight: 600;
+}
+.rei .property-details summary:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.property-details details li,
+.property-details .kv dd,
+.property-details .prov {
+  overflow-wrap: anywhere;
+}
+.property-details details p {
+  max-width: 70ch;
+}
+.property-sale {
+  border-top: 1px solid var(--line);
+}
+.property-prices .fig__value {
+  overflow-wrap: anywhere;
+}
+.property-per-meter {
+  font-weight: 600;
+  margin: var(--s-2) 0;
+}
+.property-price-provenance {
+  margin-top: var(--s-2);
+}
+.property-price-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0;
+}
+.property-chart {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0 var(--s-2);
+  margin-bottom: var(--s-3);
+}
+.property-chart-values {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-block: var(--s-1);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+}
+.property-chart-dates {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-2);
+  color: var(--ink);
+  font-size: var(--text-xs);
+}
+.property-chart-dates time:last-child {
+  text-align: right;
+}
+.property-chart-grid {
+  fill: none;
+  stroke: var(--line);
+}
+.property-chart-line {
+  fill: none;
+  stroke: var(--enamel-600);
+  stroke-width: 2.5;
+}
+.property-chart-point {
+  fill: var(--surface);
+  stroke: var(--enamel-600);
+  stroke-width: 2.5;
+}
+.property-price-events {
+  list-style: none;
+  padding: 0;
+  margin-bottom: var(--s-4);
+}
+.property-price-events li,
+.property-listing-history li {
+  padding: var(--s-3) 0;
+}
+.property-details .spread {
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.property-probability .num {
+  font-size: var(--text-2xl);
+}
+.property-reasons,
+.property-feature-list {
+  padding: 0;
+  list-style: none;
+}
+.property-reasons > li,
+.property-feature-list > li {
+  padding: var(--s-1) 0;
+  border-bottom: 1px solid var(--line);
+}
+.property-reasons .ev {
+  grid-template-columns: minmax(0, 1fr) minmax(36px, 0.55fr) minmax(54px, 0.5fr);
+  gap: var(--s-2);
+  font-size: var(--text-sm);
+}
+.property-reasons .small {
+  font-size: var(--text-xs);
+}
+.property-reason-details ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-3);
+  list-style: none;
+  padding: 0;
+}
+.property-reasons .ev > span:last-child {
+  text-align: right;
+}
+.property-feature-list h3,
+.property-source h3,
+.property-listing-history h3 {
+  font-size: var(--text-sm);
+}
+.property-feature-list .spread {
+  gap: var(--s-1) var(--s-2);
+}
+.property-feature-list .small {
+  font-size: var(--text-xs);
+}
+.property-feature-source {
+  padding-block: var(--s-2);
+}
+.property-agreement-row {
+  display: contents;
+}
+.property-agreement-row ul {
+  list-style: none;
+  padding: 0;
+}
+.property-source {
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-4);
+  margin-top: var(--s-4);
+  scroll-margin-top: var(--s-4);
+}
+.property-source-disclosure > summary {
+  display: list-item;
+}
+.property-source-disclosure > summary .small {
+  display: block;
+  color: var(--ink-2);
+  font-weight: 400;
+}
+.property-source .kv {
+  margin-top: var(--s-3);
+}
+.property-details .life {
+  grid-template-columns: minmax(96px, 0.8fr) minmax(0, 2fr);
+  gap: var(--s-1) var(--s-2);
+  font-size: var(--text-xs);
+}
+.property-details .life > a {
+  overflow-wrap: normal;
+}
+.property-details .life__axis {
+  display: block;
+  position: relative;
+  min-height: 1.75em;
+  font-size: var(--text-xs);
+}
+.property-details .life__axis span {
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.property-details .life__axis span:first-child {
+  transform: none;
+}
+.property-details .life__axis span:last-child {
+  transform: translateX(-100%);
+}
+.property-details .life__axis .life__axis-secondary {
+  display: none;
+}
+.property-details .life__bar--off {
+  background: transparent;
+  border: 1px dashed var(--ink-3);
+}
+.property-details .property-lifelines .prov {
+  padding-top: var(--s-3);
+}
+@media (min-width: 960px) {
+  .property-body {
+    padding: 0 var(--s-6) var(--s-6);
+  }
+  .property-basis {
+    padding: var(--s-3) 0;
+  }
+  .property-pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--s-6);
+    margin-bottom: var(--s-6);
+    align-items: start;
+  }
+  .property-pair--prices {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr);
+  }
+  .property-pair--evidence {
+    grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  }
+  .property-details .panel {
+    border-radius: var(--r-md);
+  }
+  .property-head .place-head__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+  }
+  .property-head {
+    padding-bottom: var(--s-4);
+  }
+  .property-summary {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--surface);
+    --focus: var(--here);
+  }
+  .property-summary .small {
+    color: var(--enamel-200);
+  }
+  .property-summary .btn {
+    border-color: var(--surface);
+  }
+  .property-head .place-plate {
+    max-width: none;
+  }
+}
+@media (min-width: 1280px) {
+  .property-details .life__axis .life__axis-secondary {
+    display: block;
+  }
+}

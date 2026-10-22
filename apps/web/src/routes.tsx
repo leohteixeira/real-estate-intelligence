@@ -5,6 +5,7 @@ import { PlaceOverview } from './places/PlaceOverview';
 import { AppShell } from './shell/AppShell';
 import { PlaceEntry } from './shell/PlaceEntry';
 import { SearchResults } from './search/SearchResults';
+import { PropertyDetails } from './properties/PropertyDetails';
 import { defaultPlaceId, destinationPath, publicRoutes } from './shell/public-routes';
 
 export function AppRoutes() {
@@ -15,6 +16,7 @@ export function AppRoutes() {
         element={<LandingPage demoUrl={config.demoUrl} repositoryUrl={config.repositoryUrl} />}
       />
       <Route element={<AppShell />}>
+        <Route path="/properties/:propertyId" element={<PropertyDetails />} />
         {publicRoutes.map(({ destination, path, parameterPath }) => (
           <Route key={destination} path={path}>
             <Route

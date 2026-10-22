@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router';
+import { Link, NavLink } from 'react-router';
 import { destinationPath, publicRoutes } from './public-routes';
 import type { PublicDestination } from './public-routes';
 
@@ -30,21 +30,27 @@ function DestinationIcon({ destination }: { readonly destination: PublicDestinat
 export function PublicNavigation({
   placeId,
   mobile = false,
+  current,
 }: {
-  readonly placeId: string;
+  readonly placeId?: string;
   readonly mobile?: boolean;
+  readonly current?: PublicDestination;
 }) {
   const { t } = useTranslation('shell');
+  const NavigationLink = current === undefined ? NavLink : Link;
   return (
     <nav
       className={mobile ? 'tabbar public-tabs' : 'public-rail-navigation'}
       aria-label={t('navigation')}
     >
       {publicRoutes.map(({ destination }) => (
-        <NavLink
+        <NavigationLink
           key={destination}
           className={mobile ? undefined : 'nav'}
-          to={destinationPath(destination, placeId)}
+          to={placeId ? destinationPath(destination, placeId) : `/${destination}`}
+          {...(current === undefined
+            ? {}
+            : { 'aria-current': destination === current ? ('page' as const) : (false as const) })}
         >
           {mobile ? (
             <span className="ind">
@@ -54,7 +60,7 @@ export function PublicNavigation({
             <DestinationIcon destination={destination} />
           )}
           <span>{t(destination)}</span>
-        </NavLink>
+        </NavigationLink>
       ))}
     </nav>
   );

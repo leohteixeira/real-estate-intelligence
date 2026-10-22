@@ -10,6 +10,7 @@ import { PlacePlate } from '../places/PlacePlate';
 import { formatComputedAt, formatExactMoney, formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { PropertyRow } from '../shared/PropertyRow';
+import { propertyHref } from '../properties/property-navigation';
 import { FilterNoResultsState, LoadErrorState, LoadingState } from '../shared/SystemStates';
 import { activeGroups, parseSearchState, removeGroup, searchHref } from './search-state';
 import type { FilterGroupId } from './search-state';
@@ -79,6 +80,7 @@ function SearchList({
   const locale = i18n.language as Locale;
   const navigate = useNavigate();
   const results = useInfiniteQuery(resultsQuery(query));
+  const location = useLocation();
   const total = useQuery(searchQuery({ placeId: place.id }));
   const neighborhood =
     place.kind === 'neighborhood'
@@ -196,7 +198,10 @@ function SearchList({
             <ul className="rows search-rows" aria-label={t('properties')}>
               {rows.map((property) => (
                 <li key={property.id}>
-                  <PropertyRow property={property} />
+                  <PropertyRow
+                    property={property}
+                    href={propertyHref(property.id, `${location.pathname}${location.search}`)}
+                  />
                 </li>
               ))}
             </ul>

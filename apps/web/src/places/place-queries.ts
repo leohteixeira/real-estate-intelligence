@@ -51,9 +51,9 @@ export const reductionsQuery = (id: string) =>
     queryKey: ['place', id, 'reductions'],
     queryFn: ({ signal }) => client.reductions(id, signal),
   });
-export const propertyQuery = (placeId: string, propertyId: string) =>
+export const propertyQuery = (placeOrPropertyId: string, suppliedPropertyId?: string) =>
   queryOptions({
     ...readPolicy,
-    queryKey: ['place', placeId, 'property', propertyId],
-    queryFn: ({ signal }) => client.property(propertyId, signal),
+    queryKey: ['property', suppliedPropertyId ?? placeOrPropertyId],
+    queryFn: ({ signal }) => client.property(suppliedPropertyId ?? placeOrPropertyId, signal),
   });
