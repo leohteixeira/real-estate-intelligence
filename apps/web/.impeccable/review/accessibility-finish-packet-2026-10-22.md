@@ -6,8 +6,14 @@ preparation document or overlap browser campaigns with root/coverage verificatio
 
 D-073 subsequently made the Ask submit's existing inset invariant outside focus, after
 a native actual-CSS regression failed before the repair. The two browser/evidence helper
-files passed 12/12 afterward (session 50686). Exact root gates are running in session
-68485; all remaining verification is still required. Source/executor bytes changed, so
+files passed 12/12 afterward (session 50686). Exact root session 68485 failed two existing
+five-second AppShell deadlines after lint/typecheck passed. D-074 bounds ordinary web
+workers to two after isolated 16/16 and complete two-worker 541/541 diagnostic passes;
+the unchanged complete root gate subsequently passed all 2,706 tests and builds
+(session 62821, exit 0). Complete eight-workspace coverage passed next (session 81822,
+exit 0), followed by all four native helper files, 18/18 in 30.13s (session 54611).
+The complete browser invocation and finite finish checks are still required.
+Source/executor bytes changed, so
 the production captures listed below are historical calibration/diagnostics and must be
 replaced with opened captures from the new complete invocation before dispatching review.
 
@@ -147,7 +153,7 @@ will be appended only after their current-invocation captures have been opened.
 
 ## Verification and limits
 
-Current source identity:
+Historical pre-D-073/D-074 source identity:
 `bbc3cb94cef6fb9ad841569db77cb7358ad3785e97b4619a0692ec574455b450`.
 Backend:
 `10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`.

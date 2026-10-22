@@ -222,6 +222,17 @@ or canvas composition stay explicit manual findings.
 
 ## Plan Change Log
 
+- 2026-10-22 parent Verify / D-074: root session 68485 passed lint/typecheck but failed
+  two AppShell tests at unchanged 5,000ms deadlines, with 539/541 web passes; build was
+  not reached. The isolated file passed 16/16 in 6.00s (session 31708), and the identical
+  complete web suite passed 541/541 in 48.61s with two workers (session 7036). Record the
+  decision before limiting ordinary web Vitest workers to two, matching existing coverage
+  resource control. No test, assertion, isolation, deadline, discovery or coverage policy
+  changes. Repeat the exact complete root gate, coverage and browser verification serially;
+  retain the original failure rather than substituting these diagnostics for acceptance.
+  The exact complete root gate then passed all 2,706 tests and production builds
+  (session 62821, exit 0); complete eight-workspace coverage passed serially (session
+  81822, exit 0), and all four native helper files passed 18/18 in 30.13s (session 54611).
 - 2026-10-22 parent Verify / D-073: session 43578 terminated with nine passes, a
   reverse-focus failure in recovery EN/390 and 28 unexecuted partitions. Forty isolated
   native traversal cycles and a pre-repair focused production invocation did not reproduce
@@ -447,8 +458,17 @@ passed, recovery EN/390 failed on the Place question's reverse-focus measurement
 28 partitions did not execute. The original failure and same-stop screenshot are
 preserved. D-073 records the subsequent narrowly scoped geometry repair and its red/green
 native regression, without claiming the transient's internal cause. The browser/evidence
-helper files passed 12/12 afterward (session 50686); exact root gates are running in
-session 68485. Owned cleanup and foreign preservation of the failed invocation passed.
+helper files passed 12/12 afterward (session 50686). Root session 68485 then failed
+two unchanged AppShell deadlines after lint/typecheck passed. D-074 records the resulting
+two-worker resource control and required fresh complete gates. Owned cleanup and foreign
+preservation of the failed browser invocation passed.
+The exact complete root command subsequently passed lint, strict typechecking, all
+2,706 unit tests and production builds (session 62821, exit 0). Complete eight-workspace
+coverage passed next with unchanged floors (session 81822, exit 0); the four-file native
+helper batch then passed 18/18 in 30.13s (session 54611, exit 0). The owner's staged-only
+checkpoint commits are `ca5d2ff`, `462184b` and `892362e`; unstaged D-074 changes were
+preserved rather than silently included. Neither these commits nor the complete gates
+accept the still-unexecuted fresh browser matrix.
 The complete matrix test
 audit and finite finish handoffs remain pending. No evaluated source/executor/compiled-
 backend edits are made while a browser invocation runs. Current results and the explicit

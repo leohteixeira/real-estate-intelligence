@@ -60,6 +60,13 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Decision: D-074 bounds ordinary web Vitest execution to two workers, matching coverage's
+  existing resource control after the exact root gate hit two unchanged five-second AppShell
+  deadlines. The isolated file passed 16/16 and the complete two-worker web suite passed
+  541/541 without test changes. Preserve isolation, discovery, assertions, deadlines and
+  coverage floors; retain the failure and repeat the exact complete root gate, coverage
+  and browser verification serially under the new configuration identity
+  (agent, on the owner's behalf, 2026-10-22).
 - Decision: D-073 keeps the Ask submit's existing -5px clipped-group focus inset in its
   base rule as well as its focus rule, after a failed native reverse-focus observation
   disagreed with its same-stop screenshot. Preserve that failed invocation and the

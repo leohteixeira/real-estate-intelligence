@@ -64,8 +64,20 @@ no traversal wait, contrast assertion, timeout or axe rule changed.
 
 The browser/evidence helper suites subsequently passed 12/12 (session 50686, exit 0,
 22.02s), including before/during/after traversal and both native directions. Exact root
-gates are now running in session 68485. Complete coverage, four-file helper verification,
-discovery, a fresh complete 38-partition invocation and the finite finish handoffs
+session 68485 then passed lint/typecheck but failed two AppShell tests at their unchanged
+5,000ms deadlines; 539/541 web tests passed, and build was not reached. The isolated
+AppShell file passed 16/16 in 6.00s (session 31708), while the identical complete web suite
+passed 541/541 in 48.61s with two workers (session 7036). Aggregate test duration fell
+from 150.89s to 61.53s. No assertion mismatch or OOM event was observed. D-074 records
+the decision, before its configuration edit, to bound ordinary web Vitest workers to two,
+matching existing coverage resource control without changing isolation or any deadline.
+The exact complete root gate subsequently passed (session 62821, exit 0), including
+lint, strict typechecking, all 2,706 unit tests and every production build. Web passed
+541/541 with ordinary two-worker execution. Complete eight-workspace V8 coverage then
+passed serially (session 81822, exit 0), preserving all 80%/75% floors. The four native
+helper files passed 18/18 in 30.13s (session 54611, exit 0), including the D-073 regression.
+These complete gates replace neither the failed historical results nor the browser matrix.
+Discovery, a fresh complete 38-partition invocation and the finite finish handoffs
 remain required. The source and executor bytes have changed; all preceding identities
 and the 30 opened production captures below are historical, not current acceptance.
 
@@ -143,7 +155,8 @@ approved attempts, seven explicitly inconclusive setup pilots and seven closed f
 lifecycles. The catalog still declares exactly six semantic scenarios and 38 native test
 partitions; all completed matrix cells match their own scenario and approved attempt, and
 each completed partition has its actual approved boundary attempt. The remaining 31
-partitions are not counted as passed. Session 43578 remains live without a terminal result.
+partitions were not counted as passed. Session 43578 was live at this checkpoint;
+its subsequent terminal failure is recorded above.
 
 The 37,420 recorded roles comprise 37,151 computed observations meeting their applicable
 threshold, the same 264 manual Landing observations, and five actual native-disabled
