@@ -148,6 +148,52 @@ root gates and coverage runs.
       Run exact gates serially, integration discovery/browser and unchanged coverage; use auto-commit
       implementation → tests/evidence → docs → tracker acceptance, never push.
 
+### D-075 receipt privacy repair
+
+**Files:** `integration/support/accessibility-browser.ts`,
+`integration/support/accessibility-browser.test.ts`,
+`integration/web-accessibility.integration.test.ts`; this plan, epic Notes and parent report.
+
+- [x] Add a real Chromium fixture with labelled/unlabelled/wrapped and ARIA-referenced
+      input/textarea controls, including a React-like textarea `textContent` and value.
+      Assert all geometry names and both native keyboard directions retain public labels,
+      preserve button/summary names, and contain no private marker anywhere in their JSON.
+- [x] Run the focused native test before repair and retain its expected failing result:
+
+  ```bash
+  pnpm exec vitest run --config vitest.integration.config.ts \
+    integration/support/accessibility-browser.test.ts -t 'editable operands'
+  ```
+
+  Session 94879 failed the private-value assertion before repair. Session 67359 then
+  passed privacy but rejected a fixture expectation: a wrapped programmatic-only
+  textarea genuinely has its enclosing public label. Correct that expectation, not
+  the privacy assertion or any matrix behavior; focused session 4699 passed afterward.
+
+- [x] Centralize a browser-serializable safe control descriptor. Read ARIA labels/references
+      and associated label text without input/textarea descendants; otherwise use a fixed
+      private-control sentinel. Replace only the three unsafe name fallbacks. Do not read
+      editable values, change structural identities or mutate focus/scroll/style.
+- [x] Before writing contrast/interaction receipts, run
+
+  ```typescript
+  expect(
+    JSON.stringify({ geometry, keyboard, contrast }).includes(privateMarker),
+    'Private local operands must not enter accessibility receipts',
+  ).toBe(false);
+  ```
+
+- [x] Repeat all four helper files: native session 39068 passed 19/19 in 35.45s.
+- [x] Repeat the exact root gate: session 57468 exited 0 with lint, strict typecheck,
+      2,706 unit tests across eight workspaces and every production build passing.
+- [x] Repeat complete unchanged coverage: session 10903 exited 0 across all eight workspaces,
+      retaining the 80% statement/line/function and 75% branch floors independently per package.
+- [x] Repeat native discovery: session 92396 exited 0 with 161 registered tests,
+      including all 38 accessibility partitions and the new native privacy regression.
+- [ ] Refresh and read the baseline diff, then freeze the new executor identity before
+      starting all 38 partitions. Record a progress checkpoint with auto-commit, never
+      story acceptance or push.
+
 **Acceptance Criteria:**
 
 - Given the delivered MVP in owned production HTTP, when every declared locale/layout/state cell
@@ -221,6 +267,15 @@ SVG text uses actual fill/fill-opacity rather than CSS color; ambiguous stroke, 
 or canvas composition stay explicit manual findings.
 
 ## Plan Change Log
+
+- 2026-10-22 parent Verify / D-075: independent JSON receipt audit found the synthetic
+  private operand in 18 Ask interaction artifacts through textarea name fallbacks. Native
+  session 1675 was deliberately stopped with exit 143 before edits; its six completed
+  partitions are diagnostic only. The interrupted recovery PT/390 partition has no final
+  SQL/manifest. At 21:46:46.847 UTC, exact-project containers/volumes/network and its reaper
+  were absent; every pre-interruption foreign resource remained, with no manual deletion.
+  Preserve the original artifacts and repair the executor, not the product interface.
+  The following task extends the existing single BMAD invocation's parent Verify.
 
 - 2026-10-22 parent Verify / D-074: root session 68485 passed lint/typecheck but failed
   two AppShell tests at unchanged 5,000ms deadlines, with 539/541 web passes; build was

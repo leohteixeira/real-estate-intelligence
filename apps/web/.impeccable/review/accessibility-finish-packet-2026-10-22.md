@@ -4,6 +4,18 @@ Status: **not ready for review**. The integral campaign, adaptation captures, fi
 incomplete census and one detector are still pending. Do not infer acceptance from this
 preparation document or overlap browser campaigns with root/coverage verification.
 
+D-075 subsequently found synthetic private operands in 18 Ask interaction JSONs through
+textarea control-name fallbacks. The 21:19 UTC invocation was deliberately interrupted
+with native exit 143 after six completed partitions. Original artifacts remain diagnostic;
+the interrupted partition lacks final SQL/manifest proof. Owned resources are absent and
+foreign inventories preserved. The native privacy regression failed before repair and
+passed afterward; all four helper files passed 19/19 (session 39068). Safe label-only names
+and a pre-write privacy assertion change executor bytes only. The exact root gate passed
+next (session 57468, exit 0, 2,706 unit tests and all builds), followed serially by unchanged
+coverage across all eight workspaces (session 10903, exit 0). Native discovery passed
+(session 92396, exit 0, 161 tests including all 38 accessibility partitions). The fresh
+browser invocation remains pending; no earlier captures authorize finish review.
+
 D-073 subsequently made the Ask submit's existing inset invariant outside focus, after
 a native actual-CSS regression failed before the repair. The two browser/evidence helper
 files passed 12/12 afterward (session 50686). Exact root session 68485 failed two existing

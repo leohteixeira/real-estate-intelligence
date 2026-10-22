@@ -60,6 +60,14 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Decision: D-075 repairs private editable operands leaking through textarea control-name
+  fallbacks in local accessibility receipts. Preserve the original synthetic diagnostic files
+  and deliberately interrupted invocation (native exit 143); use label-only safe descriptions,
+  exclude editable descendants from label text, and assert receipt privacy before writing.
+  Keep product UI, traversal, timing, identities and quality thresholds unchanged. Repeat
+  helpers, complete gates, coverage and all 38 partitions under a fresh executor identity.
+  Exact-project resources are absent and foreign resources preserved; final SQL proof for
+  the interrupted partition remains unavailable (agent, on the owner's behalf, 2026-10-22).
 - Decision: D-074 bounds ordinary web Vitest execution to two workers, matching coverage's
   existing resource control after the exact root gate hit two unchanged five-second AppShell
   deadlines. The isolated file passed 16/16 and the complete two-worker web suite passed

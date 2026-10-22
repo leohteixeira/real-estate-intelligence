@@ -45,6 +45,60 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
+### D-075 — receipt privacy defect and deliberate interruption
+
+The complete invocation begun at 21:19:25.553 UTC (native session 1675) was deliberately
+terminated with exit 143 at 21:44:38.859 UTC before changing executor inputs. Six partitions
+completed (Discovery, Search, keyboard, Details, Ask PT and Ask EN); recovery PT/390 was
+interrupted. Its final SQL readback, ordinary cleanup receipt and final manifest are absent,
+not retroactively inferred. These partial results do not accept the story.
+
+Independent recursive JSON audit found the synthetic private local operand in 18 interaction
+files: local-operands/interrupted/recorded-completed Ask in both locales at three widths.
+The leaked fields are geometry target names, keyboard expected names and both direction-step
+names. The fallback read textarea `textContent`, which also holds a controlled draft's value.
+Network/console leak flags, screenshot masking and sanitized contrast text did not cover this
+artifact path. This is an evidence-collector privacy defect, not proof of a public API write.
+Original artifacts remain unchanged, including the diagnostic synthetic marker.
+
+The interrupted project is `rei-web-accessibility-d6ce086f-79e5-474a-8324-4cdd4a3be0a7`.
+Pre-interruption inventory independently associated its two PostgreSQL volumes (named data
+and anonymous migrations mount) with its four exact containers. At 21:46:46.847 UTC all four
+containers, both volumes and its network were absent, as was its session reaper. All foreign
+container identifiers, volume names and network identifiers from that inventory remained
+present. No manual deletion was performed. This establishes resource preservation, not the
+missing final SQL proof or completion of the interrupted partition.
+
+D-075 requires a native red/green regression, safe label-based control descriptions and a
+privacy assertion before artifact writes. No UI, traversal, focus geometry, waits, contrast
+floor or axe rule changes are planned. Complete gates and all 38 partitions must run again
+under the corrected executor identity; none of these historical passes may be combined.
+
+The focused native regression failed before repair (session 94879): its full measured
+receipt contained the private editable marker. After repair, the privacy assertion passed;
+session 67359 exposed an incorrect fixture expectation for a programmatic-only textarea's
+genuine enclosing public label. Correcting that label expectation preserved the private-value
+assertion. Focused session 4699 then passed, and the complete four-file helper batch passed
+19/19 in 35.45s (session 39068). Both native directions and geometry retain labels without
+clearing values; button/summary descriptors and structural identities remain intact.
+The exact root gate subsequently passed in session 57468 (exit 0): lint, strict typecheck,
+2,706 unit tests across eight workspaces and all production builds. Complete unchanged
+coverage then passed in session 10903 (exit 0), independently retaining every package's
+80% statements/lines/functions and 75% branch floors. The web suite passed 541/541 in both
+runs, with two workers and unchanged five-second deadlines. No browser campaign overlapped.
+Native discovery then passed (session 92396, exit 0): 161 registered tests, including
+all 38 accessibility partitions and the new privacy regression. The fresh integral
+invocation remains pending at this checkpoint.
+The production source inventory remains 187 files at
+`53b66bd4e13b83649dedaa14fd4b8cc02429af7c68c81e80fbc37bea7f158621`;
+the compiled backend remains 1,028 files at
+`10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`.
+The repaired 37-file executor is
+`8ea1600d02fccc9ec988283f6f4cbafb19b97730f67b18aad1b182cd3d2ebd72`.
+These byte inventories are not a substitute for runtime/served identity in the new campaign.
+Exact resource inventories are preserved in the separate append-only
+`accessibility-interruption-d075-2026-10-22.json` supplement.
+
 ### D-073 repair — fresh verification, not acceptance
 
 The original failure remains immutable. Forty isolated native traversal cycles and a
