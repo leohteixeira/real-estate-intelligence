@@ -120,7 +120,7 @@ function SearchList({
             </p>
           ) : null}
         </div>
-        <Link className="btn" to={searchHref(query, true)}>
+        <Link id="search-filters-link" className="btn" to={searchHref(query, true)}>
           {t('filters')}
         </Link>
       </div>

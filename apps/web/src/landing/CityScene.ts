@@ -37,6 +37,7 @@ export interface CitySceneOptions {
 }
 
 export interface CityScene {
+  setMotion(reduced: boolean, paused: boolean): void;
   setProgress(progress: number): void;
   resize(): void;
   dispose(): void;
@@ -205,6 +206,8 @@ export function mountCityScene(
   let frame = 0;
   let last = performance.now();
   let elapsed = 0;
+  let reduced = options.reducedMotion;
+  let paused = false;
 
   function paintCity(progress: number): void {
     const zoneMix = smoothstep(0.4, 1, progress) * (1 - smoothstep(1.2, 1.9, progress));
@@ -288,7 +291,7 @@ export function mountCityScene(
       .sub(target)
       .multiplyScalar(portrait ? PORTRAIT_PULLBACK : 1);
 
-    if (!options.reducedMotion) {
+    if (!reduced && !paused) {
       const plan = smoothstep(3.3, 4, progress);
       offset.applyAxisAngle(camera.up, Math.sin(seconds * 0.16) * 0.07 * (1 - plan));
     }
@@ -319,16 +322,17 @@ export function mountCityScene(
       return;
     }
 
-    elapsed += delta;
-    current = options.reducedMotion
-      ? wanted
-      : current + (wanted - current) * (1 - Math.exp(-delta * 6));
+    if (!reduced && !paused) elapsed += delta;
+    current =
+      reduced || paused
+        ? Math.round(wanted)
+        : current + (wanted - current) * (1 - Math.exp(-delta * 6));
 
     if (Math.abs(current - painted) > 0.002) {
       paintCity(current);
       painted = current;
     }
-    if (pulses.visible) {
+    if (pulses.visible && !reduced && !paused) {
       movePulses(elapsed);
     }
 
@@ -370,6 +374,10 @@ export function mountCityScene(
   frame = requestAnimationFrame(render);
 
   return {
+    setMotion(nextReduced: boolean, nextPaused: boolean): void {
+      reduced = nextReduced;
+      paused = nextPaused;
+    },
     setProgress(progress: number): void {
       wanted = Math.min(LAST_STAGE, Math.max(0, progress));
     },

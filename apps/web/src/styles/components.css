@@ -440,6 +440,10 @@
 .ask__box button:hover {
   background: var(--enamel-700);
 }
+.ask__box button:focus-visible {
+  outline-color: #fff;
+  outline-offset: -5px;
+}
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -475,6 +479,8 @@
   background: var(--enamel-600);
   border-color: var(--enamel-600);
   color: #fff;
+  /* White text and its opaque ground must swap atomically when re-enabled. */
+  transition: border-color var(--dur-1) var(--ease-out);
 }
 .btn--primary:hover {
   background: var(--enamel-700);

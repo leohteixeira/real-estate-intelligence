@@ -51,6 +51,8 @@ export interface LandingCopy {
   readonly htmlLang: string;
   readonly documentTitle: string;
   readonly skip: string;
+  readonly pauseMotion: string;
+  readonly resumeMotion: string;
   readonly languageLabel: string;
   readonly stopsLabel: string;
   readonly here: string;
@@ -115,6 +117,8 @@ function english(): LandingCopy {
     htmlLang: 'en',
     documentTitle: 'Real Estate Intelligence — read the market, not the listings',
     skip: 'Skip to the content',
+    pauseMotion: 'Pause city motion',
+    resumeMotion: 'Resume city motion',
     languageLabel: 'Language',
     stopsLabel: 'Stops on the way down',
     here: 'You are here',
@@ -302,6 +306,8 @@ function portuguese(): LandingCopy {
     htmlLang: 'pt-BR',
     documentTitle: 'Real Estate Intelligence — leia o mercado, não os anúncios',
     skip: 'Ir para o conteúdo',
+    pauseMotion: 'Pausar movimento da cidade',
+    resumeMotion: 'Retomar movimento da cidade',
     languageLabel: 'Idioma',
     stopsLabel: 'Paradas da descida',
     here: 'Você está aqui',

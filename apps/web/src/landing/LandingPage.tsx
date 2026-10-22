@@ -73,6 +73,16 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
   const locale: Locale = i18n.language === 'en' ? 'en' : 'pt';
   const [stage, setStage] = useState(0);
   const [flat, setFlat] = useState(false);
+  const [reduced, setReduced] = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  const [paused, setPaused] = useState(false);
+  const sceneRef = useRef<CityScene | null>(null);
+  const motionRef = useRef({ reduced, paused });
+  useEffect(() => {
+    motionRef.current = { reduced, paused };
+    sceneRef.current?.setMotion(reduced, paused);
+  }, [reduced, paused]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const hereRef = useRef<HTMLDivElement>(null);
   const stopsRef = useRef<HTMLDivElement>(null);
@@ -95,6 +105,8 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
     }
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onMotion = () => setReduced(motionQuery.matches);
+    motionQuery.addEventListener('change', onMotion);
     const sections = Array.from(stops.children);
     let scene: CityScene | null = null;
     let cancelled = false;
@@ -153,6 +165,8 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
         });
 
         if (scene) {
+          sceneRef.current = scene;
+          scene.setMotion(motionRef.current.reduced, motionRef.current.paused);
           schedule();
         } else {
           setFlat(true);
@@ -168,10 +182,12 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
 
     return () => {
       cancelled = true;
+      motionQuery.removeEventListener('change', onMotion);
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', onResize);
       cancelAnimationFrame(queued);
       scene?.dispose();
+      sceneRef.current = null;
     };
   }, []);
 
@@ -207,7 +223,11 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
   );
 
   return (
-    <div className={flat ? 'lp lp--flat' : 'lp'} onClick={followInPageLink}>
+    <div
+      className={flat ? 'lp lp--flat' : 'lp'}
+      data-motion={reduced || paused ? 'paused' : 'running'}
+      onClick={followInPageLink}
+    >
       <a className="lp-skip" href="#zone">
         {copy.skip}
       </a>
@@ -240,16 +260,12 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
 
       <main>
         <section className="lp-journey">
-          <div className="lp-stage">
-            <canvas ref={canvasRef} className="lp-canvas" aria-hidden="true" />
-            <div className="lp-scrim" aria-hidden="true" />
-            <div ref={hereRef} className="lp-here" data-shown="false" aria-hidden="true">
-              <div className="lp-here__card">
-                <span className="lp-here__tag">{copy.here}</span>
-                <Plate plate={current?.plate ?? { over: '', name: '', strip: '', zone: 'city' }} />
-              </div>
-              <span className="lp-here__stem" />
-            </div>
+          <div className="lp-controls">
+            {!flat && !reduced ? (
+              <button className="lp-motion" type="button" onClick={() => setPaused(!paused)}>
+                {paused ? copy.resumeMotion : copy.pauseMotion}
+              </button>
+            ) : null}
             <nav className="lp-way" aria-label={copy.stopsLabel}>
               <ol>
                 {copy.stops.map((stop, index) => (
@@ -262,6 +278,17 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
                 ))}
               </ol>
             </nav>
+          </div>
+          <div className="lp-stage">
+            <canvas ref={canvasRef} className="lp-canvas" aria-hidden="true" />
+            <div className="lp-scrim" aria-hidden="true" />
+            <div ref={hereRef} className="lp-here" data-shown="false" aria-hidden="true">
+              <div className="lp-here__card">
+                <span className="lp-here__tag">{copy.here}</span>
+                <Plate plate={current?.plate ?? { over: '', name: '', strip: '', zone: 'city' }} />
+              </div>
+              <span className="lp-here__stem" />
+            </div>
           </div>
 
           <div className="lp-stops" ref={stopsRef}>

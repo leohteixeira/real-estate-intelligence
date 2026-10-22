@@ -6,6 +6,10 @@ html:has(.lp) {
   scroll-behavior: smooth;
   scrollbar-color: var(--enamel-600) var(--enamel-900);
 }
+/* Keyboard focus must arrive with its target, not trail a long smooth tour scroll. */
+html:has(.lp :focus-visible) {
+  scroll-behavior: auto;
+}
 body:has(.lp) {
   margin: 0;
   background: var(--enamel-900);
@@ -52,9 +56,12 @@ body:has(.lp) {
   outline-offset: 3px;
   border-radius: var(--r-xs);
 }
+.lp :is(a, button) {
+  scroll-margin-top: calc(var(--lp-top) + var(--s-3));
+}
 
 .lp-skip {
-  position: absolute;
+  position: fixed;
   left: var(--lp-pad);
   top: -100px;
   z-index: 30;
@@ -126,7 +133,7 @@ body:has(.lp) {
 }
 .lp-lang button {
   min-width: var(--target);
-  height: 36px;
+  height: var(--target);
   padding: 0 var(--s-3);
   border: 0;
   background: transparent;
@@ -154,6 +161,21 @@ body:has(.lp) {
 }
 
 /* ---------- Buttons ---------- */
+.lp-motion {
+  position: absolute;
+  z-index: 4;
+  top: var(--s-3);
+  right: var(--s-3);
+  max-width: calc(100% - 2 * var(--s-3));
+  min-height: var(--target);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--lp-soft);
+  border-radius: var(--r-md);
+  background: var(--enamel-800);
+  color: #fff;
+  font: 600 var(--text-sm) / 1.4 var(--font-ui);
+  cursor: pointer;
+}
 .lp-btn {
   display: inline-flex;
   align-items: center;
@@ -302,9 +324,30 @@ body:has(.lp) {
 .lp-journey {
   position: relative;
 }
+/* Keep the scene beneath the copy. Only focused controls rise above scrolling copy,
+ * with a local Placa ground, so enlarged keyboard focus cannot disappear behind it. */
+.lp-controls {
+  position: sticky;
+  top: calc(var(--lp-top) + env(safe-area-inset-top, 0px));
+  /* Reserve the scene's sticky footprint without changing the scene/copy flow.
+   * A zero-height sticky box lets its children paint past the journey onto porcelain. */
+  height: var(--lp-stage-h);
+  pointer-events: none;
+  z-index: 1;
+}
+.lp-controls > :is(.lp-motion, .lp-way) {
+  pointer-events: auto;
+}
+.lp-controls:focus-within {
+  z-index: 3;
+}
+.lp-way:focus-within {
+  box-shadow: 0 0 0 6px var(--enamel-900);
+}
 .lp-stage {
   position: sticky;
   top: calc(var(--lp-top) + env(safe-area-inset-top, 0px));
+  margin-top: calc(-1 * var(--lp-stage-h));
   height: var(--lp-stage-h);
   overflow: hidden;
   background: var(--enamel-800);
@@ -382,6 +425,15 @@ body:has(.lp) {
   top: var(--s-2);
   left: var(--lp-pad);
   right: var(--lp-pad);
+  /* Scene lighting must not determine the contrast of readable stop names. */
+  background: var(--enamel-900);
+  border-radius: var(--r-xs);
+}
+@media (max-width: 959px) {
+  /* A running scene has a separate pause row; it must not cover the tour targets. */
+  .lp-controls:has(.lp-motion) .lp-way {
+    top: calc(var(--s-3) + var(--target) + var(--s-2));
+  }
 }
 .lp-way ol {
   display: flex;
@@ -392,7 +444,7 @@ body:has(.lp) {
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  min-width: 32px;
+  min-width: var(--target);
   min-height: var(--target);
   color: var(--lp-soft);
   font-family: var(--font-plate);
@@ -435,6 +487,7 @@ body:has(.lp) {
 
 .lp-stops {
   position: relative;
+  z-index: 2;
   margin-top: calc(-1 * var(--lp-stage-h));
   pointer-events: none;
 }
@@ -760,10 +813,11 @@ body:has(.lp) {
     display: inline-flex;
   }
   .lp-scrim {
+    /* Copy ends by 47.5vw: keep its full width over the strong scrim. */
     background: linear-gradient(
       90deg,
       rgba(11, 44, 107, 0.96) 0%,
-      rgba(11, 44, 107, 0.9) 34%,
+      rgba(11, 44, 107, 0.9) 48%,
       rgba(11, 44, 107, 0) 62%
     );
   }
@@ -777,7 +831,7 @@ body:has(.lp) {
     font-size: var(--text-2xl);
   }
   .lp-way {
-    top: 50%;
+    top: calc(var(--lp-stage-h) / 2);
     left: auto;
     right: clamp(16px, 2.4vw, 40px);
     transform: translateY(-50%);
@@ -794,7 +848,7 @@ body:has(.lp) {
     display: flex;
     flex-direction: row-reverse;
     justify-content: flex-start;
-    min-height: 36px;
+    min-height: var(--target);
   }
   .lp-way a:not([aria-current='step']) .lp-way__name {
     position: static;
@@ -852,7 +906,7 @@ body:has(.lp) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
+  html:has(.lp) {
     scroll-behavior: auto;
   }
   .lp *,

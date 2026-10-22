@@ -137,6 +137,13 @@
   min-width: 0;
   min-height: var(--target);
 }
+.search-filters .seg button:focus-visible {
+  outline-color: var(--enamel-600);
+  outline-offset: -5px;
+}
+.search-filters .seg button[aria-pressed='true']:focus-visible {
+  outline-color: #fff;
+}
 .search-filters input,
 .search-filters select {
   min-width: 0;

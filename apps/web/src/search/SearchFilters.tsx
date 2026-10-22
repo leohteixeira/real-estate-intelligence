@@ -71,10 +71,27 @@ export function SearchFilters({
     { label: 'perMeter', min: 'minPricePerSquareMeter', max: 'maxPricePerSquareMeter' },
     { label: 'area', min: 'minArea', max: 'maxArea' },
   ] as const;
+  const invalidRanges = new Set(
+    ranges
+      .filter(
+        (range) =>
+          !draftQuery(
+            {
+              ...toDraft({ placeId: draft.placeId }, editing.locale),
+              [range.min]: draft[range.min],
+              [range.max]: draft[range.max],
+            },
+            editing.locale,
+          ).valid,
+      )
+      .map((range) => range.label),
+  );
   return (
     <section className="search-filters" aria-labelledby="filters-title">
       <header className="shell search-filters__head">
-        <h2 id="filters-title">{t('filters')}</h2>
+        <h2 id="filters-title" tabIndex={-1}>
+          {t('filters')}
+        </h2>
         <Link className="iconbtn" to={searchHref(query)} aria-label={t('close')}>
           <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
@@ -151,8 +168,8 @@ export function SearchFilters({
                   <input
                     id={field.key}
                     aria-label={`${t(range.label)} — ${t(field.label)}`}
-                    aria-invalid={!validated.valid}
-                    aria-describedby={!validated.valid ? 'draft-error' : undefined}
+                    aria-invalid={invalidRanges.has(range.label)}
+                    aria-describedby={invalidRanges.has(range.label) ? 'draft-error' : undefined}
                     inputMode="decimal"
                     type="text"
                     placeholder={t('any')}

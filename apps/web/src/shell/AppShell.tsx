@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, Outlet, useMatch } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import { LocaleControls } from '../places/LocaleControls';
 import {
   placesQuery,
@@ -18,6 +18,22 @@ import { defaultPlaceId, destinationPath, publicRoutes } from './public-routes';
 
 export function AppShell({ documentMode = false }: { readonly documentMode?: boolean }) {
   const { t, i18n } = useTranslation('shell');
+  const location = useLocation();
+  const filtersOpen = new URLSearchParams(location.search).get('view') === 'filters';
+  const route = `${location.pathname}:${String(filtersOpen)}`;
+  const previousRoute = useRef(route);
+  useEffect(() => {
+    if (previousRoute.current === route) return;
+    const wasFilters = previousRoute.current.endsWith(':true');
+    previousRoute.current = route;
+    if (location.hash) return;
+    const target = filtersOpen
+      ? document.getElementById('filters-title')
+      : wasFilters
+        ? document.getElementById('search-filters-link')
+        : document.getElementById('public-content');
+    (target ?? document.getElementById('public-content'))?.focus();
+  }, [route, filtersOpen, location.hash]);
   const { t: placeText } = useTranslation('place');
   const match = useMatch('/:destination/:placeId');
   const propertyMatch = useMatch('/properties/:propertyId');
@@ -63,6 +79,16 @@ export function AppShell({ documentMode = false }: { readonly documentMode?: boo
     <div
       className={`rei place-app${detailMatch ? ' property-app' : ''}${listingMatch ? ' listing-app' : ''}`}
     >
+      <a
+        className="public-skip"
+        href="#public-content"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById('public-content')?.focus();
+        }}
+      >
+        {t('skip')}
+      </a>
       <aside className="rail place-rail">
         <Link className="brand" to="/">
           Real Estate
@@ -113,7 +139,9 @@ export function AppShell({ documentMode = false }: { readonly documentMode?: boo
             ) : null}
           </nav>
         )}
-        <Outlet />
+        <div id="public-content" tabIndex={-1}>
+          <Outlet />
+        </div>
         <footer className="public-footer">
           <LocaleControls />
           <p>{t('synthetic')}</p>

@@ -15,6 +15,36 @@ body:has(.lp) {
 .place-app {
   min-height: 100svh;
 }
+.public-skip {
+  position: fixed;
+  z-index: 100;
+  top: -100px;
+  left: var(--s-3);
+  min-width: var(--target);
+  min-height: var(--target);
+  padding: var(--s-3);
+  background: var(--surface);
+  color: var(--enamel-800);
+}
+.public-skip:focus {
+  top: var(--s-3);
+}
+.place-app .lang button:focus-visible {
+  outline-offset: -5px;
+  outline-color: var(--surface);
+}
+.place-app .lang button[aria-pressed='true']:focus-visible,
+.public-footer .lang button:focus-visible {
+  outline-color: var(--enamel-600);
+}
+.public-footer .lang button[aria-pressed='true']:focus-visible {
+  outline-color: var(--surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has(.lp) {
+    scroll-behavior: auto;
+  }
+}
 .place-rail {
   display: none;
 }
@@ -131,6 +161,7 @@ body:has(.lp) {
   overflow-wrap: anywhere;
 }
 .place-head .crumbs a {
+  min-width: var(--target);
   min-height: var(--target);
 }
 .place-plate {
@@ -164,6 +195,10 @@ body:has(.lp) {
 }
 .place-provenance .tag {
   align-self: center;
+  max-width: 100%;
+  height: auto;
+  min-height: 20px;
+  white-space: normal;
 }
 .prov__sources > span {
   column-gap: var(--s-1);

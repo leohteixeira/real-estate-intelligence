@@ -187,6 +187,7 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
 };
 
 const shellPT = {
+  skip: 'Pular para o conteúdo',
   privacy: 'Privacidade',
   places: 'Lugares',
   search: 'Buscar',
@@ -196,6 +197,7 @@ const shellPT = {
   synthetic: 'Dados sintéticos',
 };
 const shellEN: { readonly [K in keyof typeof shellPT]: string } = {
+  skip: 'Skip to the content',
   privacy: 'Privacy',
   places: 'Places',
   search: 'Search',
