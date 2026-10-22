@@ -1,6 +1,0 @@
-{
-  "url": "http://127.0.0.1:46343/privacy#retention",
-  "reads": ["/api/v1/collection/sources"],
-  "outside": [],
-  "forbidden": []
-}
