@@ -1,9 +1,9 @@
 ---
 title: 'Ask: confirmation and the run states'
 type: 'feature'
-ticket: '6.16'
+ticket: '16'
 created: '2026-10-22'
-status: 'built'
+status: done
 baseline_revision: '2659a7a2ebbd6f10d8f474b3446e67bdfc06572a'
 route: 'full'
 route_source: 'auto'
@@ -287,6 +287,26 @@ remain separate acceptance gates.
 - Residual limits: prepared synthetic read-only execution, not accepted visitor inputs, live
   confirm/cancel, durable runs, models, quotas/capacity/deadlines, deployment or comprehensive
   accessibility certification. The owner retains all VPS-dependent unlocks. No push was made.
+
+## Orchestrator Acceptance
+
+Accepted locally on 2026-10-22 after the completed build, matrix audit, independent visual finish,
+documentation handoff and quick technical review. The ticket's fixture-based confirmation verify
+passes under D-068: awaiting GET stays paused, explicit recorded-continuation reading reaches its
+received terminal, and all seven catalogue states render independently. Local visitor edits are
+not submitted or accepted; this acceptance does not unlock live mutation or VPS-dependent work.
+
+Reviewed changes were committed as `f17f629` (implementation), `46d15d3` (tests) and `ea2504d`
+(documentation/evidence), with active hooks. The documentation hook initially rejected long
+Markdown lines; only wrapping/code presentation was corrected, normalized intent content remained
+identical, and the complete hook rerun passed. No hook/configuration was weakened. Parent then
+rechecked both final campaign source and manifest hashes and the unchanged design fingerprints.
+The repository was clean after these three commits.
+
+The final tracker readback exposed a metadata-only join mismatch: plan `ticket` must be the local
+epic entry `16`, not the qualified dispatch `6.16`. Corrected that field without changing intent;
+`tickets.py find` then read `built`, and `tickets.py mark ... 6.16 done` succeeded. This acceptance
+commit records the actual tracker status; no production/test source changed after verification.
 
 ## Design Notes
 
