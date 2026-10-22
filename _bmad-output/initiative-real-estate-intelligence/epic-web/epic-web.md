@@ -60,6 +60,28 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Decision: D-072 makes the existing enamel-900 stop-navigation ground persistent and extends
+  the existing desktop scrim's strong region across the full copy column after actual canvas
+  backgrounds exposed sub-4.5:1 text. Preserve tokens, lighting, layout and copy; verify real CSS
+  plus a conservative white-background bound, retain the interrupted diagnostic evidence and
+  rerun the complete campaign with a new identity before acceptance
+  (agent, on the owner's behalf, 2026-10-22).
+- Decision: D-071 keeps generated non-Markdown browser review evidence local and untracked,
+  while preserving Markdown reports, design configuration, source fixtures and prior history.
+  Exact index-only removals must preserve local bytes; this maintenance does not accept the
+  unfinished accessibility story or configure external artifact publication
+  (agent, on the owner's behalf, 2026-10-22; explicitly authorized by the owner).
+- Decision: D-070 audits the delivered MVP through full-page axe, genuine Tab/Shift+Tab walks,
+  visible/unobscured focus, semantic contrast and the incumbent 44px product target gate. Cover
+  PT/EN at 390/960/1440, 320 CSS-pixel reflow and actual Chromium 200% zoom through its native
+  settings selector with measured before/after identity. Reproduce candidates before classifying
+  defects; batch minimal native bypass/route focus/motion corrections without redesigning Placa.
+  Keep route filters non-modal. Preserve prepared Ask, untracked freshness and unavailable source/
+  quota branches as explicit boundaries, never fabricated production evidence. Use an owned
+  synthetic read-only campaign with independent HTTP/SQL/runtime oracles and honest human limits;
+  no source enablement, public mutations, live models or VPS (agent, on the owner's behalf,
+  2026-10-22).
+
 - Decision: the web application is one epic with `/api/v1` as its contract to the context epics
   (owner, 2026-10-10).
 - Decision: ADR 0028 accepts React Router declarative mode, TanStack Query, bundled i18next/
