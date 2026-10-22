@@ -4,9 +4,10 @@ import {
   validSearchReturn,
   propertyNeighborhood,
   isPropertyId,
+  listingHref,
 } from './property-navigation';
 import { propertyFixture } from '../places/overview-fixtures.test';
-import { propertyQuery } from '../places/place-queries';
+import { propertyQuery, listingQuery, readPolicy } from '../places/place-queries';
 
 describe('Property navigation', () => {
   it('preserves the exact validated applied Search URL', () => {
@@ -15,6 +16,14 @@ describe('Property navigation', () => {
     expect(propertyHref(propertyFixture.property.summary.id, path)).toContain(
       encodeURIComponent(path),
     );
+    expect(listingHref(propertyFixture.property.summary.id, path)).toBe(
+      `/listings/${propertyFixture.property.summary.id}?returnTo=${encodeURIComponent(path)}`,
+    );
+    expect(listingHref(propertyFixture.property.summary.id, 'https://evil.invalid')).toBe(
+      `/listings/${propertyFixture.property.summary.id}`,
+    );
+    expect(listingQuery('id').queryKey).toEqual(['listing', 'id']);
+    expect(listingQuery('id')).toMatchObject(readPolicy);
   });
   it.each([
     'https://evil.invalid/search/a',

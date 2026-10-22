@@ -137,6 +137,16 @@ export async function checkProperty(
     expect(await evidence.textContent()).toContain(propertyDate(listing.firstCollectedAt, locale));
     expect(await evidence.textContent()).toContain(propertyDate(listing.lastCollectedAt, locale));
     expect(await evidence.textContent()).toContain(String(listing.collectionCount));
+    expect(
+      await evidence
+        .getByRole('link', {
+          name:
+            locale === 'en'
+              ? `Inspect listing at ${listing.source.label}`
+              : `Inspecionar anúncio na ${listing.source.label}`,
+        })
+        .getAttribute('href'),
+    ).toMatch(new RegExp(`^/listings/${listing.id}(?:\\?|$)`));
     await disclosure.locator(':scope > summary').click();
   }
   await page.locator('.property-feature-details > summary').click();

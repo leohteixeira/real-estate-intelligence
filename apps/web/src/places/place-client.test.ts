@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPlaceClient, isPlaceId, PlaceReadError } from './place-client';
 import { bela, marketFixture, metadata, pinheiros, placesFixture } from './place-fixtures.test';
+import { listingFixture } from '../listings/listing-fixtures.test';
 import {
   neighboursFixture,
   seriesFixture,
@@ -11,6 +12,37 @@ import {
 
 afterEach(() => vi.unstubAllGlobals());
 describe('public place reads', () => {
+  it('validates Listing UUIDv7, exact response identity, unknown JSON and cancellation', async () => {
+    const fixture = listingFixture(),
+      signal = new AbortController().signal;
+    const request = vi.fn().mockResolvedValue(new Response(JSON.stringify(fixture)));
+    vi.stubGlobal('fetch', request);
+    const client = createPlaceClient();
+    expect(await client.listing(fixture.listing.id, signal)).toEqual(fixture);
+    expect(request).toHaveBeenLastCalledWith(`/api/v1/listings/${fixture.listing.id}`, {
+      signal,
+      headers: { Accept: 'application/json' },
+    });
+    for (const id of ['bad-id', '../private', fixture.listing.id.replace('-7000-', '-4000-')]) {
+      request.mockClear();
+      await expect(client.listing(id, signal)).rejects.toMatchObject({ status: 400 });
+      expect(request).not.toHaveBeenCalled();
+    }
+    request.mockResolvedValue(new Response('{}'));
+    await expect(client.listing(fixture.listing.id, signal)).rejects.toMatchObject({ status: 502 });
+    request.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ...fixture,
+          listing: { ...fixture.listing, id: '0199a3e0-0000-7000-8000-000000000888' },
+        }),
+      ),
+    );
+    await expect(client.listing(fixture.listing.id, signal)).rejects.toMatchObject({ status: 502 });
+    const abort = new DOMException('Aborted', 'AbortError');
+    request.mockRejectedValue(abort);
+    await expect(client.listing(fixture.listing.id, signal)).rejects.toBe(abort);
+  });
   it('validates all ancillary identities, unknown JSON and unchanged cancellation', async () => {
     const request = vi.fn();
     vi.stubGlobal('fetch', request);
