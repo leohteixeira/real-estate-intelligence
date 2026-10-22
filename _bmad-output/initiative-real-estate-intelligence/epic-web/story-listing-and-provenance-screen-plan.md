@@ -3,7 +3,7 @@ title: 'Listing and provenance screen'
 type: 'feature'
 ticket: '8'
 created: '2026-10-22'
-status: 'built'
+status: done
 baseline_revision: 'be21042c84fab22bae0f120ec241e243e6aa37ea'
 route: 'full'
 route_source: 'auto'
@@ -530,3 +530,21 @@ in historical reports refer to their stated write boundaries. No backend, extern
 deployment, environment variable, branch or provider-key change was introduced. No push is
 authorized. Ticket acceptance follows reviewed commits and the orchestrator continues the next ready
 story.
+
+### Ticket acceptance
+
+Story 6.8 was marked done only after reviewed implementation, tests and evidence
+were committed, with a clean worktree at the BMad built boundary:
+
+- Implementation: `a91b4c36d056f8747275b92568b81f533df9dce3`.
+- Tests: `3191a8b5c3362dace1da5db24f4584f83f56f491`.
+- Documentation/evidence: `d4b9d11d8d6620e9537c5be403e2ae057cf3d380`.
+
+All hooks remained enabled. The first documentation commit attempt failed
+Markdown line-length checks; mechanical prose wrapping and fenced long commands
+repaired it without changing intent words, assertions or product source. The new
+commit passed every hook. After hook formatting, the final seven-journey ledger
+audit still passed and all 161 final surface hashes matched. Six incidental Ask
+JSON whitespace diffs returned to their baseline bytes rather than becoming
+product changes. Historical report preservation hashes retain their stated
+pre-format write boundaries. No deployment or VPS acceptance is implied.
