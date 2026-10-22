@@ -12,6 +12,7 @@ describe('locale preference', () => {
       'shared',
       'property',
       'listing',
+      'privacy',
     ]);
     for (const namespace of [
       'shell',
@@ -21,6 +22,7 @@ describe('locale preference', () => {
       'shared',
       'property',
       'listing',
+      'privacy',
     ] as const) {
       expect(Object.keys(resources.en[namespace])).toEqual(
         Object.keys(resources['pt-BR'][namespace]),

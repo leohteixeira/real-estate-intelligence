@@ -117,7 +117,7 @@ describe('public shell', () => {
       1,
     );
     expect(
-      screen.queryByRole('link', { name: /Market|Mercado|Operations|Privacy|More|Alerts/ }),
+      screen.queryByRole('link', { name: /Market|Mercado|Operations|More|Alerts/ }),
     ).not.toBeInTheDocument();
   });
   it.each(['places', 'search', 'ask'])('defaults /%s to Bela Vista', async (destination) => {

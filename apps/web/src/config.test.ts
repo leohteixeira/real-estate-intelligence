@@ -33,4 +33,48 @@ describe('readConfig', () => {
       'https://git.example.test/rei',
     );
   });
+
+  it('keeps privacy publication absent by default and preserves safe synthetic configured text', () => {
+    expect(readConfig({})).toMatchObject({
+      privacyControllerName: null,
+      privacyContactEmail: null,
+    });
+    expect(
+      readConfig({
+        VITE_PRIVACY_CONTROLLER_NAME: ' Synthetic Privacy Controller ',
+        VITE_PRIVACY_CONTACT_EMAIL: 'privacy+fixture@example.test',
+      }),
+    ).toMatchObject({
+      privacyControllerName: 'Synthetic Privacy Controller',
+      privacyContactEmail: 'privacy+fixture@example.test',
+    });
+  });
+  it.each([
+    '',
+    ' ',
+    'name\r\ninjection',
+    'name\u0000',
+    '<script>identity</script>',
+    'x'.repeat(201),
+  ])('rejects unsafe or blank controller name %#', (name) => {
+    expect(readConfig({ VITE_PRIVACY_CONTROLLER_NAME: name }).privacyControllerName).toBeNull();
+  });
+  it.each([
+    '',
+    ' ',
+    'invalid',
+    'name@example.test\r\nBcc:other@example.test',
+    'name@example.test?subject=injected',
+    'name@example.test#injected',
+    'name%0d%0a@example.test',
+    ' name@example.test',
+    '.name@example.test',
+    'name..other@example.test',
+    'name@-example.test',
+    'name@example',
+    'x'.repeat(65) + '@example.test',
+    'name@' + 'x'.repeat(250) + '.test',
+  ])('rejects unusable or mailto-injecting email %#', (email) => {
+    expect(readConfig({ VITE_PRIVACY_CONTACT_EMAIL: email }).privacyContactEmail).toBeNull();
+  });
 });
