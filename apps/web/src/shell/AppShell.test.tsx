@@ -111,7 +111,7 @@ describe('public shell', () => {
     await screen.findByRole('heading', { name: 'Buscar' });
     await userEvent.click(screen.getByRole('button', { name: 'Forward' }));
     await screen.findByRole('heading', { name: 'Perguntar' });
-    await userEvent.click(screen.getByRole('link', { name: 'Ver a mediana do lugar' }));
+    await userEvent.click(nav.getByRole('link', { name: 'Lugares' }));
     await screen.findByText('R$ 9.515');
     expect(request.mock.calls.filter(([url]) => url === `/api/v1/places/${bela.id}`)).toHaveLength(
       1,

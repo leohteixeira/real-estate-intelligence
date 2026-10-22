@@ -65,7 +65,7 @@ describe('geographic public entries', () => {
     reads();
     mount(`/ask/${bela.id}`, state);
     await screen.findByRole('heading', { name: 'Bela Vista' });
-    expect(screen.queryByText('Rascunho da pergunta')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Rascunho da pergunta' })).toHaveValue('');
   });
   it('never displays an Ask draft in Search', async () => {
     reads();
@@ -86,15 +86,12 @@ describe('geographic public entries', () => {
         );
         expect(screen.getByRole('combobox', { name: 'Ordenar' })).toBeVisible();
       } else {
+        expect(screen.getByRole('textbox', { name: 'Rascunho da pergunta' })).toHaveValue('');
         expect(
-          screen.getByText('A tela de execuções ainda não está disponível nesta versão.'),
-        ).toBeVisible();
-        expect(screen.getByRole('link', { name: 'Ver a mediana do lugar' })).toHaveAttribute(
-          'href',
-          `/places/${bela.id}`,
-        );
+          screen.getByRole('button', { name: 'Acompanhar o exemplo preparado' }),
+        ).toBeEnabled();
       }
-      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      if (destination === 'search') expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(
         request.mock.calls.some(([url]) => url.endsWith('/market') || url.includes('/ask')),
       ).toBe(false);
