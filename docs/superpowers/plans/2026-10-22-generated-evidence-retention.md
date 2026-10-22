@@ -53,7 +53,10 @@ generated paths.
 
 - [x] Format/lint the new Markdown and inspect the actual diff. Do not include the unfinished
       accessibility implementation, tests, plan or reports.
-- [ ] Use the auto-commit workflow for one logical commit:
+- [x] Use the auto-commit workflow for one logical commit:
       `chore: keep generated browser evidence out of git`.
-- [ ] Verify the commit, remaining status and local evidence inventory. Existing artifacts
+- [x] Verify the commit, remaining status and local evidence inventory. Existing artifacts
       remain in prior commits; no history rewrite or disk deletion occurs.
+
+Completed in `ca05515f5f70313dbdbe5b586bafcfbce995fa74`; the remaining 29 changes belong to
+the unfinished accessibility implementation. Markdown and secret hooks passed; no push occurred.
