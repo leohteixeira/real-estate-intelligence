@@ -3,7 +3,7 @@ title: 'Privacy notice'
 type: 'feature'
 ticket: '10'
 created: '2026-10-22'
-status: 'built'
+status: done
 baseline_revision: 'c7e2688adaf427116024d31726b753b7181fed5c'
 route: 'full'
 route_source: 'auto'
