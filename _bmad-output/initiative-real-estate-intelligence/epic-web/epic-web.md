@@ -223,3 +223,13 @@ shared with another epic, Description says which part this epic delivers.
   D-066 boundaries remain (agent, on the owner's behalf, 2026-10-22).
 - Assumption: places come from epic-properties (entry 3.3) and the sources with their licence from
   epic-collection (entry 2.4).
+- Decision: D-068 extends prepared Ask with all seven catalogue snapshots, an inspectable
+  confirmation pause, editable unsent operands and a separate explicitly recorded-preview action.
+  Show actual proposal/confidence/degraded facts and no premature result; preserve original and
+  recorded-confirmation operands separately. Local edits are never accepted by this read-only
+  backend, and stopping a read never cancels a run. Terminal reasons and manual recovery are
+  localized; unavailable intent keeps its manual route. Quota, capacity, queue position and expiry
+  deadline remain explicitly unavailable where absent from the contract. Verify actual HTTP/SSE
+  and browser read continuation with no POST or SQL changes, not interactive persisted execution;
+  keep live confirmation/cancellation and runtime limits in their Ask stories. Preserve Placa,
+  typed Vitest integration, every gate and VPS blocks (agent, on the owner's behalf, 2026-10-22).

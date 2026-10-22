@@ -1,0 +1,21 @@
+{
+  "forbidden": [],
+  "outside": [],
+  "diagnosticLeak": false,
+  "servedAssets": [
+    {
+      "file": "CityScene-DpeeQFkM.js",
+      "sha256": "81f411a315e07bf90ab3d36f1ad92f4776a6d8ea077b8ba52880a2a87bdaf155"
+    },
+    {
+      "file": "index-A2zQ3TsD.js",
+      "sha256": "516faad5873b23fe3d3d0c7f2b0a5f76c94f8cb85c6c87b6c43a68c20a836c68"
+    },
+    {
+      "file": "index-CfP8tDdd.css",
+      "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+    }
+  ],
+  "noSqlChanges": true,
+  "noPost": true
+}

@@ -1,0 +1,88 @@
+{
+  "file": "AskConfirm.dc.html",
+  "width": 390,
+  "height": 1443,
+  "captureStart": {
+    "x": 0,
+    "y": 0,
+    "documentTop": 0,
+    "documentLeft": 0
+  },
+  "external": [],
+  "dependencies": [
+    {
+      "file": "AskConfirm.dc.html",
+      "sha256": "7843562b498de9b81adfc99edb8aaa5654728a4b59a59d4655bf766beb77b234"
+    },
+    {
+      "file": "tokens.css",
+      "sha256": "c69cdb55222e8bcbac500de1d7dcc2a4941fc73d1a61c8c65bdacdf2341f3d97"
+    },
+    {
+      "file": "components.css",
+      "sha256": "27e0882cde3f5c29359b10b666cd468dd3fbc0dc752dad5124c26884f9051f36"
+    }
+  ],
+  "version": {
+    "commit": "2659a7a2ebbd6f10d8f474b3446e67bdfc06572a",
+    "dirty": true,
+    "askSourceHash": "4107b447f627386ba5b28387b8ba86a976d9a26e0277bd40a3986c5051d36a22",
+    "sourceFiles": [
+      "apps/web/src/ask/AskConfirmation.tsx",
+      "apps/web/src/ask/AskRunRecord.tsx",
+      "apps/web/src/ask/AskScreen.tsx",
+      "apps/web/src/ask/AskThread.tsx",
+      "apps/web/src/ask/ask-client.ts",
+      "apps/web/src/ask/ask-equality.ts",
+      "apps/web/src/ask/ask-resources.ts",
+      "apps/web/src/ask/ask-session.ts",
+      "apps/web/src/ask/ask-stream.ts",
+      "apps/web/src/styles/ask.css",
+      "apps/web/src/routes.tsx",
+      "apps/web/src/places/resources.ts",
+      "apps/web/src/main.tsx",
+      "apps/web/vite.config.ts"
+    ],
+    "localAssets": [
+      {
+        "file": "CityScene-CEsIsAwq.js",
+        "sha256": "b4323a3a3be28a01ebb5e849bd8bfd41dad3a7c8c4dc22cb41649a2bd6717523"
+      },
+      {
+        "file": "index-0MddgpIC.js",
+        "sha256": "8d9ecf54a872158412ac4e1656736b0d10909ae5f512efa525929ae4b99281de"
+      },
+      {
+        "file": "index-CfP8tDdd.css",
+        "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+      }
+    ],
+    "runtime": [
+      {
+        "service": "web",
+        "image": "sha256:c7191fe17f37c97158657316fcb08490bd4e5fc8ac861fdffd3f29e5a02fc2a0"
+      },
+      {
+        "service": "api",
+        "image": "sha256:62ad809db5f8b370d2db0622c62be14516c626642b063b8973b700c35ad3cdd0"
+      }
+    ],
+    "runtimeAssets": [
+      {
+        "file": "CityScene-DW0NKumi.js",
+        "sha256": "c17e727e262fb8fc79d94c0eb171296f1275e678a6def2de50e6fbe852519de7"
+      },
+      {
+        "file": "index-CFS366jX.js",
+        "sha256": "639cf649c519c89c5a38545b21818c456d733221a03b79dec1f4abb3853cceee"
+      },
+      {
+        "file": "index-CfP8tDdd.css",
+        "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+      }
+    ],
+    "base": "http://127.0.0.1:37281",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "scope": "Owned local production images and build, not deployed release identity"
+  }
+}

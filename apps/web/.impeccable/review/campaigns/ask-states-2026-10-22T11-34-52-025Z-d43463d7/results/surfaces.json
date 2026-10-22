@@ -1,0 +1,951 @@
+{
+  "version": {
+    "commit": "2659a7a2ebbd6f10d8f474b3446e67bdfc06572a",
+    "dirty": true,
+    "askSourceHash": "689c811861ea217e481d72040224a656835df4a0c33d8c9b0b3df62b12d2aede",
+    "sourceFiles": [
+      "apps/web/src/ask/AskConfirmation.tsx",
+      "apps/web/src/ask/AskRunRecord.tsx",
+      "apps/web/src/ask/AskScreen.tsx",
+      "apps/web/src/ask/AskThread.tsx",
+      "apps/web/src/ask/ask-client.ts",
+      "apps/web/src/ask/ask-equality.ts",
+      "apps/web/src/ask/ask-resources.ts",
+      "apps/web/src/ask/ask-session.ts",
+      "apps/web/src/ask/ask-stream.ts",
+      "apps/web/src/styles/ask.css",
+      "apps/web/src/routes.tsx",
+      "apps/web/src/places/resources.ts",
+      "apps/web/src/main.tsx",
+      "apps/web/vite.config.ts"
+    ],
+    "localAssets": [
+      {
+        "file": "CityScene-BqrZCaEJ.js",
+        "sha256": "4e92c2d553338cc1b694c67b21434ebf7b97c8a4ada6aaeb45626b92b42b9ec2"
+      },
+      {
+        "file": "index-3thlbL-p.js",
+        "sha256": "bf5ae1c400a520e31824427c99d40152963033f4529e914fdf92fa6a2eff558f"
+      },
+      {
+        "file": "index-CfP8tDdd.css",
+        "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+      }
+    ],
+    "runtime": [
+      {
+        "service": "web",
+        "image": "sha256:5924b9e08a0cac914b7ff437d528fff189e9ae1d3a5ebed0c118f2913dbc982b"
+      },
+      {
+        "service": "api",
+        "image": "sha256:0cf90d716bbf21fb73cd8ff809fad39120cc4315bb11c16c7bd66ba9f65d2a2f"
+      }
+    ],
+    "runtimeAssets": [
+      {
+        "file": "CityScene-DpeeQFkM.js",
+        "sha256": "81f411a315e07bf90ab3d36f1ad92f4776a6d8ea077b8ba52880a2a87bdaf155"
+      },
+      {
+        "file": "index-A2zQ3TsD.js",
+        "sha256": "516faad5873b23fe3d3d0c7f2b0a5f76c94f8cb85c6c87b6c43a68c20a836c68"
+      },
+      {
+        "file": "index-CfP8tDdd.css",
+        "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+      }
+    ],
+    "base": "http://127.0.0.1:46761",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "scope": "Owned local production images and build, not deployed release identity"
+  },
+  "files": [
+    {
+      "file": "ask-confirmation-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR.png",
+      "hash": "0d623428a44d945b272520a14792f5dda41319ff19775200e2b7ef57ae6f8936"
+    },
+    {
+      "file": "ask-confirmation-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR-top.png",
+      "hash": "b2025da6ad123b3287c38d839c489c4353cddf00637eb5894dbd5110dea85f98"
+    },
+    {
+      "file": "ask-confirmation-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR-accessibility.json",
+      "hash": "a6707674908f0132009a46546053e9f5d9a1990dcdf4e6bdf24ede0a63add1ef"
+    },
+    {
+      "file": "ask-confirmation-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR-interaction.json",
+      "hash": "ac102d879227bc9cdf749977e2e23051941bff10aff6504491ba98c7cda8065f"
+    },
+    {
+      "file": "ask-confirmation-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR-record.png",
+      "hash": "ebf1064021939d97b6b383c03ad0a5d9793d4ccb6344c616cab402b2479198cf"
+    },
+    {
+      "file": "ask-confirmation-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR-thread.png",
+      "hash": "ef003b5077ff49e8e4eb0f8b00c7eac899b4989c2dccae7aa9698e193651fa9a"
+    },
+    {
+      "file": "ask-confirmation-390-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-pt-BR-confirmation.png",
+      "hash": "378dcace4588ce4ed384252af88d86eb4bdb0de496f910edcac09a90c649c2a1"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR.png",
+      "hash": "c854be11f037cae59765e1a655897344bfbd6ff2a8121135611234cb90f7dfeb"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR-top.png",
+      "hash": "a547f8b16dd6d5c1eff8feb4df9911df9993f5c1e379b5d512f97fcbfcd7be79"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR-accessibility.json",
+      "hash": "f1daf62e16f0a71fabece3d44221ad00449e892ae43abc087c4a7dd8f82dff45"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR-interaction.json",
+      "hash": "589bff78aff21a3abec263a50abe961c64ca7d90392540977b88201209addd22"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR-record.png",
+      "hash": "5cd0d7bf40607ccd86b38747386ecc46b85ea1fb08279acbf4a54a895b3c7e21"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR-thread.png",
+      "hash": "e46b5fbf3a670bb2f50c0d4deeebebccbc20c36504cb062b51f8b1ac3de6b00f"
+    },
+    {
+      "file": "ask-recorded-completed-390-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-pt-BR-confirmation.png",
+      "hash": "378dcace4588ce4ed384252af88d86eb4bdb0de496f910edcac09a90c649c2a1"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR.png",
+      "hash": "a298e86899bfc141fc62b17f7c3018196b13ba70722e5f23b7681044cfbb0b2d"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR-top.png",
+      "hash": "488c6a5158a04e65be14a20c892f2cbc4f13519d1793e743bc7e4d818154682c"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR-accessibility.json",
+      "hash": "df9974eeaa161429e07ff79b4ce6aa698601038fcffba93fe189f8067f56a1ad"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR-interaction.json",
+      "hash": "1ba4fdb22dde9e0ffe74899167751f48bfbbd5fd46c26284ed791b326d723a1b"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR-record.png",
+      "hash": "37037cb1f20d0d43b15a5e23e7d825447b48983b543a0329ea9161db0c5160a3"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR-thread.png",
+      "hash": "7158bd695cc44fc53d55a511bca5318c2f96d99f4d7372ef3b5fb21b7422150b"
+    },
+    {
+      "file": "ask-confirmation-960-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-pt-BR-confirmation.png",
+      "hash": "99db9c50cd71b0344cc0dd132fb048ce48aac36d2fd9a893c3ed9934f2992b54"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR.png",
+      "hash": "156beecf339e614bff21327c3bd0a964edfafb97db6924cbb5e5ecebdff45f2e"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR-top.png",
+      "hash": "2e746690d1ddd4dde21cb3899f141929f6d3afa42c111384897eee44f0bbdd0a"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR-accessibility.json",
+      "hash": "c6147c0a8d7fd568a7aa4d106e0db3b7dab2e04cc6e8e6e820d0ee3ba3e9db78"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR-interaction.json",
+      "hash": "15b49ce706ff2827d7e4bbcafd097eab5399401e92ac500f89301f4b48d4c450"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR-record.png",
+      "hash": "61b2873095906d254075d645b2e70ccd2e292e6dab221d9f904b4c8dd33c8d33"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR-thread.png",
+      "hash": "a7e29e5b42de94f4d8c943ddca9d3c8896869283bca94357b79b5b7e4ed0bb59"
+    },
+    {
+      "file": "ask-recorded-completed-960-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-pt-BR-confirmation.png",
+      "hash": "99db9c50cd71b0344cc0dd132fb048ce48aac36d2fd9a893c3ed9934f2992b54"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR.png",
+      "hash": "48dcc7ccb904a0fb35a0fcc156c9b29ebb18d0f6317000a050e7524a83f540db"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR-top.png",
+      "hash": "a0cc02d128c0f8a7c6323725bccb437b93964c16b58c5d5ff0a5faafb1f0a483"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR-accessibility.json",
+      "hash": "211e7b126fa87d2c94798134fbdb7e3b1c9af3152b354af896aac4eae8ef956a"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR-interaction.json",
+      "hash": "609f9038725b4d639fbbf62e4725ed35b63b45a5d9858a69cfa07a10a162e150"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR-record.png",
+      "hash": "9e4679635dce4fb059653819f031cbe0d61ae0894ced61ad3b0f637eaedd7000"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR-thread.png",
+      "hash": "168adfd6f652b1174368fc414c764b3d805e965343b0b21fab95749cd44830a5"
+    },
+    {
+      "file": "ask-confirmation-1440-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-pt-BR-confirmation.png",
+      "hash": "431a905c4b9acf86a79bafdd4a41a36588d910fb521da00e29fe8af7139f608e"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR.png",
+      "hash": "a622a31e9414c050f55d6c2ec84e5849a3902eeaea331c73a53c9b3b37214586"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR-top.png",
+      "hash": "3535ee0ef45e27496fa7b88e23e8188cd23352c3846c939ea8ca63244d3c4c68"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR-accessibility.json",
+      "hash": "b45a30d0aa4ca1e970f539849546c3626cab7b4b010395d40026bb244ff65305"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR-interaction.json",
+      "hash": "9bacc71037855a56a13345eb249cc3d83bbfe7414082fc5711bd9d50251902af"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR-record.png",
+      "hash": "c2339bd4ea673a278a411143eef273aad06dd0a98a2e03b0347963ab8006a481"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR-thread.png",
+      "hash": "051fd097bb4b0e5615f69e087f7071ff920d6131f9139dd856c6d43fcb196469"
+    },
+    {
+      "file": "ask-recorded-completed-1440-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-pt-BR-confirmation.png",
+      "hash": "6a00895bbfcf9a3f1467d749671d7898fcc79fe825c800b2f451cd77644ca446"
+    },
+    {
+      "file": "ask-confirmation-390-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en.png",
+      "hash": "14f4b91b0a1497bae1f299d32048885c3895f4c17c125fe173b884012f527402"
+    },
+    {
+      "file": "ask-confirmation-390-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en-top.png",
+      "hash": "09cd630bba0397c0de58b63238353c49388f05f50d15d5fe3b36585518694bd0"
+    },
+    {
+      "file": "ask-confirmation-390-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en-accessibility.json",
+      "hash": "a6707674908f0132009a46546053e9f5d9a1990dcdf4e6bdf24ede0a63add1ef"
+    },
+    {
+      "file": "ask-confirmation-390-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en-interaction.json",
+      "hash": "948daa1fabfae62f7cb764e41d02192e42521e75c3e3fd218c28757aab8cd6f1"
+    },
+    {
+      "file": "ask-confirmation-390-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en-record.png",
+      "hash": "83d33f056c34f260d49adeebd446b5a0117743438c8a060413a5a3773fb37876"
+    },
+    {
+      "file": "ask-confirmation-390-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en-thread.png",
+      "hash": "48071e75e67f9c6d06ff94ff5a6774e955c51bc3494d8e1ea18d0917c9d52665"
+    },
+    {
+      "file": "ask-confirmation-390-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-390-en-confirmation.png",
+      "hash": "1a3ef939d8505ee237a5f0cff9aa7140a1d6b27a3d5a89c92adfac1ab1475c43"
+    },
+    {
+      "file": "ask-recorded-completed-390-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en.png",
+      "hash": "db376d3080d787bc0db88cb7f8873d7a502df9c0b91233015e65fd5876f1b485"
+    },
+    {
+      "file": "ask-recorded-completed-390-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en-top.png",
+      "hash": "0d8b56e1c629d26afb4a5a82dd62c752df502a0003622fd720c34bc9cb9f94c4"
+    },
+    {
+      "file": "ask-recorded-completed-390-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en-accessibility.json",
+      "hash": "f1daf62e16f0a71fabece3d44221ad00449e892ae43abc087c4a7dd8f82dff45"
+    },
+    {
+      "file": "ask-recorded-completed-390-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en-interaction.json",
+      "hash": "72dbcb68ab02995a3687f3b5550ef8fb8bb107bb2eb3e3752fcf6ca706395afc"
+    },
+    {
+      "file": "ask-recorded-completed-390-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en-record.png",
+      "hash": "2a6ceeb36873571d420f847aed6915a64e96efe155e21b1ea3e521645e220028"
+    },
+    {
+      "file": "ask-recorded-completed-390-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en-thread.png",
+      "hash": "cba11af974ec3000e8626dcb5341d234a03aedadbf64ee125ce75f4f79b992c1"
+    },
+    {
+      "file": "ask-recorded-completed-390-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-390-en-confirmation.png",
+      "hash": "2aa435d6ea75ed8b2cfc30cf9f5dc92049d919f004d94d8ef0d81d23a941ca7e"
+    },
+    {
+      "file": "ask-confirmation-960-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en.png",
+      "hash": "896ed5e13423691202790c053e267e462c1912679e8f9babd63e578a9012a66c"
+    },
+    {
+      "file": "ask-confirmation-960-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en-top.png",
+      "hash": "a8324ebcf8b32cc73a943a8f0ef8016c4191c2ad91074b450c02acedd2b51d7a"
+    },
+    {
+      "file": "ask-confirmation-960-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en-accessibility.json",
+      "hash": "df9974eeaa161429e07ff79b4ce6aa698601038fcffba93fe189f8067f56a1ad"
+    },
+    {
+      "file": "ask-confirmation-960-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en-interaction.json",
+      "hash": "f505432e83642a916d82185301f0598db0e3435c54e434d9e549c6d045d79d60"
+    },
+    {
+      "file": "ask-confirmation-960-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en-record.png",
+      "hash": "e50139a86840988df80afc41a3dddde23aafad5712ce04a7cbf15adb86c88c66"
+    },
+    {
+      "file": "ask-confirmation-960-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en-thread.png",
+      "hash": "a7655414176ea228985ef62ca985ed096b932794574487ad279da120b780974b"
+    },
+    {
+      "file": "ask-confirmation-960-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-960-en-confirmation.png",
+      "hash": "f8975e7f2b4a6e38364ae82cc1096526be6c8ee19239c3bf47b9fabbb5228d67"
+    },
+    {
+      "file": "ask-recorded-completed-960-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en.png",
+      "hash": "e0ea54575e58218bc5217291b2c64548cd0f37e4b8fadf3779a7a32647de5a9a"
+    },
+    {
+      "file": "ask-recorded-completed-960-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en-top.png",
+      "hash": "0e7c4253a6f2878173ebd358d2d65892fbb90fdb2469a78dda27a95287000701"
+    },
+    {
+      "file": "ask-recorded-completed-960-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en-accessibility.json",
+      "hash": "c6147c0a8d7fd568a7aa4d106e0db3b7dab2e04cc6e8e6e820d0ee3ba3e9db78"
+    },
+    {
+      "file": "ask-recorded-completed-960-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en-interaction.json",
+      "hash": "d0460f54602ae9793c6f816d71c0a9e009714f49ea69b62dc59abf94fbc07efe"
+    },
+    {
+      "file": "ask-recorded-completed-960-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en-record.png",
+      "hash": "3c8380a77882bf96377b2dcf556940f01cb8e034fae93247d5b27c81d2bc673a"
+    },
+    {
+      "file": "ask-recorded-completed-960-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en-thread.png",
+      "hash": "f35a2f475346f9a24dc9486506186b96d95023aae4ef372844cd50a7ab734736"
+    },
+    {
+      "file": "ask-recorded-completed-960-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-960-en-confirmation.png",
+      "hash": "f8975e7f2b4a6e38364ae82cc1096526be6c8ee19239c3bf47b9fabbb5228d67"
+    },
+    {
+      "file": "ask-confirmation-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en.png",
+      "hash": "84d7a79de4095cebe3bab1338ceaf9c38f690384cbef9fe0ef45f1a01555a9c8"
+    },
+    {
+      "file": "ask-confirmation-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en-top.png",
+      "hash": "442f34e1db20924060177ce04dc69e42ee8d6bfd4f6a9d129c1c6bd8af35dd32"
+    },
+    {
+      "file": "ask-confirmation-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en-accessibility.json",
+      "hash": "211e7b126fa87d2c94798134fbdb7e3b1c9af3152b354af896aac4eae8ef956a"
+    },
+    {
+      "file": "ask-confirmation-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en-interaction.json",
+      "hash": "f36d8d1706b4fa450659b7783ede1133dea8ca255fcc02e8b4bb8765a48fc37d"
+    },
+    {
+      "file": "ask-confirmation-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en-record.png",
+      "hash": "967cbc764697cab4359ed3e85e3594c60a2c7efe43e628e14b8094e0083af2a8"
+    },
+    {
+      "file": "ask-confirmation-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en-thread.png",
+      "hash": "c2a2516448c79ec3c8154d0e0bafa49007bcceb3649f8c0a3063147da76ca1ba"
+    },
+    {
+      "file": "ask-confirmation-1440-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-confirmation-1440-en-confirmation.png",
+      "hash": "e4b7f3cc8c9b14e5d2133b79f02cc1131296b2b14869a759948a4d5a084b0616"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en.png",
+      "hash": "5c3069cd7987851503285a57ea3cb4daafef6e0cacd7f97d70f76b6be37a2044"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en-top.png",
+      "hash": "89c5f24a6d84dea2b1584de5a483c2aac6b97929054cdd2ff892e2bfc2dc5036"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en-accessibility.json",
+      "hash": "b45a30d0aa4ca1e970f539849546c3626cab7b4b010395d40026bb244ff65305"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en-interaction.json",
+      "hash": "dfff4c22ccbe02a66a0a4fee8af608d5792d2ce2c3755d6013bc95bcfb831764"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en-record.png",
+      "hash": "22da2c8015802eecb98765d1efbe421aef925bbeba391946ae6933576a6f38a2"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en-thread.png",
+      "hash": "a11a718a136aba604585a7027bb7d53cf19bb979c8202de876a1de27c6b672d3"
+    },
+    {
+      "file": "ask-recorded-completed-1440-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-recorded-completed-1440-en-confirmation.png",
+      "hash": "3e13e2b197b430c304a724bd17a675ef59a738608e1c6ee5dfb4d26d55d64964"
+    },
+    {
+      "file": "ask-state-queued-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-390-pt-BR.png",
+      "hash": "2541ca8e10bb3cd5d5356784ed8c01e5948add8d7e305db1ffef84737873ec0b"
+    },
+    {
+      "file": "ask-state-queued-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-390-pt-BR-top.png",
+      "hash": "dcdb54b4a93219089bdefe8b4a3fada60f3756b520c90bc9fb13c6dfa313f012"
+    },
+    {
+      "file": "ask-state-queued-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-390-pt-BR-accessibility.json",
+      "hash": "ad673d28e9447cc85fc10edf2f0b9c1ea384a93252206cedaef58fa0d46f5ecb"
+    },
+    {
+      "file": "ask-state-queued-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-390-pt-BR-interaction.json",
+      "hash": "e3021c4fe30bdb48abe57e2f16bfbea09929b8ddf8c4afe2deb7bd99d82ee69e"
+    },
+    {
+      "file": "ask-state-queued-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-390-pt-BR-record.png",
+      "hash": "3a54de6a0bacf8d315b7ac3399dff805c3c74a00d0a2ac2cbcf9acec825a24ca"
+    },
+    {
+      "file": "ask-state-queued-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-390-pt-BR-thread.png",
+      "hash": "b30b85726f564dd89a48303d6e27d639e8867a99715fb79c4cf911d7a0e71b36"
+    },
+    {
+      "file": "ask-state-running-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-390-pt-BR.png",
+      "hash": "b7b9f35bd53137f18c2ec27e83753de937ec60f8d7c7bb58d35b9a920f8cddda"
+    },
+    {
+      "file": "ask-state-running-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-390-pt-BR-top.png",
+      "hash": "c84ae80cc104d5a0fcea25c62f9b1264836920ad60dc779d8d4aa0f5d68df7fd"
+    },
+    {
+      "file": "ask-state-running-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-390-pt-BR-accessibility.json",
+      "hash": "ad673d28e9447cc85fc10edf2f0b9c1ea384a93252206cedaef58fa0d46f5ecb"
+    },
+    {
+      "file": "ask-state-running-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-390-pt-BR-interaction.json",
+      "hash": "6843397785fb6507162fd72c36e12a3720a356b11986f74b641bc0a385266780"
+    },
+    {
+      "file": "ask-state-running-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-390-pt-BR-record.png",
+      "hash": "3accc24f1126d204e9f78ab332fc68bdf372bde46c4e6c8b0bef308f8693a2f6"
+    },
+    {
+      "file": "ask-state-running-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-390-pt-BR-thread.png",
+      "hash": "46bf762a3b6e2e2bf8c6bfe09b22a7ae6024687f377c25b75e34a4af95f5b3d1"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR.png",
+      "hash": "469900d29fa7413041cf11abf19f9600534ab31d0cdec591d8827ef07fb7d30d"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR-top.png",
+      "hash": "b2025da6ad123b3287c38d839c489c4353cddf00637eb5894dbd5110dea85f98"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR-accessibility.json",
+      "hash": "a6707674908f0132009a46546053e9f5d9a1990dcdf4e6bdf24ede0a63add1ef"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR-interaction.json",
+      "hash": "ac102d879227bc9cdf749977e2e23051941bff10aff6504491ba98c7cda8065f"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR-record.png",
+      "hash": "5b3fdc4d300675fac36d8be2dd2b03c1e0ad42d26771e470f0cd98253714aaed"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR-thread.png",
+      "hash": "ef003b5077ff49e8e4eb0f8b00c7eac899b4989c2dccae7aa9698e193651fa9a"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-390-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-390-pt-BR-confirmation.png",
+      "hash": "378dcace4588ce4ed384252af88d86eb4bdb0de496f910edcac09a90c649c2a1"
+    },
+    {
+      "file": "ask-state-completed-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-390-pt-BR.png",
+      "hash": "90078fb65045fcd3f70f4cd86f80b78e11209ea8cb9797eefbab15236f80f54f"
+    },
+    {
+      "file": "ask-state-completed-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-390-pt-BR-top.png",
+      "hash": "c8140c4f2cb4737c0bf94cd71db4afc514cfea537a74fd50f517da3d9860ee84"
+    },
+    {
+      "file": "ask-state-completed-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-390-pt-BR-accessibility.json",
+      "hash": "ad673d28e9447cc85fc10edf2f0b9c1ea384a93252206cedaef58fa0d46f5ecb"
+    },
+    {
+      "file": "ask-state-completed-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-390-pt-BR-interaction.json",
+      "hash": "752f04c40863e5567369abbe1b3611aa5cfacbd9bca0051734f83a523e8c64ae"
+    },
+    {
+      "file": "ask-state-completed-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-390-pt-BR-record.png",
+      "hash": "87c4c237b3ef4943f96607166fac3a593311b6deb6b17106be0a727d62262db5"
+    },
+    {
+      "file": "ask-state-completed-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-390-pt-BR-thread.png",
+      "hash": "1b57a0b9747e396b8672cab96b6521ca08d7f58ff452d0a562fe2f548956a98c"
+    },
+    {
+      "file": "ask-state-failed-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-390-pt-BR.png",
+      "hash": "c5724f090ac13bf9e3255b76f76747de89e4707007a7369b5ceec7e3ab3c7f46"
+    },
+    {
+      "file": "ask-state-failed-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-390-pt-BR-top.png",
+      "hash": "e2060b7c4113e70fe44053b49a8806da006dc5dbd1831f4cd8ceb5a6218d199a"
+    },
+    {
+      "file": "ask-state-failed-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-390-pt-BR-accessibility.json",
+      "hash": "ad673d28e9447cc85fc10edf2f0b9c1ea384a93252206cedaef58fa0d46f5ecb"
+    },
+    {
+      "file": "ask-state-failed-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-390-pt-BR-interaction.json",
+      "hash": "74e57ecf8f0c6e7d05dd105732b63679a9a214e7603544ddbb6b3b6401268f40"
+    },
+    {
+      "file": "ask-state-failed-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-390-pt-BR-record.png",
+      "hash": "e7ccf8b8a3677e204883588595e0706d3d82343e8dfe4b4fd0b643afc23299c9"
+    },
+    {
+      "file": "ask-state-failed-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-390-pt-BR-thread.png",
+      "hash": "6d600231be5d783683ff41b1143024409d7b9783446cce686efc17ca8a4e0fb1"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR.png",
+      "hash": "5dd3443d90e387825f2f0ea56a145eee13767415c0730c75ec6feddc94758772"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR-top.png",
+      "hash": "673097da1a63d24e842b78a4cf007426f33d4e5ec81b5117aba6281a8be8b57b"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR-accessibility.json",
+      "hash": "a6707674908f0132009a46546053e9f5d9a1990dcdf4e6bdf24ede0a63add1ef"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR-interaction.json",
+      "hash": "f11502b40197b4a1dfb520f4e7c69abfa28b1578749ba83718c75c2ec6d91fd2"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR-record.png",
+      "hash": "5395cb81dcc91abe68aa56add5f79413a9f8494b571146690e427aaf3fab50b8"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR-thread.png",
+      "hash": "e9376d80b9db18abb0a25ed0ed22db13751008fc060c965fb09c46fb092d96fe"
+    },
+    {
+      "file": "ask-state-cancelled-390-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-390-pt-BR-confirmation.png",
+      "hash": "378dcace4588ce4ed384252af88d86eb4bdb0de496f910edcac09a90c649c2a1"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR.png",
+      "hash": "8093f1353b4cc38115545a5a25a92b4a0f7830158ce6c3873ea3353192e55906"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR-top.png",
+      "hash": "6b20f1b796b6ca37874f3ac891302ede118ec475e5beb6129c895fbb750fefa2"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR-accessibility.json",
+      "hash": "a6707674908f0132009a46546053e9f5d9a1990dcdf4e6bdf24ede0a63add1ef"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR-interaction.json",
+      "hash": "f11502b40197b4a1dfb520f4e7c69abfa28b1578749ba83718c75c2ec6d91fd2"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR-record.png",
+      "hash": "1b9440ff88ffb08d347878a24e256dbb1c38468a1f3dae22cff64b8f932d2644"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR-thread.png",
+      "hash": "be4d94f84f09c014fdebb4b4a0fbd218130fd409580fb19d11f043a0923e098f"
+    },
+    {
+      "file": "ask-state-expired-390-pt-BR-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-390-pt-BR-confirmation.png",
+      "hash": "378dcace4588ce4ed384252af88d86eb4bdb0de496f910edcac09a90c649c2a1"
+    },
+    {
+      "file": "ask-state-queued-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-1440-en.png",
+      "hash": "c58fa052be6820754941303c403399ffc94123123a05c6fbaa9db9ab19552707"
+    },
+    {
+      "file": "ask-state-queued-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-1440-en-top.png",
+      "hash": "a1f06a43d0a6b2812bf5fe7666b1a9c749b8a8fdd966ae48361ccf2946b32fde"
+    },
+    {
+      "file": "ask-state-queued-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-1440-en-accessibility.json",
+      "hash": "b8ff4eab6a5c8650bfe183c92d78bab83dd8da07ab79ee6593aee709957ea2fc"
+    },
+    {
+      "file": "ask-state-queued-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-1440-en-interaction.json",
+      "hash": "13e2387347411d6e34fe06b1bcfd98dbffc600bc24477caa834bea5e1e0048db"
+    },
+    {
+      "file": "ask-state-queued-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-1440-en-record.png",
+      "hash": "1d10a275bc7332c7d3022ce681621d0845088eab244dd8a0de87ecaf724ae900"
+    },
+    {
+      "file": "ask-state-queued-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-queued-1440-en-thread.png",
+      "hash": "57c5fd2a3a207d33eb31a31a8ea5539017d06dfb9cb6c1da0171b0023e22dc1f"
+    },
+    {
+      "file": "ask-state-running-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-1440-en.png",
+      "hash": "8589050cd62be14bb01c554bca071651fde7d3a63f713b9e1962eec5ddff40d6"
+    },
+    {
+      "file": "ask-state-running-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-1440-en-top.png",
+      "hash": "03d4cba19b07e2fe0581487e5e6c256172fa426d8e5feb65f5253041a6b8897d"
+    },
+    {
+      "file": "ask-state-running-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-1440-en-accessibility.json",
+      "hash": "b8ff4eab6a5c8650bfe183c92d78bab83dd8da07ab79ee6593aee709957ea2fc"
+    },
+    {
+      "file": "ask-state-running-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-1440-en-interaction.json",
+      "hash": "d4724f28cc12d5c0d6d5cebfde405d7569e8b135b8cce79a6eb8bd29859b4840"
+    },
+    {
+      "file": "ask-state-running-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-1440-en-record.png",
+      "hash": "4e26d5a889f5124399454660ec445ce3747008c5c336850bf4899ff5388a5b03"
+    },
+    {
+      "file": "ask-state-running-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-running-1440-en-thread.png",
+      "hash": "085c124c1a9b3c74199dbaa930e2115b478827f5e98235af3fb7b294ed998f9a"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en.png",
+      "hash": "84d7a79de4095cebe3bab1338ceaf9c38f690384cbef9fe0ef45f1a01555a9c8"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en-top.png",
+      "hash": "442f34e1db20924060177ce04dc69e42ee8d6bfd4f6a9d129c1c6bd8af35dd32"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en-accessibility.json",
+      "hash": "211e7b126fa87d2c94798134fbdb7e3b1c9af3152b354af896aac4eae8ef956a"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en-interaction.json",
+      "hash": "f36d8d1706b4fa450659b7783ede1133dea8ca255fcc02e8b4bb8765a48fc37d"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en-record.png",
+      "hash": "68f4729a75231d2331ec33a78cf83ba4ac19571956fe7b2fdf8b814e7b0c1c94"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en-thread.png",
+      "hash": "c2a2516448c79ec3c8154d0e0bafa49007bcceb3649f8c0a3063147da76ca1ba"
+    },
+    {
+      "file": "ask-state-awaiting_confirmation-1440-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-awaiting_confirmation-1440-en-confirmation.png",
+      "hash": "e4b7f3cc8c9b14e5d2133b79f02cc1131296b2b14869a759948a4d5a084b0616"
+    },
+    {
+      "file": "ask-state-completed-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-1440-en.png",
+      "hash": "6bb5a5c9d878b1084d18961d8f3709974c8db5d38adf0a99a8294a613a6d07a7"
+    },
+    {
+      "file": "ask-state-completed-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-1440-en-top.png",
+      "hash": "8b0d29409da39be1043b17fad4f6de6be3e56bb30fd611d84cae15c11c0fb78a"
+    },
+    {
+      "file": "ask-state-completed-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-1440-en-accessibility.json",
+      "hash": "b8ff4eab6a5c8650bfe183c92d78bab83dd8da07ab79ee6593aee709957ea2fc"
+    },
+    {
+      "file": "ask-state-completed-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-1440-en-interaction.json",
+      "hash": "614450c8339e06bcde30ee9ea3af0d805d444ea6b41bcee404df3b39dc0df2fe"
+    },
+    {
+      "file": "ask-state-completed-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-1440-en-record.png",
+      "hash": "0924d6dafb777feb541d4b9757c617aef666c9ddb063c706b32bdff81d86f5bb"
+    },
+    {
+      "file": "ask-state-completed-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-completed-1440-en-thread.png",
+      "hash": "a11a718a136aba604585a7027bb7d53cf19bb979c8202de876a1de27c6b672d3"
+    },
+    {
+      "file": "ask-state-failed-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-1440-en.png",
+      "hash": "c6ea437ad2a69dc01d40c9f30cceabd463cb6d079734ddb9cb5274db20cda459"
+    },
+    {
+      "file": "ask-state-failed-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-1440-en-top.png",
+      "hash": "0eae5a5a370d0b0e9769302366922366f4c1c38c7070f63a43473d336138a00e"
+    },
+    {
+      "file": "ask-state-failed-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-1440-en-accessibility.json",
+      "hash": "b8ff4eab6a5c8650bfe183c92d78bab83dd8da07ab79ee6593aee709957ea2fc"
+    },
+    {
+      "file": "ask-state-failed-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-1440-en-interaction.json",
+      "hash": "3d6cd965c800453ef31fac64d103a0a9472600668011a27169c0cbc8578c698c"
+    },
+    {
+      "file": "ask-state-failed-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-1440-en-record.png",
+      "hash": "428847c9d7503da6f835f29a475849f7735c029f1d72751e195a5f13bac018e6"
+    },
+    {
+      "file": "ask-state-failed-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-failed-1440-en-thread.png",
+      "hash": "86a27befbb61652fd8a86f5714b402fe64253f651166571b5550791000b7109c"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en.png",
+      "hash": "8a9cc00239e981f7128f878dd50a6344521b255a1ba538b581d09bf23d55d8e7"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en-top.png",
+      "hash": "56cb4a587d47b9bbe2d707cb7de036b53b0ec652c52743ca23665f8205618ad2"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en-accessibility.json",
+      "hash": "211e7b126fa87d2c94798134fbdb7e3b1c9af3152b354af896aac4eae8ef956a"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en-interaction.json",
+      "hash": "7e8c7e73e33951b911c0b4718e32cf4e6e73eaab77c103f0c08c572903449bbc"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en-record.png",
+      "hash": "ea84afa9cf73604c6638b59df797fee492d4647ffcc4dc2f685890fc10c54ddd"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en-thread.png",
+      "hash": "9980041dcbacb8596b12355ec1e458309fb59bf650120bdc8746472a27f823a3"
+    },
+    {
+      "file": "ask-state-cancelled-1440-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-cancelled-1440-en-confirmation.png",
+      "hash": "3e13e2b197b430c304a724bd17a675ef59a738608e1c6ee5dfb4d26d55d64964"
+    },
+    {
+      "file": "ask-state-expired-1440-en.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en.png",
+      "hash": "77f7495166c16a3e3921c1dd26fae0d4d5758514467d38f6ebfbc0806af2021d"
+    },
+    {
+      "file": "ask-state-expired-1440-en-top.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en-top.png",
+      "hash": "f203557e2a96f8ee6d98260159d1b673aac5784d4d01c33adb6d35061b716513"
+    },
+    {
+      "file": "ask-state-expired-1440-en-accessibility.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en-accessibility.json",
+      "hash": "211e7b126fa87d2c94798134fbdb7e3b1c9af3152b354af896aac4eae8ef956a"
+    },
+    {
+      "file": "ask-state-expired-1440-en-interaction.json",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en-interaction.json",
+      "hash": "7e8c7e73e33951b911c0b4718e32cf4e6e73eaab77c103f0c08c572903449bbc"
+    },
+    {
+      "file": "ask-state-expired-1440-en-record.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en-record.png",
+      "hash": "a47183947e422651eb33caa97f5e9275f6e2552520e2f0e85eb7540a903d5b8b"
+    },
+    {
+      "file": "ask-state-expired-1440-en-thread.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en-thread.png",
+      "hash": "37eddb05dc044fe246d27b574d47ff18838b631f7ab418da67b5296e3c950449"
+    },
+    {
+      "file": "ask-state-expired-1440-en-confirmation.png",
+      "evidencePath": "evidence/ASK-STATES-004-5/ask-state-expired-1440-en-confirmation.png",
+      "hash": "3e13e2b197b430c304a724bd17a675ef59a738608e1c6ee5dfb4d26d55d64964"
+    },
+    {
+      "file": "ask-states-reference-AskConfirm-390x1443.png",
+      "evidencePath": "evidence/ASK-STATES-005-6/ask-states-reference-AskConfirm-390x1443.png",
+      "hash": "e4b33fc90568ebfddc459da06dd7ab2ae338712cf0e0f22bcc731e7af5b63bca"
+    },
+    {
+      "file": "ask-states-reference-DesktopAsk-1440x1142.png",
+      "evidencePath": "evidence/ASK-STATES-005-6/ask-states-reference-DesktopAsk-1440x1142.png",
+      "hash": "09cc7caa0f7f2390847bebc83efc5c80f90abaec2f6901f7bb87f9f1b6f8f4e1"
+    },
+    {
+      "file": "ask-states-reference-States-1280x1127.png",
+      "evidencePath": "evidence/ASK-STATES-005-6/ask-states-reference-States-1280x1127.png",
+      "hash": "1bcfb178faaa9d8e5d23452cfded69e58e3086c3f41396db9301e40f4e240eac"
+    }
+  ]
+}

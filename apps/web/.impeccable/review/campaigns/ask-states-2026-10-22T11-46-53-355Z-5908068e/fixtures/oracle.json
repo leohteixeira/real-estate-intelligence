@@ -1,0 +1,1985 @@
+{
+  "availability": {
+    "basis": "prepared-ask-example",
+    "metadata": {
+      "fixtureVersion": "ask-v1",
+      "asOf": "2026-10-11T12:00:10.000Z",
+      "synthetic": true,
+      "liveExecution": false,
+      "durableReplay": false
+    },
+    "mode": "prepared-fixtures",
+    "commandHandlers": false,
+    "intents": [
+      {
+        "intent": "price_per_square_meter",
+        "available": true
+      },
+      {
+        "intent": "unavailable",
+        "available": false
+      }
+    ]
+  },
+  "entries": [
+    {
+      "state": "queued",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000001",
+        "threadId": "0199c8f2-2394-7000-8000-000000000101",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:00.000Z",
+        "state": "queued",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": null,
+        "confirmation": null,
+        "result": null,
+        "terminal": null,
+        "steps": []
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000101",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000201",
+            "threadId": "0199c8f2-2394-7000-8000-000000000101",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000001",
+            "threadId": "0199c8f2-2394-7000-8000-000000000101",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:00.000Z",
+            "state": "queued",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": []
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000001:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000001",
+          "sequence": 1,
+          "event": "ask.progress",
+          "terminal": false,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000001",
+            "threadId": "0199c8f2-2394-7000-8000-000000000101",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:00.000Z",
+            "state": "queued",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": []
+          }
+        },
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000001:v1:2",
+          "runId": "0199c8f2-2394-7000-8000-000000000001",
+          "sequence": 2,
+          "event": "ask.progress",
+          "terminal": false,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000001",
+            "threadId": "0199c8f2-2394-7000-8000-000000000101",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:01.000Z",
+            "state": "running",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              }
+            ]
+          }
+        },
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000001:v1:3",
+          "runId": "0199c8f2-2394-7000-8000-000000000001",
+          "sequence": 3,
+          "event": "ask.completed",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000001",
+            "threadId": "0199c8f2-2394-7000-8000-000000000101",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "completed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.98,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "price_per_square_meter",
+              "minorUnits": 1000000,
+              "currency": "BRL",
+              "areaUnit": "m2",
+              "inputs": {
+                "priceMinorUnits": 80000000,
+                "currency": "BRL",
+                "areaSquareMeters": 80
+              },
+              "computedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T12:00:02.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "calculating",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "completed",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "state": "running",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000002",
+        "threadId": "0199c8f2-2394-7000-8000-000000000102",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:01.000Z",
+        "state": "running",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": null,
+        "confirmation": null,
+        "result": null,
+        "terminal": null,
+        "steps": [
+          {
+            "sequence": 1,
+            "phase": "interpreting",
+            "at": "2026-10-11T12:00:01.000Z"
+          }
+        ]
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000102",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000202",
+            "threadId": "0199c8f2-2394-7000-8000-000000000102",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000002",
+            "threadId": "0199c8f2-2394-7000-8000-000000000102",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:01.000Z",
+            "state": "running",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000002:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000002",
+          "sequence": 1,
+          "event": "ask.progress",
+          "terminal": false,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000002",
+            "threadId": "0199c8f2-2394-7000-8000-000000000102",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:01.000Z",
+            "state": "running",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              }
+            ]
+          }
+        },
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000002:v1:2",
+          "runId": "0199c8f2-2394-7000-8000-000000000002",
+          "sequence": 2,
+          "event": "ask.completed",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000002",
+            "threadId": "0199c8f2-2394-7000-8000-000000000102",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "completed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.98,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "price_per_square_meter",
+              "minorUnits": 1000000,
+              "currency": "BRL",
+              "areaUnit": "m2",
+              "inputs": {
+                "priceMinorUnits": 80000000,
+                "currency": "BRL",
+                "areaSquareMeters": 80
+              },
+              "computedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T12:00:02.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "calculating",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "completed",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "state": "awaiting_confirmation",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000003",
+        "threadId": "0199c8f2-2394-7000-8000-000000000103",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:02.000Z",
+        "state": "awaiting_confirmation",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": {
+          "intent": "price_per_square_meter",
+          "confidence": 0.64,
+          "degraded": true,
+          "requiresConfirmation": true,
+          "source": "synthetic-fixture",
+          "decidedAt": "2026-10-11T12:00:02.000Z"
+        },
+        "confirmation": null,
+        "result": null,
+        "terminal": null,
+        "steps": [
+          {
+            "sequence": 1,
+            "phase": "interpreting",
+            "at": "2026-10-11T12:00:01.000Z"
+          },
+          {
+            "sequence": 2,
+            "phase": "awaiting_confirmation",
+            "at": "2026-10-11T12:00:02.000Z"
+          }
+        ]
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000103",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000203",
+            "threadId": "0199c8f2-2394-7000-8000-000000000103",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000003",
+            "threadId": "0199c8f2-2394-7000-8000-000000000103",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "awaiting_confirmation",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000003:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000003",
+          "sequence": 1,
+          "event": "ask.progress",
+          "terminal": false,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000003",
+            "threadId": "0199c8f2-2394-7000-8000-000000000103",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "awaiting_confirmation",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": null,
+            "terminal": null,
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        },
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000003:v1:2",
+          "runId": "0199c8f2-2394-7000-8000-000000000003",
+          "sequence": 2,
+          "event": "ask.progress",
+          "terminal": false,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000003",
+            "threadId": "0199c8f2-2394-7000-8000-000000000103",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:03.000Z",
+            "state": "running",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": {
+              "intent": "price_per_square_meter",
+              "inputs": {
+                "priceMinorUnits": 81000000,
+                "currency": "BRL",
+                "areaSquareMeters": 90
+              },
+              "source": "recorded-synthetic",
+              "confirmedAt": "2026-10-11T12:00:03.000Z"
+            },
+            "result": null,
+            "terminal": null,
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "confirmed",
+                "at": "2026-10-11T12:00:03.000Z"
+              }
+            ]
+          }
+        },
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000003:v1:3",
+          "runId": "0199c8f2-2394-7000-8000-000000000003",
+          "sequence": 3,
+          "event": "ask.completed",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000003",
+            "threadId": "0199c8f2-2394-7000-8000-000000000103",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:04.000Z",
+            "state": "completed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": {
+              "intent": "price_per_square_meter",
+              "inputs": {
+                "priceMinorUnits": 81000000,
+                "currency": "BRL",
+                "areaSquareMeters": 90
+              },
+              "source": "recorded-synthetic",
+              "confirmedAt": "2026-10-11T12:00:03.000Z"
+            },
+            "result": {
+              "kind": "price_per_square_meter",
+              "minorUnits": 900000,
+              "currency": "BRL",
+              "areaUnit": "m2",
+              "inputs": {
+                "priceMinorUnits": 81000000,
+                "currency": "BRL",
+                "areaSquareMeters": 90
+              },
+              "computedAt": "2026-10-11T12:00:04.000Z"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T12:00:04.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "confirmed",
+                "at": "2026-10-11T12:00:03.000Z"
+              },
+              {
+                "sequence": 4,
+                "phase": "calculating",
+                "at": "2026-10-11T12:00:04.000Z"
+              },
+              {
+                "sequence": 5,
+                "phase": "completed",
+                "at": "2026-10-11T12:00:04.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "state": "completed",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000004",
+        "threadId": "0199c8f2-2394-7000-8000-000000000104",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:02.000Z",
+        "state": "completed",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": {
+          "intent": "price_per_square_meter",
+          "confidence": 0.98,
+          "degraded": false,
+          "requiresConfirmation": false,
+          "source": "synthetic-fixture",
+          "decidedAt": "2026-10-11T12:00:02.000Z"
+        },
+        "confirmation": null,
+        "result": {
+          "kind": "price_per_square_meter",
+          "minorUnits": 1000000,
+          "currency": "BRL",
+          "areaUnit": "m2",
+          "inputs": {
+            "priceMinorUnits": 80000000,
+            "currency": "BRL",
+            "areaSquareMeters": 80
+          },
+          "computedAt": "2026-10-11T12:00:02.000Z"
+        },
+        "terminal": {
+          "state": "completed",
+          "reason": null,
+          "at": "2026-10-11T12:00:02.000Z"
+        },
+        "steps": [
+          {
+            "sequence": 1,
+            "phase": "interpreting",
+            "at": "2026-10-11T12:00:01.000Z"
+          },
+          {
+            "sequence": 2,
+            "phase": "calculating",
+            "at": "2026-10-11T12:00:02.000Z"
+          },
+          {
+            "sequence": 3,
+            "phase": "completed",
+            "at": "2026-10-11T12:00:02.000Z"
+          }
+        ]
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000104",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000204",
+            "threadId": "0199c8f2-2394-7000-8000-000000000104",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000004",
+            "threadId": "0199c8f2-2394-7000-8000-000000000104",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "completed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.98,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "price_per_square_meter",
+              "minorUnits": 1000000,
+              "currency": "BRL",
+              "areaUnit": "m2",
+              "inputs": {
+                "priceMinorUnits": 80000000,
+                "currency": "BRL",
+                "areaSquareMeters": 80
+              },
+              "computedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T12:00:02.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "calculating",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "completed",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000004:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000004",
+          "sequence": 1,
+          "event": "ask.completed",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000004",
+            "threadId": "0199c8f2-2394-7000-8000-000000000104",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "completed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.98,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "price_per_square_meter",
+              "minorUnits": 1000000,
+              "currency": "BRL",
+              "areaUnit": "m2",
+              "inputs": {
+                "priceMinorUnits": 80000000,
+                "currency": "BRL",
+                "areaSquareMeters": 80
+              },
+              "computedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T12:00:02.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "calculating",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "completed",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "state": "failed",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000005",
+        "threadId": "0199c8f2-2394-7000-8000-000000000105",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:02.000Z",
+        "state": "failed",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": null,
+        "confirmation": null,
+        "result": null,
+        "terminal": {
+          "state": "failed",
+          "reason": "fixture_failure",
+          "at": "2026-10-11T12:00:02.000Z"
+        },
+        "steps": [
+          {
+            "sequence": 1,
+            "phase": "interpreting",
+            "at": "2026-10-11T12:00:01.000Z"
+          },
+          {
+            "sequence": 2,
+            "phase": "failed",
+            "at": "2026-10-11T12:00:02.000Z"
+          }
+        ]
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000105",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000205",
+            "threadId": "0199c8f2-2394-7000-8000-000000000105",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000005",
+            "threadId": "0199c8f2-2394-7000-8000-000000000105",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "failed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": {
+              "state": "failed",
+              "reason": "fixture_failure",
+              "at": "2026-10-11T12:00:02.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "failed",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000005:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000005",
+          "sequence": 1,
+          "event": "ask.failed",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000005",
+            "threadId": "0199c8f2-2394-7000-8000-000000000105",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:02.000Z",
+            "state": "failed",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": null,
+            "confirmation": null,
+            "result": null,
+            "terminal": {
+              "state": "failed",
+              "reason": "fixture_failure",
+              "at": "2026-10-11T12:00:02.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "failed",
+                "at": "2026-10-11T12:00:02.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "state": "cancelled",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000006",
+        "threadId": "0199c8f2-2394-7000-8000-000000000106",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:03.000Z",
+        "state": "cancelled",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": {
+          "intent": "price_per_square_meter",
+          "confidence": 0.64,
+          "degraded": true,
+          "requiresConfirmation": true,
+          "source": "synthetic-fixture",
+          "decidedAt": "2026-10-11T12:00:02.000Z"
+        },
+        "confirmation": null,
+        "result": null,
+        "terminal": {
+          "state": "cancelled",
+          "reason": "visitor_cancelled",
+          "at": "2026-10-11T12:00:03.000Z"
+        },
+        "steps": [
+          {
+            "sequence": 1,
+            "phase": "interpreting",
+            "at": "2026-10-11T12:00:01.000Z"
+          },
+          {
+            "sequence": 2,
+            "phase": "awaiting_confirmation",
+            "at": "2026-10-11T12:00:02.000Z"
+          },
+          {
+            "sequence": 3,
+            "phase": "cancelled",
+            "at": "2026-10-11T12:00:03.000Z"
+          }
+        ]
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000106",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000206",
+            "threadId": "0199c8f2-2394-7000-8000-000000000106",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000006",
+            "threadId": "0199c8f2-2394-7000-8000-000000000106",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:03.000Z",
+            "state": "cancelled",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": null,
+            "terminal": {
+              "state": "cancelled",
+              "reason": "visitor_cancelled",
+              "at": "2026-10-11T12:00:03.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "cancelled",
+                "at": "2026-10-11T12:00:03.000Z"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000006:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000006",
+          "sequence": 1,
+          "event": "ask.cancelled",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000006",
+            "threadId": "0199c8f2-2394-7000-8000-000000000106",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:03.000Z",
+            "state": "cancelled",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": null,
+            "terminal": {
+              "state": "cancelled",
+              "reason": "visitor_cancelled",
+              "at": "2026-10-11T12:00:03.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "cancelled",
+                "at": "2026-10-11T12:00:03.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "state": "expired",
+      "run": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000007",
+        "threadId": "0199c8f2-2394-7000-8000-000000000107",
+        "principalId": null,
+        "question": "What is the asking price per square meter for this synthetic apartment?",
+        "locale": "en",
+        "placeId": "sao-paulo-pinheiros",
+        "createdAt": "2026-10-11T12:00:00.000Z",
+        "updatedAt": "2026-10-11T12:00:03.000Z",
+        "state": "expired",
+        "originalInputs": {
+          "priceMinorUnits": 80000000,
+          "currency": "BRL",
+          "areaSquareMeters": 80
+        },
+        "decision": {
+          "intent": "price_per_square_meter",
+          "confidence": 0.64,
+          "degraded": true,
+          "requiresConfirmation": true,
+          "source": "synthetic-fixture",
+          "decidedAt": "2026-10-11T12:00:02.000Z"
+        },
+        "confirmation": null,
+        "result": null,
+        "terminal": {
+          "state": "expired",
+          "reason": "confirmation_expired",
+          "at": "2026-10-11T12:00:03.000Z"
+        },
+        "steps": [
+          {
+            "sequence": 1,
+            "phase": "interpreting",
+            "at": "2026-10-11T12:00:01.000Z"
+          },
+          {
+            "sequence": 2,
+            "phase": "awaiting_confirmation",
+            "at": "2026-10-11T12:00:02.000Z"
+          },
+          {
+            "sequence": 3,
+            "phase": "expired",
+            "at": "2026-10-11T12:00:03.000Z"
+          }
+        ]
+      },
+      "thread": {
+        "basis": "prepared-ask-example",
+        "metadata": {
+          "fixtureVersion": "ask-v1",
+          "asOf": "2026-10-11T12:00:10.000Z",
+          "synthetic": true,
+          "liveExecution": false,
+          "durableReplay": false
+        },
+        "id": "0199c8f2-2394-7000-8000-000000000107",
+        "principalId": null,
+        "runs": [
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000207",
+            "threadId": "0199c8f2-2394-7000-8000-000000000107",
+            "principalId": null,
+            "question": "Can this fixture predict a future sale price?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T11:59:00.000Z",
+            "updatedAt": "2026-10-11T11:59:01.000Z",
+            "state": "completed",
+            "originalInputs": null,
+            "decision": {
+              "intent": "unavailable",
+              "confidence": 0.99,
+              "degraded": false,
+              "requiresConfirmation": false,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T11:59:00.000Z"
+            },
+            "confirmation": null,
+            "result": {
+              "kind": "unavailable_intent",
+              "reason": "not_available"
+            },
+            "terminal": {
+              "state": "completed",
+              "reason": null,
+              "at": "2026-10-11T11:59:01.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "completed",
+                "at": "2026-10-11T11:59:01.000Z"
+              }
+            ]
+          },
+          {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000007",
+            "threadId": "0199c8f2-2394-7000-8000-000000000107",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:03.000Z",
+            "state": "expired",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": null,
+            "terminal": {
+              "state": "expired",
+              "reason": "confirmation_expired",
+              "at": "2026-10-11T12:00:03.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "expired",
+                "at": "2026-10-11T12:00:03.000Z"
+              }
+            ]
+          }
+        ]
+      },
+      "frames": [
+        {
+          "basis": "prepared-ask-example",
+          "metadata": {
+            "fixtureVersion": "ask-v1",
+            "asOf": "2026-10-11T12:00:10.000Z",
+            "synthetic": true,
+            "liveExecution": false,
+            "durableReplay": false
+          },
+          "version": 1,
+          "id": "0199c8f2-2394-7000-8000-000000000007:v1:1",
+          "runId": "0199c8f2-2394-7000-8000-000000000007",
+          "sequence": 1,
+          "event": "ask.expired",
+          "terminal": true,
+          "run": {
+            "basis": "prepared-ask-example",
+            "metadata": {
+              "fixtureVersion": "ask-v1",
+              "asOf": "2026-10-11T12:00:10.000Z",
+              "synthetic": true,
+              "liveExecution": false,
+              "durableReplay": false
+            },
+            "id": "0199c8f2-2394-7000-8000-000000000007",
+            "threadId": "0199c8f2-2394-7000-8000-000000000107",
+            "principalId": null,
+            "question": "What is the asking price per square meter for this synthetic apartment?",
+            "locale": "en",
+            "placeId": "sao-paulo-pinheiros",
+            "createdAt": "2026-10-11T12:00:00.000Z",
+            "updatedAt": "2026-10-11T12:00:03.000Z",
+            "state": "expired",
+            "originalInputs": {
+              "priceMinorUnits": 80000000,
+              "currency": "BRL",
+              "areaSquareMeters": 80
+            },
+            "decision": {
+              "intent": "price_per_square_meter",
+              "confidence": 0.64,
+              "degraded": true,
+              "requiresConfirmation": true,
+              "source": "synthetic-fixture",
+              "decidedAt": "2026-10-11T12:00:02.000Z"
+            },
+            "confirmation": null,
+            "result": null,
+            "terminal": {
+              "state": "expired",
+              "reason": "confirmation_expired",
+              "at": "2026-10-11T12:00:03.000Z"
+            },
+            "steps": [
+              {
+                "sequence": 1,
+                "phase": "interpreting",
+                "at": "2026-10-11T12:00:01.000Z"
+              },
+              {
+                "sequence": 2,
+                "phase": "awaiting_confirmation",
+                "at": "2026-10-11T12:00:02.000Z"
+              },
+              {
+                "sequence": 3,
+                "phase": "expired",
+                "at": "2026-10-11T12:00:03.000Z"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "authority": "Catalogue grants omitted."
+}

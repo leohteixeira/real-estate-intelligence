@@ -1,0 +1,13 @@
+{
+  "cursorEvidence": [
+    {
+      "authorityMatches": true
+    },
+    {
+      "cursor": "0199c8f2-2394-7000-8000-000000000003:v1:1",
+      "authorityMatches": true
+    }
+  ],
+  "abortedBeforeRelease": true,
+  "oldAuthorityNotDisplayed": true
+}

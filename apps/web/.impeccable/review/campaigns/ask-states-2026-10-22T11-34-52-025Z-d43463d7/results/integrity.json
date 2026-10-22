@@ -1,0 +1,26 @@
+{
+  "scope": "Post-campaign read-only audit of final artifact bytes and current source files",
+  "askSourceHash": "689c811861ea217e481d72040224a656835df4a0c33d8c9b0b3df62b12d2aede",
+  "campaigns": [
+    {
+      "runId": "ask-2026-10-22T11-33-49-973Z-34694c6d",
+      "approvedAttempts": 7,
+      "verifiedManifestFiles": 54,
+      "currentSourceMatches": true,
+      "ownedResourcesRemoved": true,
+      "foreignResourcesPreserved": true
+    },
+    {
+      "runId": "ask-states-2026-10-22T11-34-52-025Z-d43463d7",
+      "approvedAttempts": 7,
+      "verifiedManifestFiles": 177,
+      "currentSourceMatches": true,
+      "ownedResourcesRemoved": true,
+      "foreignResourcesPreserved": true
+    }
+  ],
+  "limitations": [
+    "No independent visual-review, detector, finish or acceptance verdict is included.",
+    "This is prepared read-only continuation, not live execution or complete WCAG certification."
+  ]
+}

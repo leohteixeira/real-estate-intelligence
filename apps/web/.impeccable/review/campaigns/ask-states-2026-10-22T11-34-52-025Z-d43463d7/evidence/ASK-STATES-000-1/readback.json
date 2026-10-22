@@ -1,0 +1,8 @@
+{
+  "url": "about:blank",
+  "reads": [],
+  "forbidden": [],
+  "outside": [],
+  "diagnosticLeak": false,
+  "privateValues": "Excluded; screenshot fields masked and no raw console/error/authority captured."
+}

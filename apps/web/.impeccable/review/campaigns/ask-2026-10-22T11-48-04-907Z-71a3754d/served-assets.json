@@ -1,0 +1,43 @@
+{
+  "httpAssets": [
+    {
+      "file": "CityScene-B00CGWEr.js",
+      "sha256": "d3085ccc93d5efdece09200e580a240efd34437e163cc6a74f880a9fc52fb70f"
+    },
+    {
+      "file": "index-BGy-iAzE.css",
+      "sha256": "1fa9e0d4df8ad86b100b8d9ed4e6b0d9083be20c261f0321fc15cddc7dd2fdde"
+    },
+    {
+      "file": "index-CGIsl0WS.js",
+      "sha256": "5b3e084bb425ec1859a4f5fca0c0a50ee1f239c479db91c5d599e42f84c7edfe"
+    }
+  ],
+  "browserAssets": [
+    {
+      "file": "/assets/index-BGy-iAzE.css",
+      "sha256": "1fa9e0d4df8ad86b100b8d9ed4e6b0d9083be20c261f0321fc15cddc7dd2fdde"
+    },
+    {
+      "file": "/assets/index-CGIsl0WS.js",
+      "sha256": "5b3e084bb425ec1859a4f5fca0c0a50ee1f239c479db91c5d599e42f84c7edfe"
+    }
+  ],
+  "localBuildAssets": [
+    {
+      "file": "CityScene-Bwr-fUrE.js",
+      "sha256": "d1dbb1c4cb115d21d1f92f11dc9ab653b275b9395fb4e7853729a2428113c903"
+    },
+    {
+      "file": "index-BGy-iAzE.css",
+      "sha256": "1fa9e0d4df8ad86b100b8d9ed4e6b0d9083be20c261f0321fc15cddc7dd2fdde"
+    },
+    {
+      "file": "index-DWTvkQTq.js",
+      "sha256": "500a095e6704bd816cfcfb72519f05644eb6708019fd3001688a8d8b6d3fd34d"
+    }
+  ],
+  "localAndRuntimeAssetsEqual": false,
+  "scope": "Every deployed JS/CSS asset read over HTTP and matched to exact owned runtime files; each browser-loaded asset matched independently. Host build identity is separate, not assumed reproducible across environments.",
+  "matchesRuntimeBuild": true
+}

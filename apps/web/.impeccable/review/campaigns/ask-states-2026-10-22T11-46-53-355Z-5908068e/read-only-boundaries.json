@@ -1,0 +1,21 @@
+{
+  "forbidden": [],
+  "outside": [],
+  "diagnosticLeak": false,
+  "servedAssets": [
+    {
+      "file": "CityScene-B00CGWEr.js",
+      "sha256": "d3085ccc93d5efdece09200e580a240efd34437e163cc6a74f880a9fc52fb70f"
+    },
+    {
+      "file": "index-BGy-iAzE.css",
+      "sha256": "1fa9e0d4df8ad86b100b8d9ed4e6b0d9083be20c261f0321fc15cddc7dd2fdde"
+    },
+    {
+      "file": "index-CGIsl0WS.js",
+      "sha256": "5b3e084bb425ec1859a4f5fca0c0a50ee1f239c479db91c5d599e42f84c7edfe"
+    }
+  ],
+  "noSqlChanges": true,
+  "noPost": true
+}

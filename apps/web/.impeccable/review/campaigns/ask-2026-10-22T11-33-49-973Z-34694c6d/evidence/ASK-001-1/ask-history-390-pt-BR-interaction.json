@@ -1,0 +1,268 @@
+{
+  "version": {
+    "commit": "2659a7a2ebbd6f10d8f474b3446e67bdfc06572a",
+    "dirty": true,
+    "askSourceHash": "689c811861ea217e481d72040224a656835df4a0c33d8c9b0b3df62b12d2aede",
+    "sourceFiles": [
+      "apps/web/src/ask/AskConfirmation.tsx",
+      "apps/web/src/ask/AskRunRecord.tsx",
+      "apps/web/src/ask/AskScreen.tsx",
+      "apps/web/src/ask/AskThread.tsx",
+      "apps/web/src/ask/ask-client.ts",
+      "apps/web/src/ask/ask-equality.ts",
+      "apps/web/src/ask/ask-resources.ts",
+      "apps/web/src/ask/ask-session.ts",
+      "apps/web/src/ask/ask-stream.ts",
+      "apps/web/src/styles/ask.css",
+      "apps/web/src/routes.tsx",
+      "apps/web/src/places/resources.ts",
+      "apps/web/src/main.tsx",
+      "apps/web/vite.config.ts"
+    ],
+    "localAssets": [
+      {
+        "file": "CityScene-BqrZCaEJ.js",
+        "sha256": "4e92c2d553338cc1b694c67b21434ebf7b97c8a4ada6aaeb45626b92b42b9ec2"
+      },
+      {
+        "file": "index-3thlbL-p.js",
+        "sha256": "bf5ae1c400a520e31824427c99d40152963033f4529e914fdf92fa6a2eff558f"
+      },
+      {
+        "file": "index-CfP8tDdd.css",
+        "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+      }
+    ],
+    "runtime": [
+      {
+        "service": "web",
+        "image": "sha256:7272d8916f4d2ae19ffcba02643b54e63cc30fbdf905f54037ac86bc812ebfa6"
+      },
+      {
+        "service": "api",
+        "image": "sha256:2a3f9e9a54df71cd25be82b484c0ee764234d3fba9ae3a3c9b47fb61e0bfcfbc"
+      }
+    ],
+    "runtimeAssets": [
+      {
+        "file": "CityScene-DpeeQFkM.js",
+        "sha256": "81f411a315e07bf90ab3d36f1ad92f4776a6d8ea077b8ba52880a2a87bdaf155"
+      },
+      {
+        "file": "index-A2zQ3TsD.js",
+        "sha256": "516faad5873b23fe3d3d0c7f2b0a5f76c94f8cb85c6c87b6c43a68c20a836c68"
+      },
+      {
+        "file": "index-CfP8tDdd.css",
+        "sha256": "d5c0124fb4b05b5bef5dd9b446b80fbcae95e640f8431695edbbdb4695783015"
+      }
+    ],
+    "base": "http://127.0.0.1:45077",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "scope": "Owned local production images and build, not deployed release identity"
+  },
+  "width": 390,
+  "documentHeight": 2724,
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "tag": "A",
+      "className": "brand",
+      "href": "/",
+      "width": 159.9375,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "active",
+      "href": "/ask/sao-paulo-bela-vista",
+      "width": 55.90625,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-santana",
+      "width": 46.25,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-vila-mariana",
+      "width": 67.484375,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-tatuape",
+      "width": 46.15625,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-pinheiros",
+      "width": 53.171875,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/brazil",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-state",
+      "width": 114.03125,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo",
+      "width": 55.140625,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-centro",
+      "width": 68.78125,
+      "height": 44
+    },
+    {
+      "tag": "TEXTAREA",
+      "className": "",
+      "href": null,
+      "width": 358,
+      "height": 88
+    },
+    {
+      "tag": "BUTTON",
+      "className": "btn btn--primary",
+      "href": null,
+      "width": 260,
+      "height": 44
+    },
+    {
+      "tag": "SELECT",
+      "className": "",
+      "href": null,
+      "width": 210,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "btn",
+      "href": null,
+      "width": 199.265625,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 388,
+      "height": 135.34375
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 388,
+      "height": 113.59375
+    },
+    {
+      "tag": "A",
+      "className": "btn",
+      "href": "/search/sao-paulo-bela-vista",
+      "width": 356,
+      "height": 44
+    },
+    {
+      "tag": "SUMMARY",
+      "className": "",
+      "href": null,
+      "width": 356,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/places/sao-paulo-bela-vista",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/search/sao-paulo-bela-vista",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "tag": "A",
+      "className": "active",
+      "href": "/ask/sao-paulo-bela-vista",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "content": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "heading": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "barlow": true,
+    "condensed": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manualLimits": [
+    "Screen-reader pronunciation/order, daylight focus and zoom require independent human assessment."
+  ]
+}
