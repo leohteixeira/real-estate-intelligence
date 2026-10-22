@@ -48,6 +48,41 @@ export const publicLocaleControlSelector = (locale: 'pt-BR' | 'en') =>
 export const publicPrivacyEntrySelector =
   '.public-footer a[href="/privacy"], .place-rail a[href="/privacy"]';
 
+/** Public receipt descriptor, not a full accessible-name algorithm; editable values stay private. */
+function describeControlName(element: HTMLElement) {
+  const publicText = (root: Element) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) =>
+        node.parentElement?.closest('input,textarea,script,style,[contenteditable]')
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_ACCEPT,
+    });
+    const parts: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode())
+      parts.push(node.textContent ?? '');
+    return parts.join('').replace(/\s+/g, ' ').trim();
+  };
+  const referenced = (element.getAttribute('aria-labelledby') ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => document.getElementById(id))
+    .filter((label): label is HTMLElement => label !== null)
+    .map(publicText)
+    .filter(Boolean)
+    .join(' ');
+  if (referenced) return referenced.slice(0, 160);
+  const explicit = element.getAttribute('aria-label');
+  if (explicit?.trim()) return explicit.trim().slice(0, 160);
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    const labels = Array.from(element.labels ?? [])
+      .map(publicText)
+      .filter(Boolean)
+      .join(' ');
+    return labels ? labels.slice(0, 160) : '[editable control; value private]';
+  }
+  return publicText(element).slice(0, 160);
+}
+
 /** Read in the browser; an opaque ancestor is not an effective ground over sibling canvas paint. */
 function describePaint(element: Element, start: Element | null = element) {
   let background = 'rgb(255, 255, 255)';
@@ -196,30 +231,35 @@ export async function walkKeyboard(
   };
   const identitySource = identify.toString();
   const paintSource = describePaint.toString();
-  const expected = await page.locator(selector).evaluateAll((elements, source) => {
-    const identity = new Function(`return (${source})`)() as (element: Element) => string;
-    return elements.flatMap((element) => {
-      const html = element as HTMLElement;
-      const style = getComputedStyle(html);
-      if (
-        html.tabIndex < 0 ||
-        html.matches(':disabled,[inert]') ||
-        html.closest('[inert]') ||
-        html.closest('details:not([open]) > :not(summary)') ||
-        !html.getClientRects().length ||
-        style.visibility === 'hidden' ||
-        style.display === 'none'
-      )
-        return [];
-      return [
-        {
-          identity: identity(html),
-          name: html.getAttribute('aria-label') ?? html.textContent?.trim().slice(0, 160) ?? '',
-          tag: html.tagName,
-        },
-      ];
-    });
-  }, identitySource);
+  const nameSource = describeControlName.toString();
+  const expected = await page.locator(selector).evaluateAll(
+    (elements, { source, nameSource }) => {
+      const identity = new Function(`return (${source})`)() as (element: Element) => string;
+      const controlName = new Function(`return (${nameSource})`)() as typeof describeControlName;
+      return elements.flatMap((element) => {
+        const html = element as HTMLElement;
+        const style = getComputedStyle(html);
+        if (
+          html.tabIndex < 0 ||
+          html.matches(':disabled,[inert]') ||
+          html.closest('[inert]') ||
+          html.closest('details:not([open]) > :not(summary)') ||
+          !html.getClientRects().length ||
+          style.visibility === 'hidden' ||
+          style.display === 'none'
+        )
+          return [];
+        return [
+          {
+            identity: identity(html),
+            name: controlName(html),
+            tag: html.tagName,
+          },
+        ];
+      });
+    },
+    { source: identitySource, nameSource },
+  );
   const directions = [];
   for (const key of ['Tab', 'Shift+Tab']) {
     const steps = [];
@@ -238,7 +278,7 @@ export async function walkKeyboard(
           ),
       );
       const step = await page.evaluate(
-        ({ source, paintSource }) => {
+        ({ source, paintSource, nameSource }) => {
           const element = document.activeElement;
           // Full Chromium also tabs through browser chrome. activeElement is retained while the
           // document is unfocused; that is not another product focus stop (nor a hidden skip link).
@@ -258,6 +298,9 @@ export async function walkKeyboard(
           const rect = element.getBoundingClientRect();
           const style = getComputedStyle(element);
           const paint = new Function(`return (${paintSource})`)() as typeof describePaint;
+          const controlName = new Function(
+            `return (${nameSource})`,
+          )() as typeof describeControlName;
           const focusWithin = element.parentElement?.matches(':focus-within')
             ? getComputedStyle(element.parentElement)
             : null;
@@ -324,7 +367,7 @@ export async function walkKeyboard(
               method:
                 'Candidate ground: inset uses control, outside uses ancestor. assessContrast adjudicates opaque paint versus alpha/gradient/shadow/canvas limits.',
             },
-            name: element.getAttribute('aria-label') ?? element.textContent?.trim().slice(0, 160),
+            name: controlName(element),
             focusVisible: element.matches(':focus-visible'),
             indicator:
               (style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) ||
@@ -345,7 +388,7 @@ export async function walkKeyboard(
             rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
           };
         },
-        { source: identitySource, paintSource },
+        { source: identitySource, paintSource, nameSource },
       );
       if (step.transition) {
         browserChromeTransitions.push(step.transition);
@@ -418,139 +461,143 @@ export async function measureAccessibility(page: Page) {
     undefined,
     { timeout: 5000 },
   );
-  const measured = await page.evaluate((paintSource) => {
-    const paint = new Function(`return (${paintSource})`)() as typeof describePaint;
-    const directText = (element: Element) =>
-      Array.from(element.childNodes)
-        .filter((node) => {
-          if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) return false;
-          const range = document.createRange();
-          range.selectNodeContents(node);
-          return Array.from(range.getClientRects()).some((rect) => rect.width && rect.height);
-        })
-        .map((node) => node.textContent)
-        .join(' ')
-        .trim();
-    const textElements = Array.from(document.querySelectorAll('*'))
-      .filter(
-        (element): element is HTMLElement | SVGTextContentElement =>
-          element instanceof HTMLElement || element instanceof SVGTextContentElement,
-      )
-      .filter(
-        (element) =>
-          element.checkVisibility() &&
-          !element.closest('script,style,template,noscript,canvas,[aria-hidden="true"]') &&
-          !element.closest('details:not([open]) > :not(summary)') &&
-          (element instanceof HTMLInputElement ||
-            element instanceof HTMLTextAreaElement ||
-            element instanceof HTMLSelectElement ||
-            !!directText(element)),
-      );
-    return {
-      viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
-      overflow: document.documentElement.scrollWidth > innerWidth,
-      documentWidth: document.documentElement.scrollWidth,
-      fonts: {
-        body: getComputedStyle(document.body).fontFamily,
-        content: (() => {
-          const element = textElements.find(
-            (element) =>
-              !(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
-              element.closest('main,.lp-copy') &&
-              !!directText(element),
-          );
-          return element
-            ? {
-                text: directText(element).slice(0, 100),
-                family: getComputedStyle(element).fontFamily,
-              }
-            : null;
-        })(),
-        size: getComputedStyle(document.body).fontSize,
-        barlow: document.fonts.check('400 15px Barlow'),
-      },
-      motion: {
-        reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
-        scrolling: getComputedStyle(document.documentElement).scrollBehavior,
-      },
-      targets: Array.from(
-        document.querySelectorAll<HTMLElement>('a[href],button,summary,input,select,textarea'),
-      )
+  const measured = await page.evaluate(
+    ({ paintSource, nameSource }) => {
+      const paint = new Function(`return (${paintSource})`)() as typeof describePaint;
+      const controlName = new Function(`return (${nameSource})`)() as typeof describeControlName;
+      const directText = (element: Element) =>
+        Array.from(element.childNodes)
+          .filter((node) => {
+            if (node.nodeType !== Node.TEXT_NODE || !node.textContent?.trim()) return false;
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            return Array.from(range.getClientRects()).some((rect) => rect.width && rect.height);
+          })
+          .map((node) => node.textContent)
+          .join(' ')
+          .trim();
+      const textElements = Array.from(document.querySelectorAll('*'))
+        .filter(
+          (element): element is HTMLElement | SVGTextContentElement =>
+            element instanceof HTMLElement || element instanceof SVGTextContentElement,
+        )
         .filter(
           (element) =>
-            element.getClientRects().length &&
-            getComputedStyle(element).visibility !== 'hidden' &&
-            !element.closest('details:not([open]) > :not(summary)'),
+            element.checkVisibility() &&
+            !element.closest('script,style,template,noscript,canvas,[aria-hidden="true"]') &&
+            !element.closest('details:not([open]) > :not(summary)') &&
+            (element instanceof HTMLInputElement ||
+              element instanceof HTMLTextAreaElement ||
+              element instanceof HTMLSelectElement ||
+              !!directText(element)),
+        );
+      return {
+        viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        fonts: {
+          body: getComputedStyle(document.body).fontFamily,
+          content: (() => {
+            const element = textElements.find(
+              (element) =>
+                !(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) &&
+                element.closest('main,.lp-copy') &&
+                !!directText(element),
+            );
+            return element
+              ? {
+                  text: directText(element).slice(0, 100),
+                  family: getComputedStyle(element).fontFamily,
+                }
+              : null;
+          })(),
+          size: getComputedStyle(document.body).fontSize,
+          barlow: document.fonts.check('400 15px Barlow'),
+        },
+        motion: {
+          reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+          scrolling: getComputedStyle(document.documentElement).scrollBehavior,
+        },
+        targets: Array.from(
+          document.querySelectorAll<HTMLElement>('a[href],button,summary,input,select,textarea'),
         )
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
+          .filter(
+            (element) =>
+              element.getClientRects().length &&
+              getComputedStyle(element).visibility !== 'hidden' &&
+              !element.closest('details:not([open]) > :not(summary)'),
+          )
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              tag: element.tagName,
+              name: controlName(element),
+              width: rect.width,
+              height: rect.height,
+              disabled: element.matches(':disabled'),
+            };
+          }),
+        tables: Array.from(document.querySelectorAll('table')).map((table) => ({
+          width: table.getBoundingClientRect().width,
+          containerWidth: table.parentElement?.clientWidth,
+          overflow: table.parentElement ? getComputedStyle(table.parentElement).overflowX : null,
+        })),
+        textRoles: textElements.map((element) => {
+          const style = getComputedStyle(element);
+          const editable =
+            element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
+          const placeholder = editable && !element.value && !!element.placeholder;
+          const text = editable
+            ? placeholder
+              ? element.placeholder
+              : element.value
+                ? '[editable text; value private]'
+                : ''
+            : element instanceof HTMLSelectElement
+              ? element.selectedOptions[0]?.text
+              : directText(element);
+          const svg = element instanceof SVGTextContentElement;
+          const ground = paint(element);
           return {
+            ...ground,
+            opacity: ground.opacity * (svg ? Number(style.fillOpacity) : 1),
             tag: element.tagName,
-            name: element.getAttribute('aria-label') ?? element.textContent?.trim().slice(0, 160),
-            width: rect.width,
-            height: rect.height,
-            disabled: element.matches(':disabled'),
+            className: element.getAttribute('class') ?? '',
+            text: text?.slice(0, 100),
+            color: svg
+              ? style.fill
+              : placeholder
+                ? getComputedStyle(element, '::placeholder').color
+                : style.color,
+            ...(svg && style.stroke !== 'none' && parseFloat(style.strokeWidth) > 0
+              ? {
+                  paintLimitation:
+                    'SVG glyph stroke/fill edge composition requires manual assessment; CSS color is not glyph paint',
+                }
+              : {}),
+            placeholder,
+            fontSize: style.fontSize,
+            fontFamily: style.fontFamily,
+            fontWeight: style.fontWeight,
           };
         }),
-      tables: Array.from(document.querySelectorAll('table')).map((table) => ({
-        width: table.getBoundingClientRect().width,
-        containerWidth: table.parentElement?.clientWidth,
-        overflow: table.parentElement ? getComputedStyle(table.parentElement).overflowX : null,
-      })),
-      textRoles: textElements.map((element) => {
-        const style = getComputedStyle(element);
-        const editable =
-          element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement;
-        const placeholder = editable && !element.value && !!element.placeholder;
-        const text = editable
-          ? placeholder
-            ? element.placeholder
-            : element.value
-              ? '[editable text; value private]'
-              : ''
-          : element instanceof HTMLSelectElement
-            ? element.selectedOptions[0]?.text
-            : directText(element);
-        const svg = element instanceof SVGTextContentElement;
-        const ground = paint(element);
-        return {
-          ...ground,
-          opacity: ground.opacity * (svg ? Number(style.fillOpacity) : 1),
-          tag: element.tagName,
-          className: element.getAttribute('class') ?? '',
-          text: text?.slice(0, 100),
-          color: svg
-            ? style.fill
-            : placeholder
-              ? getComputedStyle(element, '::placeholder').color
-              : style.color,
-          ...(svg && style.stroke !== 'none' && parseFloat(style.strokeWidth) > 0
-            ? {
-                paintLimitation:
-                  'SVG glyph stroke/fill edge composition requires manual assessment; CSS color is not glyph paint',
-              }
-            : {}),
-          placeholder,
-          fontSize: style.fontSize,
-          fontFamily: style.fontFamily,
-          fontWeight: style.fontWeight,
-        };
-      }),
-      boundaries: Array.from(
-        document.querySelectorAll<HTMLElement>('.field input,.field select,#ask-draft,.ask__box'),
-      )
-        .filter(
-          (element) =>
-            element.getClientRects().length &&
-            !element.closest('details:not([open]) > :not(summary)') &&
-            parseFloat(getComputedStyle(element).borderTopWidth) > 0,
+        boundaries: Array.from(
+          document.querySelectorAll<HTMLElement>('.field input,.field select,#ask-draft,.ask__box'),
         )
-        .map((element) => ({
-          ...paint(element, element.parentElement),
-          foreground: getComputedStyle(element).borderTopColor,
-        })),
-    };
-  }, describePaint.toString());
+          .filter(
+            (element) =>
+              element.getClientRects().length &&
+              !element.closest('details:not([open]) > :not(summary)') &&
+              parseFloat(getComputedStyle(element).borderTopWidth) > 0,
+          )
+          .map((element) => ({
+            ...paint(element, element.parentElement),
+            foreground: getComputedStyle(element).borderTopColor,
+          })),
+      };
+    },
+    { paintSource: describePaint.toString(), nameSource: describeControlName.toString() },
+  );
   return {
     ...measured,
     paintSettle: {
