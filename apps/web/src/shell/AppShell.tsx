@@ -16,7 +16,7 @@ import { LoadErrorState } from '../shared/SystemStates';
 import { PublicNavigation } from './PublicNavigation';
 import { defaultPlaceId, destinationPath, publicRoutes } from './public-routes';
 
-export function AppShell() {
+export function AppShell({ documentMode = false }: { readonly documentMode?: boolean }) {
   const { t, i18n } = useTranslation('shell');
   const { t: placeText } = useTranslation('place');
   const match = useMatch('/:destination/:placeId');
@@ -44,19 +44,21 @@ export function AppShell() {
   const destination =
     publicRoutes.find((route) => route.destination === match?.params.destination?.toLowerCase())
       ?.destination ?? (detailMatch ? 'search' : 'places');
-  const placeId = detailMatch
-    ? propertyPlace?.id
-    : isPlaceId(match?.params.placeId)
-      ? match.params.placeId
-      : defaultPlaceId;
+  const placeId = documentMode
+    ? undefined
+    : detailMatch
+      ? propertyPlace?.id
+      : isPlaceId(match?.params.placeId)
+        ? match.params.placeId
+        : defaultPlaceId;
   const places = useQuery({
     ...placesQuery(),
-    enabled: !detailMatch && (match === null || isPlaceId(match.params.placeId)),
+    enabled: !documentMode && !detailMatch && (match === null || isPlaceId(match.params.placeId)),
   });
   useEffect(() => {
     document.documentElement.lang = i18n.language;
-    document.title = `${t(destination)} · Real Estate Intelligence`;
-  }, [destination, i18n.language, t]);
+    document.title = `${t(documentMode ? 'privacy' : destination)} · Real Estate Intelligence`;
+  }, [destination, documentMode, i18n.language, t]);
   return (
     <div
       className={`rei place-app${detailMatch ? ' property-app' : ''}${listingMatch ? ' listing-app' : ''}`}
@@ -74,6 +76,9 @@ export function AppShell() {
         <div className="rail__foot">
           <LocaleControls />
           <p>{t('synthetic')}</p>
+          <Link className="privacy-footer-link" to="/privacy">
+            {t('privacy')}
+          </Link>
         </div>
       </aside>
       <div className="main place-main">
@@ -85,7 +90,7 @@ export function AppShell() {
             <LocaleControls />
           </div>
         </header>
-        {detailMatch ? null : (
+        {detailMatch || documentMode ? null : (
           <nav className="place-navigation" aria-label={placeText('navigation')}>
             <span className="place-navigation__title">{t('places')}</span>
             {places.data?.items
@@ -112,6 +117,9 @@ export function AppShell() {
         <footer className="public-footer">
           <LocaleControls />
           <p>{t('synthetic')}</p>
+          <Link className="privacy-footer-link" to="/privacy">
+            {t('privacy')}
+          </Link>
         </footer>
         <PublicNavigation
           {...(placeId ? { placeId } : {})}

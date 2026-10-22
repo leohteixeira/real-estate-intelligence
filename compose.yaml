@@ -319,6 +319,9 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
+      args:
+        VITE_PRIVACY_CONTROLLER_NAME: ${VITE_PRIVACY_CONTROLLER_NAME:-}
+        VITE_PRIVACY_CONTACT_EMAIL: ${VITE_PRIVACY_CONTACT_EMAIL:-}
     ports:
       - '${WEB_PORT:-3200}:3200'
     depends_on:

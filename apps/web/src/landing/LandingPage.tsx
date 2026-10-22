@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { saveLocale } from '../places/locale';
+import { Link } from 'react-router';
 
 import type { CityScene } from './CityScene';
 import { LAST_STAGE } from './cityLayout';
@@ -366,7 +367,10 @@ export function LandingPage({ demoUrl, repositoryUrl }: LandingPageProps) {
         </section>
       </main>
 
-      <footer className="lp-foot">{copy.footer}</footer>
+      <footer className="lp-foot">
+        <span>{copy.footer}</span>
+        <Link to="/privacy">{copy.privacy}</Link>
+      </footer>
     </div>
   );
 }

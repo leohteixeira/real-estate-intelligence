@@ -11,6 +11,10 @@ RUN pnpm install --frozen-lockfile --filter "@rei/web..."
 
 COPY apps/web/ ./apps/web/
 COPY packages/contracts/ ./packages/contracts/
+ARG VITE_PRIVACY_CONTROLLER_NAME=""
+ARG VITE_PRIVACY_CONTACT_EMAIL=""
+ENV VITE_PRIVACY_CONTROLLER_NAME=$VITE_PRIVACY_CONTROLLER_NAME \
+    VITE_PRIVACY_CONTACT_EMAIL=$VITE_PRIVACY_CONTACT_EMAIL
 RUN pnpm --filter "@rei/web..." build
 
 FROM nginx:1.29-alpine AS runtime

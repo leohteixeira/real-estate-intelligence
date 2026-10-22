@@ -29,7 +29,7 @@ export function createLocale(locale: Locale = readLocale()): i18n {
     supportedLngs: ['pt-BR', 'en'],
     initAsync: false,
     defaultNS: 'place',
-    ns: ['shell', 'place', 'search', 'ask', 'shared', 'property', 'listing'],
+    ns: ['shell', 'place', 'search', 'ask', 'shared', 'property', 'listing', 'privacy'],
     resources,
     interpolation: { escapeValue: false },
   });

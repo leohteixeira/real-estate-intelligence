@@ -8,6 +8,7 @@ import { SearchResults } from './search/SearchResults';
 import { PropertyDetails } from './properties/PropertyDetails';
 import { ListingDetails } from './listings/ListingDetails';
 import { defaultPlaceId, destinationPath, publicRoutes } from './shell/public-routes';
+import { PrivacyNotice } from './privacy/PrivacyNotice';
 
 export function AppRoutes() {
   return (
@@ -16,6 +17,9 @@ export function AppRoutes() {
         path="/"
         element={<LandingPage demoUrl={config.demoUrl} repositoryUrl={config.repositoryUrl} />}
       />
+      <Route element={<AppShell documentMode />}>
+        <Route path="/privacy" element={<PrivacyNotice />} />
+      </Route>
       <Route element={<AppShell />}>
         <Route path="/listings/:listingId" element={<ListingDetails />} />
         <Route path="/properties/:propertyId" element={<PropertyDetails />} />

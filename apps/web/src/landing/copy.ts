@@ -76,6 +76,7 @@ export interface LandingCopy {
   readonly statusBuilt: string;
   readonly statusDesigned: string;
   readonly footer: string;
+  readonly privacy: string;
 }
 
 interface Formatters {
@@ -289,6 +290,7 @@ function english(): LandingCopy {
     statusDesigned:
       'Designed, not built yet: collectors, comparables, the natural-language runs and the screens. Every figure on this page is synthetic.',
     footer: 'Real Estate Intelligence · a portfolio project · figures in BRL',
+    privacy: 'Privacy',
   };
 }
 
@@ -474,6 +476,7 @@ function portuguese(): LandingCopy {
     statusDesigned:
       'Desenhado, ainda não construído: coletores, comparáveis, as execuções em linguagem natural e as telas. Todo número desta página é sintético.',
     footer: 'Real Estate Intelligence · um projeto de portfólio · valores em BRL',
+    privacy: 'Privacidade',
   };
 }
 

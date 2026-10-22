@@ -2,6 +2,7 @@ import { searchEnglish, searchPortuguese } from '../search/search-resources.js';
 import { propertyEnglish, propertyPortuguese } from '../properties/property-resources.js';
 import { listingEnglish, listingPortuguese } from '../listings/listing-resources.js';
 import { askEnglish, askPortuguese } from '../ask/ask-resources.js';
+import { privacyEnglish, privacyPortuguese } from '../privacy/privacy-resources.js';
 
 export const portuguese = {
   places: 'Lugares',
@@ -186,6 +187,7 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
 };
 
 const shellPT = {
+  privacy: 'Privacidade',
   places: 'Lugares',
   search: 'Buscar',
   ask: 'Perguntar',
@@ -194,6 +196,7 @@ const shellPT = {
   synthetic: 'Dados sintéticos',
 };
 const shellEN: { readonly [K in keyof typeof shellPT]: string } = {
+  privacy: 'Privacy',
   places: 'Places',
   search: 'Search',
   ask: 'Ask',
@@ -332,6 +335,7 @@ export const resources = {
     shared: sharedPT,
     property: propertyPortuguese,
     listing: listingPortuguese,
+    privacy: privacyPortuguese,
   },
   en: {
     shell: shellEN,
@@ -341,5 +345,6 @@ export const resources = {
     shared: sharedEN,
     property: propertyEnglish,
     listing: listingEnglish,
+    privacy: privacyEnglish,
   },
 } as const;

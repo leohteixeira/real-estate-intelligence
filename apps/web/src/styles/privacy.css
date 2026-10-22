@@ -1,0 +1,94 @@
+.privacy-document {
+  padding: var(--s-6) var(--gutter) var(--s-10);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.privacy-document article {
+  max-width: 70ch;
+}
+.privacy-opening h1 {
+  font-size: var(--text-2xl);
+  line-height: 1.2;
+  font-weight: 600;
+  margin-bottom: var(--s-4);
+  text-wrap: balance;
+}
+.privacy-document p + p {
+  margin-top: var(--s-3);
+}
+.privacy-contents {
+  margin-block: var(--s-6) var(--s-8);
+  border-block: 1px solid var(--line);
+  padding-block: var(--s-2);
+}
+.privacy-contents ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--s-5);
+}
+.privacy-document a,
+.privacy-footer-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--target);
+  min-width: var(--target);
+  max-width: 100%;
+}
+.privacy-document section {
+  margin-top: var(--s-8);
+  scroll-margin-top: var(--s-6);
+}
+.privacy-document h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: var(--s-3);
+}
+.privacy-source h3 {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+.privacy-source {
+  padding-block: var(--s-4);
+  border-bottom: 1px solid var(--line);
+}
+.privacy-source:first-child {
+  margin-top: var(--s-4);
+  border-top: 1px solid var(--line);
+}
+.privacy-source .small {
+  color: var(--ink-2);
+  margin-block: var(--s-1) var(--s-2);
+}
+.privacy-permissions {
+  margin-top: var(--s-3);
+}
+.privacy-permissions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+}
+.privacy-permissions dt {
+  font-weight: 600;
+}
+.privacy-document .system-state {
+  margin-top: var(--s-4);
+}
+.privacy-document .note {
+  margin-top: var(--s-3);
+}
+.privacy-closing {
+  margin-top: var(--s-8);
+  padding-top: var(--s-5);
+  border-top: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.rail__foot .privacy-footer-link {
+  color: var(--surface);
+}
+@media (min-width: 960px) {
+  .privacy-document {
+    padding: var(--s-8) var(--s-6) var(--s-10);
+  }
+}

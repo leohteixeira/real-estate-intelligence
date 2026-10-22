@@ -733,10 +733,21 @@ body:has(.lp) {
   text-wrap: pretty;
 }
 .lp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-6);
   padding: var(--s-5) var(--lp-pad);
   background: var(--enamel-900);
   color: var(--lp-soft);
   font-size: var(--text-sm);
+}
+.lp-foot a {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--target);
+  min-height: var(--target);
+  color: var(--surface);
 }
 
 /* ---------- Wide screens: copy on the left, the city on the right ---------- */

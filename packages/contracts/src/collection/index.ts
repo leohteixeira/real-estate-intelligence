@@ -1,5 +1,5 @@
 export {};
-export { SYNTHETIC_ENABLED_SOURCE } from './enabled-source.dto.js';
+export { SYNTHETIC_ENABLED_SOURCE, parseEnabledSourcesResponse } from './enabled-source.dto.js';
 export type {
   EnabledSourceDto,
   EnabledSourcePermissionsDto,
