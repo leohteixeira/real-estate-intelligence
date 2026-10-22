@@ -8,6 +8,7 @@ import './styles/place.css';
 import './styles/system-states.css';
 import './styles/search.css';
 import './styles/property.css';
+import './styles/listing.css';
 import '@fontsource/barlow/latin-400.css';
 import '@fontsource/barlow/latin-500.css';
 import '@fontsource/barlow/latin-600.css';

@@ -29,6 +29,12 @@ export function propertyHref(id: string, returnTo: string): string {
   return valid ? `${path}?returnTo=${encodeURIComponent(valid)}` : path;
 }
 
+export function listingHref(id: string, returnTo: string | null): string {
+  const path = `/listings/${id}`;
+  const valid = validSearchReturn(returnTo);
+  return valid ? `${path}?returnTo=${encodeURIComponent(valid)}` : path;
+}
+
 export function propertyNeighborhood(summary: PropertySummary) {
   return summary.place.kind === 'neighborhood'
     ? summary.place

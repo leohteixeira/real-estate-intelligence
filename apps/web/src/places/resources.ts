@@ -1,5 +1,6 @@
 import { searchEnglish, searchPortuguese } from '../search/search-resources.js';
 import { propertyEnglish, propertyPortuguese } from '../properties/property-resources.js';
+import { listingEnglish, listingPortuguese } from '../listings/listing-resources.js';
 
 export const portuguese = {
   places: 'Lugares',
@@ -329,6 +330,7 @@ export const resources = {
     ask: askPT,
     shared: sharedPT,
     property: propertyPortuguese,
+    listing: listingPortuguese,
   },
   en: {
     shell: shellEN,
@@ -337,5 +339,6 @@ export const resources = {
     ask: askEN,
     shared: sharedEN,
     property: propertyEnglish,
+    listing: listingEnglish,
   },
 } as const;

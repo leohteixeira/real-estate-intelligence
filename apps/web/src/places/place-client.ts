@@ -6,6 +6,7 @@ import {
   parsePlaceMarketSeriesResponse,
   parseReductionsResponse,
   parsePropertyResponse,
+  parseListingResponse,
 } from '@rei/contracts';
 import type {
   PlaceMarketResponse,
@@ -15,6 +16,7 @@ import type {
   PlaceMarketSeriesResponse,
   ReductionsResponse,
   PropertyResponse,
+  ListingResponse,
 } from '@rei/contracts';
 import { config } from '../config';
 import { ApiReadError, createApiClient } from '../api/client';
@@ -37,6 +39,7 @@ export interface PlaceClient {
   series(id: string, signal: AbortSignal): Promise<PlaceMarketSeriesResponse>;
   reductions(id: string, signal: AbortSignal): Promise<ReductionsResponse>;
   property(id: string, signal: AbortSignal): Promise<PropertyResponse>;
+  listing(id: string, signal: AbortSignal): Promise<ListingResponse>;
 }
 
 export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
@@ -127,6 +130,13 @@ export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
         throw new PlaceReadError(400);
       const result = await read(`/properties/${id}`, signal, parsePropertyResponse);
       if (result.property.summary.id !== id) throw new PlaceReadError(502);
+      return result;
+    },
+    async listing(id: string, signal: AbortSignal) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))
+        throw new PlaceReadError(400);
+      const result = await read(`/listings/${id}`, signal, parseListingResponse);
+      if (result.listing.id !== id) throw new PlaceReadError(502);
       return result;
     },
   };

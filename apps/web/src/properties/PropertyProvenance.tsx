@@ -1,14 +1,18 @@
 import { useEffect } from 'react';
 import type { PropertyResponse } from '@rei/contracts';
 import { useTranslation } from 'react-i18next';
+import { Link, useLocation } from 'react-router';
 import { formatComputedAt } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { evidenceAnchor, revealEvidenceTarget } from './property-presentation';
+import { listingHref, validSearchReturn } from './property-navigation';
 
 export function PropertyProvenance({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
   const locale = i18n.language as Locale;
   const date = (instant: string) => formatComputedAt(instant, locale);
+  const returns = new URLSearchParams(useLocation().search).getAll('returnTo');
+  const returnTo = returns.length === 1 ? validSearchReturn(returns[0]!) : null;
   useEffect(() => {
     const reveal = () => revealEvidenceTarget(window.location.hash.slice(1));
     reveal();
@@ -43,6 +47,11 @@ export function PropertyProvenance({ response }: { readonly response: PropertyRe
               tabIndex={-1}
             >
               <h3>{listing.source.label}</h3>
+              <Link className="btn" to={listingHref(listing.id, returnTo)}>
+                {i18n.language === 'en'
+                  ? `Inspect listing at ${listing.source.label}`
+                  : `Inspecionar anúncio na ${listing.source.label}`}
+              </Link>
               <p className="small">
                 {t(listing.status === 'active' ? 'active' : 'removed', { count: 1 })} ·{' '}
                 {listing.publishedNeighborhood}

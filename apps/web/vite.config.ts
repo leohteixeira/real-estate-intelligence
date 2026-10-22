@@ -25,6 +25,7 @@ export default defineConfig({
             'DesktopPlace.dc.html',
             'Property.dc.html',
             'DesktopProperty.dc.html',
+            'Listing.dc.html',
             'map-neighborhood.svg',
             'tokens.css',
             'components.css',

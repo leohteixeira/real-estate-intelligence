@@ -3,7 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useMatch } from 'react-router';
 import { LocaleControls } from '../places/LocaleControls';
-import { placesQuery, propertyQuery } from '../places/place-queries';
+import {
+  placesQuery,
+  propertyQuery,
+  listingQuery,
+  listingPropertyQuery,
+} from '../places/place-queries';
+import { verifiedListingProperty } from '../listings/listing-context';
 import { isPropertyId, propertyNeighborhood } from '../properties/property-navigation';
 import { isPlaceId, PlaceReadError } from '../places/place-client';
 import { LoadErrorState } from '../shared/SystemStates';
@@ -15,31 +21,46 @@ export function AppShell() {
   const { t: placeText } = useTranslation('place');
   const match = useMatch('/:destination/:placeId');
   const propertyMatch = useMatch('/properties/:propertyId');
-  const property = useQuery({
-    ...propertyQuery(propertyMatch?.params.propertyId ?? ''),
-    enabled: propertyMatch !== null && isPropertyId(propertyMatch.params.propertyId),
+  const listingMatch = useMatch('/listings/:listingId');
+  const detailMatch = propertyMatch !== null || listingMatch !== null;
+  const listing = useQuery({
+    ...listingQuery(listingMatch?.params.listingId ?? ''),
+    enabled: listingMatch !== null && isPropertyId(listingMatch.params.listingId),
   });
-  const propertyPlace = property.data
-    ? propertyNeighborhood(property.data.property.summary)
-    : undefined;
+  const contextId = propertyMatch?.params.propertyId ?? listing.data?.listing.propertyId;
+  const directProperty = useQuery({
+    ...propertyQuery(contextId ?? ''),
+    enabled: propertyMatch !== null && isPropertyId(contextId),
+  });
+  const listingProperty = useQuery({
+    ...listingPropertyQuery(contextId ?? ''),
+    enabled: listingMatch !== null && isPropertyId(contextId),
+  });
+  const property = listingMatch ? listingProperty : directProperty;
+  const verified = listingMatch
+    ? verifiedListingProperty(listing.data?.listing, property.data)
+    : property.data;
+  const propertyPlace = verified ? propertyNeighborhood(verified.property.summary) : undefined;
   const destination =
     publicRoutes.find((route) => route.destination === match?.params.destination?.toLowerCase())
-      ?.destination ?? (propertyMatch ? 'search' : 'places');
-  const placeId = propertyMatch
+      ?.destination ?? (detailMatch ? 'search' : 'places');
+  const placeId = detailMatch
     ? propertyPlace?.id
     : isPlaceId(match?.params.placeId)
       ? match.params.placeId
       : defaultPlaceId;
   const places = useQuery({
     ...placesQuery(),
-    enabled: propertyMatch !== null || match === null || isPlaceId(match.params.placeId),
+    enabled: !detailMatch && (match === null || isPlaceId(match.params.placeId)),
   });
   useEffect(() => {
     document.documentElement.lang = i18n.language;
     document.title = `${t(destination)} · Real Estate Intelligence`;
   }, [destination, i18n.language, t]);
   return (
-    <div className={`rei place-app${propertyMatch ? ' property-app' : ''}`}>
+    <div
+      className={`rei place-app${detailMatch ? ' property-app' : ''}${listingMatch ? ' listing-app' : ''}`}
+    >
       <aside className="rail place-rail">
         <Link className="brand" to="/">
           Real Estate
@@ -48,7 +69,7 @@ export function AppShell() {
         </Link>
         <PublicNavigation
           {...(placeId ? { placeId } : {})}
-          {...(propertyMatch ? { current: 'search' } : {})}
+          {...(detailMatch ? { current: 'search' } : {})}
         />
         <div className="rail__foot">
           <LocaleControls />
@@ -64,7 +85,7 @@ export function AppShell() {
             <LocaleControls />
           </div>
         </header>
-        {propertyMatch ? null : (
+        {detailMatch ? null : (
           <nav className="place-navigation" aria-label={placeText('navigation')}>
             <span className="place-navigation__title">{t('places')}</span>
             {places.data?.items
@@ -94,7 +115,7 @@ export function AppShell() {
         </footer>
         <PublicNavigation
           {...(placeId ? { placeId } : {})}
-          {...(propertyMatch ? { current: 'search' } : {})}
+          {...(detailMatch ? { current: 'search' } : {})}
           mobile
         />
       </div>
