@@ -673,7 +673,7 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
       await json('findings.json', []);
       await writeFile(
         new URL('results/report.md', directory),
-        '# Privacy campaign\n\nSix distinct scenarios approved across two explicitly identified configuration builds. Real source enablement was never performed. Licensed/not-verified rendering is covered by focused component/parser tests because source-register gates prohibit actual enabled synthetic examples. Human visual finish and assistive-technology review remain with the parent.\n\nReproduce: `pnpm exec vitest run --config vitest.integration.config.ts integration/web-privacy.integration.test.ts`.\n',
+        '# Privacy campaign\n\nSix distinct scenarios approved across two explicitly identified configuration builds.\nReal source enablement was never performed. Licensed/not-verified rendering is covered by focused\ncomponent/parser tests because source-register gates prohibit actual enabled synthetic examples.\nHuman visual finish and assistive-technology review remain with the parent.\n\nReproduce: `pnpm exec vitest run --config vitest.integration.config.ts integration/web-privacy.integration.test.ts`.\n',
       );
     },
     campaign,
