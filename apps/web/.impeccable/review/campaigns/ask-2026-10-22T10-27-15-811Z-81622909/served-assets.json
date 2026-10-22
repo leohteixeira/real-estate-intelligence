@@ -1,0 +1,43 @@
+{
+  "httpAssets": [
+    {
+      "file": "CityScene-DHCZ8hvW.js",
+      "sha256": "f2016633d6c85cbace9c6b331a005f42caf3c9707223a8aa8f62208f89493ae1"
+    },
+    {
+      "file": "index-C9HByRqz.js",
+      "sha256": "ed1ef303ff1aedf01b33eedfb0064e3c7e66ae84af8f6677236e9965225537b1"
+    },
+    {
+      "file": "index-Cnb0gMkD.css",
+      "sha256": "6871b3c4110c6e9d35bf824bb8e10b95ea4e962268625476c711905950eab750"
+    }
+  ],
+  "browserAssets": [
+    {
+      "file": "/assets/index-Cnb0gMkD.css",
+      "sha256": "6871b3c4110c6e9d35bf824bb8e10b95ea4e962268625476c711905950eab750"
+    },
+    {
+      "file": "/assets/index-C9HByRqz.js",
+      "sha256": "ed1ef303ff1aedf01b33eedfb0064e3c7e66ae84af8f6677236e9965225537b1"
+    }
+  ],
+  "localBuildAssets": [
+    {
+      "file": "CityScene-uflSg6HD.js",
+      "sha256": "adc9992106934e65cd38036f937f5b702d7493e2fc9ea0afb6a62ed36f78bc84"
+    },
+    {
+      "file": "index-Bbszw4AI.js",
+      "sha256": "fa2a7babea240e4ed3fea07b02cb8762f4504f7de440427c723b920816d97fae"
+    },
+    {
+      "file": "index-Cnb0gMkD.css",
+      "sha256": "6871b3c4110c6e9d35bf824bb8e10b95ea4e962268625476c711905950eab750"
+    }
+  ],
+  "localAndRuntimeAssetsEqual": false,
+  "scope": "Every deployed JS/CSS asset read over HTTP and matched to exact owned runtime files; each browser-loaded asset matched independently. Host build identity is separate, not assumed reproducible across environments.",
+  "matchesRuntimeBuild": true
+}

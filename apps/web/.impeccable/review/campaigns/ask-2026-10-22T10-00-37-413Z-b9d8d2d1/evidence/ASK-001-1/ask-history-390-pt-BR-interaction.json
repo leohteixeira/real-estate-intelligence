@@ -1,0 +1,238 @@
+{
+  "version": {
+    "commit": "b5fc8d3b1d3a186249c0f7b0257cdbd91a593250",
+    "dirty": true,
+    "askSourceHash": "2ce6f35b03ec5856a0a7a6637891b4e3a9ecdaf959beb2c150d54ad5ae5b5583",
+    "sourceFiles": [
+      "apps/web/src/ask/AskRunRecord.tsx",
+      "apps/web/src/ask/AskScreen.tsx",
+      "apps/web/src/ask/AskThread.tsx",
+      "apps/web/src/ask/ask-client.ts",
+      "apps/web/src/ask/ask-resources.ts",
+      "apps/web/src/ask/ask-session.ts",
+      "apps/web/src/ask/ask-stream.ts",
+      "apps/web/src/styles/ask.css",
+      "apps/web/src/routes.tsx",
+      "apps/web/src/places/resources.ts",
+      "apps/web/src/main.tsx",
+      "apps/web/vite.config.ts"
+    ],
+    "localAssets": [
+      {
+        "file": "CityScene-6vK8-ZHq.js",
+        "sha256": "11d912b30ead7336e7c82ad40308b5774235a43e7789e72bb12fce7ed390a5d4"
+      },
+      {
+        "file": "index-Cnb0gMkD.css",
+        "sha256": "6871b3c4110c6e9d35bf824bb8e10b95ea4e962268625476c711905950eab750"
+      },
+      {
+        "file": "index-kO4Og26K.js",
+        "sha256": "b53d356309761ce864dadabf64320d58770c463434ea487fe699d1a99a360ce7"
+      }
+    ],
+    "runtime": [
+      {
+        "service": "web",
+        "image": "sha256:1fdd31810bb9fc2859126367a0a4c4efd6bab5096f628de7762d32b1d12d1cf2"
+      },
+      {
+        "service": "api",
+        "image": "sha256:307bae59e1da30d2a0e58519fc1295df39725fac2234c4cb6bf39681be7a4d19"
+      }
+    ],
+    "base": "http://127.0.0.1:39389",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "scope": "Owned local production images and build, not deployed release identity"
+  },
+  "width": 390,
+  "documentHeight": 2295,
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "tag": "A",
+      "className": "brand",
+      "href": "/",
+      "width": 159.9375,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "active",
+      "href": "/ask/sao-paulo-bela-vista",
+      "width": 55.90625,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-santana",
+      "width": 46.25,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-vila-mariana",
+      "width": 67.484375,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-tatuape",
+      "width": 46.15625,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-pinheiros",
+      "width": 53.171875,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/brazil",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-state",
+      "width": 114.03125,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo",
+      "width": 55.140625,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/ask/sao-paulo-centro",
+      "width": 68.78125,
+      "height": 44
+    },
+    {
+      "tag": "TEXTAREA",
+      "className": "",
+      "href": null,
+      "width": 358,
+      "height": 88
+    },
+    {
+      "tag": "BUTTON",
+      "className": "btn btn--primary",
+      "href": null,
+      "width": 260,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 388,
+      "height": 135.34375
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 388,
+      "height": 113.59375
+    },
+    {
+      "tag": "A",
+      "className": "btn",
+      "href": "/search/sao-paulo-bela-vista",
+      "width": 356,
+      "height": 44
+    },
+    {
+      "tag": "SUMMARY",
+      "className": "",
+      "href": null,
+      "width": 356,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "BUTTON",
+      "className": "",
+      "href": null,
+      "width": 44,
+      "height": 44
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/places/sao-paulo-bela-vista",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "tag": "A",
+      "className": "",
+      "href": "/search/sao-paulo-bela-vista",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "tag": "A",
+      "className": "active",
+      "href": "/ask/sao-paulo-bela-vista",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "content": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "heading": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "barlow": true,
+    "condensed": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manualLimits": [
+    "Screen-reader pronunciation/order, daylight focus and zoom require independent human assessment."
+  ]
+}

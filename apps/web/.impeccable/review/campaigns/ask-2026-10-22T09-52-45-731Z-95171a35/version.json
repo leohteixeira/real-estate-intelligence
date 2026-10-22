@@ -1,0 +1,46 @@
+{
+  "commit": "b5fc8d3b1d3a186249c0f7b0257cdbd91a593250",
+  "dirty": true,
+  "askSourceHash": "fc4d0a20398f5364c983252304941bed399d742948f3607ef3e244bd08c466db",
+  "sourceFiles": [
+    "apps/web/src/ask/AskRunRecord.tsx",
+    "apps/web/src/ask/AskScreen.tsx",
+    "apps/web/src/ask/AskThread.tsx",
+    "apps/web/src/ask/ask-client.ts",
+    "apps/web/src/ask/ask-resources.ts",
+    "apps/web/src/ask/ask-session.ts",
+    "apps/web/src/ask/ask-stream.ts",
+    "apps/web/src/styles/ask.css",
+    "apps/web/src/routes.tsx",
+    "apps/web/src/places/resources.ts",
+    "apps/web/src/main.tsx",
+    "apps/web/vite.config.ts"
+  ],
+  "localAssets": [
+    {
+      "file": "CityScene-mVgE7726.js",
+      "sha256": "dac68b290aac02e71c4de3e8aa9530116b6cd6a04e0d3b41822a4b108fed6f24"
+    },
+    {
+      "file": "index-CnW2guPg.js",
+      "sha256": "f3b08dd029fcdf7977367932b39bf13afaa79afdae587cc7d65ab231b83c232f"
+    },
+    {
+      "file": "index-HQvSstGN.css",
+      "sha256": "f5bb1f26166bdef1b913bff44a82893f7bedb948048c5ae421b406e7eea672d7"
+    }
+  ],
+  "runtime": [
+    {
+      "service": "web",
+      "image": "sha256:09c69cdd8ec52003d5c6ca8d0bf72f14c1ef07be6865f457fe4769b6aaf571ca"
+    },
+    {
+      "service": "api",
+      "image": "sha256:38f950fee62114264fddae79095d945d59f84f8c3e22a362fadd8da3034d4748"
+    }
+  ],
+  "base": "http://127.0.0.1:33567",
+  "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+  "scope": "Owned local production images and build, not deployed release identity"
+}

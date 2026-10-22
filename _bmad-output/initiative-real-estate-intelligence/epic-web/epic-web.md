@@ -204,5 +204,22 @@ shared with another epic, Description says which part this epic delivers.
   response/body, cancellation, recovery and both locales; repeat affected real local verification
   without reopening detector/polish or VPS (agent, on the owner's behalf, 2026-10-22).
 - Assumption: the map view of Search is absent from the MVP, as the map is CAP-24.
+- Decision: D-066 follows the prepared queued example to its explicit terminal with a screen-local
+  reader, memory/header-only capability, exact returned result/inputs/steps and synthetic
+  provenance. Prepared contracts contain neither market citations nor model prose: preserve their
+  sections as explicit unavailable evidence, never fabricated generation. Navigation place is not a
+  fixture analysis place. Drafts remain editable and unsent; a separate action follows only the
+  prepared example. Unsupported quota, trace, timings, retention and model claims remain
+  unavailable. Bound JSON and next-frame reads to ten seconds; allow one automatic cursor resume,
+  then manual recovery; nonterminal EOF is transport interruption and fixed GET snapshots never
+  regress streamed state. Keep persisted bases separate, confirmation/other states in entry 16, and
+  no public writes, live models, headless sharing, global drift repair or VPS unlock (agent, on the
+  owner's behalf, 2026-10-22).
+- Decision: D-067 corrects the initial exploration's null-place assumption: the unchanged prepared
+  adapter returns placeId sao-paulo-pinheiros. Preserve the actual returned binding as synthetic
+  example metadata, separate from navigation geography and the unsent draft; null remains unbound
+  when actually received. Do not alter backend/data or imply live geographic analysis. Record this
+  factual correction in the plan change log without editing its immutable intent-contract; all other
+  D-066 boundaries remain (agent, on the owner's behalf, 2026-10-22).
 - Assumption: places come from epic-properties (entry 3.3) and the sources with their licence from
   epic-collection (entry 2.4).

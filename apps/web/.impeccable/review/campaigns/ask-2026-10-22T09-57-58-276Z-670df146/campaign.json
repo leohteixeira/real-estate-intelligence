@@ -1,0 +1,12 @@
+{
+  "runId": "ask-2026-10-22T09-57-58-276Z-670df146",
+  "project": "rei-web-ask-c3de12ff-693f-4155-8375-d93d6b805700",
+  "status": "failed",
+  "scope": "D-066/D-067 prepared read-only Ask; no worker, AI or durable browser recovery",
+  "startedUtc": "2026-10-22T09:57:58.362Z",
+  "stackTornDownUtc": "2026-10-22T09:58:42.790Z",
+  "exclusions": [
+    "Live execution, model prose/citations and persisted browser run creation",
+    "Parent visual/detector/finish acceptance and human screen-reader/daylight/zoom assessment"
+  ]
+}

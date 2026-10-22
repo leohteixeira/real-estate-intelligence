@@ -1,0 +1,102 @@
+{
+  "scenarios": [
+    {
+      "id": "ASK-001",
+      "title": "Prepared finite run and actual history",
+      "given": "The independently parsed owned API queued fixture.",
+      "when": "Explicitly follow its real stream and inspect each actual thread member.",
+      "then": "Exact backend inputs, result, timestamps and steps agree; origin, geography and missing model/citations stay honest.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    },
+    {
+      "id": "ASK-002",
+      "title": "Private unsent draft handoffs",
+      "given": "Overview and Property native Ask links.",
+      "when": "Edit the draft and follow the separate example, then change locale and place.",
+      "then": "No execution/write, question URL/storage/diagnostics or place laundering; draft survives example and locale.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    },
+    {
+      "id": "ASK-003",
+      "title": "Read refusal and manual recovery",
+      "given": "A bounded transport-only 503, 404 or malformed response.",
+      "when": "Explicitly follow, inspect the sanitized error, then retry the real API.",
+      "then": "No automatic ordinary retry or private body disclosure; recovery is genuine.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    },
+    {
+      "id": "ASK-004",
+      "title": "Interrupted SSE cursor and corruption",
+      "given": "Actual finite SSE bytes with a transport disconnect or truncation.",
+      "when": "Reconnect once with the same authority and exact admitted cursor, then manually recover a corrupt read.",
+      "then": "Validated evidence is retained, explicit terminal agrees with the oracle and fixed GET never rolls it back.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    },
+    {
+      "id": "ASK-005",
+      "title": "Navigation abandons obsolete authority",
+      "given": "An owned example stream held before response headers.",
+      "when": "Navigate to another place before releasing the held response.",
+      "then": "The abandoned request is aborted and no old record appears in the new screen.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    },
+    {
+      "id": "ASK-006",
+      "title": "Responsive bilingual keyboard and accessibility",
+      "given": "The completed real prepared example and local Placa fonts.",
+      "when": "Inspect PT/EN at 390, 960 and 1440; keyboard-toggle identifiers and thread.",
+      "then": "All-page axe has no violations; targets, visible focus, fonts, scroll start and overflow satisfy the screen contract.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    },
+    {
+      "id": "ASK-007",
+      "title": "Unmodified authored references",
+      "given": "The fixed Ask and DesktopAsk authored artboards.",
+      "when": "Capture through an owned Vite reference server with local fonts.",
+      "then": "Exact 390×2034 and 1440×1142 references have source hashes for separate parent comparison.",
+      "area": "Ask",
+      "persona": "public visitor",
+      "dependencies": [],
+      "verification": {
+        "oracle": "D-066/D-067 and independently parsed real prepared API",
+        "method": "Supertest, sandboxed Chromium and unchanged SQL digests; not durable/live execution proof"
+      }
+    }
+  ]
+}

@@ -1,0 +1,571 @@
+{
+  "before": [
+    {
+      "schema": "ask",
+      "table": "graph_checkpoint",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "graph_pending_write",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "model_attempt",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "model_explanation",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "run",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "run_event",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "thread",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "tool_receipt",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "audit",
+      "table": "event_log",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "collection_run",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "collection_schedule",
+      "count": 4,
+      "digest": "efed24bf3db9b02bc14e087672d24f72"
+    },
+    {
+      "schema": "collection",
+      "table": "completed_event_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "parsed_event_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "raw_object",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_content",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_generation",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_observation",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_reparse",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "source_register",
+      "count": 16,
+      "digest": "b137e6c48630306082e5a9f82c89fbdf"
+    },
+    {
+      "schema": "locations",
+      "table": "neighborhood_adjacency",
+      "count": 1,
+      "digest": "aa95177251b542bca7540dcb7a72d26c"
+    },
+    {
+      "schema": "locations",
+      "table": "place",
+      "count": 20,
+      "digest": "f5f7113642d6f41fdc3f209d378c6f3c"
+    },
+    {
+      "schema": "locations",
+      "table": "reference_metadata",
+      "count": 1,
+      "digest": "261ef7447f2f19efbf5c6c0e79504f3b"
+    },
+    {
+      "schema": "market",
+      "table": "listing_assignment_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_assignment_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_price_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_price_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_price_identity",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_state_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_state_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "price_event_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "property_price_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "platform",
+      "table": "idempotency_key",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "platform",
+      "table": "inbox",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "platform",
+      "table": "outbox",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "correction_effect",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "fact_disposition",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "incoming_fact",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_acquisition",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_event",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_run_effect",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "original_effect",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "property",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "source_work",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "public",
+      "table": "schema_migrations",
+      "count": 23,
+      "digest": "6a621ddf3c08c218bea8dfc7643ff501"
+    },
+    {
+      "schema": "public",
+      "table": "spatial_ref_sys",
+      "count": 8500,
+      "digest": "68dc9fe3da86bd5804c8f711d2503d1c"
+    }
+  ],
+  "after": [
+    {
+      "schema": "ask",
+      "table": "graph_checkpoint",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "graph_pending_write",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "model_attempt",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "model_explanation",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "run",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "run_event",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "thread",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "ask",
+      "table": "tool_receipt",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "audit",
+      "table": "event_log",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "collection_run",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "collection_schedule",
+      "count": 4,
+      "digest": "efed24bf3db9b02bc14e087672d24f72"
+    },
+    {
+      "schema": "collection",
+      "table": "completed_event_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "parsed_event_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "raw_object",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_content",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_generation",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_observation",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "snapshot_reparse",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "collection",
+      "table": "source_register",
+      "count": 16,
+      "digest": "b137e6c48630306082e5a9f82c89fbdf"
+    },
+    {
+      "schema": "locations",
+      "table": "neighborhood_adjacency",
+      "count": 1,
+      "digest": "aa95177251b542bca7540dcb7a72d26c"
+    },
+    {
+      "schema": "locations",
+      "table": "place",
+      "count": 20,
+      "digest": "f5f7113642d6f41fdc3f209d378c6f3c"
+    },
+    {
+      "schema": "locations",
+      "table": "reference_metadata",
+      "count": 1,
+      "digest": "261ef7447f2f19efbf5c6c0e79504f3b"
+    },
+    {
+      "schema": "market",
+      "table": "listing_assignment_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_assignment_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_price_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_price_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_price_identity",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_state_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "listing_state_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "price_event_evidence",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "market",
+      "table": "property_price_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "platform",
+      "table": "idempotency_key",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "platform",
+      "table": "inbox",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "platform",
+      "table": "outbox",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "correction_effect",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "fact_disposition",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "incoming_fact",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_acquisition",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_current",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_event",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "listing_run_effect",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "original_effect",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "property",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "properties",
+      "table": "source_work",
+      "count": 0,
+      "digest": "d41d8cd98f00b204e9800998ecf8427e"
+    },
+    {
+      "schema": "public",
+      "table": "schema_migrations",
+      "count": 23,
+      "digest": "6a621ddf3c08c218bea8dfc7643ff501"
+    },
+    {
+      "schema": "public",
+      "table": "spatial_ref_sys",
+      "count": 8500,
+      "digest": "68dc9fe3da86bd5804c8f711d2503d1c"
+    }
+  ],
+  "unchanged": true
+}
