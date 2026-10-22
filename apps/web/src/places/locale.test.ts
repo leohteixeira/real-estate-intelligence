@@ -4,8 +4,15 @@ import { resources } from './resources';
 
 describe('locale preference', () => {
   it('bundles complete shell/place/search/ask/shared namespace pairs', () => {
-    expect(Object.keys(resources['pt-BR'])).toEqual(['shell', 'place', 'search', 'ask', 'shared']);
-    for (const namespace of ['shell', 'place', 'search', 'ask', 'shared'] as const) {
+    expect(Object.keys(resources['pt-BR'])).toEqual([
+      'shell',
+      'place',
+      'search',
+      'ask',
+      'shared',
+      'property',
+    ]);
+    for (const namespace of ['shell', 'place', 'search', 'ask', 'shared', 'property'] as const) {
       expect(Object.keys(resources.en[namespace])).toEqual(
         Object.keys(resources['pt-BR'][namespace]),
       );

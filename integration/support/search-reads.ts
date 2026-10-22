@@ -113,6 +113,8 @@ export async function checkSearchRows(
             : 'Na mediana'
           : `${quantity(Math.abs(property.belowMedianPercent))}% ${english ? (property.belowMedianPercent > 0 ? 'below median' : 'above median') : property.belowMedianPercent > 0 ? 'abaixo da mediana' : 'acima da mediana'}`,
       );
-    expect(await row.locator('a').count()).toBe(0);
+    expect(await row.locator('a.prow').count()).toBe(1);
+    const href = await row.locator('a.prow').getAttribute('href');
+    expect(href).toContain(`/properties/${property.id}?returnTo=`);
   }
 }

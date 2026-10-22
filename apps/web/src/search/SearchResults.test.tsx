@@ -251,7 +251,7 @@ describe('contract-backed Search surface', () => {
       expect(
         screen.getByRole('list', { name: locale === 'en' ? 'Properties' : 'Imóveis' }),
       ).toHaveTextContent('Rua Bela');
-      expect(document.querySelectorAll('.prow[href]')).toHaveLength(0);
+      expect(document.querySelectorAll('.prow[href]')).toHaveLength(1);
       await userEvent.click(
         screen.getByText(
           locale === 'en' ? 'Prepared result evidence' : 'Evidências dos resultados preparados',

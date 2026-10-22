@@ -568,13 +568,22 @@ test('Search and Filters follow prepared public contracts through the real proxy
             else await route.continue();
           });
           await page.goto(`${base}/search/${city}?sort=longest-on-market`);
-          await expect.poll(() => page.getByRole('alert').count()).toBeGreaterThan(0);
+          const totalFailure = page
+            .locator('.system-state')
+            .filter({ hasText: 'Não foi possível carregar o total deste lugar.' });
+          const resultsFailure = page
+            .locator('.system-state')
+            .filter({ hasText: 'Não foi possível carregar os imóveis.' });
+          await expect.poll(() => totalFailure.getByRole('alert').count()).toBe(1);
+          await expect.poll(() => resultsFailure.getByRole('alert').count()).toBe(1);
           expect(
             await page.getByRole('heading', { name: 'São Paulo', exact: true }).isVisible(),
           ).toBe(true);
           fail = false;
-          for (const retry of await page.getByRole('button', { name: 'Tentar de novo' }).all())
-            await retry.click();
+          await totalFailure.getByRole('button', { name: 'Tentar de novo' }).click();
+          await expect.poll(() => totalFailure.count()).toBe(0);
+          await resultsFailure.getByRole('button', { name: 'Tentar de novo' }).click();
+          await expect.poll(() => resultsFailure.count()).toBe(0);
           await checkSearch(page, base, { placeId: city, sort: 'longest-on-market' }, 'pt-BR');
           fail = true;
           await page.goto(`${base}/search/${city}?propertyType=house&view=filters`);
