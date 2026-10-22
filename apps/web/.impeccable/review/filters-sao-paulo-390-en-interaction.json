@@ -1,8 +1,8 @@
 {
-  "url": "http://127.0.0.1:44983/search/sao-paulo?view=filters",
+  "url": "http://127.0.0.1:35379/search/sao-paulo?view=filters",
   "locale": "en",
   "width": 390,
-  "observedUtc": "2026-10-22T06:59:05.734Z",
+  "observedUtc": "2026-10-22T08:19:48.607Z",
   "horizontalOverflow": false,
   "targets": [
     {
@@ -135,7 +135,7 @@
     "actions": ["Focus minimum asking price", "Type localized exact amount", "Tab to next field"],
     "focused": {
       "focusVisible": true,
-      "outline": "rgb(16, 27, 51) none 0px"
+      "outline": "rgb(16, 27, 51) none 3px"
     },
     "value": "600,000.50",
     "nextFocusedId": "maxAskingPrice",

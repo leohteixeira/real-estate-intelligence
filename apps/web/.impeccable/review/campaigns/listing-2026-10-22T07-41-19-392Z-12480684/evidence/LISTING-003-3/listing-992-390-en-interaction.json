@@ -1,0 +1,118 @@
+{
+  "url": "http://127.0.0.1:36611/listings/0199a3e0-0000-7000-8000-000000000992",
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "d52fe33b63dc65ee75ff814c55716c47ee0933d5ebb49e3923ff516144435daf",
+    "webArtifactHash": "71cc6f9f8d185e4def6fec5a3f511e211b5f5a05810902ab0c542aae48a558c0",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-91b74971-67c5-477f-a240-73208119b5f7",
+    "observedUtc": "2026-10-22T07:41:19.423Z"
+  },
+  "horizontalOverflow": false,
+  "documentHeight": 2308,
+  "targets": [
+    {
+      "label": "Real Estate Intelligence",
+      "width": 159.9375,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Back to Property",
+      "width": 144.671875,
+      "height": 44
+    },
+    {
+      "label": "Public formula: askingPriceMinorUnits / areaSquareMeters · monetary values in minor units.",
+      "width": 358,
+      "height": 58.78125
+    },
+    {
+      "label": "Try again",
+      "width": 326,
+      "height": 44
+    },
+    {
+      "label": "Open listing at source",
+      "width": 122.421875,
+      "height": 44
+    },
+    {
+      "label": "Identifiers and hash",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Original event provenance",
+      "width": 308,
+      "height": 45.75
+    },
+    {
+      "label": "Compare permitted versions",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Open listing at source",
+      "width": 140.09375,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Places",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Search",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Ask",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "content": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "heading": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "barlowLoaded": true,
+    "condensedLoaded": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manual": ["Screen-reader speech, daylight focus and zoom require human assessment"]
+}

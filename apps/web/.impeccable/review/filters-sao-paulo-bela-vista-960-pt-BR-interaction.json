@@ -1,8 +1,8 @@
 {
-  "url": "http://127.0.0.1:44983/search/sao-paulo-bela-vista?view=filters",
+  "url": "http://127.0.0.1:35379/search/sao-paulo-bela-vista?view=filters",
   "locale": "pt-BR",
   "width": 960,
-  "observedUtc": "2026-10-22T06:59:09.323Z",
+  "observedUtc": "2026-10-22T08:19:50.977Z",
   "horizontalOverflow": false,
   "targets": [
     {

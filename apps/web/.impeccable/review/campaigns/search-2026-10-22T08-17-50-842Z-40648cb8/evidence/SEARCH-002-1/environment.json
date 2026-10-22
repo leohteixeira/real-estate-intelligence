@@ -1,0 +1,12 @@
+{
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "webArtifactHash": "d68337fbae0780e6909d4faab0c19b027e33a5952a2e38dfeaae36d396a5b22f",
+    "artifactScope": "Local production build JS/CSS, rebuilt from the same shipping sources as the owned web image; not a production/VPS release identity.",
+    "webSourceHash": "c048dc3ba7bad98319fdec73c3abf8f2032328532834baabf42929ab34b44bc3",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-search-20b92c7f-923f-4682-97d5-29d092bd99a3",
+    "observedUtc": "2026-10-22T08:17:50.852Z"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "metadata": {
+    "dataMode": "synthetic-stub",
+    "fixtureVersion": "synthetic-sao-paulo-v1",
+    "asOf": "2026-10-01T12:00:00.000Z"
+  },
+  "listing": {
+    "id": "0199a3e0-0000-7000-8000-000000000993",
+    "propertyId": "0199a3e0-0000-7000-8000-000000000903",
+    "fixtureLabel": "Supplementary prepared noActiveListings example",
+    "source": {
+      "sourceId": "synthetic-portal-brisa",
+      "sourceListingId": "BRI-BV-001",
+      "label": "Synthetic data — Brisa",
+      "url": "https://brisa.synthetic.invalid/listings/BRI-BV-001"
+    },
+    "position": 2,
+    "status": "removed",
+    "propertyType": "apartment",
+    "place": {
+      "id": "sao-paulo-bela-vista-fictional-block",
+      "kind": "street-block",
+      "name": {
+        "en": "Fictional Bela Vista block",
+        "ptBR": "Quarteirão fictício Bela Vista"
+      }
+    },
+    "publishedNeighborhood": "Bela Vista",
+    "street": "Rua Cenário Um",
+    "areaSquareMeters": 82,
+    "bedrooms": null,
+    "bathrooms": 2,
+    "parkingSpaces": 1,
+    "features": ["balcony", "elevator"],
+    "askingPriceMinorUnits": 83000000,
+    "currency": "BRL",
+    "pricePerSquareMeter": 1012195,
+    "pricePerSquareMeterFormula": "askingPriceMinorUnits / areaSquareMeters",
+    "provenance": {
+      "sourceId": "synthetic-portal-brisa",
+      "sourceListingId": "BRI-BV-001",
+      "sourceUrl": "https://brisa.synthetic.invalid/listings/BRI-BV-001",
+      "observedAt": "2026-10-01T12:00:00.000Z",
+      "runId": "01a0f755-f9d0-7ee9-8fa6-1ca10a0fc1d5",
+      "snapshotId": "01a0f755-f200-7d2f-aa8f-8ee4d1f388ee",
+      "contentHash": "sha256:a034aaa3315bd8fb3d79d9adf140f0b8fd3b45236c1ed2d4aed55407920248fe"
+    },
+    "snapshot": {
+      "availability": "available",
+      "collectedAt": "2026-10-01T12:00:00.000Z",
+      "expiresAt": null
+    },
+    "collectionCount": 13,
+    "firstCollectedAt": "2025-10-01T12:00:00.000Z",
+    "lastCollectedAt": "2026-10-01T12:00:00.000Z",
+    "fieldEffectiveAt": {
+      "askingPrice": "2025-10-01T12:00:00.000Z",
+      "description": "2026-03-01T12:00:00.000Z",
+      "attributes": "2025-10-01T12:00:00.000Z"
+    },
+    "description": {
+      "permission": "allowed",
+      "current": "Synthetic apartment with a renovated living room and quiet bedrooms.",
+      "versions": [
+        {
+          "effectiveAt": "2025-10-01T12:00:00.000Z",
+          "text": "Synthetic apartment with balcony and two quiet bedrooms.",
+          "contentHash": "sha256:bbfad94199e305a078fb6e54def19f370bcc63ba5ad2108ebca3b356db005db4"
+        },
+        {
+          "effectiveAt": "2026-03-01T12:00:00.000Z",
+          "text": "Synthetic apartment with a renovated living room and quiet bedrooms.",
+          "contentHash": "sha256:b5359fb45ccccff990f2854a1cbc344bc1c91b4a793b58812fedd59d7fd18391"
+        }
+      ],
+      "sourceUrl": "https://brisa.synthetic.invalid/listings/BRI-BV-001"
+    },
+    "history": [
+      {
+        "type": "created",
+        "effectiveAt": "2025-10-01T12:00:00.000Z",
+        "provenance": {
+          "sourceId": "synthetic-portal-brisa",
+          "sourceListingId": "BRI-BV-001",
+          "sourceUrl": "https://brisa.synthetic.invalid/listings/BRI-BV-001",
+          "observedAt": "2025-10-01T12:00:00.000Z",
+          "runId": "01999fa4-cdd0-74a8-ae94-febce7d9a40e",
+          "snapshotId": "01999fa4-c600-7c2c-a898-e27d159ebb1f",
+          "contentHash": "sha256:f65440922d64680fb25ec26a38ffba55f98051219520403b6c8da80a0aa529fc"
+        }
+      },
+      {
+        "type": "description-changed",
+        "effectiveAt": "2026-03-01T12:00:00.000Z",
+        "beforeHash": "sha256:bbfad94199e305a078fb6e54def19f370bcc63ba5ad2108ebca3b356db005db4",
+        "afterHash": "sha256:b5359fb45ccccff990f2854a1cbc344bc1c91b4a793b58812fedd59d7fd18391",
+        "provenance": {
+          "sourceId": "synthetic-portal-brisa",
+          "sourceListingId": "BRI-BV-001",
+          "sourceUrl": "https://brisa.synthetic.invalid/listings/BRI-BV-001",
+          "observedAt": "2026-03-01T12:00:00.000Z",
+          "runId": "019ca945-11d0-75dc-8834-e508b6726a89",
+          "snapshotId": "019ca945-0a00-7f39-ae14-21c3b48ae45d",
+          "contentHash": "sha256:a034aaa3315bd8fb3d79d9adf140f0b8fd3b45236c1ed2d4aed55407920248fe"
+        }
+      },
+      {
+        "type": "removed",
+        "effectiveAt": "2026-10-01T12:00:00.000Z",
+        "provenance": {
+          "sourceId": "synthetic-portal-brisa",
+          "sourceListingId": "BRI-BV-001",
+          "sourceUrl": "https://brisa.synthetic.invalid/listings/BRI-BV-001",
+          "observedAt": "2026-10-01T12:00:00.000Z",
+          "runId": "01a0f755-f9d0-7ee9-8fa6-1ca10a0fc1d5",
+          "snapshotId": "01a0f755-f200-7d2f-aa8f-8ee4d1f388ee",
+          "contentHash": "sha256:a034aaa3315bd8fb3d79d9adf140f0b8fd3b45236c1ed2d4aed55407920248fe"
+        }
+      }
+    ],
+    "lifeline": [
+      {
+        "from": "2025-10-01T12:00:00.000Z",
+        "to": "2026-10-01T12:00:00.000Z"
+      }
+    ]
+  }
+}

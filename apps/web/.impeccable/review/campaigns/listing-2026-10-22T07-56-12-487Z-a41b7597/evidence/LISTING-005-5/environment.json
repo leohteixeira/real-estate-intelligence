@@ -1,0 +1,16 @@
+{
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "48168094e0efa1c89524862485e8d49e0695799842d64a1fbc920dfec6ca0ce6",
+    "localWebArtifactHash": "99c02fa17bfc37011efda28d9db92b9cc61f3cdcad688102faf1d5b1620c01d3",
+    "webArtifactHash": "f117b13b9465934bb9a9a3f593964122faa28b5594eee5d381d0d3c7a9b8fe29",
+    "webImageId": "sha256:bd6e5c5a45832cf5471bf716d790beb90d237523bd5336c61c54712651745a29",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-95aeae0b-db5f-41b2-89e3-8ffa09209316",
+    "observedUtc": "2026-10-22T07:56:12.521Z"
+  },
+  "base": "http://127.0.0.1:43959",
+  "referenceBase": "http://127.0.0.1:35305",
+  "observedUtc": "2026-10-22T07:57:15.747Z"
+}

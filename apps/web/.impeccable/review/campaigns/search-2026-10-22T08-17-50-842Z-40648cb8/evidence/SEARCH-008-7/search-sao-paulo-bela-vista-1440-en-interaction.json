@@ -1,0 +1,58 @@
+{
+  "url": "http://127.0.0.1:35379/search/sao-paulo-bela-vista",
+  "locale": "en",
+  "width": 1440,
+  "observedUtc": "2026-10-22T08:20:07.677Z",
+  "horizontalOverflow": false,
+  "targets": [
+    {
+      "label": "<a href=\"/search/brazil\" data-discover=\"true\">Brasil</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-state\" data-discover=\"true\">Estado de São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo\" data-discover=\"true\">São Paulo</a>",
+      "height": 44
+    },
+    {
+      "label": "<a href=\"/search/sao-paulo-centro\" data-discover=\"true\">Zona Centro</a>",
+      "height": 44
+    },
+    {
+      "label": "<a class=\"btn\" href=\"/search/sao-paulo-bela-vista?view=filters\" data-discover=\"true\">Filters</a>",
+      "height": 44
+    },
+    {
+      "label": "<select id=\"search-sort\"><option value=\"furthest-below-median\">Furthest below median</option><option value=\"lowest-price-per-square-meter\">Lowest R$/m²</option><option value=\"longest-on-market\">Longest on market</option><option value=\"most-recent\">Most recent</option></select>",
+      "height": 44
+    },
+    {
+      "label": "<summary>Prepared result evidence</summary>",
+      "height": 44
+    },
+    {
+      "label": "<a class=\"prow\" href=\"/properties/0199a3e0-0000-7000-8000-000000000001?returnTo=%2Fsearch%2Fsao-paulo-bela-vista\"><div><p class=\"prow__t\">Apartment · 2 bedrooms · 82 m²</p><p class=\"prow__s\">Quarteirão fictício Bela Vista</p></div><div class=\"prow__price\"><span class=\"tag\">Asking</span><p class=\"prow__p\">R$ 780,000</p><p class=\"prow__r\">R$ 9,512 /m²</p></div><div class=\"prow__m\"><span class=\"prow__comparison\">At the median</span><span>3 listings</span><span>412 days on market</span></div></a>",
+      "height": 115.84375
+    },
+    {
+      "label": "<summary>Sources and dates of properties on this page</summary>",
+      "height": 44
+    }
+  ],
+  "shell": {
+    "top": false,
+    "navigation": true,
+    "plate": true,
+    "footer": false,
+    "tabs": false,
+    "rail": true
+  },
+  "keyboard": {
+    "actions": ["Focus evidence disclosure", "Enter"],
+    "open": true
+  },
+  "exclusions": ["Ambient-daylight focus visibility and screen-reader speech require human review"]
+}

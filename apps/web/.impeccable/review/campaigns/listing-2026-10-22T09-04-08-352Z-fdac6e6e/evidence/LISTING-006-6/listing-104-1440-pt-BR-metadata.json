@@ -1,0 +1,34 @@
+{
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "f5d06b588919250fcc09faf2f138145a74e6a6c0b8a0877143009ab29cf07103",
+    "localWebArtifactHash": "875aad97f1623be5e7957b27747747152bf08a5a82e8ac1b9e456933f66d9358",
+    "webArtifactHash": "d33f5be918b36c6ec08cec0d4c9463dd2724b51a0bf4e2b8f469943921b910b3",
+    "webImageId": "sha256:54e37ca7281054d09770d87176793f633bd441651bd57d6a1860f88a85316060",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-7ad231ba-90ca-4c7c-ba0a-09e828a11d71",
+    "observedUtc": "2026-10-22T09:04:08.398Z"
+  },
+  "locale": "pt-BR",
+  "width": 1440,
+  "keyboardOpened": true,
+  "expectedFixtureLabel": "Authoritative synthetic monthly replay",
+  "observedFixtureLabel": "Authoritative synthetic monthly replay",
+  "metadataLayout": {
+    "width": 534,
+    "values": [
+      {
+        "text": "0199a3e0-0000-7000-8000-000000000104",
+        "width": 310.8125,
+        "lineCharacterCounts": [36]
+      },
+      {
+        "text": "Authoritative synthetic monthly replay",
+        "width": 310.8125,
+        "lineCharacterCounts": [38]
+      }
+    ]
+  },
+  "caveat": "A identificação recebida distingue evidência sintética preparada de persistida. A disponibilidade do snapshot não determina essa origem."
+}

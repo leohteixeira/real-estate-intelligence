@@ -1,0 +1,58 @@
+{
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "1fae37a273fabe7a6c2d6c7ab628cb55d1b0d499404d3cae6c268a61e42fe4ae",
+    "localWebArtifactHash": "b53fde38e0265849c82537e22fa701e8cd18e71bbfccd329d7a9fd96d0a0564e",
+    "webArtifactHash": "339decf909fa03b9d18713294991163fcefc458127dd5766e1dd3d2c9334c033",
+    "webImageId": "sha256:711a770bfdff456d14625e8c3c885c3cab725b68c8c457324dd6e4b7af700f7d",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-eba77bc5-64cf-460a-96fd-79e28d599ed6",
+    "observedUtc": "2026-10-22T08:31:04.879Z"
+  },
+  "locale": "en",
+  "width": 1440,
+  "keyboardOpened": true,
+  "observedTimes": [
+    {
+      "field": "Asking price",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Property type",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Neighborhood",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Area",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Bedrooms",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Bathrooms",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Parking spaces",
+      "instant": "2025-10-01T12:00:00.000Z",
+      "text": "1 Oct 2025, 12:00 UTC"
+    },
+    {
+      "field": "Description",
+      "instant": "2026-03-01T12:00:00.000Z",
+      "text": "1 Mar 2026, 12:00 UTC"
+    }
+  ]
+}

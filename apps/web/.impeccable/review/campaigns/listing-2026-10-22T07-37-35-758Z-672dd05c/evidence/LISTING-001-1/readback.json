@@ -1,0 +1,32 @@
+{
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "d52fe33b63dc65ee75ff814c55716c47ee0933d5ebb49e3923ff516144435daf",
+    "webArtifactHash": "71cc6f9f8d185e4def6fec5a3f511e211b5f5a05810902ab0c542aae48a558c0",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-fc4cba06-0b00-46e6-b9cb-4df92158c0c6",
+    "observedUtc": "2026-10-22T07:37:35.786Z"
+  },
+  "url": "http://127.0.0.1:33335/search/sao-paulo-bela-vista?sort=most-recent&priceReduced=false",
+  "reads": [
+    "/api/v1/places/sao-paulo-bela-vista",
+    "/api/v1/places",
+    "/api/v1/properties?placeId=sao-paulo-bela-vista&priceReduced=false&sort=most-recent",
+    "/api/v1/properties?placeId=sao-paulo-bela-vista",
+    "/api/v1/places/brazil/children",
+    "/api/v1/properties?placeId=sao-paulo-bela-vista",
+    "/api/v1/places/sao-paulo-state/children",
+    "/api/v1/properties?placeId=sao-paulo-bela-vista&priceReduced=false",
+    "/api/v1/places/sao-paulo/children",
+    "/api/v1/places/sao-paulo-centro/children",
+    "/api/v1/places/sao-paulo-norte/children",
+    "/api/v1/places/sao-paulo-sul/children",
+    "/api/v1/places/sao-paulo-leste/children",
+    "/api/v1/places/sao-paulo-oeste/children"
+  ],
+  "outside": [],
+  "writes": [],
+  "body": "\n    Real EstateIntelligenceLugaresBuscarPerguntarENPTDados sintéticosReal Estate IntelligenceENPTLugaresBela VistaSantanaVila MarianaTatuapéPinheirosBrasilEstado de São PauloSão PauloZona CentroBela VistaSão PauloBairroBela VistaZona CentroDados sintéticosBuscar1 filtros aplicados0 de 1 imóveisFiltrosPreço reduzido: NãoOrdenarMais abaixo da medianaMenor R$/m²Mais tempo anunciadoMais recentesMediana do preço pedido por m² destes resultados PedidoMediana não disponívelResultados preparados · Dados sintéticosAvaliados em 1 de out. de 2026, 12:00 UTCMediana preparada do bairro Bela Vista: R$ 9.512Evidências dos resultados preparadosVersão synthetic-sao-paulo-v1. Mediana de todo o resultado, não apenas desta página. O contrato não informa a amostra contribuinte nem a atualidade desta mediana.Nenhum imóvel preparado neste lugar atende à busca.O filtro Preço reduzido elimina os últimos 1 imóveis.Relaxar Preço reduzidoAmpliar para Zona CentroCada linha é um imóvel. Seus anúncios estão agrupados; os preços são de pedido.ENPTDados sintéticosLugaresBuscarPerguntar\n  \n\n",
+  "failure": "expected +0 to be 1 // Object.is equality"
+}

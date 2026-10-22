@@ -1,0 +1,44 @@
+{
+  "project": "rei-web-listing-bcd70d00-a33f-47d2-939a-bf999beca05d",
+  "publicListingIds": [
+    "0199a3e0-0000-7000-8000-000000000104",
+    "0199a3e0-0000-7000-8000-000000000109",
+    "0199a3e0-0000-7000-8000-000000000991",
+    "0199a3e0-0000-7000-8000-000000000992",
+    "0199a3e0-0000-7000-8000-000000000993"
+  ],
+  "preparation": "Repository-owned synthetic public adapter; no source or acquisition mutation",
+  "foreignBaseline": {
+    "containers": [
+      "63fa9d233ae3",
+      "f35b33ff4d99",
+      "55ecebd301b0",
+      "b4aea635e8e1",
+      "47a03f170f0f",
+      "d0ddd0236c62",
+      "12f0aca823e0",
+      "20a762c977c6",
+      "bfe254fe0697",
+      "ce8ddedb09f1",
+      "2b85978b9ee9",
+      "c93820f7cbd3",
+      "1faabad45746",
+      "9422a9bfa123"
+    ],
+    "volumes": [
+      "3f629d6c5f5ff5bef5ef830521e050b7a5caa1b1e1f8e1f9fccde5f3b3d6ba4c",
+      "9faec54c9351e3ee38c68c0bbfecc7c8a48a459e3a8ae25bb5dec276afaeeab8",
+      "124e22739f746aa03a478e4e6c24b5a12c990a8832613b97684f0cee90cda585",
+      "advisor-radar_advisor_radar_es",
+      "advisor-radar_advisor_radar_pg",
+      "advisor-radar_advisor_radar_rabbitmq",
+      "cybersecurity-intelligence_postgres-data",
+      "eb10c93799309e6350954b282ce80bd40cac315cd89e9bc5cf8184d2dfb94631",
+      "ff9e73c11bf70ffb9ea2261cbebe83f1eb0101d19338975d99a70cc811208ea2",
+      "fleet-pulse_fleet_pulse_pg",
+      "opensource-project-intelligence_nats-data",
+      "opensource-project-intelligence_object-data",
+      "opensource-project-intelligence_postgres-data"
+    ]
+  }
+}

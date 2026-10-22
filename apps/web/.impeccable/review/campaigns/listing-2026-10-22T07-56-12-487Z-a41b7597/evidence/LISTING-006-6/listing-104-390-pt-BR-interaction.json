@@ -1,0 +1,155 @@
+{
+  "url": "http://127.0.0.1:43959/listings/0199a3e0-0000-7000-8000-000000000104",
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "48168094e0efa1c89524862485e8d49e0695799842d64a1fbc920dfec6ca0ce6",
+    "localWebArtifactHash": "99c02fa17bfc37011efda28d9db92b9cc61f3cdcad688102faf1d5b1620c01d3",
+    "webArtifactHash": "f117b13b9465934bb9a9a3f593964122faa28b5594eee5d381d0d3c7a9b8fe29",
+    "webImageId": "sha256:bd6e5c5a45832cf5471bf716d790beb90d237523bd5336c61c54712651745a29",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-95aeae0b-db5f-41b2-89e3-8ffa09209316",
+    "observedUtc": "2026-10-22T07:56:12.521Z"
+  },
+  "horizontalOverflow": false,
+  "documentHeight": 2510,
+  "targets": [
+    {
+      "label": "Real Estate Intelligence",
+      "width": 159.9375,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Voltar ao imóvel",
+      "width": 138.328125,
+      "height": 44
+    },
+    {
+      "label": "Brasil",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Estado de São Paulo",
+      "width": 114.03125,
+      "height": 44
+    },
+    {
+      "label": "São Paulo",
+      "width": 55.140625,
+      "height": 44
+    },
+    {
+      "label": "Zona Centro",
+      "width": 68.78125,
+      "height": 44
+    },
+    {
+      "label": "Bela Vista",
+      "width": 55.90625,
+      "height": 44
+    },
+    {
+      "label": "Quarteirão fictício Bela Vista",
+      "width": 159.59375,
+      "height": 44
+    },
+    {
+      "label": "Fórmula pública: askingPriceMinorUnits / areaSquareMeters · valores monetários em centavos.",
+      "width": 358,
+      "height": 58.78125
+    },
+    {
+      "label": "Abrir anúncio na fonte",
+      "width": 125.15625,
+      "height": 44
+    },
+    {
+      "label": "Identificadores e hash",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Proveniência original do evento",
+      "width": 308,
+      "height": 45.75
+    },
+    {
+      "label": "Descrição",
+      "width": 308,
+      "height": 45.75
+    },
+    {
+      "label": "Proveniência original do evento",
+      "width": 308,
+      "height": 45.75
+    },
+    {
+      "label": "Comparar versões permitidas",
+      "width": 356,
+      "height": 45.75
+    },
+    {
+      "label": "Abrir anúncio na fonte",
+      "width": 142.53125,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Lugares",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Buscar",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Perguntar",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "content": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "heading": "\"Barlow Condensed\", \"Arial Narrow\", system-ui, sans-serif",
+    "barlowLoaded": true,
+    "condensedLoaded": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manual": ["Screen-reader speech, daylight focus and zoom require human assessment"]
+}

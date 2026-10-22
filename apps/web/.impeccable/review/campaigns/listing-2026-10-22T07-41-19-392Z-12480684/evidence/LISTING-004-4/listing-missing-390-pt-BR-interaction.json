@@ -1,0 +1,88 @@
+{
+  "url": "http://127.0.0.1:36611/listings/0199a3e0-0000-7000-8000-000000000999",
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "d52fe33b63dc65ee75ff814c55716c47ee0933d5ebb49e3923ff516144435daf",
+    "webArtifactHash": "71cc6f9f8d185e4def6fec5a3f511e211b5f5a05810902ab0c542aae48a558c0",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-91b74971-67c5-477f-a240-73208119b5f7",
+    "observedUtc": "2026-10-22T07:41:19.423Z"
+  },
+  "horizontalOverflow": false,
+  "documentHeight": 1782,
+  "targets": [
+    {
+      "label": "Real Estate Intelligence",
+      "width": 159.9375,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Voltar à busca",
+      "width": 126.828125,
+      "height": 44
+    },
+    {
+      "label": "Tentar de novo",
+      "width": 326,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Lugares",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Buscar",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Perguntar",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "content": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "heading": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "barlowLoaded": true,
+    "condensedLoaded": true
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manual": ["Screen-reader speech, daylight focus and zoom require human assessment"]
+}

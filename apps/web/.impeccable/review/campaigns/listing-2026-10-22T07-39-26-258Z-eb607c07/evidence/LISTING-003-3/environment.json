@@ -1,0 +1,14 @@
+{
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "d52fe33b63dc65ee75ff814c55716c47ee0933d5ebb49e3923ff516144435daf",
+    "webArtifactHash": "71cc6f9f8d185e4def6fec5a3f511e211b5f5a05810902ab0c542aae48a558c0",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-512af574-1554-4ee5-8d28-9f35e3415d80",
+    "observedUtc": "2026-10-22T07:39:26.282Z"
+  },
+  "base": "http://127.0.0.1:42189",
+  "referenceBase": "http://127.0.0.1:36763",
+  "observedUtc": "2026-10-22T07:40:21.321Z"
+}

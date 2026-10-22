@@ -1,0 +1,86 @@
+{
+  "url": "http://127.0.0.1:43903/listings/0199a3e0-0000-7000-8000-000000000999",
+  "version": {
+    "commit": "be21042c84fab22bae0f120ec241e243e6aa37ea",
+    "dirty": true,
+    "listingSourceHash": "3df3632cb7c620e1192394511d051145ea17b187038d57acfc033516013953c1",
+    "localWebArtifactHash": "d68337fbae0780e6909d4faab0c19b027e33a5952a2e38dfeaae36d396a5b22f",
+    "webArtifactHash": "0f90e2e7d618d7ff307767d15c1222aaf8eefee06fe83a3144241909cf2562e7",
+    "webImageId": "sha256:fd0e0669c3df850bff590007abbcb879590e4412235e53ce566468f8ecc6fddb",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "project": "rei-web-listing-d4845d6e-f73b-41b3-97a4-55ba025ba61d",
+    "observedUtc": "2026-10-22T08:11:39.742Z"
+  },
+  "hasListingPlate": false,
+  "horizontalOverflow": false,
+  "documentHeight": 1782,
+  "targets": [
+    {
+      "label": "Voltar à busca",
+      "width": 126.828125,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Tentar de novo",
+      "width": 326,
+      "height": 44
+    },
+    {
+      "label": "EN",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "PT",
+      "width": 44,
+      "height": 44
+    },
+    {
+      "label": "Lugares",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Buscar",
+      "width": 127.328125,
+      "height": 52
+    },
+    {
+      "label": "Perguntar",
+      "width": 127.34375,
+      "height": 52
+    }
+  ],
+  "fonts": {
+    "content": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "heading": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+    "barlowLoaded": true,
+    "condensedLoaded": false
+  },
+  "captureStart": {
+    "fullPage": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    },
+    "viewport": {
+      "x": 0,
+      "y": 0,
+      "documentTop": 0,
+      "documentLeft": 0
+    }
+  },
+  "axeIncomplete": [],
+  "manual": ["Screen-reader speech, daylight focus and zoom require human assessment"]
+}

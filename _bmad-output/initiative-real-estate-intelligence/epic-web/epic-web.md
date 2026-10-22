@@ -167,8 +167,42 @@ shared with another epic, Description says which part this epic delivers.
   full/top images from asserted document scroll zero, record actual content fonts, keep earlier
   evidence historical, then use the second parent inspection and independent finish handoffs; no
   unlimited polishing or gate-only fidelity claim (agent, on the owner's behalf, 2026-10-12).
+- Decision: D-062 delivers entry 8 as a public Listing read without backend expansion: server
+  Asking/price-per-area, dated structured values, original events/provenance and escaped permitted
+  description/version comparison; denied text exposes change dates and source only. Creation never
+  invents an initial dated price and removal is not Sale. Snapshot metadata/hash/expiry are not a
+  raw download or Operations link; collectionCount means collections, retained object count stays
+  explicitly unavailable, and synthetic null expiry is not an invented thirty-day deadline. A
+  bounded independent Property read supplies hierarchy/sibling count only on verified membership;
+  its failure does not hide Listing. Preserve meaningful Property evidence anchors and add explicit
+  Listing drilldown with validated exact Search return, Search-current shell and neutral unknown
+  context. Use structured source attributes only, not V2 interpreted amenities. Preserve inherited
+  code-led Placa, finite independent visual review/documentation, strict typed Vitest real local
+  proof and unchanged gates; BMAD/autonomy supersede interactive handoffs and VPS stays blocked
+  (agent, on the owner's behalf, 2026-10-22).
+- Decision: D-063 applies the first Listing visual inspection in one batch: compact phone
+  return/language controls and accessible ancestry, status/publication before Asking, porcelain
+  section bands, concise readable table labels and calendar dates retaining full timestamps in time
+  attributes/titles. Keep paired desktop panels, public formula/monetary units inspectable, distinct
+  source URL/action labels and every original event/provenance, displayed by effective date
+  descending with stable ties without mutating the response. Preserve unknowns, rights, 44px targets
+  and behavioral tests; then perform the second parent confirmation and independent finish handoffs
+  only (agent, on the owner's behalf, 2026-10-22).
+- Decision: D-064 makes complete Listing field-effective UTC timestamps available through one
+  localized native disclosure below the concise table, with all eight labelled field values. A title
+  attribute is not a reliable keyboard/touch evidence interface. Preserve concise dates, 44px
+  controls, public contracts and Placa; verify keyboard/click disclosure in both locales, rebuild
+  and recapture the same surfaces for the existing reviewer's bounded verdict pass. Do not rerun the
+  detector or reopen parent polishing (agent, on the owner's behalf, 2026-10-22).
 - Tracer bullet: entry 2; entry 1 precedes it because the router and data-fetching choice shapes
   every screen.
+- Decision: D-065 bounds Listing's complementary Property read to ten seconds including response and
+  body, with cancellation and no automatic retry. Shell and screen share its key, policy and query
+  function; timeout leaves Listing readable, ancestry neutral and independent manual context
+  recovery available. Preserve the received fixtureLabel in native evidence metadata with localized
+  prepared-versus-persisted wording, never inferred from snapshot availability. Test stalled
+  response/body, cancellation, recovery and both locales; repeat affected real local verification
+  without reopening detector/polish or VPS (agent, on the owner's behalf, 2026-10-22).
 - Assumption: the map view of Search is absent from the MVP, as the map is CAP-24.
 - Assumption: places come from epic-properties (entry 3.3) and the sources with their licence from
   epic-collection (entry 2.4).

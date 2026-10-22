@@ -1,0 +1,20 @@
+{
+  "runId": "listing-2026-10-22T08-14-41-897Z-fa346fb5",
+  "status": "complete",
+  "scope": "Story 6.8 prepared public Listing journeys",
+  "personas": ["public visitor"],
+  "exclusions": [
+    "Persisted correction/revocation/expiry semantics remain owned by listing-provenance.integration.test.ts",
+    "Live sources/models, VPS, protected Operations, downloads",
+    "Parent finite visual comparison and independent finish/documentation"
+  ],
+  "targetUrls": ["http://127.0.0.1:35351", "http://127.0.0.1:45581"],
+  "dataOwnership": "rei-web-listing-2190fad8-55e3-4a83-b0fb-13e06b1c99cb",
+  "allowedSideEffects": [
+    "Owned Compose resources",
+    "Owned Vite reference process",
+    "Local evidence"
+  ],
+  "completionCriteria": "Seven semantic scenarios, six localized responsive surfaces, immutable API/screenshot evidence and exact owned teardown",
+  "stackTornDownUtc": "2026-10-22T08:16:11.657Z"
+}

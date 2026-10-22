@@ -1,8 +1,8 @@
 {
-  "url": "http://127.0.0.1:44983/search/sao-paulo",
+  "url": "http://127.0.0.1:35379/search/sao-paulo",
   "locale": "en",
   "width": 960,
-  "observedUtc": "2026-10-22T06:59:16.740Z",
+  "observedUtc": "2026-10-22T08:19:57.257Z",
   "horizontalOverflow": false,
   "targets": [
     {
