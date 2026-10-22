@@ -6,6 +6,9 @@ set -Eeuo pipefail
 # limited to declarations, composition roots, and the visual-only portfolio
 # shell whose behavior is exercised by browser journeys. See docs/testing/coverage.md.
 coverage_args=(
+  # Bound instrumented workers so shared-host CPU contention cannot starve
+  # native five-second UI tests. Keep isolation, deadlines and assertions intact.
+  --maxWorkers=2
   --coverage
   --coverage.provider=v8
   --coverage.reporter=text
