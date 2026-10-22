@@ -45,6 +45,123 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
+### D-073 repair — fresh verification, not acceptance
+
+The original failure remains immutable. Forty isolated native traversal cycles and a
+focused production invocation of `recovery-en-390` did not reproduce the disagreement;
+session 30242 passed its one selected partition in 223.47s, with 37 tests filtered.
+That invocation preceded the product repair and is diagnostic only. It neither proves
+a Chromium defect nor supplies a portion of the required new integral pass.
+
+D-073 was recorded before changing product CSS. A deterministic actual-CSS regression
+then failed before repair (session 87501, exit 1): the clipped Ask submit's offset was
+`0px` outside focus instead of the required invariant `-5px`. The base rule now retains
+the same inset as the existing focus rule, without adding an unfocused outline or
+changing its focused color, thickness or geometry. This establishes the missing
+invariant, not a deterministic reproduction of the original transient discrepancy.
+Read-only CSS snapshots before/after a diagnostic screenshot preserve future evidence;
+no traversal wait, contrast assertion, timeout or axe rule changed.
+
+The browser/evidence helper suites subsequently passed 12/12 (session 50686, exit 0,
+22.02s), including before/during/after traversal and both native directions. Exact root
+gates are now running in session 68485. Complete coverage, four-file helper verification,
+discovery, a fresh complete 38-partition invocation and the finite finish handoffs
+remain required. The source and executor bytes have changed; all preceding identities
+and the 30 opened production captures below are historical, not current acceptance.
+
+### Canonical invocation — failed after nine passing partitions
+
+Session 43578 terminated with native exit 1 after 2,095.14s. Nine partitions passed;
+`recovery-en-390` failed during `A11Y-003-11-place-recovered-en-390-default`, leaving
+28 native partitions unexecuted under `--bail 1`. Its original reverse traversal records
+the Place question's Continue button with a white outline, offset `0px`, white candidate
+ground, ratio 1:1 and clipping by `ask__box`. Forward traversal records the intended
+`-5px` inset and enamel-600 ground. The same-stop diagnostic screenshot shows that
+intended inset; this difference requires diagnosis, not a retroactive pass or a blind
+rerun. The failure and original artifacts remain unchanged in
+`campaigns/accessibility-recovery-en-390-2026-10-22T20-53-13-647Z-4bbeb724/`.
+Its owned fixture `rei-web-accessibility-1350faa7-47a6-4420-ae6f-62439a73aa3f`
+closed at 20:54:50.458 UTC with owned removal and foreign preservation both true.
+The checkpoints below describe earlier observations of this now-terminal invocation;
+none is final acceptance. The subsequent diagnostic and narrowly scoped D-073 repair
+are recorded above; the internal cause of the transient disagreement remains unproven.
+
+The required complete command started at 20:19:49 UTC (native session 43578), after
+the exact root, complete eight-package coverage and native discovery gates. The first
+partition is `accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e`.
+All completed partitions currently record the same canonical commit:
+`9e7f539012544d8a1f91317c309fe6de6aa83f96`. Its frozen identities are:
+
+- Source: `bbc3cb94cef6fb9ad841569db77cb7358ad3785e97b4619a0692ec574455b450`.
+- Backend: `10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`.
+- Executor: `d91209036f3b53081ddb93110009ce68b5c82a880c42cb931c6e5f6540be077b`.
+
+The first independent checkpoint covers Discovery, Search and keyboard only: 516 final
+manifest entries rehashed, 36 matrix cells, six explicit navigation journeys, 45 approved
+attempts including boundaries, and three explicitly inconclusive setup pilots. Every
+matrix cell matches an actual approved attempt. All 107 runtime records and three served
+assets agree; disposable image identifiers are not asserted equal. SQL before/after
+arrays agree, outside/forbidden requests are empty, diagnosticLeak is false, and each
+completed partition records owned removal and foreign preservation. No integrity issue
+or axe violation was found. Details and the remaining partitions are still pending;
+the process was polled live, not inferred running from a ledger or lock file.
+
+These partitions contain 8,546 role observations: 8,282 computed at or above their
+unrounded applicable threshold and 264 manual Landing observations. All 48 original axe
+incomplete nodes independently match their own same-artifact role records: 22 navigation
+overlap, 20 desktop gradient, two mobile partial-obscuration and four rail Privacy
+equal-ratio observations. No original axe result is rewritten. The manual observations
+all have opacity 1, no blending, the actual protected gradient, and a maximum copy edge
+of 0.4749837239583333 of the viewport, before its 48% stop. Against the conservative
+brightest-white-underlay bound `[36,66,122]`, white, enamel-100 and enamel-200 yield
+9.83455647892868:1, 8.055043010052392:1 and 6.626625953219919:1 respectively.
+This is composition/geometry evidence, not a substituted opaque canvas ancestor.
+
+The parent has opened eight fresh Discovery captures and five fresh Search/Filters
+captures from this invocation, validating their named populated states. These are part
+of the already-planned second and final bounded inspection round, not a new browser
+campaign. All remaining required captures, the final incomplete/disabled census, the
+single detector and fresh finish handoffs remain required. No historical partial passes
+are combined with this invocation, and the story remains unaccepted.
+
+The five-partition checkpoint additionally includes Details and Ask PT. Independent
+audit rehashed 1,241 manifest entries and reconciled 120 matrix cells, six navigation
+journeys, six Property source-anchor journeys, 137 approved attempts including boundaries,
+and five inconclusive setup pilots. The 23,317 roles comprise 23,053 numerical observations
+at or above their thresholds and the same 264 manual scrim observations. All 58 original
+incomplete nodes match their own roles; the ten added Listing timeline observations use
+the separately positioned marker column and readable dates/identifiers in the opened
+complete Listing capture. Their minimum computed ratio is 8.185032348759592:1, against
+4.5:1. SQL, network, runtime/served bytes, commit identity and owned/foreign cleanup still
+agree, with no violation or integrity issue. The parent has now opened 23 fresh production
+captures, including all seven required Details and three Ask PT confirmation captures.
+Ask EN and the remaining 32 partitions are pending; no native integral exit is claimed.
+
+At the seven-partition checkpoint, Ask EN and recovery PT/390 also completed. Independent
+readback rehashed 2,048 final manifest entries and reconciled 213 matrix cells with 232
+approved attempts, seven explicitly inconclusive setup pilots and seven closed fault
+lifecycles. The catalog still declares exactly six semantic scenarios and 38 native test
+partitions; all completed matrix cells match their own scenario and approved attempt, and
+each completed partition has its actual approved boundary attempt. The remaining 31
+partitions are not counted as passed. Session 43578 remains live without a terminal result.
+
+The 37,420 recorded roles comprise 37,151 computed observations meeting their applicable
+threshold, the same 264 manual Landing observations, and five actual native-disabled
+buttons. Those exemptions are Filters Apply during an invalid range or failed preview,
+Filters counting during its held preview, and Ask Follow during its held catalogue read;
+they do not exempt an enabled control. All 58 original incomplete nodes still match their
+own captured roles, with zero axe violations or integrity discrepancies. SQL, network,
+runtime/served bytes and canonical commit identity agree; the owned/foreign cleanup receipts
+remain true/true. Recovery PT/390 closed at 20:45:54.653 UTC.
+
+The parent has now opened all 30 planned normal-layout production captures, including two
+Ask EN and five recovery PT/390 captures. Every opened file's current bytes independently
+match its completed partition's final manifest. The invalid-range capture shows its inline
+message and disabled Apply, the refused Search capture shows two separate retry actions,
+and Place keeps readable monthly evidence while its median read is refused. Input-value
+masking remains deliberate. Adaptation captures, the final census, the single detector and
+fresh finish reviewer/documenter are still pending; this remains a partial checkpoint.
+
 ### Integral outcome and hierarchy-preparation correction
 
 The invocation begun at 17:20:33 UTC finished with native exit 1 after 8,545.88s:
@@ -112,7 +229,8 @@ exit 0), followed serially by complete eight-package coverage (session 49784, ex
 The web coverage run passed all 541 tests in 56.57s with unchanged
 96.34/90.93/97.00/97.57 percentages; no test deadline or coverage floor changed.
 Native integration discovery then passed (session 76954, exit 0), listing all 38
-accessibility partitions. The fresh full browser invocation has not started.
+accessibility partitions. The fresh full browser invocation is recorded above; this
+paragraph retains the preceding gate chronology rather than claiming its completion.
 No failed run is relabelled passed or silently retried.
 
 The owner explicitly requested commits of the staged work before final story acceptance.
@@ -281,7 +399,7 @@ they are not twenty-five numerical contrast passes. The new integral evidence an
 visual review must resolve the actual visible states before story acceptance. Browser evidence
 does not certify physical touch, screen-reader pronunciation or complete WCAG conformance.
 
-### Fresh Discovery paint analysis (partial campaign, not final acceptance)
+### Historical Discovery paint analysis (partial campaign, not final acceptance)
 
 The completed `17-20-33-107Z-0e665509` partition contains 6,504 role observations across
 18 cells: 6,240 opaque numerical observations and 264 explicitly manual observations.
@@ -341,7 +459,7 @@ The four lead-text matches remain manual scrim observations; their truncated evi
 is not a missing paragraph or an excuse to infer opaque canvas paint. This is a checkpoint,
 not the final all-partition incomplete census.
 
-### Immutable matrix execution map (pending integral completion)
+### Historical matrix execution checkpoint (not fresh-invocation acceptance)
 
 The source paths below identify real registered checks, not substitute acceptance. The final
 audit must also reconcile the actual passing attempts and native invocation exit status.

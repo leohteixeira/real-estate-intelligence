@@ -222,6 +222,16 @@ or canvas composition stay explicit manual findings.
 
 ## Plan Change Log
 
+- 2026-10-22 parent Verify / D-073: session 43578 terminated with nine passes, a
+  reverse-focus failure in recovery EN/390 and 28 unexecuted partitions. Forty isolated
+  native traversal cycles and a pre-repair focused production invocation did not reproduce
+  the measurement/screenshot disagreement; its internal cause is not claimed. Record the
+  decision before making the clipped Ask submit's existing -5px inset invariant in its base
+  rule. A deterministic actual-CSS regression failed before that change (session 87501);
+  browser/evidence suites passed 12/12 afterward (session 50686). Add read-only before/after
+  screenshot CSS observations, not altered waits, assertions or axe rules. Preserve all
+  failed bytes, repeat the complete gates and require a new integral identity and current
+  visual evidence. This is a functional repair, not another design/polish round.
 - 2026-10-22 parent Verify: repeated root lint/typecheck/test/build passed all 2,706
   tests (session 37173). The following coverage command failed in six existing web
   tests solely at their unchanged 5,000ms limit (session 72992). The identical complete
@@ -423,8 +433,23 @@ the identities above. The parent fully read the updated 6,851-line staged diff a
 `/tmp/rei-accessibility-verify-2026-10-22T2012.diff`.
 Native discovery passed next (session 76954, exit 0), including all 38 accessibility
 partitions. The owner then explicitly requested commits of the staged work before
-acceptance. These are progress checkpoints, not completion: the fresh complete invocation
-has not started and must capture the resulting canonical commit identity. The complete matrix test
+acceptance. These are progress checkpoints, not completion. The fresh complete invocation
+started at 20:19:49 UTC (session 43578) on canonical commit
+`9e7f539012544d8a1f91317c309fe6de6aa83f96`, with the unchanged source/backend and
+corrected executor identities above. The first seven completed partitions independently
+reconcile 2,048 final manifest entries, 213 matrix cells and 232 approved attempts including
+boundaries and explicit journeys. All 30 planned normal-layout captures were opened and
+their current bytes match their final manifests. No integrity issue or axe violation was
+found. The remaining 31 partitions and native terminal result are pending; this partial
+checkpoint does not accept the story.
+Session 43578 subsequently terminated with native exit 1 (2,095.14s): nine partitions
+passed, recovery EN/390 failed on the Place question's reverse-focus measurement, and
+28 partitions did not execute. The original failure and same-stop screenshot are
+preserved. D-073 records the subsequent narrowly scoped geometry repair and its red/green
+native regression, without claiming the transient's internal cause. The browser/evidence
+helper files passed 12/12 afterward (session 50686); exact root gates are running in
+session 68485. Owned cleanup and foreign preservation of the failed invocation passed.
+The complete matrix test
 audit and finite finish handoffs remain pending. No evaluated source/executor/compiled-
 backend edits are made while a browser invocation runs. Current results and the explicit
 partial manual-paint analysis are recorded in the

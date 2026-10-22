@@ -2,14 +2,33 @@
 
 Status: **not ready for review**. The integral campaign, adaptation captures, final
 incomplete census and one detector are still pending. Do not infer acceptance from this
-preparation document or launch another browser campaign alongside the active invocation.
+preparation document or overlap browser campaigns with root/coverage verification.
 
-The invocation begun at17:20:33UTC subsequently failed in context-en-960 after34 passing
-partitions (three unexecuted). Its captures below remain diagnostic observations of the
-unchanged product source, not a complete release approval. A native regression reproduced
-premature hierarchy-readiness comparison after root recovery; only executor preparation
-changes. Final acceptance requires a new integral invocation on that executor identity,
-with no union of historical partial passes. See the parent report for original proof.
+D-073 subsequently made the Ask submit's existing inset invariant outside focus, after
+a native actual-CSS regression failed before the repair. The two browser/evidence helper
+files passed 12/12 afterward (session 50686). Exact root gates are running in session
+68485; all remaining verification is still required. Source/executor bytes changed, so
+the production captures listed below are historical calibration/diagnostics and must be
+replaced with opened captures from the new complete invocation before dispatching review.
+
+Session 43578 has now terminated with native exit 1: nine partitions passed,
+`recovery-en-390` failed, and 28 partitions were unexecuted. The discrepancy between its
+reverse-focus measurement and same-stop screenshot has no proven internal cause. The checkpoint
+and captures below remain diagnostic evidence, not a release candidate or finish-review
+handoff. Preserve the original failure; do not combine partial invocations into a pass.
+
+The invocation begun at 17:20:33 UTC failed in context-en-960 after 34 passing partitions
+(three unexecuted). A native regression reproduced premature hierarchy-readiness comparison
+after root recovery; only executor preparation changed. Its original diagnostics remain in
+the parent report and original campaign directories, not the current capture list below.
+No historical partial passes are combined with the fresh invocation.
+
+The now-failed complete command started at 20:19:49 UTC in native session 43578. Its
+completed partitions record canonical commit `9e7f539012544d8a1f91317c309fe6de6aa83f96`.
+All 30 normal-layout production captures below belong to that invocation, were opened by
+the parent, and independently match their completed partition's final manifest. The
+seven-partition checkpoint below preceded the terminal failure; it is not a current
+live-process claim. This is not permission to dispatch the finish review yet.
 
 ## Request and confirmed constraints
 
@@ -62,36 +81,36 @@ hashes and all 30 capture hashes match current bytes.
 Every listed path is required; no implicit glob. Adaptation and final state additions
 will be appended only after their current-invocation captures have been opened.
 
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/landing-default-pt-BR-390-top.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/landing-default-en-960-top.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/landing-default-en-1440-top.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/place-default-pt-BR-390-top.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/place-open-en-1440-top.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/A11Y-001-10-place-default-en-960-final.png`
-- `campaigns/accessibility-search-2026-10-22T17-24-45-567Z-b871f88d/evidence/search-default-pt-BR-390-top.png`
-- `campaigns/accessibility-search-2026-10-22T17-24-45-567Z-b871f88d/evidence/search-open-en-1440-top.png`
-- `campaigns/accessibility-search-2026-10-22T17-24-45-567Z-b871f88d/evidence/filters-default-pt-BR-390-top.png`
-- `campaigns/accessibility-search-2026-10-22T17-24-45-567Z-b871f88d/evidence/filters-default-en-1440-top.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/property-default-pt-BR-390-top.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/property-open-en-1440-top.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/listing-default-pt-BR-390-top.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/listing-open-en-1440-top.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/privacy-default-pt-BR-390-top.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/privacy-default-en-1440-top.png`
-- `campaigns/accessibility-ask-pt-BR-2026-10-22T17-29-38-366Z-4bac7bb4/evidence/ask-awaiting_confirmation-open-pt-BR-390-top.png`
-- `campaigns/accessibility-search-2026-10-22T17-24-45-567Z-b871f88d/evidence/A11Y-001-14-filters-default-pt-BR-390-final.png`
-- `campaigns/accessibility-ask-pt-BR-2026-10-22T17-29-38-366Z-4bac7bb4/evidence/A11Y-004-8-ask-awaiting_confirmation-open-pt-BR-390-final.png`
-- `campaigns/accessibility-ask-pt-BR-2026-10-22T17-29-38-366Z-4bac7bb4/evidence/ask-awaiting_confirmation-open-pt-BR-390-region.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/A11Y-001-14-landing-default-pt-BR-390-final.png`
-- `campaigns/accessibility-discovery-2026-10-22T17-20-33-107Z-0e665509/evidence/A11Y-001-19-landing-default-en-1440-final.png`
-- `campaigns/accessibility-details-2026-10-22T17-26-51-124Z-94d3a359/evidence/A11Y-001-25-listing-open-en-1440-final.png`
-- `campaigns/accessibility-ask-en-2026-10-22T17-33-13-424Z-c08ac7ef/evidence/ask-awaiting_confirmation-open-en-1440-top.png`
-- `campaigns/accessibility-ask-en-2026-10-22T17-33-13-424Z-c08ac7ef/evidence/ask-awaiting_confirmation-open-en-1440-region.png`
-- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T17-36-42-331Z-2ca5fe8e/evidence/filters-invalid-range-pt-BR-390-region.png`
-- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T17-36-42-331Z-2ca5fe8e/evidence/A11Y-003-4-filters-invalid-range-pt-BR-390-final.png`
-- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T17-36-42-331Z-2ca5fe8e/evidence/search-refused-pt-BR-390-default-top.png`
-- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T17-36-42-331Z-2ca5fe8e/evidence/place-refused-pt-BR-390-open-region.png`
-- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T17-36-42-331Z-2ca5fe8e/evidence/place-refused-pt-BR-390-open-top.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/landing-default-pt-BR-390-top.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/landing-default-en-960-top.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/landing-default-en-1440-top.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/place-default-pt-BR-390-top.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/place-open-en-1440-top.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/A11Y-001-10-place-default-en-960-final.png`
+- `campaigns/accessibility-search-2026-10-22T20-26-21-565Z-3fd0718b/evidence/search-default-pt-BR-390-top.png`
+- `campaigns/accessibility-search-2026-10-22T20-26-21-565Z-3fd0718b/evidence/search-open-en-1440-top.png`
+- `campaigns/accessibility-search-2026-10-22T20-26-21-565Z-3fd0718b/evidence/filters-default-pt-BR-390-top.png`
+- `campaigns/accessibility-search-2026-10-22T20-26-21-565Z-3fd0718b/evidence/filters-default-en-1440-top.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/property-default-pt-BR-390-top.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/property-open-en-1440-top.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/listing-default-pt-BR-390-top.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/listing-open-en-1440-top.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/privacy-default-pt-BR-390-top.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/privacy-default-en-1440-top.png`
+- `campaigns/accessibility-ask-pt-BR-2026-10-22T20-33-26-014Z-2f5ef4a2/evidence/ask-awaiting_confirmation-open-pt-BR-390-top.png`
+- `campaigns/accessibility-search-2026-10-22T20-26-21-565Z-3fd0718b/evidence/A11Y-001-14-filters-default-pt-BR-390-final.png`
+- `campaigns/accessibility-ask-pt-BR-2026-10-22T20-33-26-014Z-2f5ef4a2/evidence/A11Y-004-8-ask-awaiting_confirmation-open-pt-BR-390-final.png`
+- `campaigns/accessibility-ask-pt-BR-2026-10-22T20-33-26-014Z-2f5ef4a2/evidence/ask-awaiting_confirmation-open-pt-BR-390-region.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/A11Y-001-14-landing-default-pt-BR-390-final.png`
+- `campaigns/accessibility-discovery-2026-10-22T20-19-57-343Z-e420fe7e/evidence/A11Y-001-19-landing-default-en-1440-final.png`
+- `campaigns/accessibility-details-2026-10-22T20-30-07-851Z-325d8266/evidence/A11Y-001-25-listing-open-en-1440-final.png`
+- `campaigns/accessibility-ask-en-2026-10-22T20-38-33-184Z-1bd52f58/evidence/ask-awaiting_confirmation-open-en-1440-top.png`
+- `campaigns/accessibility-ask-en-2026-10-22T20-38-33-184Z-1bd52f58/evidence/ask-awaiting_confirmation-open-en-1440-region.png`
+- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T20-42-16-236Z-30d88d8f/evidence/filters-invalid-range-pt-BR-390-region.png`
+- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T20-42-16-236Z-30d88d8f/evidence/A11Y-003-4-filters-invalid-range-pt-BR-390-final.png`
+- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T20-42-16-236Z-30d88d8f/evidence/search-refused-pt-BR-390-default-top.png`
+- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T20-42-16-236Z-30d88d8f/evidence/place-refused-pt-BR-390-open-region.png`
+- `campaigns/accessibility-recovery-pt-BR-390-2026-10-22T20-42-16-236Z-30d88d8f/evidence/place-refused-pt-BR-390-open-top.png`
 
 ### Required incumbent references, relative to this packet
 
@@ -133,17 +152,24 @@ Current source identity:
 Backend:
 `10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`.
 Executor:
-`68962f9428c409a00a12e8764a5b0a26ac9a4e4734727ace1313aa9a57554341`.
+`d91209036f3b53081ddb93110009ce68b5c82a880c42cb931c6e5f6540be077b`.
 The exact root gates passed with 2,706 unit tests; unchanged eight-package coverage
-floors, native integration discovery, authored references and sixteen helpers passed.
+floors, native integration discovery, authored references and seventeen helpers passed.
 These are supplied facts, not a substitute for the fresh review.
 
-Git metadata changes during the invocation: partitions 1–17 record `ca05515`, while
-partition 18 onwards records the owner's instruction-only `f792723` commit. Its complete
-delta only changes the AGENTS workspace reference and removes duplicated CLAUDE instructions;
-it changes no evaluated source, backend, executor or compiled/served bytes. Original version
-records are preserved. See the parent report for the explicitly bounded metadata exception;
-do not describe these partitions as sharing one commit.
+The seven-partition checkpoint rehashed 2,048 final manifest entries and reconciled 213
+matrix cells, 232 approved attempts including explicit journeys/boundaries, and seven
+inconclusive setup pilots. All completed partitions share the canonical commit above and
+the exact source/backend/executor identities; all 107 runtime records and three served
+assets agree. SQL before/after, network boundaries and owned/foreign cleanup agree. There
+are zero axe violations and no integrity issues in this partial checkpoint, not a terminal
+integral pass. Historical Git metadata exceptions remain historical in the parent report.
+
+All 58 original axe incomplete nodes match their own captured roles. The 264 manual
+Landing observations retain the actual scrim geometry and conservative brightest-underlay
+analysis in the parent report; they are not rewritten as automatic axe passes. Five
+observations are actual native-disabled buttons, not exemptions for enabled controls.
+The final all-partition incomplete/manual/disabled census remains pending.
 
 The parent report records original failures, the D-072 repair, numerical/manual contrast
 methodology and incomplete adjudications without rewriting original results. Final integral

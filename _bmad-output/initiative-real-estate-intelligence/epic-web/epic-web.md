@@ -60,6 +60,14 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Decision: D-073 keeps the Ask submit's existing -5px clipped-group focus inset in its
+  base rule as well as its focus rule, after a failed native reverse-focus observation
+  disagreed with its same-stop screenshot. Preserve that failed invocation and the
+  uncertainty; focused diagnostics are not an integral pass or proof of a browser bug.
+  Prove stable geometry before/during/after native traversal with actual CSS, without
+  adding an unfocused outline, changing appearance or waiting for passing measurements.
+  Require fresh complete verification of the corrected identity
+  (agent, on the owner's behalf, 2026-10-22).
 - Decision: D-072 makes the existing enamel-900 stop-navigation ground persistent and extends
   the existing desktop scrim's strong region across the full copy column after actual canvas
   backgrounds exposed sub-4.5:1 text. Preserve tokens, lighting, layout and copy; verify real CSS
