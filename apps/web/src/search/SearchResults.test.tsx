@@ -99,6 +99,19 @@ function reads(
   return request;
 }
 describe('contract-backed Search surface', () => {
+  it('associates an invalid range only with the fields requiring correction', async () => {
+    reads();
+    mount(`/search/${bela.id}?view=filters`);
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    await userEvent.type(document.getElementById('minArea')!, '999');
+    await userEvent.type(document.getElementById('maxArea')!, '1');
+    expect(document.getElementById('minArea')).toHaveAttribute('aria-describedby', 'draft-error');
+    expect(document.getElementById('maxArea')).toHaveAttribute('aria-invalid', 'true');
+    expect(document.getElementById('minAskingPrice')).toHaveAttribute('aria-invalid', 'false');
+    expect(document.getElementById('minPricePerSquareMeter')).not.toHaveAttribute(
+      'aria-describedby',
+    );
+  });
   it.each([
     ['pt-BR', 0, '0 de 0 imóveis'],
     ['pt-BR', 1, '1 de 1 imóvel'],

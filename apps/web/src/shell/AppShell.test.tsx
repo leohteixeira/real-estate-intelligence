@@ -67,6 +67,30 @@ function mount(path: string) {
   return request;
 }
 describe('public shell', () => {
+  it('bypasses repeated navigation and focuses changed routes without stealing locale or refresh focus', async () => {
+    mount(`/places/${bela.id}`);
+    await screen.findByText('R$ 9.515');
+    const skip = screen.getByRole('link', { name: 'Pular para o conteúdo' });
+    expect(skip).toHaveAttribute('href', '#public-content');
+    await userEvent.click(skip);
+    expect(document.activeElement).toBe(document.getElementById('public-content'));
+    const nav = within(screen.getAllByRole('navigation', { name: 'Navegação principal' })[0]!);
+    await userEvent.click(nav.getByRole('link', { name: 'Buscar' }));
+    await screen.findByRole('heading', { name: 'Buscar' });
+    await waitFor(() =>
+      expect(document.activeElement).toBe(document.getElementById('public-content')),
+    );
+    const english = within(screen.getAllByRole('group', { name: 'Idioma' })[0]!).getByRole(
+      'button',
+      { name: 'English' },
+    );
+    await userEvent.click(english);
+    expect(document.activeElement).toBe(english);
+    await act(async () => {
+      await caches.at(-1)!.refetchQueries({ queryKey: placesQuery().queryKey });
+    });
+    expect(document.activeElement).toBe(english);
+  });
   it('retains catalogue links on a failed refresh and recovers only through manual retry', async () => {
     const request = mount(`/places/${bela.id}?filters=retained`);
     await screen.findByText('R$ 9.515');

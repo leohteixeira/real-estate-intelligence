@@ -6,7 +6,31 @@ export async function settlePropertyCaptureStart(page: Pick<Page, 'evaluate'>) {
   await page.evaluate(async () => {
     await document.fonts.ready;
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    window.scrollTo(0, 0);
+    // Native key scrolling can still be in flight even with CSS scroll-behavior:auto.
+    // Observe its actual resting position before the separate capture reset. This is
+    // bounded preparation after the saved traversal, not repeated corrective scrolling.
+    const started = performance.now();
+    let previousX = window.scrollX,
+      previousY = window.scrollY,
+      stationaryFrames = 0,
+      stationarySince = started;
+    // A few equal frames can precede the next native smooth-key-scroll update. Require
+    // an actual quiet interval as well as frames; never retry/reset a displaced capture.
+    while (stationaryFrames < 3 || performance.now() - stationarySince < 150) {
+      await new Promise(requestAnimationFrame);
+      if (previousX === window.scrollX && previousY === window.scrollY) stationaryFrames++;
+      else {
+        stationaryFrames = 0;
+        stationarySince = performance.now();
+      }
+      previousX = window.scrollX;
+      previousY = window.scrollY;
+      if (performance.now() - started > 2000)
+        throw new Error('Native scrolling did not settle before top capture within 2000ms');
+    }
+    // Capture preparation runs after interaction evidence; never inherit a page's smooth
+    // tour animation and accidentally label an intermediate viewport as its top.
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     await new Promise<void>((resolve) =>
       requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
     );
