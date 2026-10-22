@@ -589,6 +589,10 @@ test.each(accessibilityPartitions)(
             })),
           ),
         ];
+        expect(
+          JSON.stringify({ geometry, keyboard, contrast }).includes(privateMarker),
+          'Private local operands must not enter accessibility receipts',
+        ).toBe(false);
         await json(`evidence/${name}-contrast.json`, {
           roles: contrast,
           limitation:

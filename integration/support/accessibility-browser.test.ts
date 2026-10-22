@@ -168,6 +168,79 @@ test('native keyboard receipts preserve programmatic-only exclusion and expose c
   );
 });
 
+test('editable operands never enter geometry or either native keyboard receipt through control names', async () => {
+  const env = { ...process.env };
+  delete env.DISPLAY;
+  const browser = await chromium.launch({
+    channel: 'chromium',
+    chromiumSandbox: true,
+    env,
+    args: ['--ozone-platform=headless'],
+  });
+  await preserveCleanup(
+    async () => {
+      const page = await browser.newPage({ viewport: { width: 960, height: 1142 } });
+      const privateOperand = 'synthetic-private-editable-operand';
+      await page.setContent(`
+        <style>input,textarea,button,summary{display:block;min-height:44px}
+        :focus-visible{outline:3px solid blue;outline-offset:2px}</style>
+        <main><label for="draft">Public draft label</label>
+        <textarea id="draft">${privateOperand}</textarea>
+        <label>Wrapped public label <textarea id="wrapped">${privateOperand}</textarea></label>
+        <span id="first-label">Referenced</span><span id="last-label">public label</span>
+        <textarea aria-labelledby="first-label last-label" aria-label="Lower priority label">${privateOperand}</textarea>
+        <input aria-label="Explicit public label" value="${privateOperand}">
+        <textarea>${privateOperand}</textarea>
+        <label id="nested-label">Nested public label<textarea tabindex="-1">${privateOperand}</textarea></label>
+        <input aria-labelledby="nested-label" value="${privateOperand}">
+        <input aria-labelledby="draft" value="${privateOperand}">
+        <textarea aria-label="Direct public label">${privateOperand}</textarea>
+        <button>Continue</button><details><summary>Public evidence</summary></details></main>
+      `);
+      // React-controlled textarea publication can retain the operand in both properties.
+      expect(await page.locator('#draft').textContent()).toBe(privateOperand);
+      expect(await page.locator('#draft').inputValue()).toBe(privateOperand);
+      const geometry = await measureAccessibility(page);
+      const keyboard = await walkKeyboard(page);
+      expect(
+        JSON.stringify({ geometry, keyboard }).includes(privateOperand),
+        'Private editable values must not enter any measured receipt field',
+      ).toBe(false);
+      const expectedNames = [
+        'Public draft label',
+        'Wrapped public label',
+        'Referenced public label',
+        'Explicit public label',
+        '[editable control; value private]',
+        'Nested public label',
+        '[editable control; value private]',
+        'Direct public label',
+        'Continue',
+        'Public evidence',
+      ];
+      expect(keyboard.expected.map((control) => control.name)).toEqual(expectedNames);
+      expect(geometry.targets.map((control) => control.name)).toEqual([
+        ...expectedNames.slice(0, 5),
+        'Nested public label',
+        ...expectedNames.slice(5),
+      ]);
+      expect(keyboard.inventoryChanged).toBe(false);
+      expect(keyboard.directions.map((direction) => direction.missing)).toEqual([[], []]);
+      for (const direction of keyboard.directions) {
+        expect(direction.steps).toHaveLength(expectedNames.length);
+        for (const step of direction.steps)
+          expect(step.name).toBe(
+            keyboard.expected.find((control) => control.identity === step.identity)!.name,
+          );
+      }
+      // Collection must not clear a draft or replace native traversal to obtain privacy.
+      expect(await page.locator('#draft').inputValue()).toBe(privateOperand);
+      expect(await page.locator('#wrapped').inputValue()).toBe(privateOperand);
+    },
+    () => browser.close(),
+  );
+});
+
 test('opaque contrast is numerical; composed paint and shadow-only candidates remain explicit triage', () => {
   expect(
     assessContrast({ foreground: 'rgb(0, 0, 0)', background: 'rgb(255, 255, 255)' }, 4.5),
