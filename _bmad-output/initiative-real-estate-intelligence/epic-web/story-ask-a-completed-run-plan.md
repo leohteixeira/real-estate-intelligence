@@ -3,7 +3,7 @@ title: 'Ask: a completed run'
 type: 'feature'
 ticket: '9'
 created: '2026-10-22'
-status: 'built'
+status: done
 baseline_revision: 'b5fc8d3b1d3a186249c0f7b0257cdbd91a593250'
 route: 'full'
 route_source: 'auto'
@@ -792,3 +792,20 @@ provide durable browser recovery. Human screen-reader, physical-device zoom/dayl
 live/deployed behavior are not proven by local geometry/axe checks. The existing build-size
 advisory and reported pre-existing global documentation drift remain disclosed. No VPS action
 or deployment acceptance is implied. Ticket completion is the parent goal's next acceptance step.
+
+## Parent acceptance — 2026-10-22
+
+Accepted after the full BMAD run reached `built`, final Quick review returned no findings and
+the reviewed working tree was clean. Implementation, tests and documentation were committed
+separately with every hook enabled:
+
+- `a8c3d1dd489176874bc5e8b60f4c148af09c541b`: prepared Ask screen and transport.
+- `6dfa7225dea2edcf0cd692166c2e5aeb4b4b55fc`: behavioral, lifecycle and owned browser tests.
+- `d0ac97e6ad5ad20fe9d70d1de830da18a0a656b4`: reviewed surface and verification evidence.
+
+The post-hook audit confirms all 783 reviewed paths are committed, the current thirteen-file
+source identity is unchanged, and all 270 surface hashes across the five completed campaigns
+still match their bytes. The seven current scenarios remain approved and all owned resources
+were removed. No push, deployment, VPS access, live model execution or source collection occurred.
+The goal orchestrator marked ticket 6.9 `done`; remaining stories and final cross-epic campaign
+are not claimed complete by this acceptance.
