@@ -45,6 +45,55 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
+### Latest whole invocation — PostgreSQL bootstrap failure, not acceptance
+
+Native session 44755 started at 22:13:22.425 UTC and terminated with exit 1 after
+3,132.13s: 12 partitions passed, `retained-pt-BR-390` failed during Compose startup,
+and 25 partitions did not execute. No browser assertion ran in the failed partition.
+Its immutable directory is
+`campaigns/accessibility-retained-pt-BR-390-2026-10-22T23-03-46-361Z-7e2b474c`.
+The setup attempt preserves the executor error; teardown records owned resources removed
+and foreign resources preserved. Prior completed partitions are diagnostic, not a full pass.
+
+Bounded Docker events for that exact owned project establish PostgreSQL startup at
+`1792710267125141838`ns, an unhealthy event at `1792710321431371166`ns (54.306s),
+and a successful probe/healthy event at `1792710326547474234`ns (59.422s), while
+cleanup was already beginning. The ten preceding probe exits were 2 (no response).
+This demonstrates premature bootstrap failure, not an application or WCAG assertion defect.
+The underlying reason for slow initialization is not established; no disk-full or OOM
+cause is asserted, and no Docker pruning or manual resource deletion was performed.
+
+The bounded correction adds PostgreSQL `start_period: 60s` in the existing Compose
+healthcheck. The readiness command, five-second interval, three-second timeout and ten
+consecutive failures remain unchanged; a successful early probe still releases dependants.
+Native regression session 73087 failed before the correction because the grace period
+was absent. After correction, the complete fixture helper suite passed 14/14 in session
+56142 (exit 0). Focused browser session 23271 passed its selected partition in 406.16s
+(exit 0, 37 other partitions filtered). Its campaign completed and the stack was torn
+down at 23:15:02.449 UTC, with owned resources removed and foreign resources preserved.
+This is diagnostic only. Exact root session 86404 subsequently passed lint, strict
+typecheck (including integration), all unit suites and production builds, exit 0.
+Inventory comparison against the prior whole invocation found only `compose.yaml` changed
+in source and `integration/support/fixture.test.ts` in executor; compiled backend bytes
+are identical. Preserve coverage for unchanged application bytes and the existing helper
+and authored-reference results. A fresh complete 38-partition invocation remains required.
+The corrected source inventory is
+`5a13c8c3ae1d457718fa67b75dfef7916f7d68ef1cb2a9507ff1fcb43cb53c1e`;
+the executor is `26e441058142cda6620ef1209d7f022c49f0fe5b79f291991613fe3c549765bc`.
+
+All 30 selected normal-layout captures from session 44755 were opened and matched their
+final manifests. They remain historical diagnostics now that the whole invocation failed.
+Independent runtime observations cover both owned images in each of its 12 completed
+partitions; append-only JSON receipts retain those observations before image removal.
+No partial-pass union is permitted.
+
+The single finite detector ran at 22:36 UTC, exit 0; its seven advisory findings were
+read against unchanged baseline locations and establish no additional scoped defect.
+Receipt: `accessibility-parent-detector-2026-10-22T2236.json`. No UI bytes changed in
+the bootstrap correction, so the detector is not pending and will not be repeated.
+Following the owner's engineering directive, cumulative independent audits run once
+after a successful complete campaign, not again after every partial partition.
+
 ### Post-D-075 invocation — terminal interruption, not acceptance
 
 The complete command started at 21:59:12.574 UTC in native session 61789 on canonical
@@ -615,7 +664,7 @@ inspected commits. Any other commit or evaluated-input difference remains a fail
 - Preserve the completed exact root lint/typecheck/test/build, unchanged coverage and native
   integration discovery results; repeat affected checks if evaluated inputs change.
 - Map every immutable intent-matrix row to an actually executed passing check.
-- Finish the bounded visual round(s), explicit manual-paint/incomplete disposition and one
-  detector; obtain the fresh finish reviewer and documenter outcomes.
+- Finish the bounded visual round(s) and explicit manual-paint/incomplete disposition;
+  preserve the completed detector receipt and obtain the fresh finish reviewer and documenter outcomes.
 - Complete the already-active BMAD review step, logical auto-commits and tracker acceptance.
 - Continue with the actual next unblocked non-VPS story; leave owner-locked VPS work untouched.

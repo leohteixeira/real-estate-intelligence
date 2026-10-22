@@ -274,6 +274,23 @@ or canvas composition stay explicit manual findings.
 
 ## Plan Change Log
 
+- 2026-10-22 parent Verify: native whole session 44755 terminated with exit 1 after
+  12 passing partitions; `retained-pt-BR-390` failed in Compose startup and 25 partitions
+  did not execute. Exact-project Docker events establish PostgreSQL unhealthy at 54.306s
+  and accepting connections at 59.422s, before cleanup finished. Add only a 60-second
+  PostgreSQL startup grace period; preserve the readiness command, interval, timeout and
+  consecutive-failure policy. The native configuration regression failed before repair
+  (73087), then the full fixture helper suite passed 14/14 (56142). Focused session 23271
+  passed in 406.16s (exit 0, 37 partitions filtered), diagnostic only. Exact root session
+  86404 then passed lint, strict typecheck, all unit suites and builds (exit 0).
+  Inventory comparison found only Compose and the fixture regression changed; retain
+  coverage for unchanged application bytes. A new whole campaign remains pending. Preserve failed
+  artifacts and owned/foreign cleanup evidence; do not union partial runs into acceptance.
+  All 30 selected normal captures from 44755 were opened and manifest-verified, now
+  historical. The one detector completed at 22:36 UTC with no demonstrated new defect.
+  Apply the owner's bounded-review directive: retain unchanged evidence and run cumulative
+  audits once after a successful whole campaign, not after every partial result.
+
 - 2026-10-22 parent Verify: session 61789 started at 21:59:12.574 UTC and terminated
   with native exit 143 at 22:09:11.068 UTC. Discovery and Search completed; the remaining
   36 partitions did not execute. No native Vitest failure summary or deliberate parent

@@ -1,8 +1,29 @@
 # Accessibility — finish packet preparation
 
 Status: **not ready for review**. The integral campaign, adaptation captures, final
-incomplete census and one detector are still pending. Do not infer acceptance from this
+incomplete census and fresh finish review are still pending. The finite detector has run.
+Do not infer acceptance from this
 preparation document or overlap browser campaigns with root/coverage verification.
+
+The latest whole invocation, native session 44755, terminated with exit 1 after 12 passing
+partitions. `retained-pt-BR-390` failed during PostgreSQL bootstrap, before browser assertions;
+25 partitions did not execute. Exact-project Docker events show PostgreSQL accepting
+connections at 59.422s, after being declared unhealthy at 54.306s. The correction adds only
+a 60-second startup grace period, retaining the readiness command and steady-state failure
+policy. The regression failed before repair; the full fixture helper suite then passed
+14/14 (session 56142). Focused session 23271 then passed in 406.16s (exit 0, one selected
+partition and 37 filtered); it is diagnostic, not a full campaign. Exact root session
+86404 then passed lint, strict typecheck, all unit suites and production builds (exit 0).
+The fresh complete campaign remains pending. Original failed
+artifacts and owned/foreign cleanup receipts remain preserved.
+
+The parent opened all 30 selected normal-layout captures from session 44755 and verified
+their final manifest hashes; these are now historical diagnostics, not the finish packet.
+The detector ran once at 22:36 UTC (exit 0, seven baseline advisories, no additional
+demonstrated scoped defect); its receipt is
+`accessibility-parent-detector-2026-10-22T2236.json`. Bootstrap changes do not alter UI
+bytes or require another detector. Keep review targeted; do not restart general audits
+for each completed partition or combine partial campaign passes.
 
 The post-D-075 whole invocation (session 61789, started 21:59:12.574 UTC) also terminated
 with native exit 143, observed at 22:09:11.068 UTC, after Discovery and Search. The cause
