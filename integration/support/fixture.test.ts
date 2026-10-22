@@ -1,3 +1,4 @@
+import { execa } from 'execa';
 import getPort from 'get-port';
 import { Wait } from 'testcontainers';
 import type { OneShotStartupCheckStrategy } from 'testcontainers/build/wait-strategies/one-shot-startup-startegy.js';
@@ -12,6 +13,51 @@ import {
 } from './fixture.ts';
 
 vi.mock('get-port', () => ({ default: vi.fn() }));
+
+test('PostgreSQL startup healthcheck allows bootstrap without weakening readiness probes', async () => {
+  const { stdout } = await execa(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'compose.yaml',
+      '--project-name',
+      'rei-healthcheck-config',
+      'config',
+      '--format',
+      'json',
+    ],
+    {
+      env: {
+        COMPOSE_DISABLE_ENV_FILE: '1',
+        COMPOSE_ENV_FILES: '',
+        POSTGRES_USER: 'rei_healthcheck',
+        POSTGRES_DB: 'rei_healthcheck',
+      },
+      timeout: 30_000,
+    },
+  );
+  const config = JSON.parse(stdout) as {
+    services: {
+      postgres: {
+        healthcheck: {
+          test: string[];
+          interval: string;
+          timeout: string;
+          retries: number;
+          start_period?: string;
+        };
+      };
+    };
+  };
+  expect(config.services.postgres.healthcheck).toStrictEqual({
+    test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U rei_healthcheck -d rei_healthcheck'],
+    interval: '5s',
+    timeout: '3s',
+    retries: 10,
+    start_period: '1m0s',
+  });
+});
 
 test('allocated fixture ports probe the wildcard address used by Compose', async () => {
   const getPortMock = vi.mocked(getPort).mockReset();
