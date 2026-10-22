@@ -45,6 +45,41 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
+### Post-D-075 invocation — terminal interruption, not acceptance
+
+The complete command started at 21:59:12.574 UTC in native session 61789 on canonical
+commit `6a1b478626474eb934738ebc4eaa7ddd1893374b`, with the D-075 source/backend/executor
+inventories below unchanged. Its native handle returned exit 143 at 22:09:11.068 UTC.
+There was no native Vitest failure summary and the parent did not deliberately stop it;
+the termination cause is unproven. Process and Docker readback confirmed no live native
+campaign or owned container remained. This is a terminal interruption, not a verified wait
+and not a successful campaign.
+
+Completed partitions are `accessibility-discovery-2026-10-22T21-59-13-389Z-d1e05483`
+and `accessibility-search-2026-10-22T22-07-23-059Z-c83f6d51`. Each has 18 matrix cells,
+19 approved attempts including the boundary, one inconclusive setup pilot, final SQL,
+manifest and owned/foreign teardown receipts. The other 36 partitions did not execute.
+At 22:10:02 UTC, five independent audits passed across these partial results: exact matrix
+coverage, actual oracle/receipt/privacy checks, 72 native keyboard walks with 3,268 steps,
+8,546 contrast roles and all 48 preserved axe incomplete nodes. No partial-pass union or
+full-story acceptance follows from those diagnostics.
+
+The independent core audit had passed Discovery at 22:07:30 UTC, including live image
+configuration/root-filesystem inspection. Its later two-partition readback failed because
+Discovery API image `sha256:fc273de65454d6843874e906ff052e06a1bf66c5f98a8ce18ace3b56edf5724f`
+was absent. Bounded Docker image events confirm removal of that image and its web image
+at 22:09:17 UTC; the initiator is not established. The inspected Testcontainers Compose
+down path requests volumes and a stop deadline, not image removal. Do not hide the audit
+failure or infer a complete runtime comparison for both partitions. No manual deletion
+was performed. The next whole invocation must retain independent image-comparison receipts
+while images still exist; its actual native terminal result remains mandatory.
+
+The parent opened eight manifest-verified Discovery captures from this interrupted epoch
+against the existing authored reference images. Those are now historical visual diagnostics,
+not the fresh complete finish-review packet. No new interface defect or UI edit resulted.
+The plan now uses epic-local ticket ID `12` so the native tracker joins its existing
+in-progress plan rather than incorrectly treating it as unplanned. This does not accept it.
+
 ### D-075 — receipt privacy defect and deliberate interruption
 
 The complete invocation begun at 21:19:25.553 UTC (native session 1675) was deliberately

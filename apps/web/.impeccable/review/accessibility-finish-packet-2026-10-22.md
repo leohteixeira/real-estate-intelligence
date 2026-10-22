@@ -4,6 +4,16 @@ Status: **not ready for review**. The integral campaign, adaptation captures, fi
 incomplete census and one detector are still pending. Do not infer acceptance from this
 preparation document or overlap browser campaigns with root/coverage verification.
 
+The post-D-075 whole invocation (session 61789, started 21:59:12.574 UTC) also terminated
+with native exit 143, observed at 22:09:11.068 UTC, after Discovery and Search. The cause
+is unproven; no native Vitest failure summary or deliberate parent stop was observed.
+The remaining 36 partitions did not execute. Both completed partitions retain their final
+SQL/manifests/teardown, but the later independent runtime-image inspection failed because
+the recorded image had been removed. Original artifacts and that audit failure remain
+diagnostic. Eight opened current-epoch Discovery captures are therefore historical too;
+no partial execution or capture list authorizes finish review. A fresh complete invocation
+and its own current captures are still required; no test or deadline has been weakened.
+
 D-075 subsequently found synthetic private operands in 18 Ask interaction JSONs through
 textarea control-name fallbacks. The 21:19 UTC invocation was deliberately interrupted
 with native exit 143 after six completed partitions. Original artifacts remain diagnostic;

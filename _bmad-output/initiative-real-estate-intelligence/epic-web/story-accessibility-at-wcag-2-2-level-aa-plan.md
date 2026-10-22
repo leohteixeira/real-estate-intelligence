@@ -1,7 +1,7 @@
 ---
 title: 'Accessibility at WCAG 2.2 level AA'
 type: 'feature'
-ticket: '6.12'
+ticket: '12'
 created: '2026-10-22'
 status: 'in-progress'
 baseline_revision: '0d9fcdcb579cc78683a64d7aed3d93c219794473'
@@ -190,9 +190,15 @@ root gates and coverage runs.
       retaining the 80% statement/line/function and 75% branch floors independently per package.
 - [x] Repeat native discovery: session 92396 exited 0 with 161 registered tests,
       including all 38 accessibility partitions and the new native privacy regression.
-- [ ] Refresh and read the baseline diff, then freeze the new executor identity before
+- [x] Refresh and read the baseline diff, then freeze the new executor identity before
       starting all 38 partitions. Record a progress checkpoint with auto-commit, never
       story acceptance or push.
+
+  The 7,492-line consolidated diff was fully read before session 61789 started;
+  its SHA-256 is `678fc5eed3112582e74eae31cd173d5ef16f92209cc36782a71f5db2d20d95a8`.
+  The frozen source/backend/executor inventories are recorded in the parent report.
+  The owner's staged checkpoint produced commits `dba2a9d`, `9db9959` and `6a1b478`.
+  This completes the freeze task only, not the interrupted browser verification.
 
 **Acceptance Criteria:**
 
@@ -267,6 +273,18 @@ SVG text uses actual fill/fill-opacity rather than CSS color; ambiguous stroke, 
 or canvas composition stay explicit manual findings.
 
 ## Plan Change Log
+
+- 2026-10-22 parent Verify: session 61789 started at 21:59:12.574 UTC and terminated
+  with native exit 143 at 22:09:11.068 UTC. Discovery and Search completed; the remaining
+  36 partitions did not execute. No native Vitest failure summary or deliberate parent
+  interruption was observed; the cause is unproven. Both completed partitions have final
+  SQL, manifests and owned/foreign teardown receipts. Five independent receipt audits
+  passed across their 36 cells; the later runtime-image comparison failed because the
+  recorded images no longer existed. Docker events confirm deletion, not its initiator.
+  Preserve these partial diagnostics and require a fresh whole invocation, with no
+  timeout/assertion changes or historical-pass union. Corrected the plan's frontmatter
+  ticket to epic-local ID `12`, as required by `tickets.py join_plans`; intent-contract,
+  baseline and in-progress status are unchanged.
 
 - 2026-10-22 parent Verify / D-075: independent JSON receipt audit found the synthetic
   private operand in 18 Ask interaction artifacts through textarea name fallbacks. Native
