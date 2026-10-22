@@ -1,6 +1,7 @@
 import { searchEnglish, searchPortuguese } from '../search/search-resources.js';
 import { propertyEnglish, propertyPortuguese } from '../properties/property-resources.js';
 import { listingEnglish, listingPortuguese } from '../listings/listing-resources.js';
+import { askEnglish, askPortuguese } from '../ask/ask-resources.js';
 
 export const portuguese = {
   places: 'Lugares',
@@ -327,7 +328,7 @@ export const resources = {
     shell: shellPT,
     place: portuguese,
     search: { ...searchPT, ...searchPortuguese },
-    ask: askPT,
+    ask: { ...askPT, ...askPortuguese },
     shared: sharedPT,
     property: propertyPortuguese,
     listing: listingPortuguese,
@@ -336,7 +337,7 @@ export const resources = {
     shell: shellEN,
     place: english,
     search: { ...searchEN, ...searchEnglish },
-    ask: askEN,
+    ask: { ...askEN, ...askEnglish },
     shared: sharedEN,
     property: propertyEnglish,
     listing: listingEnglish,

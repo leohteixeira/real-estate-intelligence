@@ -3,7 +3,7 @@ import { config } from './config';
 import { LandingPage } from './landing/LandingPage';
 import { PlaceOverview } from './places/PlaceOverview';
 import { AppShell } from './shell/AppShell';
-import { PlaceEntry } from './shell/PlaceEntry';
+import { AskScreen } from './ask/AskScreen';
 import { SearchResults } from './search/SearchResults';
 import { PropertyDetails } from './properties/PropertyDetails';
 import { ListingDetails } from './listings/ListingDetails';
@@ -33,7 +33,7 @@ export function AppRoutes() {
                 ) : destination === 'search' ? (
                   <SearchResults />
                 ) : (
-                  <PlaceEntry destination={destination} />
+                  <AskScreen />
                 )
               }
             />
