@@ -436,6 +436,8 @@
   font: 600 var(--text-md) / 1 var(--font-ui);
   padding: 0 var(--s-4);
   cursor: pointer;
+  /* Keep clipped-group geometry stable before and after native focus publication. */
+  outline-offset: -5px;
 }
 .ask__box button:hover {
   background: var(--enamel-700);
