@@ -6,6 +6,8 @@ when branches fall below 75%. CI uses this command in place of an unmeasured uni
 Workspaces run serially, with at most two instrumented Vitest workers per workspace. This
 bounds CPU contention for DOM-heavy tests on shared development/CI hosts without changing
 test discovery, process isolation, assertions, the existing test deadlines or coverage floors.
+The web Vitest configuration also caps ordinary unit runs at two workers (D-074), so the
+exact root test command uses the same bounded DOM concurrency without increasing deadlines.
 Every unit-coverage invocation is scoped with `--dir src`, so compiled tests under `dist` are never
 discovered. Integration tests use the explicit root integration configuration instead and do not
 replace or lower these gates. See [the integration guide](integration.md) and
