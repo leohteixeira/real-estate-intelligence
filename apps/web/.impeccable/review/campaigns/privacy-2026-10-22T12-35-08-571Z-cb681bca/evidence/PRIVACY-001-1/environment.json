@@ -1,0 +1,65 @@
+{
+  "version": {
+    "commit": "f63e338061a6e08f1c6e7404dcc4f9b301c5e8ce",
+    "dirty": true,
+    "askSourceHash": "242f2a402f3b64cb9d8583a844276c687332b3a4fc982893633214219f160177",
+    "sourceFiles": [
+      "apps/web/src/ask/AskConfirmation.tsx",
+      "apps/web/src/ask/AskRunRecord.tsx",
+      "apps/web/src/ask/AskScreen.tsx",
+      "apps/web/src/ask/AskThread.tsx",
+      "apps/web/src/ask/ask-client.ts",
+      "apps/web/src/ask/ask-equality.ts",
+      "apps/web/src/ask/ask-resources.ts",
+      "apps/web/src/ask/ask-session.ts",
+      "apps/web/src/ask/ask-stream.ts",
+      "apps/web/src/styles/ask.css",
+      "apps/web/src/routes.tsx",
+      "apps/web/src/places/resources.ts",
+      "apps/web/src/main.tsx",
+      "apps/web/vite.config.ts"
+    ],
+    "localAssets": [
+      {
+        "file": "CityScene-C87I2kZF.js",
+        "sha256": "4d8887130954259b204452d0d8ea325fed2835633317ab7e19347016062631b6"
+      },
+      {
+        "file": "index-BROPnq-Z.js",
+        "sha256": "f5dbb31c7418e0f88dc67e5612de94b01e3f9789ddf15911a8b6ef30d55fea72"
+      },
+      {
+        "file": "index-CvbuaVP1.css",
+        "sha256": "42f6adb12aefbe843c2fa4cbb81d636df61a916c0f1055a901fb7d112af0ec27"
+      }
+    ],
+    "runtime": [
+      {
+        "service": "web",
+        "image": "sha256:dff840d78b388ddfd192ff0b5ec283f3ecc3b932ab3a4732382d8d16fc93bcdb"
+      },
+      {
+        "service": "api",
+        "image": "sha256:6ddc2075709006207b4b8b6d6707b098687ac1d9c779120ab5334dbefc55a5b4"
+      }
+    ],
+    "runtimeAssets": [
+      {
+        "file": "CityScene-BTRrF5Tq.js",
+        "sha256": "e3eeca7eb7dfffc269aff5fe0680189b926713d600dd5749266f96750e5ca391"
+      },
+      {
+        "file": "index-Bvjn9Rs3.js",
+        "sha256": "a8ac5ceea220a8db90d0c7af69986564c3617446047e5546fb76c6a4b7690059"
+      },
+      {
+        "file": "index-CvbuaVP1.css",
+        "sha256": "42f6adb12aefbe843c2fa4cbb81d636df61a916c0f1055a901fb7d112af0ec27"
+      }
+    ],
+    "base": "http://127.0.0.1:33595",
+    "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+    "scope": "Owned local production images and build, not deployed release identity"
+  },
+  "observedUtc": "2026-10-22T12:37:10.086Z"
+}

@@ -1,0 +1,94 @@
+{
+  "scenarios": [
+    {
+      "id": "PRIVACY-001",
+      "title": "Document and responsive accessibility",
+      "area": "Privacy",
+      "persona": "anonymous visitor",
+      "journey": "Document and responsive accessibility",
+      "given": "An anonymous visitor and the actual enabled synthetic source",
+      "when": "Read directly, reload and keyboard navigate all sections at 390/960/1440 in both locales",
+      "then": "Nine sections, exact source attribution and permissions, title/lang, no place context, axe, fonts and targets pass",
+      "verification": {
+        "oracle": "D-069 accepted plan, independent real API and SQL inventories",
+        "method": "Native Vitest, Supertest, owned production Compose and sandboxed Chromium"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "PRIVACY-002",
+      "title": "Public entry and history",
+      "area": "Privacy",
+      "persona": "anonymous visitor",
+      "journey": "Public entry and history",
+      "given": "Every public screen with the shared selected locale",
+      "when": "Follow the visible privacy footer then navigate back and forward on phone and desktop",
+      "then": "Landing, Places, Search, Property, Listing and Ask all reach the document and retain locale",
+      "verification": {
+        "oracle": "D-069 accepted plan, independent real API and SQL inventories",
+        "method": "Native Vitest, Supertest, owned production Compose and sandboxed Chromium"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "PRIVACY-003",
+      "title": "Read failure and recovery",
+      "area": "Privacy",
+      "persona": "anonymous visitor",
+      "journey": "Read failure and recovery",
+      "given": "Actual admitted source and empty response bytes",
+      "when": "Refuse, corrupt, hold and cancel source reads then explicitly retry",
+      "then": "Static policy survives sanitized bounded errors, manual retry recovers and obsolete requests cannot replace current evidence",
+      "verification": {
+        "oracle": "D-069 accepted plan, independent real API and SQL inventories",
+        "method": "Native Vitest, Supertest, owned production Compose and sandboxed Chromium"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "PRIVACY-004",
+      "title": "Publication configuration",
+      "area": "Privacy",
+      "persona": "anonymous visitor",
+      "journey": "Publication configuration",
+      "given": "Absent public values then an explicitly synthetic configured production build",
+      "when": "Read controller/contact before and after rebuilding the owned web image",
+      "then": "Absent means unavailable with no mailto; safe configured text/mailto appears with the real-processing restriction",
+      "verification": {
+        "oracle": "D-069 accepted plan, independent real API and SQL inventories",
+        "method": "Native Vitest, Supertest, owned production Compose and sandboxed Chromium"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "PRIVACY-005",
+      "title": "Incumbent reference evidence",
+      "area": "Privacy",
+      "persona": "anonymous visitor",
+      "journey": "Incumbent reference evidence",
+      "given": "Unmodified Components, Main and DesktopPlace references",
+      "when": "Capture their authored dimensions on an owned Vite server",
+      "then": "Reference bytes/dependencies and capture hashes are recorded without creating a Privacy artboard",
+      "verification": {
+        "oracle": "D-069 accepted plan, independent real API and SQL inventories",
+        "method": "Native Vitest, Supertest, owned production Compose and sandboxed Chromium"
+      },
+      "dependencies": []
+    },
+    {
+      "id": "PRIVACY-006",
+      "title": "Read-only and cleanup boundaries",
+      "area": "Privacy",
+      "persona": "anonymous visitor",
+      "journey": "Read-only and cleanup boundaries",
+      "given": "Owned stack, SQL baseline and runtime asset hashes",
+      "when": "Compare served assets, final database inventory and network observations",
+      "then": "No writes, external origins or SQL changes; owned resources removed and foreign resources preserved",
+      "verification": {
+        "oracle": "D-069 accepted plan, independent real API and SQL inventories",
+        "method": "Native Vitest, Supertest, owned production Compose and sandboxed Chromium"
+      },
+      "dependencies": []
+    }
+  ]
+}

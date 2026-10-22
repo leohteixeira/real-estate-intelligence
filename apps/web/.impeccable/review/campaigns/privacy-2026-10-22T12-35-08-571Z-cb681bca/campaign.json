@@ -1,0 +1,23 @@
+{
+  "runId": "privacy-2026-10-22T12-35-08-571Z-cb681bca",
+  "project": "rei-web-privacy-736dfe9f-dce6-4326-b55c-f18da05b1753",
+  "status": "complete",
+  "startedUtc": "2026-10-22T12:35:08.574Z",
+  "stackTornDownUtc": "2026-10-22T12:38:50.093Z",
+  "scope": "D-069 anonymous read-only privacy",
+  "personas": ["anonymous visitor"],
+  "permittedSideEffects": "Owned synthetic fixture preparation only, before SQL baseline; no real source enablement",
+  "completionCriteria": [
+    "PRIVACY-001",
+    "PRIVACY-002",
+    "PRIVACY-003",
+    "PRIVACY-004",
+    "PRIVACY-005",
+    "PRIVACY-006"
+  ],
+  "exclusions": [
+    "Parent visual finish/detector/reviewer/documenter",
+    "Human screen reader, daylight and zoom assessment",
+    "Enabled licensed/not-verified branches cannot be produced without violating source-register gates: mapped to parser and component tests instead"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "project": "rei-web-privacy-aa564c99-1b58-4538-b823-7fced282fe6a",
+  "base": "http://127.0.0.1:33379",
+  "publicSourceIds": [
+    "synthetic-data",
+    "synthetic-portal-aurora",
+    "synthetic-portal-brisa",
+    "synthetic-portal-cobalto"
+  ],
+  "preparation": "Temporary synthetic-only disable restored before SQL baseline",
+  "fixtureSha256": "1471e1dc9de6a685ad8d06e4d6c239d4299e1ec98fcebd8154820d2b0cad1d62"
+}

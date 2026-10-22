@@ -1,0 +1,97 @@
+{
+  "overflow": false,
+  "contentFont": "Barlow, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+  "barlow": true,
+  "targets": [
+    {
+      "width": 159.9375,
+      "height": 44,
+      "href": "/"
+    },
+    {
+      "width": 44,
+      "height": 44,
+      "href": null
+    },
+    {
+      "width": 44,
+      "height": 44,
+      "href": null
+    },
+    {
+      "width": 159.328125,
+      "height": 44,
+      "href": "#fields"
+    },
+    {
+      "width": 213.421875,
+      "height": 44,
+      "href": "#sources"
+    },
+    {
+      "width": 53.953125,
+      "height": 44,
+      "href": "#purpose"
+    },
+    {
+      "width": 251.90625,
+      "height": 44,
+      "href": "#basis"
+    },
+    {
+      "width": 147.640625,
+      "height": 44,
+      "href": "#retention"
+    },
+    {
+      "width": 251.984375,
+      "height": 44,
+      "href": "#sharing"
+    },
+    {
+      "width": 70.328125,
+      "height": 44,
+      "href": "#rights"
+    },
+    {
+      "width": 115.828125,
+      "height": 44,
+      "href": "#removal"
+    },
+    {
+      "width": 144.96875,
+      "height": 44,
+      "href": "#controller"
+    },
+    {
+      "width": 44,
+      "height": 44,
+      "href": null
+    },
+    {
+      "width": 44,
+      "height": 44,
+      "href": null
+    },
+    {
+      "width": 44,
+      "height": 44,
+      "href": "/privacy"
+    },
+    {
+      "width": 127.328125,
+      "height": 52,
+      "href": "/places"
+    },
+    {
+      "width": 127.328125,
+      "height": 52,
+      "href": "/search"
+    },
+    {
+      "width": 127.34375,
+      "height": 52,
+      "href": "/ask"
+    }
+  ]
+}

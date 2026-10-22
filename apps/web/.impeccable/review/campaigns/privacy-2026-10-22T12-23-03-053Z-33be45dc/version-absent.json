@@ -1,0 +1,153 @@
+{
+  "commit": "c7e2688adaf427116024d31726b753b7181fed5c",
+  "dirty": true,
+  "askSourceHash": "242f2a402f3b64cb9d8583a844276c687332b3a4fc982893633214219f160177",
+  "sourceFiles": [
+    "apps/web/src/ask/AskConfirmation.tsx",
+    "apps/web/src/ask/AskRunRecord.tsx",
+    "apps/web/src/ask/AskScreen.tsx",
+    "apps/web/src/ask/AskThread.tsx",
+    "apps/web/src/ask/ask-client.ts",
+    "apps/web/src/ask/ask-equality.ts",
+    "apps/web/src/ask/ask-resources.ts",
+    "apps/web/src/ask/ask-session.ts",
+    "apps/web/src/ask/ask-stream.ts",
+    "apps/web/src/styles/ask.css",
+    "apps/web/src/routes.tsx",
+    "apps/web/src/places/resources.ts",
+    "apps/web/src/main.tsx",
+    "apps/web/vite.config.ts"
+  ],
+  "localAssets": [
+    {
+      "file": "CityScene-C87I2kZF.js",
+      "sha256": "4d8887130954259b204452d0d8ea325fed2835633317ab7e19347016062631b6"
+    },
+    {
+      "file": "index-BROPnq-Z.js",
+      "sha256": "f5dbb31c7418e0f88dc67e5612de94b01e3f9789ddf15911a8b6ef30d55fea72"
+    },
+    {
+      "file": "index-CvbuaVP1.css",
+      "sha256": "42f6adb12aefbe843c2fa4cbb81d636df61a916c0f1055a901fb7d112af0ec27"
+    }
+  ],
+  "runtime": [
+    {
+      "service": "web",
+      "image": "sha256:f0ee0df9acccfc8a31b3ad5d1e0dff4bb4e9ae7c0a8ce789937742a4e7ed7b4c"
+    },
+    {
+      "service": "api",
+      "image": "sha256:83d9281a4363db46fcc20521b4bacb6472a796fcbcfa0e478b025588ae375ec6"
+    }
+  ],
+  "runtimeAssets": [
+    {
+      "file": "CityScene-BTRrF5Tq.js",
+      "sha256": "e3eeca7eb7dfffc269aff5fe0680189b926713d600dd5749266f96750e5ca391"
+    },
+    {
+      "file": "index-Bvjn9Rs3.js",
+      "sha256": "a8ac5ceea220a8db90d0c7af69986564c3617446047e5546fb76c6a4b7690059"
+    },
+    {
+      "file": "index-CvbuaVP1.css",
+      "sha256": "42f6adb12aefbe843c2fa4cbb81d636df61a916c0f1055a901fb7d112af0ec27"
+    }
+  ],
+  "base": "http://127.0.0.1:33379",
+  "backendArtifactHash": "57642c89461a138a2d51a2cc83876f1a271a524ac41b9fff9c0616b6476d1e37",
+  "scope": "Owned local production images and build, not deployed release identity",
+  "privacyFiles": [
+    {
+      "file": "apps/web/src/privacy/PrivacyNotice.tsx",
+      "sha256": "33eba70051186dd6e04929dfaec09d3bc6bee8ec788ed41066c126aa660ccb35"
+    },
+    {
+      "file": "apps/web/src/privacy/privacy-client.ts",
+      "sha256": "434039f21b216af1d6c72cb9d1796163afc04f5ef01580725071b3a02a3c2b5a"
+    },
+    {
+      "file": "apps/web/src/privacy/privacy-resources.ts",
+      "sha256": "7615cbca7dcdb940c770986a0256900617fe64788d3467110f392768bdf13046"
+    },
+    {
+      "file": "apps/web/src/config.ts",
+      "sha256": "a4749289f17cc0f0f7741a72e45142e5b6b1c68e188d6469da58aff1c4e51e81"
+    },
+    {
+      "file": "apps/web/src/styles/privacy.css",
+      "sha256": "d66796c99c7abcb4ff64ff3e9789a804867fd9e177a35d06f822b0fc3a487f94"
+    },
+    {
+      "file": "apps/web/src/shell/AppShell.tsx",
+      "sha256": "a3d9dd8d0fff1f7757338ed13be60304cd23270cb06833d604c29623fc6e56ac"
+    },
+    {
+      "file": "apps/web/src/landing/LandingPage.tsx",
+      "sha256": "27831b843988ea996e8f85c8091a49040da8a40a9c75522c17c51c53830c41be"
+    },
+    {
+      "file": "apps/web/src/landing/copy.ts",
+      "sha256": "1580c76f5c2e73e53c74fe6f62cf7b6e1a1b56e39e0f64d87c99ddd323ff5e1d"
+    },
+    {
+      "file": "apps/web/src/landing/landing.css",
+      "sha256": "d4ca4ceb6a4994f05c5d2f93166a02c2bc5d2e762743b30ad9ca972a64764553"
+    },
+    {
+      "file": "apps/web/src/places/locale.ts",
+      "sha256": "1b63180be7429886c2e7b1bf67ffbf6d25fde795410fa3c680f35b524ecd1110"
+    },
+    {
+      "file": "apps/web/src/places/resources.ts",
+      "sha256": "25d328eee2c4bbd6881dc502278b52908cefb346c1feb39b5913eca4bfb14938"
+    },
+    {
+      "file": "apps/web/src/routes.tsx",
+      "sha256": "a832655a1ddaebb6aa605403eaeeffce3b588f681528c0d495835f43fa7c09ea"
+    },
+    {
+      "file": "apps/web/src/main.tsx",
+      "sha256": "6e2a2d8e65a9fe0a0fdeba3d533f5744bf33c01fe40e4d709f1777e730697538"
+    },
+    {
+      "file": "apps/web/vite.config.ts",
+      "sha256": "96d33f6bc638dcab5b3bc6c1e64e2cef428fb8c210f66b93643a0eee7f25413a"
+    },
+    {
+      "file": "apps/web/src/api/client.ts",
+      "sha256": "33deb8938025c9a661999488e2e391e214bd0e774145a8be428efad8a44b1948"
+    },
+    {
+      "file": "apps/web/src/places/place-queries.ts",
+      "sha256": "c0da46c8a5052cf3d0b501900a5943eac67b65658eaf0b17537ceb9d3a4be03c"
+    },
+    {
+      "file": "apps/web/src/shell/public-routes.ts",
+      "sha256": "0f2d49f3ab17ff6f52719f6c0e1561e98988793340a391bc3b0cbadd7db9296c"
+    },
+    {
+      "file": "packages/contracts/src/collection/enabled-source.dto.ts",
+      "sha256": "6e601a737dc462a18cde018a38794b61185aee19d919d4505a16b7db29dac6dc"
+    },
+    {
+      "file": "packages/contracts/src/collection/index.ts",
+      "sha256": "224ec7ccdd4c3dd5f3239a5b5517878ccbd2d36d6557a58d49bc8738aa0891fc"
+    },
+    {
+      "file": "packages/contracts/src/shared/wire.ts",
+      "sha256": "406e1111e2951e3faa8621c688b2f7883523650045ad46e3dafc58b92e0065aa"
+    },
+    {
+      "file": "docker/web.Dockerfile",
+      "sha256": "47edff11240ba7d8ca7a9b180053b76f24551859483e485ec6a66a4c1489c8f9"
+    },
+    {
+      "file": "compose.yaml",
+      "sha256": "f3bdd17e2ca0cba953891c873c786c4a7fd01d26e538255fc1c28ec6a2485809"
+    }
+  ],
+  "privacySourceHash": "91de212d6b9e2a4740233f16b4ed675d71357cb13931a9e8aac0df68fc5e7726"
+}

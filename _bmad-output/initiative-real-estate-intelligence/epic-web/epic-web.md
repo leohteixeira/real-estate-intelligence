@@ -233,3 +233,15 @@ shared with another epic, Description says which part this epic delivers.
   and browser read continuation with no POST or SQL changes, not interactive persisted execution;
   keep live confirmation/cancellation and runtime limits in their Ask stories. Preserve Placa,
   typed Vitest integration, every gate and VPS blocks (agent, on the owner's behalf, 2026-10-22).
+- Decision: D-069 delivers the bilingual public Privacy document outside place hierarchy, using
+  incumbent Placa components without an artboard. Read enabled sources/licences from the existing
+  collection facade; attribute actual public labels without invented credits or unused GeoSampa.
+  Add optional public controller/contact build configuration, explicit absent states and no fake
+  identity/channel. Bound parsed reads to ten seconds with cancellation/manual recovery; retain
+  the document and distinguish empty, failed and retained source evidence. Link landing, phone
+  footer and desktop rail footer. Describe accepted purpose, basis, rights and conditional removal
+  policy without claiming legal approval or working erasure automation. Separate snapshot and
+  checkpoint payload expiry from retained normalized history/run/event/operational records; ZDR
+  is not absence of local persistence. Missing publication/retention/rights evidence remains a
+  real-processing gate. Preserve every test gate and VPS block (agent, on the owner's behalf,
+  2026-10-22).

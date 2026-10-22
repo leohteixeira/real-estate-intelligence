@@ -1,0 +1,200 @@
+{
+  "files": [
+    {
+      "file": "privacy-390-pt-BR.png",
+      "hash": "79664b4288c929ac8c31e20788f836339eb3413ee116792179f0e73cf3cc6503"
+    },
+    {
+      "file": "privacy-390-pt-BR-top.png",
+      "hash": "528f0d33e594189a05b187e7523de27f3717d1a3fdf44ab60189a1acf6367420"
+    },
+    {
+      "file": "privacy-390-pt-BR-accessibility.json",
+      "hash": "b6b6e7167b5b09e779ea0487ee00e8227b75a52a05371db636e2c821edcdc53f"
+    },
+    {
+      "file": "privacy-960-pt-BR.png",
+      "hash": "5e870530053eee893f76e2502b384405c2b25ebf5d627ba43b10f4f4d99f1e88"
+    },
+    {
+      "file": "privacy-960-pt-BR-top.png",
+      "hash": "5fb0475987cba6ad3802624aa671314a206d06cbfa9cfe3a7580009c9adee962"
+    },
+    {
+      "file": "privacy-960-pt-BR-accessibility.json",
+      "hash": "74d29072e53fd49f8524712d8ff14f8d9365a32753aedc4f7606bbba36c77e19"
+    },
+    {
+      "file": "privacy-1440-pt-BR.png",
+      "hash": "5517eb90727ce788ac24d7a9d18952d690f1b1670385e6d9efd4be66604c28e0"
+    },
+    {
+      "file": "privacy-1440-pt-BR-top.png",
+      "hash": "d2db2cd9544d9eb4390867de019763582a4770c1e8ecc59aa326902a959c3025"
+    },
+    {
+      "file": "privacy-1440-pt-BR-accessibility.json",
+      "hash": "fa4ac0201f6afa76a43d28cf04a4c7e764061f0883b97b0f6db167cc7429a6fc"
+    },
+    {
+      "file": "privacy-390-en.png",
+      "hash": "5fa32b34cbcb874997a17205b28e9b4e2c15146f990acd5749aa970893327e62"
+    },
+    {
+      "file": "privacy-390-en-top.png",
+      "hash": "051ba92d9aea36a2549125ad60984ba9fc7ce2423c4fd9db2b64eda53ee0acb5"
+    },
+    {
+      "file": "privacy-390-en-accessibility.json",
+      "hash": "b6b6e7167b5b09e779ea0487ee00e8227b75a52a05371db636e2c821edcdc53f"
+    },
+    {
+      "file": "privacy-960-en.png",
+      "hash": "b17d4d47c62aa199cbae80453ab2686acf0cc053049fe80fccb2f9e6aa628d79"
+    },
+    {
+      "file": "privacy-960-en-top.png",
+      "hash": "6495a6a3435cafdd9b66bbbd7868bef291d31cec89d6199440936af164166fac"
+    },
+    {
+      "file": "privacy-960-en-accessibility.json",
+      "hash": "74d29072e53fd49f8524712d8ff14f8d9365a32753aedc4f7606bbba36c77e19"
+    },
+    {
+      "file": "privacy-1440-en.png",
+      "hash": "c4a7a059173289ec7188d96ca15d6108b3b3aa4facd4df6f874af764d6ab1354"
+    },
+    {
+      "file": "privacy-1440-en-top.png",
+      "hash": "ed21a2bb6497e024fc35a40cfaf43d4b71a4f9662e225884be59a5412aea5079"
+    },
+    {
+      "file": "privacy-1440-en-accessibility.json",
+      "hash": "fa4ac0201f6afa76a43d28cf04a4c7e764061f0883b97b0f6db167cc7429a6fc"
+    },
+    {
+      "file": "privacy-entry-landing-390-pt-BR.png",
+      "hash": "86c4df8b60ac72070c33cb8844dd46f3a392b8d5d2c601eac25b640a08d910b3"
+    },
+    {
+      "file": "privacy-entry-places-390-pt-BR.png",
+      "hash": "ebb1694800d209f1093c4c05ecab5ea41d8955bfff24c0264fd312aeebd7573f"
+    },
+    {
+      "file": "privacy-entry-search-390-pt-BR.png",
+      "hash": "2d466cb17edc1732b77be1f3bc05a6ebd99f38ca7abaf662d79b99e5b32144f5"
+    },
+    {
+      "file": "privacy-entry-properties-390-pt-BR.png",
+      "hash": "00e6dddf937f0d21844119810682f8268b79b43b3492534069a64c43358e84e8"
+    },
+    {
+      "file": "privacy-entry-listings-390-pt-BR.png",
+      "hash": "fc3b01d458a8abcf8241693b7c960a0b969f2d5f1cc3e6b68c17e9ab19cce8f7"
+    },
+    {
+      "file": "privacy-entry-ask-390-pt-BR.png",
+      "hash": "f6f290ed0ec3f3773060e3f5ec03296909e5964f8b1addc61e65cd4f1a57173b"
+    },
+    {
+      "file": "privacy-entry-landing-1440-pt-BR.png",
+      "hash": "a5ade04dda7bce47d0ef0b30eeb196b4b0e162ac035bd634a807782fa084127a"
+    },
+    {
+      "file": "privacy-entry-places-1440-pt-BR.png",
+      "hash": "d1824d9b335132056c9606a1c54cdc83d4249353fd1db06f1a015d2c3bdb2d5e"
+    },
+    {
+      "file": "privacy-entry-search-1440-pt-BR.png",
+      "hash": "ff284793f3d31aad2fd6381f73ae74916eead84ef0be1c42c3921893e1be7f8d"
+    },
+    {
+      "file": "privacy-entry-properties-1440-pt-BR.png",
+      "hash": "b6f48ff5cdccdc0e1a0bb40c9764afdb87d04148606456709f0da7eef862fcc2"
+    },
+    {
+      "file": "privacy-entry-listings-1440-pt-BR.png",
+      "hash": "2ccd9735220f6f38382fa7c8644a3bf71d28f37079b8c2e5515aaab7a05d7337"
+    },
+    {
+      "file": "privacy-entry-ask-1440-pt-BR.png",
+      "hash": "9997890063602cd2e213824dd8f651846f812e3fe4b28abfcc84bfffb085e3ea"
+    },
+    {
+      "file": "privacy-entry-landing-390-en.png",
+      "hash": "ab6a57e2010ea6b9f302aa6da1445026833d585ee9c4ca36e33b314c9b87ad3f"
+    },
+    {
+      "file": "privacy-entry-places-390-en.png",
+      "hash": "3e91c2487cd6f5ea0f7ce8ee1c1d272db2c7ef965c16e131f2577616be69739a"
+    },
+    {
+      "file": "privacy-entry-search-390-en.png",
+      "hash": "82019fcc9f38b3bdf1ce8cd3963a0a72e96a6277a1dbe368cc7186a1b5650468"
+    },
+    {
+      "file": "privacy-entry-properties-390-en.png",
+      "hash": "788ebb9b028368f0961669053c178f807beb192bcdaa6ce659b1a6941c1c6209"
+    },
+    {
+      "file": "privacy-entry-listings-390-en.png",
+      "hash": "076feae212c72dc6f749647414bf16bc3a74060666c650e38e4c6306a2f18bac"
+    },
+    {
+      "file": "privacy-entry-ask-390-en.png",
+      "hash": "f6436805f59e1f5f279c317eafb38f33a46b7f694f16480202ab6a792642698d"
+    },
+    {
+      "file": "privacy-entry-landing-1440-en.png",
+      "hash": "94e4fd7c63007400c253732d1a48d9fbf80f31d16c0b0d543b204675e8505d23"
+    },
+    {
+      "file": "privacy-entry-places-1440-en.png",
+      "hash": "85b21eb2c0f1f491192a9e69b470fe490863291f07421f76099da96593c03b81"
+    },
+    {
+      "file": "privacy-entry-search-1440-en.png",
+      "hash": "aaa435e30fd60036d54b29a29a0f807b936a32f29e4df25b753d0e8caea6537f"
+    },
+    {
+      "file": "privacy-entry-properties-1440-en.png",
+      "hash": "fa3081f2d244deec8c7a860f6170d2021534e5eeffd045024ab1b6ca25006cf9"
+    },
+    {
+      "file": "privacy-entry-listings-1440-en.png",
+      "hash": "450d1ef6ece820452c317accdcf8bbd7bbecff3de2c38d114214f925c689583a"
+    },
+    {
+      "file": "privacy-entry-ask-1440-en.png",
+      "hash": "8cf967da024ad773769ea33119f7916f0a0768564eee4e1920ebaa6bd18a7330"
+    },
+    {
+      "file": "privacy-recovered.png",
+      "hash": "c4a7a059173289ec7188d96ca15d6108b3b3aa4facd4df6f874af764d6ab1354"
+    },
+    {
+      "file": "privacy-recovered-top.png",
+      "hash": "ed21a2bb6497e024fc35a40cfaf43d4b71a4f9662e225884be59a5412aea5079"
+    },
+    {
+      "file": "privacy-configured.png",
+      "hash": "42d5adb35d5cd00e5d7e74218c1f90e33dc486decb4a98c2c52d2a707cfcd1ad"
+    },
+    {
+      "file": "privacy-configured-top.png",
+      "hash": "ed21a2bb6497e024fc35a40cfaf43d4b71a4f9662e225884be59a5412aea5079"
+    },
+    {
+      "file": "privacy-reference-Main.png",
+      "hash": "9c9fba4c196541d24e47b620448e8d244f1290303973a37644070e7eeb85797d"
+    },
+    {
+      "file": "privacy-reference-Components.png",
+      "hash": "093672d306888ac2d140e2ce6485be2044dcbaa7ca1fc3649f7a85778c720e9a"
+    },
+    {
+      "file": "privacy-reference-DesktopPlace.png",
+      "hash": "6a12821f026667901ca13f999d93bad33c822ccf46eaa3008bd8b2cfd620945c"
+    }
+  ]
+}
