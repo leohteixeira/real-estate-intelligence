@@ -3,7 +3,9 @@ export const accessibilityWidths = [390, 960, 1440] as const;
 
 // Execution partitions are bounded containers, not additional semantic BDD scenarios.
 export const accessibilityPartitions = [
-  'discovery',
+  ...accessibilityLocales.flatMap((locale) =>
+    accessibilityWidths.map((width) => `discovery-${locale}-${width}`),
+  ),
   'search',
   'keyboard',
   'details',
@@ -20,7 +22,7 @@ export const accessibilityPartitions = [
 
 export const accessibilityStateMapping = [
   {
-    partition: 'discovery',
+    partition: 'discovery-{locale}-{width}',
     scenario: 'A11Y-001',
     states:
       'Landing normal; Place normal/default and every nested disclosure open; six locale/layout variants',

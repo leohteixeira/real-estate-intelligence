@@ -1314,10 +1314,11 @@ test.each(accessibilityPartitions)(
                 }
               }
           }
-          if (partition === 'discovery' || partition === 'search' || partition === 'details') {
+          const discovery = partition.startsWith('discovery-');
+          if (discovery || partition === 'search' || partition === 'details') {
             const screens = accessibilityScreens
               .filter((screen) =>
-                partition === 'discovery'
+                discovery
                   ? ['landing', 'place'].includes(screen.id)
                   : partition === 'search'
                     ? ['search', 'filters'].includes(screen.id)
@@ -1325,8 +1326,12 @@ test.each(accessibilityPartitions)(
               )
               .sort((left, right) => Number(right.id === 'place') - Number(left.id === 'place'));
             for (const screen of screens)
-              for (const locale of accessibilityLocales)
-                for (const width of accessibilityWidths) {
+              for (const locale of accessibilityLocales.filter(
+                (locale) => !discovery || partition.startsWith(`discovery-${locale}-`),
+              ))
+                for (const width of accessibilityWidths.filter(
+                  (width) => !discovery || partition.endsWith(`-${width}`),
+                )) {
                   await enter(
                     screen.id === 'listing' ? `/listings/${listingId}` : screen.path,
                     locale,
