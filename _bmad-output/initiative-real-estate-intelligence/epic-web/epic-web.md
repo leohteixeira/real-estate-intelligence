@@ -60,6 +60,13 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Decision: D-076 replaces the keyboard walk's two-frame heuristic with one unconditional
+  native 1px capture before each measurement, leaving caret, animations, focus, scroll and CSS
+  intact. Discard capture bytes; never repeat until an assertion passes. Preserve session 72519's
+  failure and the uncertain browser cause: the same-stop image and before/after focus styles
+  disagree with its earlier obstruction reading. Verify sequencing and genuine negative controls;
+  require a fresh complete campaign, not a union of diagnostics. No product CSS repair follows
+  from this observation (agent, on the owner's behalf, 2026-10-23).
 - Decision: D-075 repairs private editable operands leaking through textarea control-name
   fallbacks in local accessibility receipts. Preserve the original synthetic diagnostic files
   and deliberately interrupted invocation (native exit 143); use label-only safe descriptions,

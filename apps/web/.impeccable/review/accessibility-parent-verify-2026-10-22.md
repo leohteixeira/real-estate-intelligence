@@ -45,7 +45,49 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
-### Latest whole invocation — clipped language-focus geometry, not acceptance
+### Latest whole invocation — render/read disagreement, not acceptance
+
+Native session 72519 terminated with exit 1 after 1,217.55s: Discovery, Search,
+keyboard and Details passed; Ask PT failed and 33 partitions did not execute.
+The failed attempt is `A11Y-004-29-ask-failed-pt-BR-960`, preserved under
+`campaigns/accessibility-ask-pt-BR-2026-10-23T01-48-38-643Z-f2e2ba89`.
+Its rail-brand measurement hit the preceding skip link. Before the same-stop capture,
+the brand had a white 3px outline with 0px offset; afterward it had the intended yellow
+outline with 2px offset. The opened image shows the yellow ring and no skip-link obstruction.
+Neither an internal browser cause nor a third product CSS defect is established.
+Two isolated actual-CSS probes observed 66 brand stops without reproducing the discrepancy.
+
+D-076 replaces the fixed two-RAF heuristic with one unconditional native 1px screenshot
+before each focus measurement. Bytes are discarded; caret and animations remain unchanged,
+with no mask, style injection, focus/scroll repair or retry until passing. The original
+failure remains failed. Regression session 28670 failed before repair (zero captures versus
+ten required); session 84660 passed afterward, 1/1 selected in 2.58s (1.37s test time).
+The regression checks exact capture options/order and retains a genuinely obscured negative
+control. The three browser/evidence/fault helper files passed 18/18 in session 74053,
+exit 0, 45.72s. The authored-reference test passed 1/1 in session 89487, exit 0, 29.59s.
+Session 40820 then passed the shared capture helper 3/3 and the exact root lint,
+strict typecheck (including integration), all 2,706 unit tests and all production builds,
+exit 0. Post-build rehash found all 187 source and 1,028 backend files unchanged;
+only the two intended executor files differ. The 37-file executor is now
+`4e4578502efd4461555fc47a4f2a751e6bfa4c4911fc514b27ff0a59dea1f8fe`.
+No product CSS or instrumented application code changed, so retain existing detector,
+coverage and authored-world evidence; current full-campaign evidence is still required.
+
+Focused Ask PT production diagnosis passed in native session 37574, exit 0, 366.75s
+(364.91s test time); 37 other partitions were filtered. Its campaign is
+`campaigns/accessibility-ask-pt-BR-2026-10-23T02-01-00-037Z-79f4b527`.
+The formerly failed brand stop has complete Tab/Shift+Tab inventories, native visible
+focus, the yellow 3px/2px outline and an unobscured hit in both directions. Source,
+backend and executor hashes match the verified candidate. Final SQL is unchanged;
+teardown records owned resources removed and foreign resources preserved. This diagnostic
+does not replace the pending complete invocation or establish story acceptance.
+
+The failed invocation's source/backend/executor identities, terminal output and ten live
+image observations are retained in `accessibility-parent-language-terminal-2026-10-23T0151.json`,
+SHA-256 `6b8449117b4fefa77b1766eb1b2312bf14f4aab417185cb3e7efef7b0fae9669`.
+Its 20 associated normal captures remain historical diagnostics, not acceptance.
+
+### Previous whole invocation — clipped language-focus geometry, not acceptance
 
 Native session 61368 terminated with exit 1 at `2026-10-23T01:14:22.847Z`
 after 6,811.63s: 21 partitions passed, `variants-en-390` failed, and 16 did not

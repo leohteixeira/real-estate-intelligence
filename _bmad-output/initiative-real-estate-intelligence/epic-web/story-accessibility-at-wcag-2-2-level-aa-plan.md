@@ -512,6 +512,23 @@ and [target size](https://w3c.github.io/wcag/understanding/target-size-minimum).
 
 **Parent Verify in progress (not acceptance):**
 
+Latest checkpoint, D-076: whole invocation 72519 exited 1 after four partitions;
+Ask PT/960's brand hit-test disagreed with its unchanged-focus screenshot and before/after
+styles. Preserve the failed campaign and terminal receipt; do not add another consumer CSS
+patch. Replace the two-RAF measurement heuristic with one unconditional native 1px capture,
+leaving focus, scroll, CSS, caret and animations unchanged. No passing-result polling/retry.
+The real-browser sequencing/obstruction regression failed before repair (28670), then
+passed afterward (84660); browser/evidence/fault helpers passed 18/18 (74053), and the
+authored-reference test passed 1/1 (89487). Session 40820 passed shared capture 3/3 and
+the exact root lint/typecheck/test/build gate, including all 2,706 unit tests. Post-build
+rehash confirmed unchanged source/backend bytes and only two intended executor changes.
+Focused Ask PT production diagnosis passed in session 37574, exit 0, 366.75s;
+the formerly failed brand stop passed both traversal directions. SQL remained unchanged
+and owned-resource teardown passed. The other 37 partitions were filtered, not accepted;
+a fresh whole invocation remains pending.
+Existing unchanged coverage/detector evidence remains
+valid, but historical partial passes never establish full-campaign acceptance.
+
 Historical checkpoint after D-072: the exact root lint/typecheck/test/build gate passed with
 2,706 unit tests, all eight unchanged coverage floors passed, the four native helper files
 passed 16/16, and native integration discovery listed all 38 accessibility partitions.

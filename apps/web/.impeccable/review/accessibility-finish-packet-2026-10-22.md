@@ -5,7 +5,26 @@ incomplete census and fresh finish review are still pending. The finite detector
 Do not infer acceptance from this
 preparation document or overlap browser campaigns with root/coverage verification.
 
-The latest whole invocation, session 61368, terminated with exit 1 after 21 passing
+The latest whole invocation, session 72519, terminated with exit 1 after four passing
+partitions. Ask PT/960 failed on a rail-brand obstruction reading; the same-stop image
+shows the correct yellow focus ring and no skip-link overlay. Its before/after capture
+styles differ. Preserve the failure without claiming a browser cause or another CSS defect.
+D-076 replaces the two-RAF heuristic with one unconditional native 1px capture per keyboard
+measurement, with no changed CSS, caret, animations, focus, scroll or passing-result retry.
+The native regression failed before repair (28670) and passed afterward (84660), including
+an actually obscured negative control. Three helper files passed 18/18 (74053), and the
+authored-reference test passed 1/1 (89487). Session 40820 passed shared capture 3/3,
+the exact root lint/typecheck gate, all 2,706 unit tests and all production builds, exit 0.
+Actual source/backend bytes are unchanged; only the two intended executor files differ.
+Focused Ask PT production diagnosis passed in session 37574, exit 0, 366.75s,
+including the formerly failed brand stop in both directions, unchanged SQL and owned cleanup.
+The other 37 partitions were filtered; this is not full acceptance. Thereafter,
+the complete campaign and fresh finish handoffs are still required. No UI detector or
+unchanged instrumented coverage rerun is justified by this executor-only correction.
+The terminal receipt is `accessibility-parent-language-terminal-2026-10-23T0151.json`,
+SHA-256 `6b8449117b4fefa77b1766eb1b2312bf14f4aab417185cb3e7efef7b0fae9669`.
+
+The previous whole invocation, session 61368, terminated with exit 1 after 21 passing
 partitions; `variants-en-390` failed on the footer language control's clipped outline
 and 16 partitions did not execute. The before/after screenshot measurements differ;
 no internal browser cause is established. Reuse D-073 by making the existing language
