@@ -5,7 +5,38 @@ incomplete census and fresh finish review are still pending. The finite detector
 Do not infer acceptance from this
 preparation document or overlap browser campaigns with root/coverage verification.
 
-The latest whole invocation, session 72519, terminated with exit 1 after four passing
+Latest directed execution 63552 repeated Discovery's 600-second timeout after 16 approved
+checks (607.42s invocation, exit 1). D-077's direct-capture experiment was insufficient
+and its uncommitted implementation/tests were removed. D-078 reuses the existing locale/width
+partition model for Discovery: six partitions retain all 18 Place default/open and Landing
+cells and every assertion. The complete campaign now has 43 partitions, with unchanged
+600-second deadlines, owned fixtures, SQL/network proof and cleanup per partition.
+All five helper files passed 22/22 (18980, exit 0, 54.11s); native registration listed
+all 43 partitions (93987, exit 0). The exact root gate passed (10664, exit 0): lint,
+strict typecheck, 2,706 unit tests and every build. Post-build application source/backend
+hashes are unchanged. Directed Discovery EN/1440 passed (32108, exit 0, 220.60s): all
+three matrix cells and boundaries approved, final SQL unchanged, outside/forbidden empty,
+diagnosticLeak=false and owned/foreign cleanup true/true. The fresh complete 43-partition
+campaign and required finish handoffs remain pending, not replaced by this directed pass.
+No story acceptance or new UI change is claimed; historical experiment gates below are not
+verification of the current executor.
+
+The previous whole invocation, session 18229, exited 1 at Discovery's unchanged 600-second
+limit after 16 approved checks. No complete partition was accepted; final SQL/teardown
+manifests are missing. A separate readback found no containers, volumes or network for its
+exact owned project. Preserve the failed terminal receipt; do not infer missing SQL evidence.
+D-077 replaces per-key generic screenshot preparation with one direct native Chromium view
+capture. The local CDP session is always detached through existing failure-preserving cleanup;
+bytes are discarded, with no CSS/focus/scroll/animation mutation, retry or timeout increase.
+The controlled actual-build probe passed (31955), and targeted native regressions passed
+2/2 (82149). All four affected helper files passed 22/22 (86835), exit 0, 67.70s.
+The root gate passed in session 85843 (exit 0): lint, strict typecheck, 2,706 unit tests
+and all builds. Rehashed application source/backend inventories remain unchanged.
+Focused Discovery subsequently timed out (63552); D-078 supersedes this experiment.
+The diagnostic probe was removed from test discovery; its source and measured results remain
+in ignored local evidence. No UI or instrumented application code changed.
+
+The previous whole invocation, session 72519, terminated with exit 1 after four passing
 partitions. Ask PT/960 failed on a rail-brand obstruction reading; the same-stop image
 shows the correct yellow focus ring and no skip-link overlay. Its before/after capture
 styles differ. Preserve the failure without claiming a browser cause or another CSS defect.

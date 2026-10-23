@@ -255,8 +255,8 @@ reverse outline offsets of 0px instead of the declared -5px with it. Retained-st
 therefore uses uninstrumented real elapsed time beyond the actual 30-second staleTime, with a
 bounded observable cache-age check, not patched browser clocks or artificial domain freshness.
 
-The explicit catalog keeps six semantic BDD scenarios. Its 38 bounded partitions are execution
-containers: discovery, search, keyboard, details, Ask per locale, recovery/retained/variants/subreads/context
+The explicit catalog keeps six semantic BDD scenarios. Its 43 bounded partitions are execution
+containers: Discovery per locale/width, search, keyboard, details, Ask per locale, recovery/retained/variants/subreads/context
 per locale and normal width, and adaptation per locale. Existing synthetic variants 901–993 are
 read from their canonical adapter; no extra seed or source/license mutation is introduced.
 Search retention is genuine next-cursor pagination, not an unsupported old visit with gcTime=0.
@@ -512,7 +512,40 @@ and [target size](https://w3c.github.io/wcag/understanding/target-size-minimum).
 
 **Parent Verify in progress (not acceptance):**
 
-Latest checkpoint, D-076: whole invocation 72519 exited 1 after four partitions;
+Latest checkpoint, D-078: focused session 63552 also hit the unchanged 600-second limit
+after 16 approved checks (607.42s invocation, exit 1). D-077 did not solve the concrete
+failure, so its uncommitted browser-helper/session changes were removed, not committed.
+Keep D-076's existing capture and regressions. Reuse the existing locale/width partition
+model for Discovery only: six isolated partitions each exercise Place default/open and
+Landing, preserving all 18 cells and every assertion, SQL/network and teardown invariant.
+The complete catalog now has 43 partitions at the same 600-second limit. All five helper
+files passed 22/22 (18980, exit 0, 54.11s), including the new catalog regression;
+native registration listed all 43 partitions (93987, exit 0). The exact root gate passed
+(10664, exit 0): lint, strict typecheck, 2,706 unit tests and every build. Post-build
+rehash confirms unchanged application source/backend bytes. Directed Discovery EN/1440
+passed (32108, exit 0, 220.60s invocation/217.54s test): three matrix cells plus boundaries
+approved, no failures, final SQL unchanged, outside/forbidden empty, no diagnostic leak,
+owned cleanup and foreign preservation true. Only the fresh complete 43-partition campaign
+and its required finish handoffs remain pending; the directed pass is not story acceptance.
+No additional UI fix, capture mechanism or broad review round is justified by this timeout.
+
+Previous experiment, D-077 (withdrawn): whole invocation 18229 timed out in Discovery at the unchanged
+600-second limit, after 16 approved checks; it is failed, not a partial acceptance.
+The controlled production-build capture probe (31955, exit 0) used the campaign's Chromium
+arguments and fresh navigation per variant: six keys cost 12.65s with generic screenshots,
+10.92s with direct surface capture and 9.19s with native-view capture, including diagnostic
+reads. Viewport, focus and scroll were unchanged at the measured stops. Replace generic
+preparation with one direct native-view capture, discard bytes and detach the local CDP
+session through the existing failure-preserving cleanup helper. Targeted real-browser
+regressions passed 2/2 (82149), including genuine obstruction and dual-error cleanup.
+All four affected helper files passed 22/22 in session 86835, exit 0, 67.70s.
+The exact root gate passed in session 85843 (exit 0): lint, strict typecheck,
+2,706 unit tests and all builds. Rehashed inventories confirm unchanged application
+source/backend bytes; only the two keyboard-helper executor files differ.
+Focused session 63552 then failed the same deadline. These passing experiment gates do
+not accept the current D-078 executor or replace its pending verification.
+
+Previous checkpoint, D-076: whole invocation 72519 exited 1 after four partitions;
 Ask PT/960's brand hit-test disagreed with its unchanged-focus screenshot and before/after
 styles. Preserve the failed campaign and terminal receipt; do not add another consumer CSS
 patch. Replace the two-RAF measurement heuristic with one unconditional native 1px capture,
@@ -643,13 +676,14 @@ All remain separate from the 6,068 final-adaptation opaque numerical observation
 
   ```bash
   pnpm exec vitest run --config vitest.integration.config.ts \
+    integration/support/accessibility-catalog.test.ts \
     integration/support/accessibility-browser.test.ts \
     integration/support/accessibility-evidence.test.ts \
     integration/support/accessibility-fault.test.ts \
     integration/support/property-capture.test.ts
   ```
 
-- Parent must run all 38 declared owned browser partitions and cleanup serially against final bytes:
+- Parent must run all 43 declared owned browser partitions and cleanup serially against final bytes:
 
   ```bash
   pnpm exec vitest run --config vitest.integration.config.ts \

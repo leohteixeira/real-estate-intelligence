@@ -60,6 +60,18 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Decision: D-078 withdraws the uncommitted D-077 CDP experiment after Discovery again
+  timed out at 600 seconds with 16 approved checks. Retain D-076's existing single capture.
+  Bound Discovery by locale/width, reusing the campaign's existing partition model: six
+  partitions retain all 18 Place/Landing cells, assertions and individual SQL/cleanup receipts.
+  The complete catalog has 43 partitions, each with the unchanged timeout; no retries/skips,
+  product edits or new capture lifecycle (agent, on the owner's behalf, 2026-10-23).
+- Decision: D-077 uses one direct Chromium native-view capture per keyboard observation,
+  without Playwright screenshot preparation. Own and detach one CDP session per traversal,
+  discard all bytes and preserve primary/cleanup failures. Session 18229 timed out at the
+  unchanged 600-second limit; controlled actual-build measurements support this narrower
+  executor path, not another CSS fix. Keep every assertion and timeout; require Discovery
+  and then a fresh complete campaign to pass (agent, on the owner's behalf, 2026-10-23).
 - Decision: D-076 replaces the keyboard walk's two-frame heuristic with one unconditional
   native 1px capture before each measurement, leaving caret, animations, focus, scroll and CSS
   intact. Discard capture bytes; never repeat until an assertion passes. Preserve session 72519's

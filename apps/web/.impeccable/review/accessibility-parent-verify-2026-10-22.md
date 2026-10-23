@@ -45,7 +45,79 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
-### Latest whole invocation — render/read disagreement, not acceptance
+### Current D-078 — bounded Discovery, not acceptance
+
+Directed session 63552 exited 1 after 607.42s, with the same 600-second Discovery timeout
+and 16 approved checks; the other 37 tests were filtered, not executed. The failed directory
+is `campaigns/accessibility-discovery-2026-10-23T02-34-30-884Z-7d937e97`.
+Its terminal receipt is `accessibility-parent-native-view-terminal-2026-10-23T0244.json`,
+SHA-256 `1b4712841c5a81ab493d11e8ea4e1e9ee3d2bc215b342acd601385d4bb7c679d`.
+Read-only inspection found zero containers, volumes and networks for its exact owned project;
+final campaign/SQL/teardown manifests remain missing, not inferred from resource absence.
+
+The direct-CDP experiment did not resolve the full failure, despite its earlier microprobe
+gain. Remove its uncommitted helper/session changes and return to the existing D-076 capture
+and regression rather than growing another synchronization mechanism. D-078 bounds Discovery
+by the same locale/width pattern already used by recovery and other campaign families.
+All 18 Place default/open and Landing cells remain; six separate fixtures retain every
+assertion and SQL/network/owned-foreign cleanup invariant. The total is now 43 partitions,
+each still at 600 seconds with no retry or skip. Five extra fixture startups are the explicit
+cost of making each execution container bounded; this is not a reduced matrix or timeout increase.
+
+All five helper files passed 22/22 (18980, exit 0, 54.11s), including catalog completeness
+and the retained real-browser focus/obstruction regressions. Native registration listed all
+43 partitions (93987, exit 0). The exact root gate passed (10664, exit 0): lint, strict
+typecheck, 2,706 unit tests and every build. Post-build rehash confirms unchanged source
+(`b655c48fd3ae18077072614c07ea6003d82cb16c09735c632a327aab7bb95dff`, 187 files) and backend
+(`10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`, 1,028 files).
+The executor is `fef4755af86c9845c4f9aed1e6699c0095c2a4353d0218acb099c7c533dbf811`
+(38 files); only the catalog, new catalog regression and campaign dispatcher differ.
+Directed Discovery EN/1440 passed in session 32108 (exit 0, 220.60s invocation/217.54s test),
+with all three matrix cells and boundaries approved, no failed attempts and one inconclusive
+setup pilot. Directory: `campaigns/accessibility-discovery-en-1440-2026-10-23T02-52-06-244Z-15a81005`.
+The final SQL readback is independently byte-equal before/after; outside/forbidden are empty,
+diagnosticLeak=false, ownedResourcesRemoved=true and foreignResourcesPreserved=true.
+Its dirty precommit HEAD is `32d5dd347fed3896f77f3cb663e8503cbd10ce5c`, with the exact
+source/backend/executor hashes above. The complete fresh 43-partition campaign and required
+finish handoffs remain pending. This directed proof is diagnostic, not partial-union acceptance.
+No new general review or UI edit.
+
+### Previous whole invocation — executor timeout, not acceptance
+
+Native session 18229 exited 1 after 609.46s; Discovery hit its unchanged 600-second
+test limit after 16 approved checks. The remaining 37 partitions did not execute.
+The failed directory is `campaigns/accessibility-discovery-2026-10-23T02-08-23-765Z-06bcdf28`.
+The closed browser then caused the active landing capture and campaign cleanup to fail;
+final campaign, SQL and teardown receipts are missing. Exact-project Docker readback found
+zero containers, volumes and networks; this does not prove the missing SQL invariants.
+The preserved terminal receipt is `accessibility-parent-render-terminal-2026-10-23T0218.json`,
+SHA-256 `16acf854420c45d7fe1314ed4398d9684e86911244c3074c9633fdef33d61cfb`.
+
+Reassess the synchronization cost instead of growing the UI repair or timeout. The controlled
+production-landing probe used fresh navigation per mode and exact campaign Chromium arguments.
+Six keys cost 12.65s with generic Playwright screenshots, 10.92s with direct surface capture,
+and 9.19s with native-view capture, including diagnostic state reads; measured focus, scroll
+and viewport stayed unchanged. Session 31955 passed, exit 0, 42.81s (39.95s test time).
+The diagnostic source and results remain in `accessibility-native-capture-cost-probe-2026-10-23T0225.json`
+and `accessibility-native-capture-cost-controlled-2026-10-23T0225.json`; the temporary test was removed.
+
+D-077 uses the public [Playwright CDP session](https://playwright.dev/docs/api/class-cdpsession)
+to request one unconditional native-view capture per key, without generic page preparation.
+The local session is detached through existing failure-preserving cleanup; no bytes are saved.
+All observation assertions and the 600-second limit remain intact. Native regressions passed
+2/2 in session 82149, exit 0, including real obstruction, exact command ordering, absence of
+generic screenshot calls, unchanged viewport and dual-error cleanup after a failed measurement.
+All four affected helper files passed 22/22 in session 86835, exit 0, 67.70s.
+The exact root gate passed in session 85843 (exit 0): lint, strict typecheck,
+2,706 unit tests and all builds. Post-build rehash preserved all 187 source files
+(`b655c48fd3ae18077072614c07ea6003d82cb16c09735c632a327aab7bb95dff`)
+and 1,028 backend files (`10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`).
+Only the two keyboard-helper files changed in the 37-file executor inventory
+(`204dbdbab12bfeadca8d7271e0b15be905dd3190caf59998ba37fab67b82ff78`).
+Directed Discovery subsequently timed out (63552); D-078 supersedes this experiment.
+Application code is unchanged; do not rerun its unchanged coverage/detector merely for this fix.
+
+### Previous whole invocation — render/read disagreement, not acceptance
 
 Native session 72519 terminated with exit 1 after 1,217.55s: Discovery, Search,
 keyboard and Details passed; Ask PT failed and 33 partitions did not execute.
