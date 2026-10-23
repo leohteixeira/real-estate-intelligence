@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { preserveCleanup } from './cleanup.ts';
 import { settlePropertyCaptureStart } from './property-capture.ts';
 import {
@@ -163,6 +163,69 @@ test('native keyboard receipts preserve programmatic-only exclusion and expose c
       expect(inherited.focusContrast.indicator).toContain('painted enclosing');
       expect(assessContrast(inherited.focusContrast, 3).ratio).toBeGreaterThan(3);
       expect((await measureAccessibility(page)).overflow).toBe(false);
+    },
+    () => browser.close(),
+  );
+});
+
+test('native focus measurements follow one unmodified rendered capture and retain real obstructions', async () => {
+  const env = { ...process.env };
+  delete env.DISPLAY;
+  const browser = await chromium.launch({
+    channel: 'chromium',
+    chromiumSandbox: true,
+    env,
+    args: ['--ozone-platform=headless'],
+  });
+  await preserveCleanup(
+    async () => {
+      const page = await browser.newPage({ viewport: { width: 960, height: 1142 } });
+      const css = (
+        await Promise.all(
+          ['tokens', 'components', 'place'].map((file) =>
+            readFile(new URL(`../../apps/web/src/styles/${file}.css`, import.meta.url), 'utf8'),
+          ),
+        )
+      ).join('\n');
+      await page.setContent(
+        `<style>${css}.obstruction{position:fixed;inset:0;z-index:1000;pointer-events:auto}</style><div class="rei place-app"><a class="public-skip" href="#content">Skip</a><aside class="rail place-rail"><a class="brand" href="#content">Real Estate<br>Intelligence</a></aside><main id="content" tabindex="-1"><button>Obscured</button></main><div class="obstruction" aria-hidden="true"></div></div>`,
+      );
+      const capture = vi.spyOn(page, 'screenshot');
+      const measurement = vi.spyOn(page, 'evaluate');
+      const receipt = await walkKeyboard(page);
+      const observations = receipt.directions.reduce(
+        (total, direction) =>
+          total + direction.steps.length + direction.browserChromeTransitions.length + 1,
+        0,
+      );
+      // The final repeated control ends each direction after its rendered observation.
+      expect(capture).toHaveBeenCalledTimes(observations);
+      expect(measurement).toHaveBeenCalledTimes(observations);
+      for (let index = 0; index < observations; index++) {
+        expect(capture.mock.invocationCallOrder[index]).toBeLessThan(
+          measurement.mock.invocationCallOrder[index]!,
+        );
+        if (index + 1 < observations)
+          expect(measurement.mock.invocationCallOrder[index]).toBeLessThan(
+            capture.mock.invocationCallOrder[index + 1]!,
+          );
+      }
+      for (const [options] of capture.mock.calls)
+        expect(options).toEqual({
+          clip: { x: 0, y: 0, width: 1, height: 1 },
+          caret: 'initial',
+          animations: 'allow',
+        });
+      for (const direction of receipt.directions) {
+        expect(direction.missing).toEqual([]);
+        const obscured = direction.steps.find((step) => step.name === 'Obscured')!;
+        expect(obscured.focused && obscured.focusVisible).toBe(true);
+        expect(obscured.unobscured).toBe(false);
+        expect(obscured.hit?.className).toBe('obstruction');
+        const brand = direction.steps.find((step) => step.name === 'Real EstateIntelligence')!;
+        expect(brand.outline.offset).toBe('2px');
+        expect(brand.outline.color).toBe('rgb(242, 183, 5)');
+      }
     },
     () => browser.close(),
   );
