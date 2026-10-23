@@ -269,14 +269,14 @@ export async function walkKeyboard(
     // One complete cycle plus the initial partial cycle, bounded by the actual control count.
     for (let index = 0; index < expected.length * 2 + 8; index++) {
       await page.keyboard.press(key);
-      // Let CSS focus/scroll and compositor hit testing settle naturally. This neither focuses
-      // nor scrolls a control and avoids sampling the previous stop's painted bypass link.
-      await page.evaluate(
-        () =>
-          new Promise<void>((resolve) =>
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-          ),
-      );
+      // Observe one rendered frame before reading focus paint/hit testing. A fixed RAF count
+      // disagreed with the same-stop capture; never poll for a passing result or repair focus.
+      // No file, masks, injected style, hidden caret or disabled animations are involved.
+      await page.screenshot({
+        clip: { x: 0, y: 0, width: 1, height: 1 },
+        caret: 'initial',
+        animations: 'allow',
+      });
       const step = await page.evaluate(
         ({ source, paintSource, nameSource }) => {
           const element = document.activeElement;
