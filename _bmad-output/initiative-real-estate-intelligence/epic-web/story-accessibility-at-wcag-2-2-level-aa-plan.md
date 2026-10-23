@@ -274,6 +274,19 @@ or canvas composition stay explicit manual findings.
 
 ## Plan Change Log
 
+- 2026-10-23 parent Verify: whole session 61368 exited 1 after 21 passing partitions;
+  `variants-en-390` failed on Listing 991's footer language control and 16 partitions
+  did not execute. Preserve its 0px/clipped measurement and same-stop -5px screenshot;
+  the internal browser cause is unproven. Apply the adequate D-073 model to the existing
+  language selector: keep its -5px inset in the base rule, with no new abstraction,
+  state, wait or changed assertion. Native regression 95407 failed before repair;
+  focused 48445 and full browser-helper 24339 passed afterward (13/13, exit 0).
+  Exact root session 90723 passed lint, strict typecheck, all 2,706 unit tests and
+  production builds (exit 0). Focused production session 67041 passed `variants-en-390`
+  in 329.47s (exit 0, one executed partition, 37 filtered), diagnostic only. The changed-file detector
+  found only an unchanged typography advisory. Preserve unchanged evidence; final
+  campaign and finite handoffs remain pending, without another broad audit round.
+
 - 2026-10-22 parent Verify: native whole session 44755 terminated with exit 1 after
   12 passing partitions; `retained-pt-BR-390` failed in Compose startup and 25 partitions
   did not execute. Exact-project Docker events establish PostgreSQL unhealthy at 54.306s

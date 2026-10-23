@@ -45,7 +45,39 @@ coverage and browser campaigns run serially. Final visual acceptance is not clai
 
 ## Current verification
 
-### Latest whole invocation — PostgreSQL bootstrap failure, not acceptance
+### Latest whole invocation — clipped language-focus geometry, not acceptance
+
+Native session 61368 terminated with exit 1 at `2026-10-23T01:14:22.847Z`
+after 6,811.63s: 21 partitions passed, `variants-en-390` failed, and 16 did not
+execute. Its immutable directory is
+`campaigns/accessibility-variants-en-390-2026-10-23T01-11-01-048Z-6da3af91`.
+Listing 991's footer Portuguese control recorded a 0px outline offset clipped by
+the language group during forward Tab; the same-stop screenshot and later measurement
+show the intended -5px inset. The browser's internal cause remains unproven. The
+original failure is preserved, not reclassified as a pass.
+
+Reuse D-073's existing invariant: move the language button's existing -5px offset
+from the focus-only selector to its base selector. No outline is added while unfocused;
+focus colors, layout, traversal, waits and assertions remain unchanged. The real-CSS
+native regression failed before repair (session 95407), passed afterward (48445),
+and the complete browser-helper file passed 13/13 (24339, exit 0, 35.31s). It checks
+header, rail and footer controls before/during/after forward and reverse traversal,
+in PT/EN at 390/960px. Exact root session 90723 passed lint, strict typecheck
+(including integration), all 2,706 unit tests and all production builds, exit 0.
+Focused production session 67041 passed `variants-en-390`, exit 0 in 329.47s
+(one executed partition, 37 filtered). Both Listing 991 states passed the unchanged
+native keyboard assertions. This diagnostic result is not a full campaign pass.
+
+The changed-file detector completed with exit 0; its only advisory is the unchanged
+14px typography rule. Retain the earlier detector evidence for unchanged UI files.
+The complete campaign, adaptation captures and finite finish handoffs remain required;
+do not restart broad review or combine partial passes into acceptance. All 30 selected
+normal captures were associated with session 61368's manifests: 26 actual PNGs match
+already-opened bytes and four changed captures were opened. They are historical diagnostics.
+The terminal receipt is `accessibility-parent-bootstrap-terminal-2026-10-23T0114.json`,
+SHA-256 `c642268861437aefe69ea19c74005ab8b91bdacc2bcecfdc013e280882166d50`.
+
+### Previous whole invocation — PostgreSQL bootstrap failure, not acceptance
 
 Native session 44755 started at 22:13:22.425 UTC and terminated with exit 1 after
 3,132.13s: 12 partitions passed, `retained-pt-BR-390` failed during Compose startup,

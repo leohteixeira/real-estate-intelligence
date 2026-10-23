@@ -5,7 +5,21 @@ incomplete census and fresh finish review are still pending. The finite detector
 Do not infer acceptance from this
 preparation document or overlap browser campaigns with root/coverage verification.
 
-The latest whole invocation, native session 44755, terminated with exit 1 after 12 passing
+The latest whole invocation, session 61368, terminated with exit 1 after 21 passing
+partitions; `variants-en-390` failed on the footer language control's clipped outline
+and 16 partitions did not execute. The before/after screenshot measurements differ;
+no internal browser cause is established. Reuse D-073 by making the existing language
+button inset invariant outside focus, without changing paint, waits or assertions.
+The native regression failed before repair (95407), passed afterward (48445), and
+the complete browser-helper file passed 13/13 (24339). Exact root session 90723
+passed lint, strict typecheck, all 2,706 unit tests and production builds, exit 0.
+Focused production session 67041 passed `variants-en-390`, exit 0 in 329.47s
+(one executed partition, 37 filtered); it is diagnostic, not full acceptance.
+The changed-file detector found only unchanged typography.
+The original terminal receipt and 30 manifest-associated normal captures are retained
+as diagnostics, not a completed campaign. No partial-pass union authorizes acceptance.
+
+The previous whole invocation, native session 44755, terminated with exit 1 after 12 passing
 partitions. `retained-pt-BR-390` failed during PostgreSQL bootstrap, before browser assertions;
 25 partitions did not execute. Exact-project Docker events show PostgreSQL accepting
 connections at 59.422s, after being declared unhealthy at 54.306s. The correction adds only
