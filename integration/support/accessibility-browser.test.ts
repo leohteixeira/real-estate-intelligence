@@ -439,6 +439,69 @@ test('actual segmented and language CSS keeps native forward/reverse outlines pa
   );
 });
 
+test('language control inset is stable before, during and after native traversal', async () => {
+  const env = { ...process.env };
+  delete env.DISPLAY;
+  const browser = await chromium.launch({
+    channel: 'chromium',
+    chromiumSandbox: true,
+    env,
+    args: ['--ozone-platform=headless'],
+  });
+  await preserveCleanup(
+    async () => {
+      const page = await browser.newPage({ reducedMotion: 'reduce' });
+      const css = (
+        await Promise.all(
+          ['tokens', 'components', 'place'].map((file) =>
+            readFile(new URL(`../../apps/web/src/styles/${file}.css`, import.meta.url), 'utf8'),
+          ),
+        )
+      ).join('\n');
+      for (const width of [390, 960]) {
+        await page.setViewportSize({ width, height: 1142 });
+        for (const locale of ['pt-BR', 'en']) {
+          const languages = `<div class="lang"><button aria-label="Português" aria-pressed="${locale === 'pt-BR'}">PT</button><button aria-label="English" aria-pressed="${locale === 'en'}">EN</button></div>`;
+          await page.setContent(
+            `<style>${css}</style><div class="rei place-app"><aside class="rail place-rail">${languages}</aside><div class="main place-main"><header class="shell place-top">${languages}</header><main>Public content</main><footer class="public-footer">${languages}</footer></div></div>`,
+          );
+          const offsets = () =>
+            page
+              .locator('.lang button')
+              .evaluateAll((buttons) =>
+                buttons.map((button) => getComputedStyle(button).outlineOffset),
+              );
+          const insetOffsets = Array<string>(6).fill('-5px');
+          expect(
+            await offsets(),
+            'Clipped language controls keep their inset before focus',
+          ).toEqual(insetOffsets);
+          for (let cycle = 0; cycle < 2; cycle++) {
+            const receipt = await walkKeyboard(page);
+            expect(receipt.inventoryChanged).toBe(false);
+            for (const direction of receipt.directions) {
+              expect(direction.missing).toEqual([]);
+              expect(direction.steps.length).toBeGreaterThan(0);
+              for (const step of direction.steps) {
+                expect(step.outline.offset, JSON.stringify({ width, locale, cycle, step })).toBe(
+                  '-5px',
+                );
+                expect(step.clippedBy).toEqual([]);
+                expect(step.focusVisible && step.indicator && step.unobscured).toBe(true);
+                expect(assessContrast(step.focusContrast, 3).ratio).toBeGreaterThanOrEqual(3);
+              }
+            }
+            expect(await offsets(), 'Leaving focus does not reset clipped-ring geometry').toEqual(
+              insetOffsets,
+            );
+          }
+        }
+      }
+    },
+    () => browser.close(),
+  );
+});
+
 test('Ask submit inset is stable before, during and after native traversal', async () => {
   const env = { ...process.env };
   delete env.DISPLAY;
