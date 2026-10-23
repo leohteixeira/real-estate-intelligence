@@ -30,7 +30,6 @@ body:has(.lp) {
   top: var(--s-3);
 }
 .place-app .lang button:focus-visible {
-  outline-offset: -5px;
   outline-color: var(--surface);
 }
 .place-app .lang button[aria-pressed='true']:focus-visible,
@@ -116,6 +115,8 @@ body:has(.lp) {
 .place-app .lang button {
   min-width: var(--target);
   min-height: var(--target);
+  /* The enclosing group clips outside outlines, including during focus changes. */
+  outline-offset: -5px;
 }
 .place-rail .lang {
   align-self: flex-start;
