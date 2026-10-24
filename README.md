@@ -201,3 +201,17 @@ gitleaks git --redact --no-banner
 
 Everything in this repository is written in English: code, identifiers, comments, branch names,
 commit messages, specifications and documentation. Commits follow Conventional Commits.
+
+## Portfolio presentation ownership
+
+The bilingual public presentation now lives in the independent Next portfolio repository at
+`https://leohteixeira.com/{en|pt}/projects/real-estate-intelligence`. This application keeps its
+operational routes, including `/places`, `/ask`, `/search`, property/listing details and `/privacy`.
+The Nginx configuration redirects only the exact `/` root (308) to the English presentation;
+API and application deep links keep their existing handlers. A client-side fallback preserves
+presentation fragments during local Vite navigation.
+
+The original Placa typography, journey copy, city geometry, WebGL scene, motion controls and
+synthetic examples were migrated to the portfolio. The presentation distinguishes current
+synthetic-contract capabilities from designed future behavior. This change does not publish a
+Real Estate demo. A configured demo origin links to `/places` instead of the redirected root.
