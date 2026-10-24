@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router';
-import { config } from './config';
-import { LandingPage } from './landing/LandingPage';
+import { PresentationRedirect } from './landing/PresentationRedirect';
 import { PlaceOverview } from './places/PlaceOverview';
 import { AppShell } from './shell/AppShell';
 import { AskScreen } from './ask/AskScreen';
@@ -15,7 +14,7 @@ export function AppRoutes() {
     <Routes>
       <Route
         path="/"
-        element={<LandingPage demoUrl={config.demoUrl} repositoryUrl={config.repositoryUrl} />}
+        element={<PresentationRedirect />}
       />
       <Route element={<AppShell documentMode />}>
         <Route path="/privacy" element={<PrivacyNotice />} />
