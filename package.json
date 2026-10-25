@@ -14,7 +14,7 @@
     "lint": "eslint . && node scripts/check-context-boundaries.mjs && node scripts/check-migration-conventions.mjs",
     "test": "pnpm -r --workspace-concurrency=1 test",
     "test:coverage": "bash scripts/test-coverage.sh",
-    "test:integration": "pnpm run build && pnpm run test:integration:prepare-readiness && vitest run --config vitest.integration.config.ts",
+    "test:integration": "pnpm run build && pnpm run test:integration:prepare-readiness && bash scripts/prepare-prefix-images.sh && vitest run --config vitest.integration.config.ts",
     "test:integration:list": "vitest list --config vitest.integration.config.ts",
     "test:integration:web-place": "vitest run --config vitest.integration.config.ts integration/web-place.integration.test.ts",
     "test:integration:audit": "vitest run --config vitest.integration.config.ts integration/audit-tracer.integration.test.ts",
@@ -48,6 +48,7 @@
     "format:check": "prettier --check .",
     "lint:md": "markdownlint-cli2",
     "hooks:install": "lefthook install",
+    "test:integration:prefix": "pnpm run test:integration:prepare-readiness && bash scripts/prepare-prefix-images.sh && vitest run --config vitest.integration.config.ts integration/web-prefix.integration.test.ts",
     "test:integration:prepare-readiness": "bash scripts/prepare-readiness-images.sh",
     "test:integration:readiness": "pnpm run test:integration:prepare-readiness && vitest run --config vitest.integration.config.ts integration/readiness.integration.test.ts integration/production-config.test.ts integration/support/fixture.test.ts"
   },

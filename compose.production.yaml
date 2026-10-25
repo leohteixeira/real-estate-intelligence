@@ -129,7 +129,15 @@ services:
       edge:
         aliases: [real-estate-web]
     healthcheck:
-      test: [CMD, wget, '-q', '-O', /dev/null, 'http://127.0.0.1:3200/index.html']
+      test:
+        [
+          CMD,
+          wget,
+          '-q',
+          '-O',
+          /dev/null,
+          'http://127.0.0.1:3200/real-estate-intelligence/index.html',
+        ]
       interval: 5s
       timeout: 3s
       retries: 12

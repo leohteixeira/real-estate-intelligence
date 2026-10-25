@@ -4,9 +4,15 @@ import { readFile } from 'node:fs/promises';
 // imported from vitest/config.
 import { defineConfig } from 'vitest/config';
 
+const publicBase = process.env.VITE_PUBLIC_BASE ?? '/';
+if (!/^\/(?:[a-z0-9-]+\/)*$/.test(publicBase)) {
+  throw new Error('VITE_PUBLIC_BASE must be a slash-delimited absolute path.');
+}
+
 // The Dev Container forwards these ports, so the server must not bind to
 // loopback only.
 export default defineConfig({
+  base: publicBase,
   plugins: [
     react(),
     {
@@ -78,7 +84,12 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3200,
     strictPort: true,
-    proxy: { '/api/v1': { target: 'http://127.0.0.1:8200' } },
+    proxy: {
+      [`${publicBase}api/v1`]: {
+        target: 'http://127.0.0.1:8200',
+        rewrite: (path) => path.slice(publicBase.length - 1),
+      },
+    },
   },
   preview: {
     host: '0.0.0.0',

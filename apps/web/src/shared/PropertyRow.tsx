@@ -1,3 +1,4 @@
+import { publicHref } from './public-href';
 import type { PropertySummary } from '@rei/contracts';
 import { useTranslation } from 'react-i18next';
 import { formatCount, formatMedian, formatQuantity } from '../places/formatters';
@@ -14,7 +15,7 @@ export function PropertyRow({ property, href, blockLabel }: PropertyRowProps) {
   const comparison = property.belowMedianPercent;
   const Row = href === undefined ? 'div' : 'a';
   return (
-    <Row className="prow" {...(href === undefined ? {} : { href })}>
+    <Row className="prow" {...(href === undefined ? {} : { href: publicHref(href) })}>
       <div>
         <p className="prow__t">
           {t(property.propertyType)} ·{' '}

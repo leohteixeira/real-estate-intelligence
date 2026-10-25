@@ -113,6 +113,13 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - name: Install sandboxed Chromium for the native browser campaigns
+        run: |
+          set -Eeuo pipefail
+          pnpm exec playwright install --with-deps chromium
+          sandbox=$(node --input-type=module -e 'import { chromium } from "playwright"; import { dirname, join } from "node:path"; process.stdout.write(join(dirname(chromium.executablePath()), "chrome_sandbox"));')
+          sudo install -o root -g root -m 4755 "$sandbox" "$RUNNER_TEMP/chrome-devel-sandbox"
+          printf 'CHROME_DEVEL_SANDBOX=%s/chrome-devel-sandbox\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Prove all integration campaigns and fixture cleanup
         run: pnpm run test:integration
 
@@ -130,6 +137,51 @@ jobs:
           set -Eeuo pipefail
           for image in migrate api worker ai web; do
             docker buildx build --load --file "docker/${image}.Dockerfile" \
+              --build-arg VITE_PUBLIC_BASE=/real-estate-intelligence/ \
               --label "org.opencontainers.image.revision=${REVISION}" \
               --tag "rei-${image}:${REVISION}" .
           done
+
+  publish:
+    name: Publish gated main images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [secrets, format, workspace, integration, containers]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish five revision-labelled images serially and retain manifest digests
+        env:
+          REVISION: ${{ github.sha }}
+          IMAGE_REPOSITORY: ghcr.io/${{ github.repository }}
+          VITE_PRIVACY_CONTROLLER_NAME: ${{ vars.VITE_PRIVACY_CONTROLLER_NAME }}
+          VITE_PRIVACY_CONTACT_EMAIL: ${{ vars.VITE_PRIVACY_CONTACT_EMAIL }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p release
+          for image in migrate api worker ai web; do
+            docker buildx build --push --file "docker/${image}.Dockerfile" \
+              --build-arg VITE_PUBLIC_BASE=/real-estate-intelligence/ \
+              --build-arg "VITE_PRIVACY_CONTROLLER_NAME=${VITE_PRIVACY_CONTROLLER_NAME}" \
+              --build-arg "VITE_PRIVACY_CONTACT_EMAIL=${VITE_PRIVACY_CONTACT_EMAIL}" \
+              --label "org.opencontainers.image.revision=${REVISION}" \
+              --metadata-file "release/${image}.json" \
+              --tag "${IMAGE_REPOSITORY}/${image}:${REVISION}" .
+            digest=$(jq -er '.["containerimage.digest"]' "release/${image}.json")
+            printf '%s %s/%s@%s\n' "$REVISION" "$IMAGE_REPOSITORY" "$image" "$digest" >> release/images.txt
+          done
+          cat release/images.txt >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ github.sha }}
+          path: release/
+          if-no-files-found: error

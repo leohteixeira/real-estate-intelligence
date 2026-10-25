@@ -4,6 +4,7 @@
  */
 export interface WebConfig {
   readonly apiBaseUrl: string;
+  readonly publicBase: string;
   /** Public demo address. Absent until a demo is published. */
   readonly demoUrl: string | null;
   /** Public source repository address. Absent when the repository is private. */
@@ -11,8 +12,6 @@ export interface WebConfig {
   readonly privacyControllerName: string | null;
   readonly privacyContactEmail: string | null;
 }
-
-const DEFAULT_API_BASE_URL = '';
 
 function optionalUrl(value: string | undefined): string | null {
   const trimmed = value?.trim();
@@ -48,7 +47,9 @@ export function readConfig(env: Record<string, string | undefined>): WebConfig {
   const configured = env.VITE_API_BASE_URL?.trim();
 
   return {
-    apiBaseUrl: configured && configured.length > 0 ? configured : DEFAULT_API_BASE_URL,
+    apiBaseUrl:
+      configured && configured.length > 0 ? configured : (env.BASE_URL ?? '/').replace(/\/$/, ''),
+    publicBase: (env.BASE_URL ?? '/').replace(/\/$/, ''),
     demoUrl: optionalUrl(env.VITE_DEMO_URL),
     repositoryUrl: optionalUrl(env.VITE_REPOSITORY_URL),
     privacyControllerName: controllerName(env.VITE_PRIVACY_CONTROLLER_NAME),
