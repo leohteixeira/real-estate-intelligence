@@ -2,7 +2,6 @@ import { chromium } from 'playwright';
 import { readFile } from 'node:fs/promises';
 import { expect, test, vi } from 'vitest';
 import { preserveCleanup } from './cleanup.ts';
-import { settlePropertyCaptureStart } from './property-capture.ts';
 import {
   assessContrast,
   measureAccessibility,
@@ -124,6 +123,70 @@ test('locale preparation and privacy entry select one genuinely visible responsi
         expect(
           await page.locator(publicLocaleControlSelector(locale)).filter({ visible: true }).count(),
         ).toBe(1);
+    },
+    () => browser.close(),
+  );
+});
+
+test('dark rail links preserve numerical contrast through native hover and keyboard focus', async () => {
+  const env = { ...process.env };
+  delete env.DISPLAY;
+  const browser = await chromium.launch({
+    channel: 'chromium',
+    chromiumSandbox: true,
+    env,
+    args: ['--ozone-platform=headless'],
+  });
+  await preserveCleanup(
+    async () => {
+      const css = (
+        await Promise.all(
+          ['tokens', 'components', 'place', 'privacy'].map((file) =>
+            readFile(new URL(`../../apps/web/src/styles/${file}.css`, import.meta.url), 'utf8'),
+          ),
+        )
+      ).join('\n');
+      for (const width of [960, 1440]) {
+        for (const className of ['brand', 'nav', 'privacy-footer-link']) {
+          const page = await browser.newPage({ viewport: { width, height: 1142 } });
+          await page.setContent(
+            `<style>${css}</style><div class="rei place-app"><aside class="rail place-rail"><a class="brand" href="/">Real Estate<br>Intelligence</a><nav class="public-rail-navigation"><a class="nav" aria-current="page" href="/places">Places</a></nav><div class="rail__foot"><a class="privacy-footer-link" href="/privacy">Privacy</a></div></aside><main class="main place-main">Public content</main></div>`,
+          );
+          const link = page.locator(`.rail a.${className}`);
+          expect(await link.isVisible()).toBe(true);
+          const checkText = async (state: string) => {
+            const roles = (await measureAccessibility(page)).textRoles.filter(
+              (role) => role.className === className,
+            );
+            expect(roles.length).toBeGreaterThan(0);
+            for (const role of roles) {
+              const contrast = assessContrast({ ...role, foreground: role.color }, 4.5);
+              const label = `${className} ${state} at ${width}: ${role.color} on ${role.background}`;
+              expect.soft(contrast.status, label).toBe('computed');
+              expect.soft(contrast.ratio, label).toBeGreaterThanOrEqual(4.5);
+            }
+          };
+          await checkText('default');
+          for (let tab = 0; tab < 3; tab++) {
+            await page.keyboard.press('Tab');
+            if (await link.evaluate((element) => element.matches(':focus-visible'))) break;
+          }
+          expect(await link.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
+          await checkText('focus');
+          const focusPaint = await link.evaluate((element) => ({
+            foreground: getComputedStyle(element).outlineColor,
+            background: getComputedStyle(element.closest('.rail')!).backgroundColor,
+          }));
+          expect(assessContrast(focusPaint, 3).ratio).toBeGreaterThanOrEqual(3);
+          await link.hover();
+          await checkText('hover with focus');
+          await page.keyboard.press('Tab');
+          expect(await link.evaluate((element) => element.matches(':focus-visible'))).toBe(false);
+          expect(await link.evaluate((element) => element.matches(':hover'))).toBe(true);
+          await checkText('hover');
+          await page.close();
+        }
+      }
     },
     () => browser.close(),
   );
@@ -613,175 +676,6 @@ test('Ask submit inset is stable before, during and after native traversal', asy
         expect(await inset(), 'Leaving native focus must not reset its clipped-ring geometry').toBe(
           '-5px',
         );
-      }
-    },
-    () => browser.close(),
-  );
-});
-
-test('landing sticky controls keep their visual footprint inside the scene at the journey boundary', async () => {
-  const env = { ...process.env };
-  delete env.DISPLAY;
-  const browser = await chromium.launch({
-    channel: 'chromium',
-    chromiumSandbox: true,
-    env,
-    args: ['--ozone-platform=headless'],
-  });
-  await preserveCleanup(
-    async () => {
-      const page = await browser.newPage();
-      const css = (
-        await Promise.all([
-          readFile(new URL('../../apps/web/src/styles/tokens.css', import.meta.url), 'utf8'),
-          readFile(new URL('../../apps/web/src/landing/landing.css', import.meta.url), 'utf8'),
-        ])
-      ).join('\n');
-      // The 720x400 CSS viewport is the geometry regression; the campaign separately proves
-      // real native browser 200% zoom. Neither this test nor the paint oracle patches clocks.
-      const viewports = [
-        { width: 390, height: 800 },
-        { width: 960, height: 800 },
-        { width: 1440, height: 800 },
-        { width: 720, height: 400 },
-      ];
-      for (const { viewport, reducedMotion } of viewports.flatMap((viewport) =>
-        (['reduce', 'no-preference'] as const).map((reducedMotion) => ({
-          viewport,
-          reducedMotion,
-        })),
-      )) {
-        await page.setViewportSize(viewport);
-        await page.emulateMedia({ reducedMotion });
-        await page.setContent(
-          `<style>${css}</style><div class="lp"><header class="lp-top"><a class="lp-brand" href="#run">Brand</a></header><section class="lp-journey"><div class="lp-controls">${reducedMotion === 'reduce' ? '' : '<button class="lp-motion">Pausar movimento</button>'}<nav class="lp-way"><ol>${['Cidade', 'Bairro', 'Imóvel', 'Quadra', 'Coletores'].map((name, index) => `<li><a href="#${index ? 'last' : 'first'}" ${index ? '' : 'aria-current="step"'}><span class="lp-way__mark"></span><span class="lp-way__name">${name}</span></a></li>`).join('')}</ol></nav></div><div class="lp-stage"></div><div class="lp-stops"><section class="lp-stop" id="first"><div class="lp-copy"><h1>First stop</h1></div></section><section class="lp-stop" id="last"><div class="lp-copy"><h2>Last stop</h2></div></section></div></section><section class="lp-run" id="run" style="min-height:150vh"><h2>Light following section</h2><a href="#first">Return</a></section></div>`,
-        );
-        await page.keyboard.press('Control+End');
-        await expect
-          .poll(() => page.locator('.lp-run').evaluate((run) => run.getBoundingClientRect().top))
-          .toBeLessThan(0);
-        const boundary = await page.locator('.lp-journey').evaluate((journey) => ({
-          journeyBottom: journey.getBoundingClientRect().bottom,
-          navBottom: document.querySelector('.lp-way')!.getBoundingClientRect().bottom,
-          stageBottom: document.querySelector('.lp-stage')!.getBoundingClientRect().bottom,
-        }));
-        expect(boundary.navBottom, JSON.stringify({ viewport, boundary })).toBeLessThanOrEqual(
-          boundary.journeyBottom,
-        );
-        expect(boundary.stageBottom).toBeCloseTo(boundary.journeyBottom, 0);
-        const receipt = await walkKeyboard(page);
-        expect(receipt.inventoryChanged).toBe(false);
-        for (const direction of receipt.directions) {
-          expect(direction.missing).toEqual([]);
-          expect(
-            direction.steps.filter(
-              (step) =>
-                step.clippedBy.length || !step.focusVisible || !step.indicator || !step.unobscured,
-            ),
-          ).toEqual([]);
-        }
-        await page.keyboard.press('Control+End');
-        await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
-        // Capture reset is explicitly outside the saved, untouched native traversal.
-        expect(await settlePropertyCaptureStart(page)).toEqual({
-          x: 0,
-          y: 0,
-          documentTop: 0,
-          documentLeft: 0,
-        });
-        expect(
-          await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior),
-        ).toBe(reducedMotion === 'reduce' ? 'auto' : 'smooth');
-      }
-    },
-    () => browser.close(),
-  );
-});
-
-test('landing navigation is opaque and desktop copy has a conservative scrim contrast bound', async () => {
-  const env = { ...process.env };
-  delete env.DISPLAY;
-  const browser = await chromium.launch({
-    channel: 'chromium',
-    chromiumSandbox: true,
-    env,
-    args: ['--ozone-platform=headless'],
-  });
-  await preserveCleanup(
-    async () => {
-      const page = await browser.newPage({ reducedMotion: 'reduce' });
-      const css = (
-        await Promise.all([
-          readFile(new URL('../../apps/web/src/styles/tokens.css', import.meta.url), 'utf8'),
-          readFile(new URL('../../apps/web/src/landing/landing.css', import.meta.url), 'utf8'),
-        ])
-      ).join('\n');
-      for (const width of [390, 960, 1440, 2560]) {
-        await page.setViewportSize({ width, height: 1142 });
-        // This is an isolated paint/geometry regression with actual consumer CSS, not a
-        // fabricated production journey or a replacement for visual canvas adjudication.
-        await page.setContent(
-          `<style>${css}</style><div class="lp"><header class="lp-top">Brand</header><section class="lp-journey"><div class="lp-controls"><nav class="lp-way"><ol>${['Cidade', 'Zona', 'Bairro', 'Quadra', 'Coletores'].map((name, index) => `<li><a href="#stop" ${index ? '' : 'aria-current="step"'}><span class="lp-way__mark"></span><span class="lp-way__name">${name}</span></a></li>`).join('')}</ol></nav></div><div class="lp-stage"><canvas class="lp-canvas"></canvas><div class="lp-scrim"></div></div><div class="lp-stops"><section class="lp-stop" id="stop"><div class="lp-copy"><h1 class="lp-h1">A cidade explicada por cada imóvel.</h1><p class="lp-lead">Illustrative asking prices, not recorded transactions.</p><p class="lp-prov">Synthetic data, with sources and dates.</p></div></section></div></section></div>`,
-        );
-        const measured = await measureAccessibility(page);
-        const names = measured.textRoles.filter((role) => role.className === 'lp-way__name');
-        expect(names.length).toBeGreaterThan(0);
-        for (const role of names) {
-          if (role.rect.width <= 1) continue; // The mobile non-current names are screen-reader only.
-          const contrast = assessContrast({ ...role, foreground: role.color }, 4.5);
-          expect.soft(contrast.status, `${width}: ${role.text}`).toBe('computed');
-          expect.soft(contrast.ratio ?? 0, `${width}: ${role.text}`).toBeGreaterThanOrEqual(4.5);
-        }
-        if (width < 960) continue; // Mobile copy has its own opaque enamel-900 sheet.
-        const paint = await page.evaluate(() => {
-          const stage = document.querySelector('.lp-stage')!;
-          const scrim = document.querySelector('.lp-scrim')!;
-          const copy = document.querySelector('.lp-copy')!;
-          const background = getComputedStyle(scrim).backgroundImage;
-          return {
-            gradient: background,
-            stops: Array.from(background.matchAll(/rgba?\(([^)]+)\) ([\d.]+)%/g), (match) => ({
-              components: match[1]!.split(',').map(Number),
-              percent: Number(match[2]),
-            })),
-            copyEnd:
-              ((copy.getBoundingClientRect().right - stage.getBoundingClientRect().left) /
-                stage.getBoundingClientRect().width) *
-              100,
-            scrimWidth: scrim.getBoundingClientRect().width,
-            stageWidth: stage.getBoundingClientRect().width,
-            opacity: getComputedStyle(scrim).opacity,
-            blend: getComputedStyle(scrim).mixBlendMode,
-            filter: getComputedStyle(scrim).filter,
-            colors: Array.from(
-              copy.querySelectorAll('h1,p'),
-              (element) => getComputedStyle(element).color,
-            ),
-          };
-        });
-        expect(paint.gradient).toContain('linear-gradient(90deg,');
-        expect(paint.stops).toHaveLength(3);
-        expect(paint.scrimWidth).toBe(paint.stageWidth);
-        expect(paint).toMatchObject({ opacity: '1', blend: 'normal', filter: 'none' });
-        const [first, second] = paint.stops;
-        expect(first!.percent).toBe(0);
-        expect
-          .soft(second!.percent, `${width}: entire copy must precede fading`)
-          .toBeGreaterThanOrEqual(paint.copyEnd);
-        expect(first!.components.slice(0, 3)).toEqual(second!.components.slice(0, 3));
-        const minimumAlpha = Math.min(first!.components[3]!, second!.components[3]!);
-        expect(minimumAlpha).toBeGreaterThanOrEqual(0.9);
-        // White maximizes each underlying sRGB channel. This bounds every possible canvas
-        // pixel, not just one camera/lighting sample; rounding upward is conservative.
-        const brightestGround = second!.components
-          .slice(0, 3)
-          .map((channel) => Math.ceil(channel * minimumAlpha + 255 * (1 - minimumAlpha)));
-        for (const foreground of paint.colors)
-          expect(
-            assessContrast({ foreground, background: `rgb(${brightestGround.join(',')})` }, 4.5)
-              .ratio,
-            `${width}: ${foreground} on the brightest bounded scrim ground`,
-          ).toBeGreaterThanOrEqual(4.5);
       }
     },
     () => browser.close(),

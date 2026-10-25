@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { chromium, type BrowserContext, type Page } from 'playwright';
-import { expect, test } from 'vitest';
+import { afterAll, beforeEach, describe, expect, test } from 'vitest';
 import {
   ASK_STATES,
   parseAskAvailability,
@@ -21,6 +21,7 @@ import {
 import { DatabaseConnection } from '../packages/infrastructure/dist/index.js';
 import { allocatePorts, ComposeFixture, preserveCleanup } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
+import { allowOwnedEndpoint, finishNetwork, guardNetwork } from './support/network.ts';
 import {
   askDatabaseState,
   askDockerInventory,
@@ -46,8 +47,10 @@ import { readSearch, checkSearchRows, searchParameters } from './support/search-
 import { holdAccessibilityRead } from './support/accessibility-fault.ts';
 import {
   accessibilityBoundaries,
+  accessibilityEntryContract,
   accessibilityLocales,
   accessibilityPartitions,
+  accessibilityExecutionSteps,
   accessibilityScenarios,
   accessibilityStateMapping,
   accessibilityScreens,
@@ -69,10 +72,15 @@ import {
   writeAccessibilityEvidence,
 } from './support/accessibility-evidence.ts';
 
+import { accessibilitySteps, type AccessibilityCheckpoint } from './support/accessibility-steps.ts';
+
 const placeId = 'sao-paulo-bela-vista';
-test.each(accessibilityPartitions)(
-  'accessibility owned production partition: %s',
-  async (partition) => {
+describe('accessibility owned production partition:', () => {
+  async function runAccessibilityPartition(
+    partition: string,
+    checkpoint: AccessibilityCheckpoint = async (_name, work) => work(),
+    onOwnedBase: (base: string) => void = () => undefined,
+  ) {
     const runId = `accessibility-${partition}-${new Date().toISOString().replace(/[:.]/g, '-')}-${randomUUID().slice(0, 8)}`;
     const directory = new URL(
       `../apps/web/.impeccable/review/campaigns/${runId}/`,
@@ -116,6 +124,7 @@ test.each(accessibilityPartitions)(
         verification: { oracle: scenario.given, method: scenario.when },
       })),
       screens: accessibilityScreens,
+      entryContract: accessibilityEntryContract,
       locales: accessibilityLocales,
       widths: accessibilityWidths,
       boundaries: accessibilityBoundaries,
@@ -146,6 +155,7 @@ test.each(accessibilityPartitions)(
     const reads: string[] = [],
       outside: string[] = [],
       forbidden: string[] = [];
+    const readResponses: Array<{ path: string; status: number; requestId?: string }> = [];
     const cells: Array<{
       name: string;
       scenario: string;
@@ -190,6 +200,7 @@ test.each(accessibilityPartitions)(
                   version: version ?? { project, phase: 'setup' },
                   url: page?.url(),
                   reads,
+                  readResponses,
                   outside,
                   forbidden,
                 }),
@@ -344,6 +355,29 @@ test.each(accessibilityPartitions)(
       }
     }
     async function settleUnaffected(region: string) {
+      // A held child read does not synchronize its independent siblings. Wait for their
+      // actual content before asserting the remaining page has no loading state.
+      if (
+        region !== 'main' &&
+        region !== '#place-overview' &&
+        (await page!.locator('#place-overview').count())
+      ) {
+        await page!.locator('.place-secondary').waitFor();
+        if (region !== '.place-series')
+          await page!.locator('.place-chart__months time').first().waitFor();
+        if (region !== '.place-neighbours')
+          await page!.locator('.place-neighbour').first().waitFor();
+        if (region !== '.place-reductions')
+          await page!
+            .locator('.place-reductions .prow')
+            .or(
+              page!.getByText(
+                /^(?:No recorded price reductions\.|Nenhuma redução de preço registrada\.)$/,
+              ),
+            )
+            .first()
+            .waitFor();
+      }
       await expect
         .poll(() =>
           page!
@@ -360,6 +394,7 @@ test.each(accessibilityPartitions)(
       region: string,
       fault: Awaited<ReturnType<typeof holdAccessibilityRead>>,
       mode: 'malformed' | 'valid',
+      recovered?: () => Promise<void>,
     ) {
       fault.setMode(mode);
       // LoadErrorState deliberately keeps its recovery action outside the alert.
@@ -406,13 +441,17 @@ test.each(accessibilityPartitions)(
           await expect
             .poll(() => fault.delivered.filter((delivery) => delivery.mode === mode).length)
             .toBe(previous + 1);
-          await expect.poll(() => page!.locator(`${region} .system-loading`).count()).toBe(0);
-          // Observe the clicked alert's React commit, not merely its response arrival.
-          if (mode === 'valid')
+          // Observe this read's React commit. Recovering a parent may legitimately start
+          // dependent reads; callers await their content before the settled-state audit.
+          if (mode === 'valid') {
             await expect
               .poll(async () => (await descriptions()).includes(before[index]!))
               .toBe(false);
-          else await expect.poll(() => page!.locator(buttons).count()).toBe(count);
+            await recovered?.();
+          }
+          await expect.poll(() => page!.locator(`${region} .system-loading`).count()).toBe(0);
+          if (mode === 'malformed')
+            await expect.poll(() => page!.locator(buttons).count()).toBe(count);
           action.after = await descriptions();
           action.deliveries = fault.delivered.slice(deliveryStart);
         }
@@ -474,12 +513,14 @@ test.each(accessibilityPartitions)(
       width: number,
       options: AuditReadiness = {},
     ) {
-      await closeEvidence();
-      await audit(`${name}-default`, scenario, locale, width, options);
-      if (await page!.locator('main details > summary').filter({ visible: true }).count()) {
-        await openEvidence();
-        await audit(`${name}-open`, scenario, locale, width, options);
-      }
+      await checkpoint(name, async () => {
+        await closeEvidence();
+        await auditCell(`${name}-default`, scenario, locale, width, options);
+        if (await page!.locator('main details > summary').filter({ visible: true }).count()) {
+          await openEvidence();
+          await auditCell(`${name}-open`, scenario, locale, width, options);
+        }
+      });
     }
     type AuditReadiness = {
       navigation?: 'unavailable';
@@ -487,6 +528,15 @@ test.each(accessibilityPartitions)(
       listingContext?: 'loading' | 'unverified';
     };
     async function audit(
+      name: string,
+      scenario: string,
+      locale: string,
+      width: number,
+      readiness: AuditReadiness = {},
+    ) {
+      await checkpoint(name, () => auditCell(name, scenario, locale, width, readiness));
+    }
+    async function auditCell(
       name: string,
       scenario: string,
       locale: string,
@@ -686,6 +736,7 @@ test.each(accessibilityPartitions)(
             foreign = await askDockerInventory();
             const [postgres, api, web] = await allocatePorts(3);
             base = `http://127.0.0.1:${web}`;
+            onOwnedBase(base);
             const settings = {
               NODE_ENV: 'test',
               POSTGRES_DB: 'rei_accessibility',
@@ -813,6 +864,16 @@ test.each(accessibilityPartitions)(
                   diagnosticLeak = true;
                 reads.push(url.pathname + url.search);
               }
+            });
+            context.on('response', (response) => {
+              const url = new URL(response.url());
+              if (url.origin !== base || !url.pathname.startsWith('/api/v1/')) return;
+              const requestId = response.headers()['x-request-id'];
+              readResponses.push({
+                path: url.pathname + url.search,
+                status: response.status(),
+                ...(requestId && /^[0-9a-f-]{36}$/i.test(requestId) ? { requestId } : {}),
+              });
             });
             await context.route('**/*', async (route) => {
               const request = route.request(),
@@ -1030,10 +1091,9 @@ test.each(accessibilityPartitions)(
                         locale,
                         width,
                       );
-                      await retryAlerts(fault.region, held, 'valid');
-                      await view.locator('.place-chart__months time').first().waitFor();
-                      await view.locator('.place-neighbour').first().waitFor();
-                      await settleUnaffected('.no-fault-region');
+                      await retryAlerts(fault.region, held, 'valid', async () => {
+                        await settleUnaffected('.no-fault-region');
+                      });
                       await auditPair(
                         `${fault.id}-recovered-${locale}-${width}`,
                         'A11Y-003',
@@ -1315,11 +1375,75 @@ test.each(accessibilityPartitions)(
               }
           }
           const discovery = partition.startsWith('discovery-');
-          if (discovery || partition === 'search' || partition === 'details') {
+          const details = partition.startsWith('details-');
+          if (discovery) {
+            await attempt('A11Y-001', 'owned-entry-contract', async () => {
+              const healthDocument = await requestHttp(base + '/index.html');
+              const healthBody = await healthDocument.text();
+              await json('evidence/health-document-response.json', {
+                request: { url: base + '/index.html', followRedirects: false },
+                response: {
+                  status: healthDocument.status,
+                  headers: Object.fromEntries(healthDocument.headers),
+                  body: healthBody,
+                  bodySha256: sha256(healthBody),
+                },
+              });
+              expect(healthDocument.status).toBe(200);
+              expect(healthDocument.headers.get('location')).toBeNull();
+              expect(healthDocument.headers.get('content-type')).toContain('text/html');
+              const root = await requestHttp(base + accessibilityEntryContract.root.path);
+              const rootBody = await root.text();
+              // Persist the actual owned response before evaluating its contract. Supertest
+              // never follows this redirect, so the external presentation remains unrequested.
+              await json('evidence/root-redirect.json', {
+                request: { url: base + '/', followRedirects: false },
+                expected: accessibilityEntryContract.root,
+                response: {
+                  status: root.status,
+                  headers: Object.fromEntries(root.headers),
+                  body: rootBody,
+                  bodySha256: sha256(rootBody),
+                },
+              });
+              expect(root.status).toBe(accessibilityEntryContract.root.status);
+              expect(root.headers.get('location')).toBe(accessibilityEntryContract.root.location);
+              for (const entry of accessibilityEntryContract.entries) {
+                const response = await requestHttp(base + entry.path);
+                const body = await response.text();
+                await json(`evidence/entry-${entry.path.slice(1)}-response.json`, {
+                  request: { url: base + entry.path, followRedirects: false },
+                  response: {
+                    status: response.status,
+                    headers: Object.fromEntries(response.headers),
+                    body,
+                    bodySha256: sha256(body),
+                  },
+                });
+                expect(response.status).toBe(200);
+                expect(response.headers.get('location')).toBeNull();
+                expect(response.headers.get('content-type')).toContain('text/html');
+                const navigation = await view.goto(base + entry.path);
+                await view.locator(entry.ready).filter({ visible: true }).first().waitFor();
+                await json(`evidence/entry-${entry.path.slice(1)}-navigation.json`, {
+                  request: base + entry.path,
+                  documentStatus: navigation?.status(),
+                  documentUrl: navigation?.url(),
+                  finalUrl: view.url(),
+                  ready: entry.ready,
+                  expectedDestination: base + entry.destination,
+                });
+                expect(navigation?.status()).toBe(200);
+                expect(navigation?.url()).toBe(base + entry.path);
+                expect(view.url()).toBe(base + entry.destination);
+              }
+            });
+          }
+          if (discovery || partition === 'search' || details) {
             const screens = accessibilityScreens
               .filter((screen) =>
                 discovery
-                  ? ['landing', 'place'].includes(screen.id)
+                  ? screen.id === 'place'
                   : partition === 'search'
                     ? ['search', 'filters'].includes(screen.id)
                     : ['property', 'listing', 'privacy'].includes(screen.id),
@@ -1327,10 +1451,12 @@ test.each(accessibilityPartitions)(
               .sort((left, right) => Number(right.id === 'place') - Number(left.id === 'place'));
             for (const screen of screens)
               for (const locale of accessibilityLocales.filter(
-                (locale) => !discovery || partition.startsWith(`discovery-${locale}-`),
+                (locale) =>
+                  !(discovery || details) ||
+                  partition.startsWith(`${discovery ? 'discovery' : 'details'}-${locale}-`),
               ))
                 for (const width of accessibilityWidths.filter(
-                  (width) => !discovery || partition.endsWith(`-${width}`),
+                  (width) => !(discovery || details) || partition.endsWith(`-${width}`),
                 )) {
                   await enter(
                     screen.id === 'listing' ? `/listings/${listingId}` : screen.path,
@@ -1468,9 +1594,13 @@ test.each(accessibilityPartitions)(
                 });
               }
           }
-          if (partition === 'details') {
-            for (const locale of accessibilityLocales)
-              for (const width of accessibilityWidths)
+          if (details) {
+            for (const locale of accessibilityLocales.filter((locale) =>
+              partition.startsWith(`details-${locale}-`),
+            ))
+              for (const width of accessibilityWidths.filter((width) =>
+                partition.endsWith(`-${width}`),
+              ))
                 await attempt('A11Y-002', `property-source-anchor-${locale}-${width}`, async () => {
                   await enter(
                     `/properties/${preparedPropertyId(1)}`,
@@ -1750,6 +1880,10 @@ test.each(accessibilityPartitions)(
                       await expect
                         .poll(() => view.locator(`${fault.region} [role="alert"]`).count())
                         .toBe(0);
+                      if (fault.id === 'ask-catalogue') {
+                        await view.locator('.ask-record').waitFor();
+                        await view.locator('.ask-follow button:enabled').waitFor();
+                      }
                       await auditPair(
                         `${fault.id}-recovered-${locale}-${width}`,
                         'A11Y-003',
@@ -1806,7 +1940,7 @@ test.each(accessibilityPartitions)(
                     api: '/api/v1/collection/sources',
                     ready: '.privacy-source',
                   },
-                ]) {
+                ].filter((screen) => partition === `retained-${locale}-${screen.id}-${width}`)) {
                   await enter(screen.path, locale, width, screen.ready);
                   const retainedSelector = {
                     place: '.place-key-figures .fig__value, .place-median .place-unavailable',
@@ -1952,86 +2086,88 @@ test.each(accessibilityPartitions)(
                     },
                   );
                 }
-                // Search intentionally discards visit pagination (gcTime=0). Its supported retained
-                // evidence state is a failed next cursor page, not history of an obsolete visit.
-                const query = { placeId: 'sao-paulo', pageSize: 1 };
-                const first = await readSearch(base, query);
-                expect(first.nextCursor).not.toBeNull();
-                const next = await readSearch(base, { ...query, cursor: first.nextCursor! });
-                await enter('/search/sao-paulo?pageSize=1', locale, width, '.search-rows li');
-                await checkSearchRows(view, first, locale);
-                await view.locator('.search-count').waitFor();
-                const count = await view.locator('.search-count').textContent();
-                const nextBytes = await (
-                  await requestHttp(
-                    `${base}/api/v1/properties?${searchParameters({ ...query, cursor: first.nextCursor! })}`,
-                  )
-                ).text();
-                const faultRead = await holdAccessibilityRead(
-                  view,
-                  `${base}/api/v1/properties?*cursor=*`,
-                  nextBytes,
-                );
-                // The malformed body is a truncation of the actual independently admitted response.
-                await preserveCleanup(
-                  async () => {
-                    await keyboardActivate('.search-more button');
-                    await view.locator('.search-more button:disabled').waitFor();
-                    await checkSearchRows(view, first, locale);
-                    expect(await view.locator('.search-count').textContent()).toBe(count);
-                    await auditPair(
-                      `search-retained-cursor-loading-${locale}-${width}`,
-                      'A11Y-003',
-                      locale,
-                      width,
-                    );
-                    faultRead.setMode('refused');
-                    await view.locator('.search-next-error [role="alert"]').waitFor();
-                    await checkSearchRows(view, first, locale);
-                    expect(await view.locator('.search-count').textContent()).toBe(count);
-                    await auditPair(
-                      `search-retained-cursor-refused-${locale}-${width}`,
-                      'A11Y-003',
-                      locale,
-                      width,
-                    );
-                    await retryAlerts('.search-next-error', faultRead, 'malformed');
-                    await checkSearchRows(view, first, locale);
-                    expect(await view.locator('.search-count').textContent()).toBe(count);
-                    await auditPair(
-                      `search-retained-cursor-malformed-${locale}-${width}`,
-                      'A11Y-003',
-                      locale,
-                      width,
-                    );
-                    await retryAlerts('.search-next-error', faultRead, 'valid');
-                    await checkSearchRows(
-                      view,
-                      { ...first, items: [...first.items, ...next.items] },
-                      locale,
-                    );
-                    expect(await view.locator('.search-count').textContent()).toBe(count);
-                    await auditPair(
-                      `search-retained-cursor-recovered-${locale}-${width}`,
-                      'A11Y-003',
-                      locale,
-                      width,
-                    );
-                    await json(`evidence/search-retained-cursor-oracle-${locale}-${width}.json`, {
-                      first,
-                      next,
-                      count,
-                      method:
-                        'Independent parsed real cursor response, exact identities/order/count retained through held/503/truncation and appended only after native manual retry',
-                    });
-                  },
-                  async () => {
-                    await drainFault(
-                      faultRead,
-                      `evidence/search-retained-cursor-lifecycle-${locale}-${width}.json`,
-                    );
-                  },
-                );
+                if (partition === `retained-${locale}-search-${width}`) {
+                  // Search intentionally discards visit pagination (gcTime=0). Its supported retained
+                  // evidence state is a failed next cursor page, not history of an obsolete visit.
+                  const query = { placeId: 'sao-paulo', pageSize: 1 };
+                  const first = await readSearch(base, query);
+                  expect(first.nextCursor).not.toBeNull();
+                  const next = await readSearch(base, { ...query, cursor: first.nextCursor! });
+                  await enter('/search/sao-paulo?pageSize=1', locale, width, '.search-rows li');
+                  await checkSearchRows(view, first, locale);
+                  await view.locator('.search-count').waitFor();
+                  const count = await view.locator('.search-count').textContent();
+                  const nextBytes = await (
+                    await requestHttp(
+                      `${base}/api/v1/properties?${searchParameters({ ...query, cursor: first.nextCursor! })}`,
+                    )
+                  ).text();
+                  const faultRead = await holdAccessibilityRead(
+                    view,
+                    `${base}/api/v1/properties?*cursor=*`,
+                    nextBytes,
+                  );
+                  // The malformed body is a truncation of the actual independently admitted response.
+                  await preserveCleanup(
+                    async () => {
+                      await keyboardActivate('.search-more button');
+                      await view.locator('.search-more button:disabled').waitFor();
+                      await checkSearchRows(view, first, locale);
+                      expect(await view.locator('.search-count').textContent()).toBe(count);
+                      await auditPair(
+                        `search-retained-cursor-loading-${locale}-${width}`,
+                        'A11Y-003',
+                        locale,
+                        width,
+                      );
+                      faultRead.setMode('refused');
+                      await view.locator('.search-next-error [role="alert"]').waitFor();
+                      await checkSearchRows(view, first, locale);
+                      expect(await view.locator('.search-count').textContent()).toBe(count);
+                      await auditPair(
+                        `search-retained-cursor-refused-${locale}-${width}`,
+                        'A11Y-003',
+                        locale,
+                        width,
+                      );
+                      await retryAlerts('.search-next-error', faultRead, 'malformed');
+                      await checkSearchRows(view, first, locale);
+                      expect(await view.locator('.search-count').textContent()).toBe(count);
+                      await auditPair(
+                        `search-retained-cursor-malformed-${locale}-${width}`,
+                        'A11Y-003',
+                        locale,
+                        width,
+                      );
+                      await retryAlerts('.search-next-error', faultRead, 'valid');
+                      await checkSearchRows(
+                        view,
+                        { ...first, items: [...first.items, ...next.items] },
+                        locale,
+                      );
+                      expect(await view.locator('.search-count').textContent()).toBe(count);
+                      await auditPair(
+                        `search-retained-cursor-recovered-${locale}-${width}`,
+                        'A11Y-003',
+                        locale,
+                        width,
+                      );
+                      await json(`evidence/search-retained-cursor-oracle-${locale}-${width}.json`, {
+                        first,
+                        next,
+                        count,
+                        method:
+                          'Independent parsed real cursor response, exact identities/order/count retained through held/503/truncation and appended only after native manual retry',
+                      });
+                    },
+                    async () => {
+                      await drainFault(
+                        faultRead,
+                        `evidence/search-retained-cursor-lifecycle-${locale}-${width}.json`,
+                      );
+                    },
+                  );
+                }
               }
           }
           if (partition.startsWith('adaptation-')) {
@@ -2068,70 +2204,6 @@ test.each(accessibilityPartitions)(
                   }
                 await setNativeZoom(context!, view, base + path, '1');
               }
-            }
-            for (const locale of accessibilityLocales.filter(
-              (locale) => partition === `adaptation-${locale}`,
-            )) {
-              await enter('/', locale, 390, '.lp-h1');
-              async function stationaryCanvas(name: string) {
-                await view.locator('.lp-city canvas,canvas').first().waitFor();
-                await view.evaluate(
-                  () =>
-                    new Promise<void>((resolve) => {
-                      let frames = 0;
-                      const next = () =>
-                        ++frames === 12 ? resolve() : requestAnimationFrame(next);
-                      requestAnimationFrame(next);
-                    }),
-                );
-                const first = sha256(await view.locator('canvas').first().screenshot());
-                await view.evaluate(
-                  () =>
-                    new Promise<void>((resolve) => {
-                      let frames = 0;
-                      const next = () =>
-                        ++frames === 12 ? resolve() : requestAnimationFrame(next);
-                      requestAnimationFrame(next);
-                    }),
-                );
-                const second = sha256(await view.locator('canvas').first().screenshot());
-                await json(`evidence/${name}-${locale}-canvas.json`, {
-                  first,
-                  second,
-                  independentRenderedFrames: 12,
-                  scrollUnchanged: true,
-                });
-                expect(second, name).toBe(first);
-              }
-              await stationaryCanvas('landing-initial-reduced');
-              await view.emulateMedia({ reducedMotion: 'no-preference' });
-              await view.locator('.lp-motion').waitFor();
-              await audit(`landing-normal-motion-${locale}-390`, 'A11Y-005', locale, 390);
-              await keyboardActivate('.lp-motion');
-              expect(await view.locator('.lp').getAttribute('data-motion')).toBe('paused');
-              await stationaryCanvas('landing-paused');
-              await keyboardActivate('.lp-motion');
-              expect(await view.locator('.lp').getAttribute('data-motion')).toBe('running');
-              await view.emulateMedia({ reducedMotion: 'reduce' });
-              await stationaryCanvas('landing-changing-reduced');
-              expect((await measureAccessibility(view)).motion.scrolling).toBe('auto');
-              await audit(`landing-changing-motion-${locale}-390`, 'A11Y-005', locale, 390);
-            }
-            // Disable only WebGL contexts; canvas semantics/content and real product assets remain intact.
-            await context!.addInitScript(() => {
-              const original = HTMLCanvasElement.prototype.getContext;
-              HTMLCanvasElement.prototype.getContext = new Proxy(original, {
-                apply(target, receiver, args: unknown[]) {
-                  if (String(args[0]).startsWith('webgl')) return null;
-                  return Reflect.apply(target, receiver, args);
-                },
-              });
-            });
-            for (const locale of accessibilityLocales.filter(
-              (locale) => partition === `adaptation-${locale}`,
-            )) {
-              await enter('/', locale, 390, '.lp--flat');
-              await audit(`landing-no-webgl-${locale}-390`, 'A11Y-005', locale, 390);
             }
           }
           await attempt('A11Y-006', 'boundaries', async () => {
@@ -2211,6 +2283,46 @@ test.each(accessibilityPartitions)(
         },
       },
     );
-  },
-  600_000,
-);
+  }
+
+  for (const partition of accessibilityPartitions) {
+    const title = partition;
+    const steps = accessibilityExecutionSteps(partition);
+    if (!steps) {
+      test(title, () => runAccessibilityPartition(partition), 600_000);
+      continue;
+    }
+    describe.sequential(title, () => {
+      const execution = accessibilitySteps();
+      let ownedBase = '';
+      // The global hook resets allowed hosts before every native test. Re-admit only this
+      // fixture's public origin; preparation allocates/registers its other owned endpoints.
+      beforeEach(() => {
+        if (ownedBase) allowOwnedEndpoint(ownedBase);
+      });
+      test(
+        'owned fixture preparation',
+        () =>
+          execution.start((checkpoint) =>
+            runAccessibilityPartition(partition, checkpoint, (base) => {
+              ownedBase = base;
+            }),
+          ),
+        300_000,
+      );
+      for (const step of steps) test(step, () => execution.advance(step), 600_000);
+      test('boundaries and owned cleanup', () => execution.finish(), 300_000);
+      // Bail or a failed state still reaches the existing independent owned teardown.
+      afterAll(() =>
+        preserveCleanup(
+          async () => {
+            guardNetwork();
+            if (ownedBase) allowOwnedEndpoint(ownedBase);
+            await execution.finish();
+          },
+          async () => finishNetwork(),
+        ),
+      );
+    });
+  }
+});

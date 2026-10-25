@@ -59,6 +59,39 @@ test('PostgreSQL startup healthcheck allows bootstrap without weakening readines
   });
 });
 
+test('web healthcheck stays on the owned non-root document without following the presentation redirect', async () => {
+  const { stdout } = await execa(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'compose.yaml',
+      '--project-name',
+      'rei-healthcheck-config',
+      'config',
+      '--format',
+      'json',
+    ],
+    {
+      env: { COMPOSE_DISABLE_ENV_FILE: '1', COMPOSE_ENV_FILES: '' },
+      timeout: 30_000,
+    },
+  );
+  const config = JSON.parse(stdout) as {
+    services: {
+      web: {
+        healthcheck: { test: string[]; interval: string; timeout: string; retries: number };
+      };
+    };
+  };
+  expect(config.services.web.healthcheck).toStrictEqual({
+    test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:3200/index.html'],
+    interval: '5s',
+    timeout: '3s',
+    retries: 12,
+  });
+});
+
 test('allocated fixture ports probe the wildcard address used by Compose', async () => {
   const getPortMock = vi.mocked(getPort).mockReset();
   getPortMock.mockResolvedValueOnce(48011).mockResolvedValueOnce(48012);

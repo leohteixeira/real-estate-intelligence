@@ -1,3 +1,5 @@
+import { ASK_STATES } from '../../packages/contracts/dist/index.js';
+
 export const accessibilityLocales = ['pt-BR', 'en'] as const;
 export const accessibilityWidths = [390, 960, 1440] as const;
 
@@ -8,10 +10,22 @@ export const accessibilityPartitions = [
   ),
   'search',
   'keyboard',
-  'details',
+  ...accessibilityLocales.flatMap((locale) =>
+    accessibilityWidths.map((width) => `details-${locale}-${width}`),
+  ),
   'ask-pt-BR',
   'ask-en',
-  ...['recovery', 'retained', 'variants', 'subreads', 'context'].flatMap((family) =>
+  ...accessibilityLocales.flatMap((locale) =>
+    accessibilityWidths.map((width) => `recovery-${locale}-${width}`),
+  ),
+  ...accessibilityLocales.flatMap((locale) =>
+    accessibilityWidths.flatMap((width) =>
+      ['place', 'property', 'listing', 'privacy', 'search'].map(
+        (screen) => `retained-${locale}-${screen}-${width}`,
+      ),
+    ),
+  ),
+  ...['variants', 'subreads', 'context'].flatMap((family) =>
     accessibilityLocales.flatMap((locale) =>
       accessibilityWidths.map((width) => `${family}-${locale}-${width}`),
     ),
@@ -20,12 +34,78 @@ export const accessibilityPartitions = [
   'adaptation-en',
 ] as const;
 
+// An ordered execution contract, not additional semantic scenarios. The fixture and genuine
+// transitions remain shared; a full default/open audit is the largest native test unit.
+export function accessibilityExecutionSteps(partition: string): string[] | undefined {
+  for (const locale of accessibilityLocales) {
+    if (partition === `adaptation-${locale}`)
+      return accessibilityScreens.flatMap((screen) =>
+        ['reflow', 'zoom'].flatMap((mode) => {
+          const suffix = `${mode}-${locale}-${mode === 'reflow' ? 320 : 720}`;
+          return [
+            `${screen.id}-${suffix}`,
+            ...(screen.id === 'ask' ? ASK_STATES.map((state) => `ask-${state}-${suffix}`) : []),
+          ];
+        }),
+      );
+    for (const width of accessibilityWidths) {
+      const suffix = `${locale}-${width}`;
+      for (const screen of ['place', 'property', 'listing', 'privacy', 'search'])
+        if (partition === `retained-${locale}-${screen}-${width}`)
+          return screen === 'search'
+            ? ['loading', 'refused', 'malformed', 'recovered'].map(
+                (state) => `search-retained-cursor-${state}-${suffix}`,
+              )
+            : ['refresh', 'error', 'malformed', 'recovered'].map(
+                (state) => `${screen}-retained-${state}-${suffix}`,
+              );
+      if (partition === `variants-${suffix}`)
+        return [
+          ...[4, 901, 902, 903].map((id) => `property-${id}-${suffix}`),
+          ...[104, 109, 991, 992, 993].map((id) => `listing-${id}-${suffix}`),
+          ...['properties', 'listings'].flatMap((family) => [
+            ...['invalid-id', '0199a3e0-0000-4000-8000-000000000001'].map(
+              (id) => `${family}-invalid-${id}-${suffix}`,
+            ),
+            `${family}-404-${suffix}`,
+          ]),
+          ...['places', 'search', 'ask'].flatMap((family) => [
+            `${family}-invalid-place-${suffix}`,
+            `${family}-404-${suffix}`,
+          ]),
+        ];
+      if (partition === `subreads-${suffix}`)
+        return ['place-detail', 'place-series', 'place-neighbours', 'place-reductions'].flatMap(
+          (read) =>
+            ['loading', 'refused', 'malformed', 'recovered'].map(
+              (state) => `${read}-${state}-${suffix}`,
+            ),
+        );
+      if (partition === `context-${suffix}`)
+        return [
+          ...['places', 'children'].flatMap((endpoint) => [
+            ...['loading', 'refused', 'malformed', 'recovered'].map(
+              (state) => `hierarchy-${endpoint}-${state}-${suffix}`,
+            ),
+            ...(width === 390 ? [`hierarchy-${endpoint}-shell-recovered-${suffix}`] : []),
+          ]),
+          ...['default', 'open'].flatMap((disclosure) =>
+            ['loading', 'timeout', 'refused', 'malformed', 'recovered'].map(
+              (state) => `listing-context-${state}-${disclosure}-${suffix}`,
+            ),
+          ),
+        ];
+    }
+  }
+  return undefined;
+}
+
 export const accessibilityStateMapping = [
   {
     partition: 'discovery-{locale}-{width}',
     scenario: 'A11Y-001',
     states:
-      'Landing normal; Place normal/default and every nested disclosure open; six locale/layout variants',
+      'Place normal/default and every nested disclosure open; owned root redirect and local entry contracts; six locale/layout variants',
   },
   {
     partition: 'search',
@@ -39,7 +119,7 @@ export const accessibilityStateMapping = [
       'Native keyboard skip, draft/apply/cancel/clear/history/chip removal and next Tab; six variants',
   },
   {
-    partition: 'details',
+    partition: 'details-{locale}-{width}',
     scenario: 'A11Y-001/A11Y-002',
     states:
       'Property 1 and its real Listing normal/default/open; Privacy; deep source anchors; six variants',
@@ -57,7 +137,7 @@ export const accessibilityStateMapping = [
       'Search empty/invalid, Filters invalid range; seven families held initial read, 503, truncated bytes and explicit native retry recovery, default/open where available',
   },
   {
-    partition: 'retained-{locale}-{width}',
+    partition: 'retained-{locale}-{screen}-{width}',
     scenario: 'A11Y-003',
     states:
       'Place market, Property, Listing and Privacy retained refresh after genuine 30-second cache ageing: held/503/truncated/recovered, default/open; Search next cursor page retains exact first-page identities/order/count during held/503/truncated/recovered',
@@ -84,7 +164,7 @@ export const accessibilityStateMapping = [
     partition: 'adaptation-{locale}',
     scenario: 'A11Y-005',
     states:
-      'All eight families at 320 CSS px and independently measured native browser 200%; applicable open evidence and seven Ask states; Landing pause/resume, initial/changed reduced motion and no-WebGL',
+      'All seven operational families at 320 CSS px and independently measured native browser 200%; applicable open evidence and seven Ask states',
   },
   {
     partition: 'every partition',
@@ -94,13 +174,6 @@ export const accessibilityStateMapping = [
   },
 ] as const;
 export const accessibilityScreens = [
-  {
-    id: 'landing',
-    path: '/',
-    ready: '.lp-h1',
-    oracle: 'Committed localized synthetic illustration, no business DTO',
-    disclosures: false,
-  },
   {
     id: 'place',
     path: '/places/sao-paulo-bela-vista',
@@ -152,7 +225,31 @@ export const accessibilityScreens = [
   },
 ] as const;
 
+// The redirect is observed as an owned HTTP response; its destination is never requested.
+export const accessibilityEntryContract = {
+  root: {
+    path: '/',
+    status: 308,
+    location: 'https://leohteixeira.com/en/projects/real-estate-intelligence',
+    followRedirects: false,
+  },
+  entries: [
+    { path: '/places', destination: '/places/sao-paulo-bela-vista', ready: '.place-key-figures' },
+    { path: '/privacy', destination: '/privacy', ready: '.privacy-source' },
+    { path: '/ask', destination: '/ask/sao-paulo-bela-vista', ready: '#ask-draft' },
+    { path: '/search', destination: '/search/sao-paulo-bela-vista', ready: '.search-rows li' },
+  ],
+} as const;
+
 export const accessibilityBoundaries = [
+  {
+    capability: 'Externally owned portfolio presentation',
+    production:
+      'Exact root HTTP 308 transfers presentation ownership to the independent portfolio; seven operational screen families remain local',
+    evidence:
+      'Owned Nginx redirect and local entry response/navigation receipts only; external appearance, accessibility, privacy, motion and no-WebGL assessment remain outstanding in the portfolio repository',
+    status: 'externally-owned-obligation',
+  },
   {
     capability: 'Market freshness branches',
     production: 'Prepared MVP overview is untracked; no tracked freshness fabricated',
@@ -190,7 +287,8 @@ export const accessibilityScenarios = [
   {
     id: 'A11Y-001',
     title: 'Every public screen and evidence disclosure',
-    given: 'Independent parsed actual HTTP oracles and owned production bytes',
+    given:
+      'Seven operational screen families, independent parsed actual HTTP oracles and owned production bytes',
     when: 'Read each screen/default and open evidence with full axe and genuine forward/reverse Tab at both locales and 390/960/1440',
     then: 'Exact data, no axe violations, every enabled control reachable and visible; six layouts remain variants',
   },
@@ -217,10 +315,11 @@ export const accessibilityScenarios = [
   },
   {
     id: 'A11Y-005',
-    title: 'Reflow, native enlargement and motion',
-    given: 'Every screen in PT and EN',
-    when: 'Read at 320 CSS px, native browser 200% and changing reduced preference/no WebGL',
-    then: 'No document overflow, lost controls or moving reduced scene; pause and factual hierarchy remain usable',
+    title: 'Operational reflow and native enlargement',
+    given:
+      'Every local operational screen in PT and EN; presentation assessment remains externally owned',
+    when: 'Read at 320 CSS px and native browser 200%',
+    then: 'No document overflow or lost controls; external motion and no-WebGL obligations remain outstanding',
   },
   {
     id: 'A11Y-006',
