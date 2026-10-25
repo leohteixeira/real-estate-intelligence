@@ -6,3 +6,5 @@ export * from './property.repository.js';
 export * from './consume-parsed-listing.service.js';
 export * from './listing-history.repository.js';
 export * from './reconcile-listing-history.service.js';
+export * from './property-resolution.repository.js';
+export * from './reconcile-property-resolution.service.js';

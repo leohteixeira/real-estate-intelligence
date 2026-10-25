@@ -23,12 +23,21 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
         {evidence.reasons.length ? (
           <>
             <div className="spread property-probability">
-              <span className="small">{t('probability')}</span>
+              <span className="small">
+                {t(evidence.kind === 'prepared-fixture' ? 'probability' : 'ruleProbability')}
+              </span>
               <span className="num">
-                {formatProbability(evidence.illustrativeProbability, locale)}
+                {formatProbability(
+                  evidence.kind === 'prepared-fixture'
+                    ? evidence.illustrativeProbability
+                    : (evidence.productionMatchScore ?? 0),
+                  locale,
+                )}
               </span>
             </div>
-            <p className="prov">{t('uncalibrated')}</p>
+            <p className="prov">
+              {t(evidence.kind === 'prepared-fixture' ? 'uncalibrated' : 'ruleUncalibrated')}
+            </p>
           </>
         ) : (
           <p>{t('unresolved')}</p>
@@ -44,11 +53,13 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
                   ? reason.values.map((value) => value.listingId)
                   : reason.listingIds;
               const label =
-                reason.type === 'attribute-agreement'
-                  ? `${t(reason.field)}: ${reason.field === 'propertyType' ? shared(String(reason.value)) : typeof reason.value === 'number' ? formatQuantity(reason.value, locale) : reason.value}${reason.field === 'areaSquareMeters' ? ' m²' : ''}`
-                  : reason.type === 'shared-structured-feature'
-                    ? t(reason.feature, { defaultValue: reason.feature })
-                    : t('disagreement');
+                reason.type === 'rule-comparison'
+                  ? `${t(`rule_${reason.feature}`)}: ${reason.available ? formatProbability(reason.score ?? 0, locale) : t('ruleUnavailable')}`
+                  : reason.type === 'attribute-agreement'
+                    ? `${t(reason.field)}: ${reason.field === 'propertyType' ? shared(String(reason.value)) : typeof reason.value === 'number' ? formatQuantity(reason.value, locale) : reason.value}${reason.field === 'areaSquareMeters' ? ' m²' : ''}`
+                    : reason.type === 'shared-structured-feature'
+                      ? t(reason.feature, { defaultValue: reason.feature })
+                      : t('disagreement');
               return (
                 <li key={index}>
                   <div className="ev">
@@ -76,7 +87,8 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
         <details className="property-reason-details">
           <summary>{t('reasonDetails')}</summary>
           <p className="prov">
-            {t('rawEvidenceLabel')}: {evidence.label}
+            {t(evidence.kind === 'prepared-fixture' ? 'rawEvidenceLabel' : 'ruleEvidenceLabel')}:{' '}
+            {evidence.label}
           </p>
           <ol>
             {evidence.reasons.map((reason, index) => {
@@ -85,11 +97,13 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
                   ? reason.values.map((value) => value.listingId)
                   : reason.listingIds;
               const label =
-                reason.type === 'attribute-agreement'
-                  ? t(reason.field)
-                  : reason.type === 'shared-structured-feature'
-                    ? t(reason.feature, { defaultValue: reason.feature })
-                    : t('disagreement');
+                reason.type === 'rule-comparison'
+                  ? `${t(`rule_${reason.feature}`)}: ${reason.available ? formatProbability(reason.score ?? 0, locale) : t('ruleUnavailable')}`
+                  : reason.type === 'attribute-agreement'
+                    ? t(reason.field)
+                    : reason.type === 'shared-structured-feature'
+                      ? t(reason.feature, { defaultValue: reason.feature })
+                      : t('disagreement');
               return (
                 <li key={index}>
                   <strong>{label}</strong>
@@ -108,7 +122,9 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
             })}
           </ol>
         </details>
-        <p className="small muted">{t('imageUnavailable')}</p>
+        <p className="small muted">
+          {t(evidence.kind === 'prepared-fixture' ? 'imageUnavailable' : 'ruleImages')}
+        </p>
       </div>
     </section>
   );

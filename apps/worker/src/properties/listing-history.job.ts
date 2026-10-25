@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { metrics, trace, SpanStatusCode } from '@opentelemetry/api';
-import { ReconcileListingHistory } from '@rei/application';
+import { ReconcileListingHistory, ReconcilePropertyResolution } from '@rei/application';
 import { readListingHistoryConfig } from '../config';
 
 const tracer = trace.getTracer('rei.worker.listing-history');
@@ -15,6 +15,7 @@ export class ListingHistoryJob {
   private controller: AbortController | undefined;
   public constructor(
     @Inject(ReconcileListingHistory) private readonly service: ReconcileListingHistory,
+    @Inject(ReconcilePropertyResolution) private readonly resolution: ReconcilePropertyResolution,
   ) {}
   public start(): void {
     if (this.timer) return;
@@ -37,12 +38,9 @@ export class ListingHistoryJob {
     const config = readListingHistoryConfig(process.env);
     await tracer.startActiveSpan('properties.listing-history.reconcile', async (span) => {
       try {
-        effects.add(
-          await this.service.execute(
-            config.batchSize,
-            AbortSignal.any([signal, AbortSignal.timeout(config.timeoutMs)]),
-          ),
-        );
+        const bounded = AbortSignal.any([signal, AbortSignal.timeout(config.timeoutMs)]);
+        effects.add(await this.service.execute(config.batchSize, bounded));
+        await this.resolution.execute(bounded);
       } catch (error) {
         span.setStatus({ code: SpanStatusCode.ERROR });
         throw error;

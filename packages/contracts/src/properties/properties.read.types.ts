@@ -213,15 +213,35 @@ export interface PropertyDetail {
     readonly listingIds: readonly string[];
     readonly sourceIds: readonly string[];
   }[];
-  readonly preparedEvidence: {
-    readonly kind: 'prepared-fixture';
-    readonly label: string;
-    readonly listingIds: readonly string[];
-    readonly productionMatchScore: null;
-    readonly illustrativeProbability: number;
-    readonly probabilityBasis: 'prepared-not-calibrated';
-    readonly reasons: readonly PreparedGroupingReason[];
-  };
+  readonly preparedEvidence:
+    | {
+        readonly kind: 'prepared-fixture';
+        readonly label: string;
+        readonly listingIds: readonly string[];
+        readonly productionMatchScore: null;
+        readonly illustrativeProbability: number;
+        readonly probabilityBasis: 'prepared-not-calibrated';
+        readonly reasons: readonly PreparedGroupingReason[];
+      }
+    | {
+        readonly kind: 'deterministic-rule';
+        readonly label: string;
+        readonly listingIds: readonly string[];
+        readonly productionMatchScore: number | null;
+        readonly rawProbability: number | null;
+        readonly probabilityBasis: 'deterministic-uncalibrated';
+        readonly configurationId: string;
+        readonly configurationVersion: number;
+        readonly reasons: readonly RuleGroupingReason[];
+      };
+}
+export interface RuleGroupingReason {
+  readonly type: 'rule-comparison';
+  readonly listingIds: readonly string[];
+  readonly feature: 'coordinates' | 'images' | 'area' | 'bedrooms' | 'description';
+  readonly available: boolean;
+  readonly score: number | null;
+  readonly contribution: number;
 }
 export type PreparedGroupingReason =
   | {

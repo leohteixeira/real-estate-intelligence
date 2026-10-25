@@ -2,6 +2,8 @@ import type { ListingDetail, PropertyResponse } from '@rei/contracts';
 
 export const evidenceAnchor = (listingId: string) => `property-listing-${listingId}`;
 export function propertyStreet(response: PropertyResponse): string {
+  if (response.property.preparedEvidence.kind === 'deterministic-rule')
+    return response.property.listings[0]?.street ?? response.property.summary.place.name.ptBR;
   const street = response.property.preparedEvidence.reasons.find(
     (reason) => reason.type === 'attribute-agreement' && reason.field === 'street',
   );

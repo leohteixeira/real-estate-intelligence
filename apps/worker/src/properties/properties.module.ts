@@ -12,6 +12,7 @@ import {
   ConsumeParsedListing,
   ConsumeListingCompletion,
   ReconcileListingHistory,
+  ReconcilePropertyResolution,
   LISTING_HISTORY_REPOSITORY,
   type ListingHistoryRepository,
   type CollectionHistoryFacade,
@@ -26,6 +27,7 @@ import {
 } from '@rei/application';
 import {
   PostgresPropertyRepository,
+  PostgresPropertyResolutionRepository,
   PostgresListingHistoryRepository,
   type DatabaseConnection,
 } from '@rei/infrastructure';
@@ -39,6 +41,20 @@ import { ListingHistoryJob } from './listing-history.job';
 @Module({
   imports: [CollectionModule, LocationsModule],
   providers: [
+    {
+      provide: ReconcilePropertyResolution,
+      inject: [DATABASE_CONNECTION, TRANSACTION_RUNNER, OUTBOX_APPEND_PORT, UUID_V7_GENERATOR],
+      useFactory: (
+        connection: DatabaseConnection,
+        transactions: TransactionRunner,
+        outbox: OutboxAppendPort,
+        identifiers: UuidV7Generator,
+      ) =>
+        new ReconcilePropertyResolution(
+          new PostgresPropertyResolutionRepository(connection, outbox, identifiers),
+          transactions,
+        ),
+    },
     {
       provide: LISTING_HISTORY_REPOSITORY,
       inject: [DATABASE_CONNECTION],

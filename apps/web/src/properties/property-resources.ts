@@ -56,6 +56,16 @@ export const propertyPortuguese = {
   removed: 'Removido da fonte',
   reappeared: 'Reapareceu na fonte',
   probability: 'Probabilidade ilustrativa',
+  ruleUncalibrated: 'Pontuação de regras determinísticas; sem calibração estatística.',
+  ruleUnavailable: 'Indisponível',
+  rule_coordinates: 'Coordenadas',
+  rule_images: 'Impressões digitais das imagens',
+  rule_area: 'Área',
+  rule_bedrooms: 'Quartos',
+  rule_description: 'Termos da descrição',
+  ruleEvidenceLabel: 'Rótulo da evidência de regras',
+  ruleProbability: 'Pontuação de correspondência',
+  ruleImages: 'Sem fotos. A comparação de imagens usa apenas impressões digitais.',
   uncalibrated:
     'Exemplo preparado, não calibrado. Não é um resultado de resolução de entidades em produção.',
   unresolved:
@@ -169,6 +179,16 @@ export const propertyEnglish: Record<keyof typeof propertyPortuguese, string> = 
   removed: 'Removed from the source',
   reappeared: 'Reappeared at the source',
   probability: 'Illustrative probability',
+  ruleUncalibrated: 'Deterministic rule score; not statistically calibrated.',
+  ruleUnavailable: 'Unavailable',
+  rule_coordinates: 'Coordinates',
+  rule_images: 'Image fingerprints',
+  rule_area: 'Area',
+  rule_bedrooms: 'Bedrooms',
+  rule_description: 'Description tokens',
+  ruleEvidenceLabel: 'Rule evidence label',
+  ruleProbability: 'Match rule score',
+  ruleImages: 'No photos. Image comparison uses fingerprints only.',
   uncalibrated:
     'Prepared example, not calibrated. This is not a production entity-resolution result.',
   unresolved:

@@ -5,3 +5,5 @@ export * from './property.entity.js';
 export * from './listing/normalized-listing.vo.js';
 export * from './listing/listing-chronology.js';
 export * from './largest-reductions.js';
+export * from './property-resolution.js';
+export * from './property-match.events.js';

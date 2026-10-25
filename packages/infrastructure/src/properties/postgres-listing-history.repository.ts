@@ -7,6 +7,7 @@ import {
   type PropertiesEvent,
   type ResolvedPropertyPlace,
 } from '@rei/domain';
+import { lockPropertyResolution } from './property-resolution-guard.js';
 import type { DatabaseConnection } from '../shared/persistence/database-connection.js';
 import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
 
@@ -146,6 +147,7 @@ export class PostgresListingHistoryRepository implements ListingHistoryRepositor
     state: ListingChronologyState,
     events: readonly PropertiesEvent[],
   ): Promise<void> {
+    await lockPropertyResolution(transaction, this.connection);
     const client = postgresClientFor(transaction, this.connection);
     for (const acquisition of state.acquisitions)
       await client.query(

@@ -184,42 +184,64 @@ const propertyWire = wireObject({
       sourceIds: wireArray(wireSlug),
     }),
   ),
-  preparedEvidence: wireObject({
-    kind: wireEnum(['prepared-fixture']),
-    label: wireString,
-    listingIds: wireArray(wireUuid),
-    productionMatchScore: wireNull,
-    illustrativeProbability: wireNumber(0, 1),
-    probabilityBasis: wireEnum(['prepared-not-calibrated']),
-    reasons: wireArray(
-      wireDiscriminated('type', {
-        'attribute-agreement': wireObject({
-          type: wireEnum(['attribute-agreement']),
-          field: wireEnum([
-            'propertyType',
-            'areaSquareMeters',
-            'bedrooms',
-            'bathrooms',
-            'parkingSpaces',
-            'street',
-          ]),
-          value: (value) => {
-            if (value === null) invalidWire();
-            fieldValue(value);
-          },
+  preparedEvidence: wireDiscriminated('kind', {
+    'prepared-fixture': wireObject({
+      kind: wireEnum(['prepared-fixture']),
+      label: wireString,
+      listingIds: wireArray(wireUuid),
+      productionMatchScore: wireNull,
+      illustrativeProbability: wireNumber(0, 1),
+      probabilityBasis: wireEnum(['prepared-not-calibrated']),
+      reasons: wireArray(
+        wireDiscriminated('type', {
+          'attribute-agreement': wireObject({
+            type: wireEnum(['attribute-agreement']),
+            field: wireEnum([
+              'propertyType',
+              'areaSquareMeters',
+              'bedrooms',
+              'bathrooms',
+              'parkingSpaces',
+              'street',
+            ]),
+            value: (value) => {
+              if (value === null) invalidWire();
+              fieldValue(value);
+            },
+            listingIds: wireArray(wireUuid),
+          }),
+          'shared-structured-feature': wireObject({
+            type: wireEnum(['shared-structured-feature']),
+            feature: wireString,
+            listingIds: wireArray(wireUuid),
+          }),
+          'published-neighborhood-disagreement': wireObject({
+            type: wireEnum(['published-neighborhood-disagreement']),
+            values: wireArray(wireObject({ listingId: wireUuid, neighborhood: wireString })),
+          }),
+        }),
+      ),
+    }),
+    'deterministic-rule': wireObject({
+      kind: wireEnum(['deterministic-rule']),
+      label: wireString,
+      listingIds: wireArray(wireUuid),
+      productionMatchScore: wireNullable(wireNumber(0, 1)),
+      rawProbability: wireNullable(wireNumber(0, 1)),
+      probabilityBasis: wireEnum(['deterministic-uncalibrated']),
+      configurationId: wireSlug,
+      configurationVersion: wireNumber(1, Number.MAX_SAFE_INTEGER, true),
+      reasons: wireArray(
+        wireObject({
+          type: wireEnum(['rule-comparison']),
           listingIds: wireArray(wireUuid),
+          feature: wireEnum(['coordinates', 'images', 'area', 'bedrooms', 'description']),
+          available: wireBoolean,
+          score: wireNullable(wireNumber(0, 1)),
+          contribution: wireNumber(0, 1),
         }),
-        'shared-structured-feature': wireObject({
-          type: wireEnum(['shared-structured-feature']),
-          feature: wireString,
-          listingIds: wireArray(wireUuid),
-        }),
-        'published-neighborhood-disagreement': wireObject({
-          type: wireEnum(['published-neighborhood-disagreement']),
-          values: wireArray(wireObject({ listingId: wireUuid, neighborhood: wireString })),
-        }),
-      }),
-    ),
+      ),
+    }),
   }),
 });
 const page = {
