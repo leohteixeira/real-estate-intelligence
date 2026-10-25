@@ -77,6 +77,7 @@ export interface CommitCollectionPageInput {
   readonly nextCursor: string | null;
   readonly checkpointedAt: string;
   readonly observations: readonly CommitCollectionObservationInput[];
+  readonly suppressedListingIds?: readonly string[];
   readonly exhausted: boolean;
   readonly completedAt: string | null;
   readonly manifestHash: Sha256Hash | null;
@@ -119,6 +120,7 @@ export interface CollectionRunRepository extends ParsedEventEvidence, CompletedE
     transaction: Transaction,
     input: StartCollectionRunInput,
   ): Promise<CollectionRunState>;
+  listObservedListingIds?(transaction: Transaction, runId: UuidV7): Promise<readonly string[]>;
   listObservations(
     transaction: Transaction,
     runId: UuidV7,

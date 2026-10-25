@@ -1,5 +1,6 @@
 import {
   ExternalFailure,
+  type ListingAdmission,
   type ListingSource,
   type ListingSourcePage,
   type RawListingDocument,
@@ -17,8 +18,10 @@ export class FixtureListingSourceRouter implements ListingSource {
     sourceId: string,
     cursor: string | null,
     signal: AbortSignal,
+    deadlineAt?: number,
+    admit?: ListingAdmission,
   ): Promise<ListingSourcePage> {
-    return this.sourceFor(sourceId).fetchPage(sourceId, cursor, signal);
+    return this.sourceFor(sourceId).fetchPage(sourceId, cursor, signal, deadlineAt, admit);
   }
 
   public async parse(document: RawListingDocument, signal: AbortSignal): Promise<CollectedListing> {

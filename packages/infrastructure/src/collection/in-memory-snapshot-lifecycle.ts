@@ -45,6 +45,7 @@ export class InMemorySnapshotLifecycle implements SnapshotLifecycle {
         if (
           prior.objectKey !== input.objectKey ||
           prior.sourceId !== input.sourceId ||
+          prior.sourceListingId !== input.sourceListingId ||
           prior.keyId !== input.keyId ||
           prior.byteLength !== input.byteLength ||
           prior.mediaType !== input.mediaType

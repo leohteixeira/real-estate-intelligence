@@ -171,6 +171,7 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
   }
   readonly #runs = new Map<string, CollectionRunState>();
   readonly #operationRuns = new Map<string, string>();
+  readonly #identities = new Map<string, string[]>();
   readonly #observations = new Map<string, PersistedCollectionObservation[]>();
 
   public async pause(
@@ -336,6 +337,17 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
     return run;
   }
 
+  public async listObservedListingIds(
+    _transaction: Transaction,
+    runId: CollectionRunState['runId'],
+  ): Promise<readonly string[]> {
+    return [
+      ...new Set([
+        ...(this.#observations.get(runId) ?? []).map((item) => item.sourceListingId),
+        ...(this.#identities.get(runId) ?? []),
+      ]),
+    ];
+  }
   public async listObservations(
     _transaction: Transaction,
     runId: CollectionRunState['runId'],
@@ -386,7 +398,8 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
       expectedCursor: input.expectedCursor,
       nextCursor: input.nextCursor,
       checkpointedAt: input.checkpointedAt,
-      observedDelta: input.observations.length,
+      observedDelta: input.observations.length + (input.suppressedListingIds?.length ?? 0),
+      suppressedDelta: input.suppressedListingIds?.length ?? 0,
       parsedDelta: input.observations.filter(({ outcome }) => outcome === 'parsed').length,
       changedDelta: input.observations.filter(({ changed }) => changed).length,
       failedDelta: input.observations.filter(({ outcome }) => outcome === 'failed').length,
@@ -412,6 +425,10 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
           imageFingerprints: item.imageFingerprints == null ? null : [...item.imageFingerprints],
         }),
       ),
+    ]);
+    this.#identities.set(input.runId, [
+      ...(this.#identities.get(input.runId) ?? []),
+      ...(input.suppressedListingIds ?? []),
     ]);
     this.#runs.set(input.runId, next);
     return { committed: true, run: next } as const;

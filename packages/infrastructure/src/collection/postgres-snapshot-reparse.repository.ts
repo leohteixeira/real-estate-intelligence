@@ -1,3 +1,4 @@
+import { PostgresListingSuppression } from './postgres-listing-suppression.js';
 import { createHash } from 'node:crypto';
 import {
   ExternalFailure,
@@ -84,7 +85,7 @@ const OBSERVATION = `SELECT observation.snapshot_id::text, observation.run_id::t
   JOIN collection.collection_run AS run USING (run_id)
   JOIN collection.source_register AS source ON source.source_id = run.source_id
   JOIN collection.snapshot_content AS content USING (content_hash)
-  WHERE observation.snapshot_id = $1`;
+  WHERE observation.snapshot_id = $1 AND NOT EXISTS (SELECT 1 FROM collection.listing_suppression suppressed WHERE suppressed.source_id=run.source_id AND suppressed.source_listing_id=observation.source_listing_id)`;
 
 function mapObservation(row: Record<string, unknown>): ReparseObservation {
   if (
@@ -186,6 +187,10 @@ export class PostgresSnapshotReparseRepository implements SnapshotReparseReposit
     fingerprints: readonly string[],
   ) {
     const client = postgresClientFor(transaction, this.connection);
+    if (
+      await new PostgresListingSuppression(this.connection).lockAndCheck(transaction, observation)
+    )
+      return rejected();
     // The observation lock serializes corrections; generation access and ownership stay locked through commit.
     const rows = await client.query<Record<string, unknown>>(
       OBSERVATION + ' FOR UPDATE OF observation',
@@ -228,6 +233,18 @@ export class PostgresSnapshotReparseRepository implements SnapshotReparseReposit
   }
   public async lockForCommit(transaction: Transaction, identity: SnapshotReparseIdentity) {
     const client = postgresClientFor(transaction, this.connection);
+    const discovered = await client.query<Record<string, unknown>>(OBSERVATION, [
+      identity.snapshotId,
+    ]);
+    if (!discovered[0]) return rejected();
+    const identityObservation = mapObservation(discovered[0]);
+    if (
+      await new PostgresListingSuppression(this.connection).lockAndCheck(
+        transaction,
+        identityObservation,
+      )
+    )
+      return rejected();
     const rows = await client.query<Record<string, unknown>>(
       OBSERVATION + ' FOR UPDATE OF observation',
       [identity.snapshotId],

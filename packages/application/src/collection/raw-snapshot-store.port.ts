@@ -10,6 +10,8 @@ export interface StoreRawSnapshotInput {
   readonly synthetic: boolean;
   /** Stable operation/source/listing identity; required for a real acquisition. */
   readonly acquisitionId?: string;
+  /** Required for new real acquisitions; explicit ownership precedes external upload. */
+  readonly sourceListingId?: string;
   readonly bytes: Uint8Array;
 }
 

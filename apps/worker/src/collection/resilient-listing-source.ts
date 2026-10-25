@@ -1,6 +1,7 @@
 import {
   ExternalFailure,
   ListingSourceAccessRefusal,
+  type ListingAdmission,
   type ListingSource,
   type RawListingDocument,
   type SourceRegisterRepository,
@@ -29,9 +30,10 @@ export class ResilientListingSource implements ListingSource {
     cursor: string | null,
     signal: AbortSignal,
     deadlineAt = Number.POSITIVE_INFINITY,
+    admit?: ListingAdmission,
   ) {
     return this.acquire(sourceId, signal, deadlineAt, false, (attempt) =>
-      this.adapter.fetchPage(sourceId, cursor, attempt),
+      this.adapter.fetchPage(sourceId, cursor, attempt, deadlineAt, admit),
     );
   }
 
@@ -40,8 +42,10 @@ export class ResilientListingSource implements ListingSource {
     photoUrl: string,
     signal: AbortSignal,
     deadlineAt = Number.POSITIVE_INFINITY,
+    admit?: () => Promise<void>,
   ): Promise<string> {
     return this.acquire(sourceId, signal, deadlineAt, true, async (attempt) => {
+      await admit?.();
       if (!this.adapter.fingerprintPhoto)
         throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.photo' });
       return this.adapter.fingerprintPhoto(sourceId, photoUrl, attempt);

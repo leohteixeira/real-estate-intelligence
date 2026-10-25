@@ -23,6 +23,7 @@ import {
 } from '@rei/application';
 import {
   PostgresCollectionRunRepository,
+  PostgresListingSuppression,
   PostgresSourceRegisterRepository,
   S3RawSnapshotStore,
   CanonicalSnapshotSanitizer,
@@ -101,6 +102,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
         CLOCK,
         OUTBOX_APPEND_PORT,
         SNAPSHOT_SANITIZER,
+        DATABASE_CONNECTION,
       ],
       useFactory: (
         source: ListingSource,
@@ -112,6 +114,7 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
         clock: Clock,
         outbox: OutboxAppendPort,
         sanitizer: SnapshotSanitizer,
+        connection: DatabaseConnection,
       ): CollectSourceOnce =>
         new CollectSourceOnce(
           source,
@@ -123,6 +126,8 @@ import { ResilientRawSnapshotStore } from './resilient-raw-snapshot-store';
           clock,
           outbox,
           sanitizer,
+          5_000,
+          new PostgresListingSuppression(connection),
         ),
     },
   ],

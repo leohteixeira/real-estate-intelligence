@@ -55,3 +55,5 @@ export {
   MAX_PHOTO_PIXELS,
 } from './sharp-image-fingerprint.js';
 export { HttpListingPhoto } from './http-listing-photo.js';
+export { PostgresListingSuppression } from './postgres-listing-suppression.js';
+export { InMemoryListingSuppression } from './in-memory-listing-suppression.js';

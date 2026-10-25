@@ -124,6 +124,16 @@ export class PostgresOutbox
       : null;
   }
 
+  public async eraseListingCopies(
+    transaction: Transaction,
+    identity: import('@rei/application').ListingIdentity,
+  ): Promise<void> {
+    await postgresClientFor(transaction, this.connection).query(
+      `DELETE FROM platform.outbox WHERE event_type='collection.snapshot.parsed' AND payload->'source'->>'sourceId'=$1 AND payload->'source'->>'sourceListingId'=$2`,
+      [identity.sourceId, identity.sourceListingId],
+    );
+  }
+
   public async append(transaction: Transaction, events: readonly EventEnvelope[]): Promise<void> {
     return runOutboxAppendSpan(async () => {
       const client = postgresClientFor(transaction, this.connection);

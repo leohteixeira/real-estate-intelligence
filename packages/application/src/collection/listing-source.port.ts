@@ -1,3 +1,4 @@
+import type { ListingAdmission } from './listing-suppression.port.js';
 import {
   SOURCE_ACCESS_REFUSALS,
   type CollectedListing,
@@ -31,6 +32,7 @@ export interface RawListingDocument {
 
 export interface ListingSourcePage {
   readonly documents: readonly RawListingDocument[];
+  readonly suppressedListingIds?: readonly string[];
   readonly nextCursor: string | null;
   readonly exhausted: boolean;
 }
@@ -42,6 +44,7 @@ export interface ListingSource {
     cursor: string | null,
     signal: AbortSignal,
     deadlineAt?: number,
+    admit?: ListingAdmission,
   ): Promise<ListingSourcePage>;
   parse(document: RawListingDocument, signal: AbortSignal): Promise<CollectedListing>;
   /** Single photo attempt, returning only computed evidence across the boundary. */
@@ -50,6 +53,7 @@ export interface ListingSource {
     photoUrl: string,
     signal: AbortSignal,
     deadlineAt?: number,
+    admit?: () => Promise<void>,
   ): Promise<string>;
 }
 

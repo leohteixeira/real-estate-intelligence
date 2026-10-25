@@ -12,6 +12,7 @@ export async function prepareImageFingerprints(
   synthetic: boolean,
   signal: AbortSignal,
   deadlineAt?: number,
+  admit?: () => Promise<void>,
 ): Promise<CollectedListing> {
   if (synthetic && original.photoUrls === undefined) return listing;
   const current = await register.findById(original.sourceId, signal);
@@ -24,6 +25,7 @@ export async function prepareImageFingerprints(
   }
   const fingerprints: string[] = [];
   for (const reference of selected) {
+    await admit?.();
     const registration = await register.findById(original.sourceId, signal);
     signal.throwIfAborted();
     if (!registration?.permissions.imageFetchingAllowed || !source.fingerprintPhoto)
@@ -33,6 +35,7 @@ export async function prepareImageFingerprints(
       reference,
       signal,
       deadlineAt,
+      admit,
     );
     signal.throwIfAborted();
     if (!/^dhash64-v1:[a-f0-9]{16}$/.test(fingerprint))

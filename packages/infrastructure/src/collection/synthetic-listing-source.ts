@@ -1,4 +1,9 @@
-import { ExternalFailure, type ListingSource, type RawListingDocument } from '@rei/application';
+import {
+  ExternalFailure,
+  type ListingAdmission,
+  type ListingSource,
+  type RawListingDocument,
+} from '@rei/application';
 import {
   CollectionSnapshotParsed,
   type CollectedListing,
@@ -45,7 +50,13 @@ function cancellation(): ExternalFailure {
 
 /** Deterministic, labelled fixture source. It never performs network I/O. */
 export class SyntheticListingSource implements ListingSource {
-  public async fetchPage(sourceId: string, cursor: string | null, signal: AbortSignal) {
+  public async fetchPage(
+    sourceId: string,
+    cursor: string | null,
+    signal: AbortSignal,
+    _deadlineAt?: number,
+    admit?: ListingAdmission,
+  ) {
     if (signal.aborted) throw cancellation();
     if (sourceId !== SYNTHETIC_LISTING_SOURCE_ID) {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch' });
@@ -53,6 +64,13 @@ export class SyntheticListingSource implements ListingSource {
     if (cursor !== null) {
       return Object.freeze({ documents: Object.freeze([]), nextCursor: null, exhausted: true });
     }
+    if (admit && !(await admit({ sourceId, sourceListingId: SYNTHETIC_LISTING_ID }, signal)))
+      return {
+        documents: [],
+        suppressedListingIds: [SYNTHETIC_LISTING_ID],
+        nextCursor: null,
+        exhausted: true,
+      };
     return Object.freeze({
       documents: Object.freeze([
         Object.freeze({

@@ -208,7 +208,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
       `INSERT INTO collection.completed_event_evidence
         (event_id, run_id, event, observed_source_listing_ids)
        SELECT $1, $2, $3::jsonb, COALESCE(jsonb_agg(source_listing_id ORDER BY source_listing_id), '[]'::jsonb)
-       FROM collection.snapshot_observation WHERE run_id = $2`,
+       FROM (SELECT source_listing_id FROM collection.snapshot_observation WHERE run_id=$2 UNION SELECT source_listing_id FROM collection.run_listing_identity WHERE run_id=$2) identities`,
       [event.eventId, event.aggregateId, JSON.stringify(event)],
     );
   }
@@ -383,6 +383,18 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
     }
   }
 
+  public async listObservedListingIds(
+    transaction: Transaction,
+    runId: CollectionRunState['runId'],
+  ): Promise<readonly string[]> {
+    const rows = await postgresClientFor(transaction, this.connection).query<{
+      source_listing_id: string;
+    }>(
+      `SELECT source_listing_id FROM collection.snapshot_observation WHERE run_id=$1 UNION SELECT source_listing_id FROM collection.run_listing_identity WHERE run_id=$1 ORDER BY source_listing_id`,
+      [runId],
+    );
+    return rows.map((row) => row.source_listing_id);
+  }
   public async listObservations(
     transaction: Transaction,
     runId: CollectionRunState['runId'],
@@ -482,6 +494,11 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
   ): Promise<CommitCollectionPageResult> {
     const client = postgresClientFor(transaction, this.connection);
     try {
+      for (const id of input.suppressedListingIds ?? [])
+        await client.query(
+          'INSERT INTO collection.run_listing_identity (run_id,source_listing_id) VALUES ($1,$2)',
+          [input.runId, id],
+        );
       for (const observation of input.observations) {
         if (observation.objectKey.startsWith('real/')) {
           await this.assertRealGeneration(client, observation);
@@ -549,6 +566,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
                 checkpoint_cursor = $4,
                 checkpointed_at = $5,
                 observed_count = observed_count + $6,
+                suppressed_count = suppressed_count + $14,
                 parsed_count = parsed_count + $7,
                 changed_count = changed_count + $8,
                 failed_count = failed_count + $9,
@@ -567,7 +585,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
           input.expectedCursor,
           input.nextCursor,
           input.checkpointedAt,
-          input.observations.length,
+          input.observations.length + (input.suppressedListingIds?.length ?? 0),
           input.observations.filter(({ outcome }) => outcome === 'parsed').length,
           input.observations.filter(({ changed }) => changed).length,
           input.observations.filter(({ outcome }) => outcome === 'failed').length,
@@ -575,6 +593,7 @@ export class PostgresCollectionRunRepository implements CollectionRunRepository 
           input.completedAt,
           input.manifestHash,
           input.completedEventId,
+          input.suppressedListingIds?.length ?? 0,
         ],
       );
       if (rows[0]) return { committed: true, run: mapRun(rows[0]) };

@@ -1,3 +1,4 @@
+import type { ListingSuppressionAuthority } from './listing-suppression.port.js';
 import { prepareImageFingerprints } from './prepare-image-fingerprints.js';
 import {
   decideSourceEnablement,
@@ -57,6 +58,7 @@ export class CollectSourceOnce {
     private readonly outbox: OutboxAppendPort,
     private readonly sanitizer?: SnapshotSanitizer,
     private readonly terminalCleanupTimeoutMs = 5_000,
+    private readonly suppression?: ListingSuppressionAuthority,
   ) {}
 
   public async execute(
@@ -111,11 +113,31 @@ export class CollectSourceOnce {
     }
     try {
       const startedAt = run.startedAt;
-      const page = await this.source.fetchPage(sourceId, null, signal, deadlineAt);
+      const page = await this.source.fetchPage(
+        sourceId,
+        null,
+        signal,
+        deadlineAt,
+        this.suppression
+          ? (identity, scoped) =>
+              this.suppression!.isSuppressed(identity, scoped).then((value) => !value)
+          : undefined,
+      );
+      if (page.suppressedListingIds?.length)
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.listing.suppressed' });
       if (!page.exhausted || page.documents.length !== 1) {
         throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
       }
       const original = page.documents[0]!;
+      const identity = { sourceId, sourceListingId: original.sourceListingId };
+      const admit = async () => {
+        if (await this.suppression?.isSuppressed(identity, signal))
+          throw new ExternalFailure({
+            kind: 'rejected',
+            operation: 'collection.listing.suppressed',
+          });
+      };
+      await admit();
       const synthetic = registration.category === 'synthetic-listing';
       if (!synthetic && !this.sanitizer)
         throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.snapshot.sanitize' });
@@ -136,6 +158,7 @@ export class CollectSourceOnce {
       const stored = await this.snapshots.store(
         {
           sourceId,
+          sourceListingId: document.sourceListingId,
           mediaType: document.mediaType,
           synthetic,
           acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
@@ -146,6 +169,7 @@ export class CollectSourceOnce {
       );
 
       signal.throwIfAborted();
+      await admit();
       const parsedListing = await this.source.parse(document, signal);
       const trusted = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
       const listing = await prepareImageFingerprints(
@@ -156,11 +180,17 @@ export class CollectSourceOnce {
         synthetic,
         signal,
         deadlineAt,
+        admit,
       );
       signal.throwIfAborted();
 
       return await this.transactions.runInTransaction(async (transaction) => {
         await this.sources.assertCollectible(transaction, sourceId);
+        if (await this.suppression?.lockAndCheck(transaction, identity))
+          throw new ExternalFailure({
+            kind: 'rejected',
+            operation: 'collection.listing.suppressed',
+          });
         signal.throwIfAborted();
         const runId = run.runId;
         const snapshotId = await this.identifiers.generate(transaction);
@@ -282,6 +312,21 @@ export class CollectSourceOnce {
       run.counts.parsed !== 1
     )
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });
+    if (this.suppression)
+      await this.transactions.runInTransaction(async (transaction) => {
+        for (const observation of await this.runs.listObservations(transaction, run.runId)) {
+          if (
+            await this.suppression!.lockAndCheck(transaction, {
+              sourceId,
+              sourceListingId: observation.sourceListingId,
+            })
+          )
+            throw new ExternalFailure({
+              kind: 'rejected',
+              operation: 'collection.listing.suppressed',
+            });
+        }
+      }, signal);
     const replay = await this.runs.findByOperationKey(operationKey, signal);
     if (!replay || replay.sourceId !== sourceId || replay.runId !== run.runId)
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.run.resume' });

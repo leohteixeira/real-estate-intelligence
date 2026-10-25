@@ -76,3 +76,13 @@ export type {
   SnapshotRetention,
 } from './snapshot-lifecycle.port.js';
 export type { ImageFingerprintComputer } from './image-fingerprint.port.js';
+export { RemoveListing } from './remove-listing.service.js';
+export { LISTING_SUPPRESSION } from './listing-suppression.port.js';
+export type {
+  ListingIdentity,
+  ListingSuppression,
+  ListingSuppressionAuthority,
+  ListingSuppressionRepository,
+  CollectedCopyErasure,
+  ListingAdmission,
+} from './listing-suppression.port.js';

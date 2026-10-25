@@ -12,7 +12,8 @@
     "source:enable": "node -r ./dist/otel.js dist/collection/enable-source.js",
     "run:foundation": "node -r ./dist/otel.js dist/ask/execute-foundation.js",
     "typecheck": "tsc --build --force",
-    "test": "vitest run --dir src --passWithNoTests"
+    "test": "vitest run --dir src --passWithNoTests",
+    "listing:remove": "node -r ./dist/otel.js dist/collection/remove-listing.js"
   },
   "dependencies": {
     "@nestjs/common": "12.1.2",

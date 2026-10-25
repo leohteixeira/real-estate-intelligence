@@ -1,3 +1,4 @@
+import type { ListingSuppressionAuthority } from './listing-suppression.port.js';
 import { prepareImageFingerprints } from './prepare-image-fingerprints.js';
 import {
   decideSourceEnablement,
@@ -54,6 +55,7 @@ export interface CollectSourceRunResult {
   readonly parsedCount: number;
   readonly changedCount: number;
   readonly failedCount: number;
+  readonly suppressedCount: number;
   readonly manifestHash: CollectionRunState['manifestHash'];
   readonly completedEventId: CollectionRunState['completedEventId'];
   readonly completedAt: string | null;
@@ -87,6 +89,7 @@ function completedResult(run: CollectionRunState, replayed: boolean): CollectSou
     parsedCount: run.counts.parsed,
     changedCount: run.counts.changed,
     failedCount: run.counts.failed,
+    suppressedCount: run.counts.suppressed,
     manifestHash: run.manifestHash,
     completedEventId: run.completedEventId,
     completedAt: run.completedAt,
@@ -105,6 +108,7 @@ function pausedResult(run: CollectionRunState, replayed: boolean): CollectSource
     parsedCount: run.counts.parsed,
     changedCount: run.counts.changed,
     failedCount: run.counts.failed,
+    suppressedCount: run.counts.suppressed,
     manifestHash: null,
     completedEventId: null,
     completedAt: null,
@@ -122,13 +126,19 @@ function validatePage(
   } catch {
     throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch-page' });
   }
-  if (!page.exhausted && page.documents.length === 0) {
+  if (!page.exhausted && page.documents.length === 0 && !page.suppressedListingIds?.length) {
     throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch-page' });
   }
   if (!page.exhausted && page.nextCursor === consumedCursor) {
     throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch-page' });
   }
   const identities = new Set<string>();
+  for (const id of page.suppressedListingIds ?? []) {
+    parseCollectionSourceListingId(id);
+    if (identities.has(id))
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch-page' });
+    identities.add(id);
+  }
   for (const document of page.documents) {
     let sourceListingId: string;
     try {
@@ -155,6 +165,7 @@ export class CollectSourceRun {
     private readonly clock: Clock,
     private readonly outbox: OutboxAppendPort,
     private readonly sanitizer?: SnapshotSanitizer,
+    private readonly suppression?: ListingSuppressionAuthority,
   ) {}
 
   public async execute(
@@ -221,12 +232,34 @@ export class CollectSourceRun {
             operation: 'collection.source.fetch-page',
           });
         const expected = run.checkpoint;
-        const page = await this.source.fetchPage(sourceId, expected.cursor, signal, deadlineAt);
+        const page = await this.source.fetchPage(
+          sourceId,
+          expected.cursor,
+          signal,
+          deadlineAt,
+          this.suppression
+            ? (identity, scoped) =>
+                this.suppression!.isSuppressed(identity, scoped).then((value) => !value)
+            : undefined,
+        );
         validatePage(page, sourceId, expected.cursor);
 
         const prepared: PreparedObservation[] = [];
+        const suppressedListingIds = [...(page.suppressedListingIds ?? [])];
         for (const original of page.documents) {
           signal.throwIfAborted();
+          const identity = { sourceId, sourceListingId: original.sourceListingId };
+          const admit = async () => {
+            if (await this.suppression?.isSuppressed(identity, signal))
+              throw new ExternalFailure({
+                kind: 'rejected',
+                operation: 'collection.listing.suppressed',
+              });
+          };
+          if (await this.suppression?.isSuppressed(identity, signal)) {
+            suppressedListingIds.push(original.sourceListingId);
+            continue;
+          }
           const synthetic = registration.category === 'synthetic-listing';
           if (!synthetic && !this.sanitizer)
             throw new ExternalFailure({
@@ -235,19 +268,34 @@ export class CollectSourceRun {
             });
           const sanitized = synthetic ? null : this.sanitizer!.sanitize(original);
           const document = sanitized?.document ?? original;
-          const stored = await this.snapshots.store(
-            {
-              sourceId,
-              mediaType: document.mediaType,
-              synthetic,
-              bytes: document.bytes,
-              acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
-            },
-            signal,
-            deadlineAt,
-          );
+          let stored: StoredRawSnapshot;
+          try {
+            await admit();
+            stored = await this.snapshots.store(
+              {
+                sourceId,
+                sourceListingId: document.sourceListingId,
+                mediaType: document.mediaType,
+                synthetic,
+                bytes: document.bytes,
+                acquisitionId: JSON.stringify([operationKey, sourceId, document.sourceListingId]),
+              },
+              signal,
+              deadlineAt,
+            );
+          } catch (error) {
+            if (
+              error instanceof ExternalFailure &&
+              error.operation === 'collection.listing.suppressed'
+            ) {
+              suppressedListingIds.push(original.sourceListingId);
+              continue;
+            }
+            throw error;
+          }
           signal.throwIfAborted();
           try {
+            await admit();
             const parsedListing = await this.source.parse(document, signal);
             const trusted = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
             const listing = await prepareImageFingerprints(
@@ -258,9 +306,17 @@ export class CollectSourceRun {
               synthetic,
               signal,
               deadlineAt,
+              admit,
             );
             prepared.push({ document, stored, listing, failureReason: null });
           } catch (error) {
+            if (
+              error instanceof ExternalFailure &&
+              error.operation === 'collection.listing.suppressed'
+            ) {
+              suppressedListingIds.push(original.sourceListingId);
+              continue;
+            }
             if (
               error instanceof ExternalFailure &&
               error.kind === 'rejected' &&
@@ -281,6 +337,20 @@ export class CollectSourceRun {
         try {
           const transition = await this.transactions.runInTransaction(async (transaction) => {
             await this.sources.assertCollectible(transaction, sourceId);
+            // Removal locks listing identity before preserving its run identity. Match that order
+            // before locking the run row, including pages containing several prepared listings.
+            const suppressedPrepared = new Set<string>();
+            for (const item of [...prepared].sort((left, right) =>
+              left.document.sourceListingId.localeCompare(right.document.sourceListingId),
+            )) {
+              if (
+                await this.suppression?.lockAndCheck(transaction, {
+                  sourceId,
+                  sourceListingId: item.document.sourceListingId,
+                })
+              )
+                suppressedPrepared.add(item.document.sourceListingId);
+            }
             const locked = await this.runs.lockRunForPage(
               transaction,
               run!.runId,
@@ -290,6 +360,9 @@ export class CollectSourceRun {
             if (locked.status === 'completed') return { run: locked, committed: false };
 
             const prefix = await this.runs.listObservations(transaction, locked.runId);
+            const prefixIds = this.runs.listObservedListingIds
+              ? await this.runs.listObservedListingIds(transaction, locked.runId)
+              : prefix.map((item) => item.sourceListingId);
             const prefixByIdentity = new Map(prefix.map((item) => [item.sourceListingId, item]));
             for (const item of prepared) {
               const existing = prefixByIdentity.get(item.document.sourceListingId);
@@ -316,6 +389,10 @@ export class CollectSourceRun {
             const parsedEvents: CollectionSnapshotParsed[] = [];
             const occurredAt = this.clock.now();
             for (const item of prepared) {
+              if (suppressedPrepared.has(item.document.sourceListingId)) {
+                suppressedListingIds.push(item.document.sourceListingId);
+                continue;
+              }
               const snapshotId = await this.identifiers.generate(transaction);
               const parsedEventId =
                 item.listing === null ? null : await this.identifiers.generate(transaction);
@@ -374,7 +451,8 @@ export class CollectSourceRun {
             const completedAt = page.exhausted ? occurredAt : null;
             const manifestHash = page.exhausted
               ? hashCollectionManifest([
-                  ...prefix.map(({ sourceListingId }) => sourceListingId),
+                  ...prefixIds,
+                  ...suppressedListingIds,
                   ...observations.map(({ sourceListingId }) => sourceListingId),
                 ])
               : null;
@@ -388,6 +466,7 @@ export class CollectSourceRun {
               nextCursor: page.nextCursor,
               checkpointedAt: occurredAt,
               observations,
+              suppressedListingIds,
               exhausted: page.exhausted,
               completedAt,
               manifestHash,

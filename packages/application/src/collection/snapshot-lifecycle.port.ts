@@ -7,6 +7,8 @@ export const SNAPSHOT_RETENTION_MS = 30 * 24 * 60 * 60 * 1_000;
 export interface SnapshotGeneration {
   readonly acquisitionScope: string;
   readonly sourceId: string;
+  readonly sourceListingId?: string;
+  readonly suppressed?: boolean;
   readonly objectKey: string;
   readonly contentHash: Sha256Hash;
   readonly byteLength: number;
@@ -20,6 +22,21 @@ export interface SnapshotGeneration {
 
 /** Durable reservations precede uploads, including uploads that never produce observations. */
 export interface SnapshotLifecycle {
+  withSyntheticUpload?<T>(
+    input: {
+      readonly objectKey: string;
+      readonly sourceId: string;
+      readonly sourceListingId: string;
+    },
+    signal: AbortSignal,
+    work: () => Promise<T>,
+  ): Promise<T>;
+  deleteSynthetic?(
+    objectKey: string,
+    signal: AbortSignal,
+    work: () => Promise<void>,
+    nextReconciliationAt: string,
+  ): Promise<void>;
   reserve(
     input: Omit<SnapshotGeneration, 'expiresAt' | 'deleted' | 'available'>,
     signal: AbortSignal,

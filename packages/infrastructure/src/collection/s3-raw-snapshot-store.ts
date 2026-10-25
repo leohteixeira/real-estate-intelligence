@@ -21,6 +21,7 @@ import {
 } from '@rei/application';
 import {
   parseSha256Hash,
+  parseCollectionSourceListingId,
   sanitizeSnapshotListing,
   assertSnapshotIdentifier,
   isOwnedSyntheticSourceId,
@@ -225,68 +226,77 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
     const contentHash = parseSha256Hash(`sha256:${digest}`);
     const objectKey = `synthetic/sha256/${digest}.json`;
 
-    try {
-      await this.#ensureBucket(signal);
+    const upload = async (): Promise<StoredRawSnapshot> => {
       try {
-        const existing = await this.#client.send(
-          new HeadObjectCommand({ Bucket: this.#bucket, Key: objectKey }),
-          { abortSignal: signal },
-        );
-        await this.#verifyExistingObject(
-          objectKey,
-          existing,
-          input.bytes.byteLength,
-          contentHash,
-          signal,
-        );
-        return Object.freeze({
-          contentHash,
-          objectKey,
-          byteLength: input.bytes.byteLength,
-          mediaType: input.mediaType,
-        });
+        await this.#ensureBucket(signal);
+        try {
+          const existing = await this.#client.send(
+            new HeadObjectCommand({ Bucket: this.#bucket, Key: objectKey }),
+            { abortSignal: signal },
+          );
+          await this.#verifyExistingObject(
+            objectKey,
+            existing,
+            input.bytes.byteLength,
+            contentHash,
+            signal,
+          );
+          return Object.freeze({
+            contentHash,
+            objectKey,
+            byteLength: input.bytes.byteLength,
+            mediaType: input.mediaType,
+          });
+        } catch (error) {
+          if (error instanceof ExternalFailure) throw error;
+          if (!isMissingObject(error)) throw error;
+        }
+        try {
+          await this.#client.send(
+            new PutObjectCommand({
+              Bucket: this.#bucket,
+              Key: objectKey,
+              Body: Buffer.from(input.bytes.buffer, input.bytes.byteOffset, input.bytes.byteLength),
+              ContentLength: input.bytes.byteLength,
+              ContentType: input.mediaType,
+              IfNoneMatch: '*',
+              Metadata: { 'rei-content-hash': contentHash, 'rei-source-id': input.sourceId },
+            }),
+            { abortSignal: signal },
+          );
+        } catch (error) {
+          if (!isPreconditionFailure(error)) throw error;
+          const existing = await this.#client.send(
+            new HeadObjectCommand({ Bucket: this.#bucket, Key: objectKey }),
+            { abortSignal: signal },
+          );
+          await this.#verifyExistingObject(
+            objectKey,
+            existing,
+            input.bytes.byteLength,
+            contentHash,
+            signal,
+          );
+        }
       } catch (error) {
         if (error instanceof ExternalFailure) throw error;
-        if (!isMissingObject(error)) throw error;
+        throw externalFailure(error, signal);
       }
-      try {
-        await this.#client.send(
-          new PutObjectCommand({
-            Bucket: this.#bucket,
-            Key: objectKey,
-            Body: Buffer.from(input.bytes.buffer, input.bytes.byteOffset, input.bytes.byteLength),
-            ContentLength: input.bytes.byteLength,
-            ContentType: input.mediaType,
-            IfNoneMatch: '*',
-            Metadata: { 'rei-content-hash': contentHash, 'rei-source-id': input.sourceId },
-          }),
-          { abortSignal: signal },
-        );
-      } catch (error) {
-        if (!isPreconditionFailure(error)) throw error;
-        const existing = await this.#client.send(
-          new HeadObjectCommand({ Bucket: this.#bucket, Key: objectKey }),
-          { abortSignal: signal },
-        );
-        await this.#verifyExistingObject(
-          objectKey,
-          existing,
-          input.bytes.byteLength,
-          contentHash,
-          signal,
-        );
-      }
-    } catch (error) {
-      if (error instanceof ExternalFailure) throw error;
-      throw externalFailure(error, signal);
-    }
 
-    return Object.freeze({
-      contentHash,
-      objectKey,
-      byteLength: input.bytes.byteLength,
-      mediaType: input.mediaType,
-    });
+      return Object.freeze({
+        contentHash,
+        objectKey,
+        byteLength: input.bytes.byteLength,
+        mediaType: input.mediaType,
+      });
+    };
+    return input.sourceListingId && this.#lifecycle?.withSyntheticUpload
+      ? this.#lifecycle.withSyntheticUpload(
+          { objectKey, sourceId: input.sourceId, sourceListingId: input.sourceListingId },
+          signal,
+          upload,
+        )
+      : upload();
   }
 
   /** Reads an immutable object for integrity checks without exposing the provider SDK. */
@@ -335,6 +345,7 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
 
   #assertAccessible(generation: SnapshotGeneration, requireAvailable: boolean): void {
     if (
+      generation.suppressed ||
       generation.deleted ||
       (requireAvailable && !generation.available) ||
       Date.parse(this.#clock.now()) >= Date.parse(generation.expiresAt)
@@ -364,12 +375,14 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
     if (
       !this.#codec ||
       !input.acquisitionId ||
+      !input.sourceListingId ||
       input.bytes.byteLength === 0 ||
       input.bytes.byteLength > 1_048_576
     )
       throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.store' });
     try {
       assertSnapshotIdentifier(input.sourceId);
+      parseCollectionSourceListingId(input.sourceListingId);
       // Reject callers that bypass the application sanitizer; never upload their bytes.
       const listing = sanitizeSnapshotListing(
         JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(input.bytes)),
@@ -387,6 +400,7 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
       {
         acquisitionScope,
         sourceId: input.sourceId,
+        sourceListingId: input.sourceListingId,
         objectKey,
         contentHash,
         byteLength: input.bytes.byteLength,
@@ -437,8 +451,26 @@ export class S3RawSnapshotStore implements RawSnapshotStore {
   /** Only expired real generations are deleted; historical metadata is retained. */
   public async delete(objectKey: string, signal: AbortSignal): Promise<void> {
     const lifecycle = this.#realLifecycle();
+    if (objectKey.startsWith('synthetic/')) {
+      if (!lifecycle.deleteSynthetic)
+        throw new ExternalFailure({ kind: 'forbidden', operation: 'raw-snapshot.delete' });
+      return lifecycle.deleteSynthetic(
+        objectKey,
+        signal,
+        async () => {
+          await this.#client.send(
+            new DeleteObjectCommand({ Bucket: this.#bucket, Key: objectKey }),
+            { abortSignal: signal },
+          );
+        },
+        new Date(Date.parse(this.#clock.now()) + this.#reconciliationIntervalMs).toISOString(),
+      );
+    }
     await lifecycle.withGeneration(objectKey, signal, async (generation, transaction) => {
-      if (Date.parse(this.#clock.now()) < Date.parse(generation.expiresAt))
+      if (
+        !generation.suppressed &&
+        Date.parse(this.#clock.now()) < Date.parse(generation.expiresAt)
+      )
         throw new ExternalFailure({ kind: 'rejected', operation: 'raw-snapshot.delete' });
       try {
         await this.#client.send(new DeleteObjectCommand({ Bucket: this.#bucket, Key: objectKey }), {

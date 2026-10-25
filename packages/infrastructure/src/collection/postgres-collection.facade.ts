@@ -1,3 +1,4 @@
+import { PostgresListingSuppression } from './postgres-listing-suppression.js';
 import type {
   CollectionFacade,
   CollectionHistoryFacade,
@@ -198,6 +199,13 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
     event: ParsedCollectionEvent,
   ): Promise<boolean> {
     if (!isOwnedSyntheticSourceId(event.payload.source.sourceId)) return false;
+    if (
+      await new PostgresListingSuppression(this.connection).lockAndCheck(
+        transaction,
+        event.payload.source,
+      )
+    )
+      return false;
     const client = postgresClientFor(transaction, this.connection);
     const rows = await client.query<{
       event: unknown;
@@ -291,7 +299,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
               COALESCE(array_agg(observation.source_listing_id ORDER BY observation.source_listing_id)
                 FILTER (WHERE observation.source_listing_id IS NOT NULL), ARRAY[]::text[]) AS source_listing_ids
          FROM collection.collection_run AS run
-         LEFT JOIN collection.snapshot_observation AS observation ON observation.run_id = run.run_id
+         LEFT JOIN (SELECT run_id,source_listing_id FROM collection.snapshot_observation UNION SELECT run_id,source_listing_id FROM collection.run_listing_identity) AS observation ON observation.run_id = run.run_id
         WHERE run.run_id = $1 AND run.status = 'completed'
         GROUP BY run.run_id`,
       [runId],
@@ -333,11 +341,11 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
 
   public async getSnapshotHash(snapshotId: string): Promise<Sha256Hash | null> {
     const rows = await this.connection.query<{ content_hash: unknown }>(
-      'SELECT content_hash FROM collection.snapshot_observation WHERE snapshot_id = $1',
+      `SELECT observation.content_hash FROM collection.snapshot_observation observation JOIN collection.collection_run run USING(run_id) WHERE observation.snapshot_id=$1 AND NOT EXISTS (SELECT 1 FROM collection.listing_suppression suppressed WHERE suppressed.source_id=run.source_id AND suppressed.source_listing_id=observation.source_listing_id)`,
       [snapshotId],
     );
     const value = rows[0]?.content_hash;
-    if (value === undefined) return null;
+    if (value == null) return null;
     if (typeof value !== 'string')
       throw new Error('Collection persistence returned a malformed hash.');
     return parseSha256Hash(value);
@@ -382,7 +390,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
        WHERE observation.snapshot_id=$1 AND run.run_id=$2 AND run.source_id=$3
          AND observation.source_listing_id=$4 AND observation.source_url=$5
          AND observation.content_hash=$6 AND observation.observed_at=$7
-         AND observation.outcome='parsed' AND run.status='completed'`,
+         AND observation.outcome='parsed' AND run.status='completed' AND NOT EXISTS (SELECT 1 FROM collection.listing_suppression suppressed WHERE suppressed.source_id=run.source_id AND suppressed.source_listing_id=observation.source_listing_id)`,
       [
         expected.snapshotId,
         expected.runId,

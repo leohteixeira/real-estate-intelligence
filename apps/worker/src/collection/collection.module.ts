@@ -1,5 +1,6 @@
 import { Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
 import {
+  LISTING_SUPPRESSION,
   CLOCK,
   COLLECTION_FACADE,
   COLLECTION_RUN_REPOSITORY,
@@ -33,6 +34,7 @@ import {
 } from '@rei/application';
 import {
   PostgresCollectionRunRepository,
+  PostgresListingSuppression,
   PostgresCollectionFacade,
   PostgresCollectionScheduleRepository,
   PostgresSourceRegisterRepository,
@@ -57,6 +59,11 @@ import { SnapshotRetentionJob } from './snapshot-retention.job';
 
 @Module({
   providers: [
+    {
+      provide: LISTING_SUPPRESSION,
+      inject: [DATABASE_CONNECTION],
+      useFactory: (connection: DatabaseConnection) => new PostgresListingSuppression(connection),
+    },
     {
       provide: COLLECTION_FACADE,
       inject: [DATABASE_CONNECTION, SOURCE_REGISTER_REPOSITORY],
@@ -145,6 +152,7 @@ import { SnapshotRetentionJob } from './snapshot-retention.job';
         CLOCK,
         OUTBOX_APPEND_PORT,
         SNAPSHOT_SANITIZER,
+        DATABASE_CONNECTION,
       ],
       useFactory: (
         source: ListingSource,
@@ -156,6 +164,7 @@ import { SnapshotRetentionJob } from './snapshot-retention.job';
         clock: Clock,
         outbox: OutboxAppendPort,
         sanitizer: SnapshotSanitizer,
+        connection: DatabaseConnection,
       ): CollectSourceRun =>
         new CollectSourceRun(
           source,
@@ -167,6 +176,7 @@ import { SnapshotRetentionJob } from './snapshot-retention.job';
           clock,
           outbox,
           sanitizer,
+          new PostgresListingSuppression(connection),
         ),
     },
     {

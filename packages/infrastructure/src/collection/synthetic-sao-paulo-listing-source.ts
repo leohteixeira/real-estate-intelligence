@@ -1,4 +1,9 @@
-import { ExternalFailure, type ListingSource, type RawListingDocument } from '@rei/application';
+import {
+  ExternalFailure,
+  type ListingAdmission,
+  type ListingSource,
+  type RawListingDocument,
+} from '@rei/application';
 import { isOwnedSyntheticSourceId, type CollectedListing } from '@rei/domain';
 
 import { SYNTHETIC_SAO_PAULO_DATASET } from './synthetic-sao-paulo.dataset.js';
@@ -41,7 +46,13 @@ export class SyntheticSaoPauloListingSource implements ListingSource {
     }
   }
 
-  public async fetchPage(sourceId: string, cursor: string | null, signal: AbortSignal) {
+  public async fetchPage(
+    sourceId: string,
+    cursor: string | null,
+    signal: AbortSignal,
+    _deadlineAt?: number,
+    admit?: ListingAdmission,
+  ) {
     if (signal.aborted) throw cancelled();
     if (!isOwnedSyntheticSourceId(sourceId) || sourceId === 'synthetic-data') {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch-page' });
@@ -64,6 +75,14 @@ export class SyntheticSaoPauloListingSource implements ListingSource {
       return Object.freeze({ documents: Object.freeze([]), nextCursor: cursor, exhausted: true });
     }
     const observation = observations[index]!;
+    const exhausted = index + 1 === observations.length;
+    if (admit && !(await admit({ sourceId, sourceListingId: observation.sourceListingId }, signal)))
+      return {
+        documents: [],
+        suppressedListingIds: [observation.sourceListingId],
+        nextCursor: `fixture:${CYCLE}:${index + 1}`,
+        exhausted,
+      };
     const document: RawListingDocument = Object.freeze({
       sourceId: observation.sourceId,
       sourceListingId: observation.sourceListingId,
@@ -72,7 +91,6 @@ export class SyntheticSaoPauloListingSource implements ListingSource {
       mediaType: 'application/json',
       bytes: canonicalBytes(observation.listing),
     });
-    const exhausted = index + 1 === observations.length;
     return Object.freeze({
       documents: Object.freeze([document]),
       nextCursor: `fixture:${CYCLE}:${index + 1}`,
