@@ -16,6 +16,7 @@ coverage/
 
 # BMad: the personal configuration layer stays local; team layers are tracked
 _bmad/custom/*.user.toml
+_bmad/render/
 
 # Generated browser evidence stays local; keep review reports and design configuration.
 /apps/web/.impeccable/review/**
