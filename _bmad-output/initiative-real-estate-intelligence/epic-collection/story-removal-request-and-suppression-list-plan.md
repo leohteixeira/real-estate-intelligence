@@ -3,7 +3,7 @@ title: 'Removal request and suppression list'
 type: 'feature'
 ticket: '10'
 created: '2026-10-25'
-status: built
+status: done
 baseline_revision: 'b89971935b5255dd2d2d5b93a091f5737deabac1'
 route: 'full'
 route_source: 'auto'
@@ -535,3 +535,14 @@ Files changed:
   Implement suppression, scoped erasure, ownership or command wiring.
 - `specs/adrs/0015-handling-of-collected-data.md`: Record the accepted removal contract, operation
   or verified delivery.
+
+### Delivery closure — 2026-10-25
+
+Implementation: `a1aff55c418adf6ac8ea26ff855039a6263890d0`.
+Tests: `d0c6e66ae2a15c86855c307d793e5c227ade05d7`.
+Verified delivery record: `53a46cd0b4643df3f7beba9b23b9c38f1b732a59`.
+All 56 reviewed files appear after the canonical baseline; the working copy was clean before
+marking this ticket done. Every staged secret, formatting, ESLint/Markdown and Conventional Commit
+hook passed. Code/test formatters reported unchanged files, preserving the verified runtime and
+campaign identities. The orchestrator marks 2.10 done on the acceptance, targeted independent
+review correction and final gate receipts above. No publication or downstream erasure is claimed.
