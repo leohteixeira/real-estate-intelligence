@@ -109,7 +109,6 @@ covers = ["CAP-4"]
 after = [3, 4, 6, 7, 8]
 hitl = false
 risk = "medium"
-unknown = "Which perceptual algorithm and similarity measure, and how many photographs of a listing are fetched."
 
 [[entry]]
 id = 10

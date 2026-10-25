@@ -79,6 +79,16 @@ fetching; each request consumes the rate allowance. Compute one deterministic fi
 fetched photograph in memory and discard the photograph immediately. No need for face/person
 recognition, retained photos or image URLs has been demonstrated; none is authorized.
 
+D-089 in ADR 0015 bounds the engineering choice to the first three distinct photograph URLs,
+processed sequentially with versioned horizontal dHash64, 5 MiB compressed inputs and 16 million
+input pixels. Matching algorithm tags permit Hamming similarity; they do not establish a match
+threshold or the necessity of receiving a real source's photographs. The local story 2.9
+campaign verifies acquisition, shared rate accounting, permission checks, no-photo-storage and
+acquisition-free reparse with controlled photographs. Its existing
+[plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-image-fingerprints-at-collection-plan.md)
+records the commands, outcomes and the additional automatic-telemetry privacy regression.
+Source-specific necessity, balancing and activation remain independent.
+
 ROP-05 needs a stable source identity to keep a removed listing out. Prefer minimum suppression
 and outcome evidence over preserving the removed listing or collecting identity documents. Rights
 correspondence belongs in a separately restricted workflow with proportionate verification and
@@ -137,17 +147,17 @@ The [operation inventory](record-of-processing-operations.md#operation-inventory
 retention, recipients, rights and security responsibilities. This matrix connects each balancing
 requirement to the binding decision and the current evidence, without treating policy as delivery.
 
-| Operation                | Safeguard and binding source                                                                                       | Evidence or condition still required                                                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ROP-01                   | Closed allowlist, prohibited contacts/person names/photos, default-denied permissions; ADR 0015.                   | Canonical projection and unsafe-provenance rejection are tested locally; each real adapter and source-specific residual-text review remain gated.          |
-| ROP-02                   | Authenticated encryption with no fallback key, trusted fixed 30-day acquisition expiry; ADR 0018.                  | Local lifecycle evidence exists; deployed key custody, storage permissions and independent retention/backup obligations remain unresolved.                 |
-| ROP-02                   | Ongoing tombstone reconciliation, fair incremental selection, expiry-safe access/commit; ADR 0019.                 | Local late-write, deadline and restart evidence exists; production cadence, capacity and operational monitoring require proof.                             |
-| ROP-02/03                | Reparse preserves original provenance/fingerprints and corrects without new acquisition; D-018 and collection 2.8. | Actual CLI evidence is synthetic; real-category expiry/privacy checks use local injected fixtures. Downstream correction/history behaviour is future work. |
-| ROP-03                   | Distinct listing/property, explainable matches and separate asking/transaction figures; product spec.              | Normalization, public-text permission enforcement, calibration and dispute/removal propagation must be delivered before real exposure.                     |
-| ROP-04                   | Independent image permission, in-memory computation and immediate photo disposal; ADR 0015.                        | Collection 2.9 must settle algorithm/count/measure and prove rate, no-photo-storage and no-image behaviour. Synthetic prepared hashes are not that proof.  |
-| ROP-05                   | Suppression first; pre-fetch and pre-write exclusion plus erasure; ADR 0015.                                       | Collection 2.10, rights channel, correspondence periods and backup/consumer removal evidence remain pending.                                               |
-| ROP-06                   | Bounded outbox/inbox delivery retention and metadata-only observability; ADR 0017.                                 | Local evidence covers delivery/collection telemetry; audit/dead-letter/log/trace/backup periods and external processors need review.                       |
-| Any external model route | No model ingestion in MVP; isolated AI and pre-transmission verified ZDR for user text; ADR 0014.                  | No collection-text transmission is authorized here. Future provider/basis/region review is separate from ZDR route verification.                           |
+| Operation                | Safeguard and binding source                                                                                           | Evidence or condition still required                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ROP-01                   | Closed allowlist, prohibited contacts/person names/photos, default-denied permissions; ADR 0015.                       | Canonical projection and unsafe-provenance rejection are tested locally; each real adapter and source-specific residual-text review remain gated.          |
+| ROP-02                   | Authenticated encryption with no fallback key, trusted fixed 30-day acquisition expiry; ADR 0018.                      | Local lifecycle evidence exists; deployed key custody, storage permissions and independent retention/backup obligations remain unresolved.                 |
+| ROP-02                   | Ongoing tombstone reconciliation, fair incremental selection, expiry-safe access/commit; ADR 0019.                     | Local late-write, deadline and restart evidence exists; production cadence, capacity and operational monitoring require proof.                             |
+| ROP-02/03                | Reparse preserves original provenance/fingerprints and corrects without new acquisition; D-018 and collection 2.8.     | Actual CLI evidence is synthetic; real-category expiry/privacy checks use local injected fixtures. Downstream correction/history behaviour is future work. |
+| ROP-03                   | Distinct listing/property, explainable matches and separate asking/transaction figures; product spec.                  | Normalization, public-text permission enforcement, calibration and dispute/removal propagation must be delivered before real exposure.                     |
+| ROP-04                   | Independent permission, transient processing, bounded dHash64 acquisition and shared source admission; ADR 0015/D-089. | Story 2.9 records local real-service proof of rate, no-photo-storage and denied-image behaviour; real-source necessity and permission remain gated.        |
+| ROP-05                   | Suppression first; pre-fetch and pre-write exclusion plus erasure; ADR 0015.                                           | Collection 2.10, rights channel, correspondence periods and backup/consumer removal evidence remain pending.                                               |
+| ROP-06                   | Bounded outbox/inbox delivery retention and metadata-only observability; ADR 0017.                                     | Local evidence covers delivery/collection telemetry; audit/dead-letter/log/trace/backup periods and external processors need review.                       |
+| Any external model route | No model ingestion in MVP; isolated AI and pre-transmission verified ZDR for user text; ADR 0014.                      | No collection-text transmission is authorized here. Future provider/basis/region review is separate from ZDR route verification.                           |
 
 The owner must supply public identity/contact and a bilingual, discoverable notice, exercise the
 rights workflow, and verify recipients, contracts, regions and applicable transfer evidence.

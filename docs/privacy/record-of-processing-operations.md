@@ -147,16 +147,22 @@ below; each operation states its own purpose, categories, basis, retention and d
 - **Basis and necessity:** a separate conditional legitimate-interest assessment of each source
   must show why an image-free alternative is insufficient. Publisher image permission and lawful
   basis are independent requirements; neither general collection nor text permission grants it.
-- **Systems, recipients and access:** future worker image adapter/algorithm, publisher and hosting
+- **Systems, recipients and access:** worker image adapter/algorithm, publisher and hosting
   recipients; each image request counts against the source rate. Downstream receives fingerprints
   only through ROP-03/06, without image URLs or photographs added to the allowlist.
 - **Retention and rights:** exactly one deterministic fingerprint per fetched photograph; discard
   the image immediately after in-memory computation, without file, cache or log persistence.
   Fingerprint retention and removal follow ROP-03/05 and must be resolved before real use.
-- **Security and status:** synthetic fixtures carry prepared fingerprints and no photographs.
-  Real image fetching remains disabled by default. The algorithm, similarity measure and number
-  fetched are still unresolved in collection story 2.9; canonical hash validation is not proof
-  that a perceptual acquisition algorithm or photo lifecycle already exists.
+- **Security and status:** D-089 in ADR 0015 selects versioned horizontal dHash64, Sharp 0.35.5,
+  and the first three distinct photograph URLs in source order, processed sequentially within
+  5 MiB/16-million-pixel input bounds. Hamming similarity applies only to matching algorithm tags;
+  repeated hashes retain one result per photograph. Current permission is checked before every
+  attempt, including after admission waits; pages and photographs share source admission state.
+  The local real-service campaign in collection story 2.9 proves these controls, denial,
+  no-photo-storage and acquisition-free reparse; its
+  [plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-image-fingerprints-at-collection-plan.md)
+  records the actual evidence and automatic-telemetry privacy regression. Real source acquisition
+  remains disabled; no source-specific necessity or permission follows from D-089.
 
 ### ROP-05 — Rights handling, removal and suppression
 

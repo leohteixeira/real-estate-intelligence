@@ -67,6 +67,14 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 
 ## Notes
 
+- Decision: D-089 and the accepted ADR 0015 clarification select versioned horizontal dHash64
+  (`dhash64-v1`), Sharp 0.35.5 and at most three distinct photographs in source order, processed
+  sequentially in memory within 5 MiB/16-million-pixel bounds. Photograph attempts share page
+  admission state and recheck independent permission. New acquisition v3/correction v4 preserve
+  empty or repeated perceptual evidence without changing strict v1/v2 or historical fixtures;
+  reparse never fetches photographs. Hamming similarity applies only to matching algorithm tags;
+  matching calibration and real-source activation remain separate
+  (agent, on the owner's behalf, 2026-10-25).
 - Decision: D-047 and the accepted ADR 0015 clarification close current fingerprint
   representations to SHA-256 and identifiable prepared synthetic labels, preserving every
   published dataset value, and reject demonstrated explicit street unit/complement details.
@@ -132,8 +140,8 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
   with three listings, history over several runs, fingerprints and a zone for every neighborhood.
 - Parked: the third success signal (a real source) waits for the written answer of Caixa; the owner
   agreed on 2026-10-10 that the MVP goes live on the synthetic dataset.
-- Unknown: the fingerprint algorithm, its similarity measure and how many photographs of a listing
-  are fetched; the fingerprint entry settles it.
+- Resolved: D-089 settles collection story 2.9's algorithm, similarity measure and photograph
+  count; implementation and acceptance evidence remain in that story's existing plan.
 - Waits on epic-platform-baseline because: it needs the outbox and relay, the resilience
   composition, the kernel and the data-handling ADR.
 - Tracer bullet: entry 2; entry 1 precedes it so epic-properties opens on the contracts.

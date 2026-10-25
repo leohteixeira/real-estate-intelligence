@@ -55,6 +55,40 @@ guards remain. Ordinary street names such as `Rua dos Apartamentos`, `Avenida Bl
 `Rua dos Fundos`, and a door number alone, remain valid. This bounded validation is not general
 address recognition or an exhaustive anonymization guarantee.
 
+### Accepted clarification — D-089, 2026-10-25
+
+Accepted by the agent on the owner's behalf, 2026-10-25, for collection story 2.9.
+This settles the representation and acquisition bounds reserved above; it adds no retained
+field, source permission or real-source activation.
+
+- Compute horizontal dHash64, represented as `dhash64-v1:` followed by 16 lowercase hexadecimal
+  digits. Apply EXIF orientation, flatten transparency over white, convert to grayscale and resize
+  to 9 by 8 pixels using Lanczos3. Compare each right pixel with its left neighbour using `>`;
+  encode comparisons in row order with the first comparison as the most significant bit.
+  Sharp 0.35.5 is pinned in infrastructure for JPEG, PNG and WebP decoding. This versioned pipeline
+  does not claim byte-for-byte equivalence with another decoder's implementation.
+- Select at most the first three distinct photograph URLs in source order. Process sequentially,
+  in memory, with a 5 MiB compressed-input limit, a 16-million-pixel input limit and bounded native
+  computation. Keep photograph URLs transient; store, cache and log neither them nor media bytes.
+- Every photograph attempt shares the listing page's actual per-source rate, cooldown and
+  resilience state. Recheck current independent image permission before each attempt, including
+  after an admission wait. Denial produces zero photograph requests and empty fingerprint evidence.
+- Produce one fingerprint per selected photograph fetched, preserving order and equal perceptual
+  hashes. A selected photograph's failure fails observation preparation; a partial result is not
+  published as a completed observation. Reparse uses original fingerprint evidence and never
+  acquires photographs.
+- Preserve strict acquisition v1 and correction v2 readers, historical SHA-256 values, prepared
+  synthetic labels and dataset bytes. Use acquisition v3 when the new representation or empty
+  evidence requires it, and correction v4 when perceptual evidence requires it. New versions
+  preserve repeated perceptual hashes; do not silently broaden historical contracts.
+- Hamming distance is 0–64 and similarity is `1 - distance / 64` for matching algorithm tags only.
+  Mixed representations do not establish perceptual similarity. Matching weights and thresholds
+  remain the responsibility of properties stories 3.6 and 3.7.
+
+Implementation and verification evidence belongs to the existing
+[story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-image-fingerprints-at-collection-plan.md).
+This decision alone does not establish that the controls have passed their verification gates.
+
 ### Photographs and listing text
 
 For each real source, the source register records two independent permissions. Both default to
@@ -64,8 +98,8 @@ evidence and review date:
 - **Fetch images.** When allowed, the collector may select photographs to fetch. For each photograph
   selected for fetching, it computes exactly one deterministic fingerprint in memory and
   immediately discards the photograph after computation. The image request consumes the source's
-  rate limit. This ADR does not choose the fingerprint algorithm, similarity measure or number of
-  photographs.
+  rate limit. The D-089 clarification above chooses the algorithm, similarity measure and bounded
+  photograph count.
 - **Display listing text.** When allowed, the API may return the masked description and compare its
   masked versions. When denied, the API returns only that the description changed and when, plus a
   link to the source. The masked description may remain stored for parsing and entity resolution,
