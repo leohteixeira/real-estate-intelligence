@@ -3,7 +3,7 @@ title: 'Deployment on the VPS with readiness'
 type: 'feature'
 ticket: '12'
 created: '2026-10-25'
-status: built
+status: blocked
 baseline_revision: '567b03cdb265aca972e236e85404080f85683c5f'
 route: 'full'
 route_source: 'auto'
@@ -18,6 +18,8 @@ context:
   - '/workspace/repos/real-estate-intelligence/specs/adrs/0020-vitest-integration-standard.md'
 warnings: [oversized]
 deferred: []
+blocked_at: '2026-10-25'
+blocked_reason: 'Authenticated GitHub API/PR/CI and private GHCR pull access unavailable; required product main CI, five release digests and public production evidence remain unobserved.'
 ---
 
 <intent-contract>
@@ -655,7 +657,7 @@ artifact.
 
 - [x] Parent independent review of this continuation delta and targeted corrections.
 - [x] Final changed-web coverage, with all existing floors preserved.
-- [ ] Mandatory hooks and separate product/landing/workspace commits. Preserve unrelated owner
+- [x] Mandatory hooks and separate product/landing/workspace commits. Preserve unrelated owner
       changes and the external decisions file.
 - [ ] Authenticated remote PR/CI/protection observations, reviewed main integration and successful
       gated publication with five full revision/digest receipts. GitHub SSH Git works, but the
@@ -714,3 +716,46 @@ and commit-message hooks without automatic content changes. The final complete o
 suite passed 22 tests (`/tmp/rei-continuation-infra-final.log`), including the corrected broker cut.
 The plan is built preparation; the ticket remains in progress pending the remote and production
 acceptance below. No push/main/CI/publication/deploy success is inferred from these commits.
+
+### Remote source and host prerequisite checkpoint — 2026-10-25
+
+The actual product pre-push hook passed in 266 seconds: secret history scanning, lint,
+strict typecheck, all eight workspaces' 2,743 unit tests and build. Product branch
+`feat/phase-1` was pushed through `67ecf44fc7842e76a78121080651257585e96b53`;
+`/tmp/rei-continuation-push.log` preserves the receipt. Workspace `main` is now `5e2be61`
+and landing `main` is `5c1cc9e`, both accepted by ordinary non-force pushes. Neither
+repository has a remote CI workflow. Product `main` integration and its required CI
+remain unobserved; successful branch transport does not establish either gate.
+
+Before host changes, protected backup
+`/var/backups/portfolio/rei-prepublication-20261025T200131Z` verified the original Caddy
+bytes and configuration copies and retained previous image identities. The landing
+image remains `portfolio/landing:ef35648c8e97-20261024030918`, image ID
+`sha256:86cf5ebf1ed052c4f866e606bd26e9e75b909ce12068efa1703e709076622e23`.
+Caddy remains `caddy:2.10.2-alpine`, image ID
+`sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d`.
+The candidate has not been reloaded and no application migration has run.
+
+Host `rei-config`, `rei-services` and `rei-provision` completed. Dedicated PostgreSQL
+reports version 180006 and native UUIDv7; RabbitMQ's application user has permission
+only in its own vhost. Dedicated storage, PostgreSQL and RabbitMQ are healthy. Tempo
+and Loki initially did not report ready; a targeted subsequent readiness observation
+returned HTTP 200 `ready` for both, without restart. Public `/en` and `/pt` still
+return HTTPS 200. The latest host observation had 3,931 MiB available RAM with no swap;
+other projects remain stopped and shared PostgreSQL 17 remains unchanged. Logs:
+`/tmp/rei-host-services.log` and `/tmp/rei-host-provision.log`. Runtime gateway
+configuration was installed via the authorized process loader into a root-protected
+host configuration without exposing values or making a model call.
+
+**Product defect:** the demonstrated backup consistency defect is corrected and its
+independent targeted follow-up found none. **Executor defect:** the earlier Chromium
+sandbox launch and local operator command/resource issues are resolved by the recorded
+passing scenarios. **Evidence limitation:** Git SSH transport works, but authenticated
+GitHub API/PR/CI access and private GHCR pull credentials are unavailable through the
+observed authorized mechanisms. This prevents observing mandatory remote gates,
+integrating the product release into `main`, obtaining the five published digests and
+performing the accepted production release. No token search or substitute release
+mechanism is justified. Resume this story when that access is available; continue
+independent eligible work meanwhile. Public application journeys, persisted synthetic
+effects and the linked Tempo trace remain explicitly unproved. Existing unchanged-code
+checks, accepted accessibility evidence and final prefix tests remain reusable.
