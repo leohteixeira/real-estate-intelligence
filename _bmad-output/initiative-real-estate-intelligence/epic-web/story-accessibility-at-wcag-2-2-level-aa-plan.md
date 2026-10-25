@@ -3,19 +3,19 @@ title: 'Accessibility at WCAG 2.2 level AA'
 type: 'feature'
 ticket: '12'
 created: '2026-10-22'
-status: 'in-progress'
+status: 'built'
 baseline_revision: '0d9fcdcb579cc78683a64d7aed3d93c219794473'
 route: 'full'
 route_source: 'auto'
 risk: 'medium'
-review: ''
-review_source: ''
-lenses_ran: []
+review: 'quick'
+review_source: 'pinned'
+lenses_ran: [quick]
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
-  - '{project-root}/apps/web/DESIGN.md'
-  - '{project-root}/specs/adrs/0020-vitest-integration-standard.md'
+  - '/workspace/repos/real-estate-intelligence/apps/web/DESIGN.md'
+  - '/workspace/repos/real-estate-intelligence/specs/adrs/0020-vitest-integration-standard.md'
 warnings: ['oversized']
 deferred: []
 ---
@@ -78,6 +78,43 @@ root gates and coverage runs.
 
 </intent-contract>
 
+## Resumption amendment — 2026-10-24 (D-079/D-080)
+
+The original intent-contract above is preserved as historical accepted intent. HEAD
+`a5ca572382b8f7c9525bd3beb611ea4387b897f4` removes the local Landing in favor of an exact
+root HTTP 308 to the independent portfolio. README documents the ownership change. The
+original Landing/motion matrix row remains outstanding in that owner repository; no local
+pass accepts its appearance, accessibility or privacy. No external navigation is authorized.
+
+Continue only the necessary executor reconciliation before fresh full verification:
+
+- Remove local Landing from `accessibilityScreens` and adapt the mapping/BDD/boundaries to
+  seven operational families. Keep the same 43 partitions and six semantic scenarios;
+  Discovery retains Place default/open at every PT/EN and 390/960/1440 combination.
+- In `web-accessibility.integration.test.ts`, remove the obsolete local Landing animation,
+  WebGL and no-WebGL paths. All operational reflow/native zoom checks and normal/error/empty/
+  keyboard coverage stay unchanged. Add a real owned Nginx root 308 check in Discovery,
+  without following redirects, plus local `/places`, `/privacy`, `/ask` and `/search` entry
+  response checks and document navigation of those screens. Save the response contract in
+  immutable evidence. Do not call or whitelist the portfolio host.
+- Retire only the two `accessibility-browser.test.ts` regressions that read the deleted
+  `src/landing/landing.css`. Keep generic keyboard, obstruction, privacy, semantic naming,
+  contrast and language-control checks. Add catalog regression for the seven screen families,
+  exact redirect contract and explicit externally owned presentation obligation.
+- Remove obsolete Landing selectors from native zoom preparation if that code navigates the
+  root instead of its supplied operational path. Inspect all route assumptions; fix concrete
+  remaining redirect mismatches. Keep historical authored Landing references unchanged as
+  design artifacts; they are not production passes.
+- Run the targeted helper/catalog tests and lint/typecheck. Parent owns the full gates,
+  fresh integral browser campaign, story acceptance and logical commits. Do not invoke another
+  workflow or perform a new general UI review. Append actual commands/results here.
+
+This is a narrow continuation of the full-route implementation handoff. The implementing
+agent owns only the reconciliation above; the parent separately owns the renderer repair,
+its tests, decision record, epic notes, root gates and final evidence audit. Keep the existing
+in-progress status and baseline. Raw historical campaign directories were not transferred
+into this workspace; preserve historical summaries and report that evidence limitation.
+
 ## Code Map
 
 - `integration/support/fixture.ts` — `allocatePorts`, `ComposeFixture`; existing ownership,
@@ -92,7 +129,8 @@ root gates and coverage runs.
   prepared IDs, independent actual APIs and native evidence exercise patterns.
 - `integration/web-{privacy,ask-states,search,property,listing,place}.integration.test.ts` —
   reference lifecycle/readiness only, never import registered test suites. Privacy's temporary
-  source disable/restore is not required here. Old Place no-Privacy assertion is obsolete after D-069.
+  source disable/restore is not required here. Old Place no-Privacy assertion is obsolete after
+  D-069.
 - `apps/web/src/shell/AppShell.tsx` — current title/lang effect, rail/top/footer/navigation;
   no bypass/route-focus handling. `resources.ts` owns shell PT/EN copy.
 - `apps/web/src/search/{SearchResults,SearchFilters}.tsx` — route-state replacement on
@@ -107,45 +145,214 @@ root gates and coverage runs.
 - `apps/web/.impeccable/review/campaigns/` — immutable run evidence; `.impeccable/surfaces/`
   and accessibility report preserve finite audit, boundaries and acceptance.
 
+## Execution amendment — owner direction, 2026-10-25
+
+This amendment governs the remaining work and all handoffs; preserve historical evidence below.
+The unmet requirement is a passing complete production campaign on the stabilized
+version, followed by the explicitly required independent finish/BMAD handoffs and delivery gates.
+No demonstrated product defect remains open: the rail-hover contrast repair and its native
+red/green regression are complete. The Ask recovery executor readiness repair passed its directed
+scenario; the complete campaign is still required. The preceding Listing load timeout has no
+established cause; unusual scheduling latency is evidence of environment trouble, not proof of a
+product defect or authority to inflate deadlines.
+
+The one D-087 capture investigation did not reproduce the historical final-PNG disagreement.
+Its bounded conclusion is inconclusive historical capture evidence, with no demonstrated product
+color defect and no further investigation absent a new verifiable acceptance-relevant hypothesis.
+Judge current captures on their own evidence. Preserve the executed temporary source with its
+existing ignored raw artifacts; do not deliver or rerun a permanent diagnostic.
+
+The directed `details` execution (`07:38:13Z`, prefix `accessibility-details-http-20261025-0740`)
+did not reproduce the Property read error: all six Property default/open variants passed and
+recorded reads were HTTP 200. It hit the unchanged 600-second test deadline after beginning
+Listing; no final native cleanup/SQL/manifest receipt exists. Post-exit Compose listings contained
+only the incumbent foreign projects. This establishes an oversized execution batch on this host,
+not a product repair. Reuse Discovery's existing locale/width partitioning for Details: 48 total
+partitions now cover the same 30 detail screen audits and six anchor journeys, with unchanged
+semantic scenarios, assertions and deadlines. Verify the catalog, then the formerly failing
+PT/960 detail partition, before the final integral run. CPU-pressure observations and the
+unreproduced historical read error do not establish a server defect or justify retries.
+
+- Preserve `accessibility-full-d086-serialized-20261025-0720`. Documentation and
+  removal of the unimported temporary test do not invalidate its executor/product identities.
+  Its execution condition differs from the preceding failure: static jobs and the standalone
+  observer have ended, and no competing root gate/browser job will be started.
+  It subsequently failed at `07:35:25Z`: eight passed, details failed, 34 unexecuted;
+  the Property PT/960 final PNG shows a read error after locale selection. Stop whole-run
+  repetition. The directed hypothesis is an actual HTTP/contract failure on normal navigation;
+  add only status/path/public request ID to the existing receipt and run `details` to classify
+  it. No product fix, timeout increase or environment cause is inferred from a missing selector.
+  The bounded PT/960 Details check passed, native exit 0 in 222.35 seconds, with five
+  screen audits, the source-anchor journey and boundary checks. Its directory is
+  `accessibility-details-pt-BR-960-2026-10-25T07-50-35-006Z-5ea67104`.
+  All 59 manifest hashes reconcile; SQL is unchanged, outside/forbidden arrays are empty,
+  and native teardown confirms owned removal and foreign preservation. The six recorded API
+  responses are HTTP 200. Axe records zero violations and four preserved incomplete nodes
+  in Listing's timeline; recorded timeline times measure 8.8615:1, consistent with the
+  previously adjudicated pseudo-element limitation. This directed pass is not full acceptance.
+  The executor identity is `a8452ad3e4d3f7fbb6455fb61fc06b9e28e3f1226f8a16b3233887a8f0d00b21`.
+
+The owner confirms 8 GB RAM and two vCPUs shared with production. Reduce development
+priority and CPU use. Temporary shutdown of other projects is now explicitly authorized
+only if needed, preserving the landing page and all its dependencies. Identify exact
+ownership and restoration before any stop. The authorized temporary stops completed at
+10:27Z, preserving the landing, Caddy and Dev Container. The parent verification records
+the exact stopped containers and restoration order; do not restore alongside a heavy campaign.
+
+- Run one heavy job at a time on the shared VPS. Preserve production and foreign resources,
+  except the conditional temporary stops explicitly authorized above; no push, deployment or
+  publication. If the same failure class recurs, stop whole-run repetition
+  and reassess the model/cause with a concrete hypothesis before another attempt.
+- Reuse valid unchanged root lint/typecheck, 2,697 unit tests, build, coverage, native helper and
+  directed regression results. Documentation needs formatting checks only. Retain all mandatory
+  tests/assertions/coverage/hooks/gates; re-run only those invalidated by actual changed inputs.
+- Monitor the live campaign without repeatedly reprocessing prior evidence. Reconcile its final
+  artifacts once. No new inventory, report layer, abstraction, general audit or routine scheduling
+  decision entry. A directed product/executor fix gets its affected check before a final full run.
+- Count review rounds over the entire story; no reset at commits or resumption. Historical
+  parent inspection rounds count even though frontmatter records zero launched BMAD lenses;
+  that counter does not authorize another broad review. Preserve only the explicitly mandatory
+  finish reviewer/documenter and pinned Quick handoffs, with ready inputs and inspection of
+  changed behavior, demonstrated risks and unmet acceptance. No new broad search or optional loop.
+- Once acceptance/invariants and applicable gates hold, commit through the authorized auto-commit
+  workflow, update the ticket and follow `tickets.py next`. Relevant optional improvements may be
+  recorded without reopening a completed story. Keep external/production obligations pending.
+
+### Resumable execution correction — 2026-10-25
+
+The 48-partition invocation ended with 25 complete partitions and a retained EN/390
+aggregate timeout. Reassessing the repeated execution failure replaces the oversized
+retained batches with per-screen partitions: 72 execution partitions, unchanged six
+semantic scenarios, states, assertions, deadlines and product/backend bytes. The
+[parent verification
+record](../../../apps/web/.impeccable/review/accessibility-parent-verify-2026-10-25.md)
+contains the native failure and bounded capacity diagnosis.
+
+The owner's explicit valid-result reuse instruction and evaluator resumption contract govern
+completion: verify/reuse the 25 complete native partitions once, then execute the missing
+coverage. Three completed PT retained batches cover their 15 per-screen equivalents; the
+remaining 35 partitions require execution. Prove unchanged common dependencies and complete
+current-product coverage across the resumed campaign. This supersedes earlier instructions
+requiring every valid partition to repeat in one process; it does not accept mixed product
+versions, failed/incomplete attempts or reduced functional coverage. Keep the final evidence
+reconciliation, mandatory independent handoffs, delivery gates and historical review count.
+
+The subsequent EN/960 timeout disproves screen-level aggregate budgeting: a single
+open Place state took 200 seconds for 144 controls in both directions. Keep all 72 partitions
+and their fixtures/journeys, but schedule pending families as native sequential state tests
+(default/open pairs where applicable). Each keeps the existing 600-second budget; preparation and
+final SQL/cleanup use native 300-second phase tests. Keep the existing network hooks and
+re-register only the shared fixture origin after each allowlist reset; fallback cleanup
+remains mandatory after bail or failure. An ordered catalog contract rejects
+missing, reordered or extra audits. Preserve all assertions, states, genuine transitions and
+rendered-frame observations. The directed EN/960 pilot passes all six native tests, exit 0
+at 11:39:31Z, with unchanged SQL and owned cleanup/foreign preservation. Six newly complete
+runs await one final reconciliation; the preceding 25-result validation is reused. Required
+context EN/960 also passes all 20 tests, native exit 0 at 11:50:37Z, including genuine deadlines
+and final boundary/cleanup receipts. Reconcile all newly completed runs once after the final
+invocation;
+only the other 28 originally missing partitions execute under the same frozen product/executor (live
+handle in the parent verification). This is an executor correction, not a new product
+requirement or a waiver of incomplete native evidence.
+
+The final remaining invocation `115112` is terminal at 13:36:45Z, exit 1, after 15 complete
+partitions (59/72 equivalents pending final reconciliation). `place-detail-recovered` exposed
+an executor dependency-boundary error: parent recovery starts independent child reads while
+`retryAlerts` demanded all descendant loading disappear before the caller's readiness gates.
+Native SQL, network and owned/foreign teardown receipts pass for the failed run; it contributes
+no acceptance. Preserve the executed source and completed evidence. Move the existing child
+content/global-settled waits into the helper's optional recovery continuation, after the clicked
+alert disappears and before the unchanged zero-loader assertion. No assertion or timeout is
+weakened. Run the failed PT/390 subread partition first, then only the other 12 pending
+partitions if it passes. The parent verification records the exact reproduction and receipts.
+The directed PT/390 subread check passes all 18 tests, native exit 0 at 14:01:19Z,
+with 29 audit cells, unchanged SQL, no boundary escape and native owned/foreign cleanup.
+The `140138` invocation then completes PT/960, PT/1440 and EN/390, but ends at 15:19:50Z,
+exit 1, during EN/960 reductions preparation. Coverage is 63/72 equivalents pending final
+reconciliation. This repeated class requires reassessment: initial navigation, like recovery,
+starts independent reads; one held child's status does not establish sibling readiness.
+Use the existing `settleUnaffected` helper to await actual unheld content before its unchanged
+zero-loader assertion, and reuse this model after recovery. No timeout, assertion, retry policy
+or product byte changes. The parent records the failure's bounded evidence and native SQL/network/
+cleanup receipts. Directed EN/960 passes all 18 tests, native exit 0 at 15:44:00Z, with 29
+approved cells,
+unchanged SQL, no boundary escape and native owned/foreign cleanup. Scoped lint, formatting and
+strict integration types pass. Final executor `0122c07f…` changes only the main integration test;
+product/runtime dependencies compare identical.
+
+The final eight-partition invocation, `runtime/accessibility-final-8-20261025-154452`,
+ended native exit 0 at `17:16:03.366646Z`: 182 selected tests pass; the 450 other registered
+cases are outside this invocation's name filter, not skipped assertions. Execution used one
+worker, bail 1, nice 10, CPUs 0–1 and Compose parallelism one. Both adaptation partitions
+complete, including EN teardown at `17:16:02.091Z`.
+
+The one-time reconciliation passes with no errors: **72/72 catalogue equivalents and all six
+semantic scenarios**, combining 35 new complete runs with the previously validated 25-run
+receipt. The new evidence verifies 6,412 manifest hashes, 682 audit cells, 752 attempts
+(717 approved plus 35 setup pilots), unchanged SQL, network boundaries, runtime/served assets,
+and native owned removal/foreign preservation. The 174 new axe incomplete nodes in 29 groups
+are closed by their paired computed contrast evidence (minimum 8.185:1 against 4.5:1);
+original axe reports and prior adjudication remain preserved. No product defect or evidence
+uncertainty remains open in this acceptance slice. This does not certify assistive-technology
+pronunciation or physical touch/daylight perception.
+
+Proof: `runtime/accessibility-final-8-20261025-154452.reconciliation.json`. Reuse this completed
+proof and unchanged product gates; do not replay accepted equivalents for documentary changes.
+Required scoped independent reviews pass as recorded below; authorized delivery remains.
+
+The final mandatory review is the third broad round across the complete story history; prior
+commits and resumes do not reset that count. Review the changed behavior and acceptance risks,
+not another general search. The required baseline diff includes historical raw-evidence retention
+cleanup and the accepted Landing ownership migration; inspect their contracts without reprocessing
+removed raw artifacts. All earlier failures and bounded conclusions remain historical evidence.
+
 ## Tasks & Acceptance
 
 **Execution:**
 
-- [ ] `integration/support/accessibility-catalog.ts` — declare semantic public screen/state
+- [x] `integration/support/accessibility-catalog.ts` — declare semantic public screen/state
       descriptors, selectors, real-oracle requirements and explicit unsupported/gallery mapping.
       Each six-layout matrix cell remains a variant, not an inflated new BDD scenario.
-- [ ] `integration/support/accessibility-browser.ts` and `.test.ts` — bounded genuine Tab and
+- [x] `integration/support/accessibility-browser.ts` and `.test.ts` — bounded genuine Tab and
       Shift+Tab traversal, semantic identities, hit testing, focus-visible/non-obscuration, target,
       overflow/font/computed-contrast evidence. Do not `.focus()` missed controls to pass. Use full
       Chromium persistent context and native `chrome://settings/appearance #zoomLevel` value `2`;
       confirm DPR doubles and CSS viewport halves on actual product, not CDP/CSS scaling.
-- [ ] `integration/support/accessibility-evidence.ts` and `.test.ts` — whole production frontend/
+- [x] `integration/support/accessibility-evidence.ts` and `.test.ts` — whole production frontend/
       locale/contract/config/lockfile source inventory, compiled backend, exact image/runtime and
-      HTTP-served asset identity, immutable formatted captures and append-only failed/success attempts.
-- [ ] `integration/web-accessibility.integration.test.ts` — own a fresh minimal real production
+      HTTP-served asset identity, immutable formatted captures and append-only failed/success
+      attempts.
+- [x] `integration/web-accessibility.integration.test.ts` — own a fresh minimal real production
       fixture per bounded test partition. Obtain API oracles and pilot before the matrix. Exercise
-      all delivered screen families, default/open evidence, supported system states and all seven Ask
-      snapshots in both locales at 390/960/1440. Extend actual error/loading/recovery walks, true empty
+      all delivered screen families, default/open evidence, supported system states and all
+      seven Ask
+      snapshots in both locales at 390/960/1440. Extend actual error/loading/recovery walks,
+      true empty
       Search, invalid filters and local confirmation edits. Add 320px and native 200% screen checks,
       motion preference changes and no-WebGL fallback. Keep honest source/SQL/network/cleanup proof.
       Map component-only branches explicitly; do not enable sources or start needless collection.
-- [ ] `apps/web/src/shell/AppShell.tsx`, `places/resources.ts`, associated tests and
-      `styles/components.css` / `place.css` — reproduce bypass/route/focus/clipping observations first,
+- [x] `apps/web/src/shell/AppShell.tsx`, `places/resources.ts`, associated tests and
+      `styles/components.css` / `place.css` — reproduce bypass/route/focus/clipping observations
+      first,
       then batch only demonstrated native interaction fixes with regression tests. Never steal focus
-      on background data refresh or locale change; preserve deep source/document anchors and history.
-- [ ] `apps/web/src/search/{SearchResults,SearchFilters}.tsx`, associated tests/styles — correct
+      on background data refresh or locale change; preserve deep source/document anchors and
+      history.
+- [x] `apps/web/src/search/{SearchResults,SearchFilters}.tsx`, associated tests/styles — correct
       demonstrated focus/error-association/reflow defects without changing query/domain behavior.
-- [ ] `apps/web/src/landing/{LandingPage.tsx,CityScene.ts,copy.ts,landing.css}` and regression
+- [ ] **External owner boundary (D-080), not a local acceptance claim:**
+      `apps/web/src/landing/{LandingPage.tsx,CityScene.ts,copy.ts,landing.css}` and regression
       tests — reproduce motion observations, then batch preference listener/cleanup, static reduced
-      rendering and localized pause affordance if necessary. Preserve city scene composition and tour.
-- [ ] `apps/web/src/styles/` and screen tests — repair only measured contrast/320px/zoom/hit-area
+      rendering and localized pause affordance if necessary. Preserve city scene composition and
+      tour.
+- [x] `apps/web/src/styles/` and screen tests — repair only measured contrast/320px/zoom/hit-area
       defects. Preserve synchronized DESIGN tokens if a role token truly needs adjustment.
-- [ ] `apps/web/.impeccable/review/` — preserve diagnostic failures, successful coverage matrix,
+- [x] `apps/web/.impeccable/review/` — preserve diagnostic failures, successful coverage matrix,
       exact keyboard receipts, full/top/region captures, axe incomplete triage, token role table and
       primary W3C methodology. Conduct at most two batched visual inspection rounds with incumbent
       artboards; parent owns one detector call and fresh finite finish reviewer/documenter handoffs.
 - [ ] This plan and epic — record actual commands/results, surprises, known limits and review.
-      Run exact gates serially, integration discovery/browser and unchanged coverage; use auto-commit
+      Run exact gates serially, integration discovery/browser and unchanged coverage; use
+      auto-commit
       implementation → tests/evidence → docs → tracker acceptance, never push.
 
 ### D-075 receipt privacy repair
@@ -256,7 +463,8 @@ therefore uses uninstrumented real elapsed time beyond the actual 30-second stal
 bounded observable cache-age check, not patched browser clocks or artificial domain freshness.
 
 The explicit catalog keeps six semantic BDD scenarios. Its 43 bounded partitions are execution
-containers: Discovery per locale/width, search, keyboard, details, Ask per locale, recovery/retained/variants/subreads/context
+containers: Discovery per locale/width, search, keyboard, details, Ask per locale,
+recovery/retained/variants/subreads/context
 per locale and normal width, and adaptation per locale. Existing synthetic variants 901–993 are
 read from their canonical adapter; no extra seed or source/license mutation is introduced.
 Search retention is genuine next-cursor pagination, not an unsupported old visit with gcTime=0.
@@ -283,7 +491,8 @@ or canvas composition stay explicit manual findings.
   focused 48445 and full browser-helper 24339 passed afterward (13/13, exit 0).
   Exact root session 90723 passed lint, strict typecheck, all 2,706 unit tests and
   production builds (exit 0). Focused production session 67041 passed `variants-en-390`
-  in 329.47s (exit 0, one executed partition, 37 filtered), diagnostic only. The changed-file detector
+  in 329.47s (exit 0, one executed partition, 37 filtered), diagnostic only. The changed-file
+  detector
   found only an unchanged typography advisory. Preserve unchanged evidence; final
   campaign and finite handoffs remain pending, without another broad audit round.
 
@@ -423,7 +632,8 @@ or canvas composition stay explicit manual findings.
   Property/Listing variants and independent Place, hierarchy and Listing-context reads. Added
   bounded supplemental partitions rather than inflating semantic scenario counts or timeouts.
 - 2026-10-22: Excluded only `apps/web/.impeccable` from Docker build context. Evidence remains on
-  disk and source/tests remain included. `.dockerignore` is an explicit source/config identity input.
+  disk and source/tests remain included. `.dockerignore` is an explicit source/config identity
+  input.
 - 2026-10-22: The parent will run the single complete final matrix in BMAD step-03 Verify after
   reading the implementation diff. The coding handoff must include green helper/targeted-pilot
   results and exact final inputs; it must not start or substitute its pilots for that integral run.
@@ -491,6 +701,14 @@ or canvas composition stay explicit manual findings.
   API oracles remain Supertest. Minimal typed transport-port regressions prove bound and handler
   failures propagate to release outer resources; there are no partial Playwright client casts.
 
+### 2026-10-25 — Final mandatory review pass
+
+- verdicts: 0 findings — high 0, medium 0, low 0, false 0, maybe-false 0
+- findings: none. Pinned Quick returned `[]`; no entries are patched, deferred or rejected.
+- Required Impeccable finish disposition: `ship`; documenter: No changes. This is the third
+  broad round over the complete story history, not a reset after resume or commit. No new
+  product/executor change follows these handoffs; no repeated campaign or product gate is needed.
+
 ## Design Notes
 
 Refinement of the incumbent Placa world only. Operate application, Read privacy, Persuade landing.
@@ -510,9 +728,68 @@ and [target size](https://w3c.github.io/wcag/understanding/target-size-minimum).
 
 ## Verification
 
-**Parent Verify in progress (not acceptance):**
+**Final campaign and reconciliation pass.** The authoritative final evidence is recorded in the
+execution amendment above and `apps/web/.impeccable/review/accessibility-parent-verify-2026-10-25.md`.
+Product lint, strict types, 2,697 unit tests/build and all eight coverage floors remain valid for
+unchanged product bytes. Directed executor tests and strict integration types pass. Required
+independent handoffs and commit hooks remain before delivery; documentation does not repeat
+product gates.
 
-Latest checkpoint, D-078: focused session 63552 also hit the unchanged 600-second limit
+**Historical Parent Verify checkpoint (not acceptance):**
+
+Current serialized whole invocation `accessibility-full-d086-serialized-20261025-0720`
+started at `2026-10-25T07:17:44Z` under detached supervisor PID 663133. All 1,197 frozen
+inventory hashes match. Full native command, sandbox, assertions, workers and deadlines
+remain unchanged; no concurrent root gate/browser job is started. Completion and
+reconciliation remain pending. The standalone D-087 observer passed once, exit 0 at
+`07:16:40Z`, 60.05 seconds. Four corresponding label boxes are white, top and after-final
+viewport PNG bytes identical, viewport/media/computed colors stable and SQL/network/
+cleanup valid. This non-reproduction does not resolve historical conflicting final paint.
+
+Latest D-086 integral invocation `accessibility-full-d086-20261025-0649` ended native
+exit 1 at `2026-10-25T07:13:14Z`, after 1,477.57 seconds: eight passed, details failed,
+34 unexecuted out of 43. Prepared Listing navigation exceeded the unchanged 30-second
+load deadline before its next audit. Native executor-preparation evidence retains the
+error. Final SQL/network and exact owned/foreign cleanup reconcile. Concurrent abnormal
+monitor latency and host load are observations, not a proven cause or reason to inflate
+deadlines. Source/backend and actual main executor/support bytes remain frozen.
+The directed recovery campaign completed 39 cells and 40 approved scenarios; all 356
+manifest hashes match, SQL/network/cleanup pass and Ask inventory stays 27/27. Its
+interactive shell ended 143 without a terminal native receipt; no command exit 0 or
+story acceptance is claimed. Eight complete full-run partitions separately reconcile
+500 hashes, 30 cells, 50 scenarios, eight pilots and 30 axe reports without violations
+or incompletes. Partial invocations are never combined into acceptance.
+
+D-087's single temporary observation passed without reproducing the historical paint disagreement.
+Its raw evidence and executed source remain in the existing ignored diagnostic directory; no
+permanent diagnostic or further capture investigation is part of delivery. The historical PNG
+remains inconclusive. Only a new verifiable hypothesis affecting acceptance can reopen that issue.
+
+Preceding D-085 integral invocation `accessibility-full-d085-20261025-0556` ended exit 1
+at `2026-10-25T06:35:45Z` after 2,387.39 seconds. With no name filter, unchanged
+600-second partitions and `--bail 1`, eleven of the 43 natively discovered partitions
+completed, including normal screens and Ask
+in both locales: 168 approved cells, 197 approved attempts, 1,676 verified manifest
+entries, zero axe violations and ten preserved pseudo-element incomplete nodes with
+matched opaque contrast/geometry evidence. SQL/network/native cleanup and frozen
+source/backend/executor/runtime/served identities reconcile. Root lint, strict types,
+2,697 unit tests and production builds passed after the directed rail-hover repair;
+unchanged instrumented TypeScript retains its coverage evidence. See the current parent
+verification report and not-ready finish packet for exact commands, artifacts, image
+snapshots and remaining gates. Recovery PT/390 failed: its first Tab after catalogue
+recovery focuses the footer English button outside the viewport; the focused capture
+agrees. Thirty-one partitions were not executed. The failed partition's 220 manifest
+hashes and final SQL reconcile; native teardown confirms owned removal and foreign
+preservation, but the final boundary scenario was not reached. Initial geometry proves Ask
+was still loading and the keyboard inventory grew from 22 to 27 controls. D-086 corrects
+that premature recovered-state preparation before auditPair/disclosures, waiting for the
+existing visible record and enabled Follow contracts without changing traversal or capture.
+Affected-partition and fresh complete verification remain required. No directed or historical
+partial run fills missing
+coverage, and no story acceptance or commit has occurred. Earlier checkpoints below
+are retained history, not the current candidate's acceptance.
+
+Historical checkpoint, D-078: focused session 63552 also hit the unchanged 600-second limit
 after 16 approved checks (607.42s invocation, exit 1). D-077 did not solve the concrete
 failure, so its uncommitted browser-helper/session changes were removed, not committed.
 Keep D-076's existing capture and regressions. Reuse the existing locale/width partition
@@ -529,7 +806,8 @@ owned cleanup and foreign preservation true. Only the fresh complete 43-partitio
 and its required finish handoffs remain pending; the directed pass is not story acceptance.
 No additional UI fix, capture mechanism or broad review round is justified by this timeout.
 
-Previous experiment, D-077 (withdrawn): whole invocation 18229 timed out in Discovery at the unchanged
+Previous experiment, D-077 (withdrawn): whole invocation 18229 timed out in Discovery at the
+unchanged
 600-second limit, after 16 approved checks; it is failed, not a partial acceptance.
 The controlled production-build capture probe (31955, exit 0) used the campaign's Chromium
 arguments and fresh navigation per variant: six keys cost 12.65s with generic screenshots,
@@ -626,7 +904,8 @@ The complete matrix test
 audit and finite finish handoffs remain pending. No evaluated source/executor/compiled-
 backend edits are made while a browser invocation runs. Current results and the explicit
 partial manual-paint analysis are recorded in the
-[parent verification report](../../../apps/web/.impeccable/review/accessibility-parent-verify-2026-10-22.md).
+[parent verification
+report](../../../apps/web/.impeccable/review/accessibility-parent-verify-2026-10-22.md).
 
 The following earlier checkpoints are retained as historical diagnostics, not current acceptance.
 
@@ -647,14 +926,17 @@ No historical partial campaign is merged into this invocation's acceptance.
 
 Final directed adaptation `b4e456af` passed (exit 0, 223.79s test/224.92s invocation): one setup
 inconclusive plus 34 approved variants, no executor errors; SQL-final unchanged, outside/forbidden
-empty, diagnosticLeak=false, owned/foreign teardown true/true at 16:34:14.435 UTC. Its pilot bytes are
+empty, diagnosticLeak=false, owned/foreign teardown true/true at 16:34:14.435 UTC. Its pilot
+bytes are
 source `6ec86e4b216996a29009ae496d9ffcdd87cbf5193e93063790861b94a3311c17`,
 backend `10215ae490646588bd6a35340aa7c512304f9bbc475a486687e1460fed6a350b`,
 executor `16fa4175e8fc1950a707bf2b005772542c85b5ce7f03504d32b1c7ca91dc2624`.
-Read-only verification matched 1,251 source/backend/executor files and 395 final-run surface entries.
+Read-only verification matched 1,251 source/backend/executor files and 395 final-run surface
+entries.
 The parent subsequently added the authored-reference executor; that new input is outside this
 pilot identity and must be included in the parent's final Verify identity.
-Helpers 11/11 (18.13s), shared capture 3/3 (0.204s), selected web regressions 50/50 (7.14s), selected
+Helpers 11/11 (18.13s), shared capture 3/3 (0.204s), selected web regressions 50/50 (7.14s),
+selected
 lint/integration TS/web typecheck passed before freeze. All eight green directed ledgers are
 structurally trusted; seven use historical hashes. No integral 38/root gate/coverage acceptance
 is claimed. See `apps/web/.impeccable/review/accessibility-implementation-handoff.{md,json}` for
@@ -706,3 +988,297 @@ All remain separate from the 6,068 final-adaptation opaque numerical observation
 Parent finite visual checks compare authored Main/DesktopPlace, Search/Filters, Property/Listing,
 Ask/AskConfirm/DesktopAsk, States, LandingDesktop/LandingMobile and Components; Privacy retains
 its accepted no-artboard boundary. Review candidate defects as measured evidence, not assumptions.
+
+### Executor reconciliation checkpoint — 2026-10-25
+
+The implementing handoff completed the D-079/D-080 reconciliation only. The catalog now
+contains seven operational families, unchanged 43 partitions and six semantic scenarios.
+Discovery retains Place default/open for every existing locale/width cell and adds the
+owned exact root 308 contract plus `/places`, `/privacy`, `/ask` and `/search` response and
+document-navigation checks. Immutable receipts include actual status, headers, response
+body and its SHA-256, the expected redirect, and local navigation destinations. The pinned
+Supertest implementation explicitly initializes `redirects(0)`; no portfolio request or
+network allowance was added. External presentation appearance, accessibility, privacy,
+motion and no-WebGL assessment remain an explicit obligation in its owner repository.
+
+Removed only the two helper regressions that read deleted Landing CSS and obsolete local
+Landing animation/WebGL/no-WebGL campaign paths. Generic keyboard, obstruction, editable
+privacy, semantic naming, contrast, language controls and every operational adaptation/
+read/error/empty journey remain. Inspected native zoom and version helpers: zoom already
+reloads its supplied operational URL, and version collection reads assets directly;
+neither requires another root-navigation repair. Historical authored references remain
+unchanged. Added a catalog regression for the seven families, exact Nginx root handler,
+local entry paths and external obligation.
+
+Actual verification commands/results:
+
+```bash
+pnpm exec prettier --write integration/support/accessibility-catalog.ts
+integration/support/accessibility-catalog.test.ts
+integration/support/accessibility-browser.test.ts
+integration/web-accessibility.integration.test.ts
+```
+
+passed (exit 0). `git diff --check` passed.
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/support/accessibility-catalog.test.ts
+integration/support/accessibility-browser.test.ts
+integration/support/accessibility-evidence.test.ts
+integration/support/accessibility-fault.test.ts integration/support/property-capture.test.ts
+```
+
+ran in native session 11635, exit 1, 29.17s: 10 tests passed and 11 browser-dependent
+tests failed at Chromium launch with `No usable sandbox`, before their assertions.
+Four files passed, including both catalog tests. The generated 28,774,400-byte ELF core
+matching the launch timestamp was removed without staging. No sandbox option was
+weakened. Parent D-081 owns the local runtime repair and subsequent helper rerun.
+
+- `pnpm run lint && pnpm run typecheck` ran in native session 24092, exit 2.
+  Lint and all eight workspace typechecks passed. The final strict integration check
+  failed because the transferred workspace lacks `apps/ai/dist` imports required by
+  existing Ask integration tests/probes (TS2307 and resulting TS7006 diagnostics).
+  The repository requires a build before standalone integration checking; the parent
+  must produce those artifacts and repeat the gate. No assertion/type policy changed.
+
+The new real owned-Nginx checks still require the parent's fresh integral campaign;
+this handoff claims no production-browser pass or story acceptance. Parent retains the
+full gates, unchanged coverage, browser campaign, renderer repair, final evidence audit,
+tracker acceptance and logical commits. Raw historical campaign directories were not
+transferred, so historical summaries remain available without their original raw bytes.
+The in-progress status and baseline are preserved; no commit or push was performed.
+
+Parent subsequently reported the same five-file helper batch passed 21/21 in session
+96066 (exit 0, 68.50s) using the D-081 local sandbox helper with `chromiumSandbox: true`.
+Its root tests/build session 57009 is running; the parent will repeat strict integration
+typechecking after those required compiled artifacts exist. The original failed helper
+and pre-build typecheck results above remain preserved diagnostics.
+
+### Parent resource and gate checkpoint — 2026-10-25
+
+Session 57009 failed the unchanged complete-filter test's five-second deadline. Its isolated
+recheck passed in 3.45 seconds (18639). D-082 serializes root workspaces, but session 75782
+still failed the first Search readiness wait (2227ms), with 531 other web tests passing.
+Isolated SearchResults passed 33/33 in 20.78 seconds (37369); complete web with one worker
+passed 532/532 in 148.70 seconds (6694). D-083 therefore reduces the existing web and
+instrumented coverage worker limit to one, preserving all tests, isolation, deadlines and
+coverage floors. This is a bounded resource choice, not proof of React/jsdom's internal order.
+
+Fresh root session 35526 passed with exit 0: lint, all 2,697 unit tests, every production
+build and complete strict typecheck including integration. Build precedes typecheck here
+to provide the compiled imports this transferred workspace initially lacked. The eight
+workspace counts are 214/649/212/532/222/444/197/227. Session 32481 then passed all eight
+coverage suites at unchanged floors, the authored-reference test (1/1, all 15 artboards),
+and native registration (169 entries, including all 43 accessibility partitions). The parent
+opened all 30 reference PNGs and independently verified their hashes and all 30 dependencies.
+The fresh integral production-browser campaign, evidence reconciliation and finite finish
+handoffs remain pending. The story stays in progress; earlier failures remain diagnostics.
+
+### Directed pilot repair — 2026-10-25 (D-084)
+
+Native pilot 54110 failed before browser startup (exit 1, 86.90 seconds; 42 partitions
+filtered). PostgreSQL and API were healthy, but `compose.yaml` still probes the redirecting
+root with wget. Health logs show repeated 404 responses after following the external 308.
+The parent stopped only its exact owned web container to end those unintended external
+reads; the fixture then failed and cleaned up. Do not claim an empty whole-stack external
+network boundary for this failed pilot. Preserve its directory and results unchanged.
+
+Implement only the concrete recovery: change the existing Compose web probe URL to
+`http://127.0.0.1:3200/index.html`, an already served static document. Add a regression
+covering the probe's local non-root contract and a real owned HTTP receipt for this document
+in Discovery, asserting 200 HTML with no Location before continuing. Preserve the exact
+root 308, all four operational entry/navigation checks, seven screen families, 43 partitions,
+assertions, deadlines, sandbox and existing boundaries. No new endpoint, configuration,
+retry, network allowance or UI change. Run the focused regression before and after repair;
+the parent owns fresh root gates, a new pilot and full campaign. This is the same necessary
+slice under D-080's instruction to inspect concrete remaining redirect mismatches.
+
+D-084 implementing handoff: changed only the existing web healthcheck URL to
+`http://127.0.0.1:3200/index.html`; its wget command, interval, timeout and retries remain
+unchanged. Added a native regression that runs the real Compose config command with
+secret-file loading disabled and requires that exact local non-root probe contract.
+Discovery now preserves an immutable `evidence/health-document-response.json` with the
+actual owned HTTP response status, headers, complete body and SHA-256, then asserts
+200 HTML and no Location before the unchanged root 308 and operational entry checks.
+
+Focused red/green command:
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts integration/support/fixture.test.ts
+-t 'web healthcheck'
+```
+
+Before repair, session 92850 failed as expected (exit 1, 1.47s): actual probe URL was `/`
+instead of `/index.html`. After repair, session 76810 passed (exit 0, 1.13s; one executed
+regression, 14 filtered tests). Formatting of the three changed files passed;
+`git diff --check` passed; targeted ESLint for `integration/support/fixture.test.ts` and
+`integration/web-accessibility.integration.test.ts` passed in session 2696 (exit 0).
+No new endpoint, configuration, retry, allowance, UI change or test deadline was added.
+Parent retains the fresh root gates, new owned pilot and full campaign. The failed pilot
+54110 and its external-follow evidence remain unchanged and are not accepted as clean.
+No commit, push or story acceptance was performed by this implementing handoff.
+
+### Directed contrast repair — 2026-10-25
+
+The fresh integral invocation `accessibility-full-d084-20261025-0234` ended with native
+exit 1 after 31 passing partitions and one failing partition; later partitions did not run.
+Preserve every raw artifact and do not combine its partial passes into acceptance.
+Failure directory:
+`apps/web/.impeccable/review/campaigns/accessibility-subreads-pt-BR-1440-2026-10-25T05-19-52-700Z-19a9e879/`.
+The failed `A11Y-003-8-place-series-loading-pt-BR-1440-open` contrast role is the rail's
+Privacy link: computed foreground and background are both rgb(11,44,107), ratio 1:1.
+Native assertions and owned cleanup worked; this is not a provisioning or deadline failure.
+
+Investigate and repair only the demonstrated dark-rail link interaction contrast and its
+affected sibling links. The generic `.rei a:hover` rule has greater specificity than
+`.rail__foot .privacy-footer-link` and `.rail .brand`; the existing `.shell a:hover` and
+`.rail a.nav:hover` show the adequate dark-surface model. Confirm this with a deterministic
+native Chromium regression loading the actual repository CSS and hovering the real rail
+link classes, including brand and Privacy, without suppressing hover, moving the pointer
+away to hide a defect, or changing the contrast observer. Check default/hover/focus and
+the affected 960/1440 layouts with numerical contrast assertions. Reuse the existing
+Vitest/Playwright support test file and unchanged Chromium sandbox. Do not introduce a
+test harness, new dependency, broad visual redesign, color-token change or exemption.
+
+Run that regression red before the minimal CSS repair, then green and the affected helper
+batch, lint/typecheck and formatting checks. Reuse the incumbent Placa surface contracts
+and read the Impeccable craft floor immediately before UI editing; context was already
+loaded once and must not be rerun. No new general detector/review round. Parent owns
+post-fix build/gates, targeted owned production verification, fresh full 43-partition
+invocation, final census and required finish handoffs. Prior reference captures and
+partial white-link contrast adjudications cannot accept this now-demonstrated hover state.
+Keep story in progress, preserve its baseline and intent-contract, and append actual
+commands/results here. No commit, push, deployment or host-production access.
+
+Directed contrast implementing handoff: after reading the incumbent craft floor, added
+only `.rail a:hover { color: var(--enamel-200); }` in the existing component stylesheet.
+This follows the existing dark shell hover treatment and overrides the generic page-link
+hover on the brand and Privacy links. The more specific navigation hover rule retains
+its white foreground. No color token, layout, observer or exemption changed.
+
+The new regression in `integration/support/accessibility-browser.test.ts` loads the real
+tokens, components, place and privacy styles in native Chromium. At both 960 and 1440px,
+it checks brand, current navigation and Privacy links in default, native keyboard focus,
+hover with focus and hover alone. It requires computed text contrast of at least 4.5:1
+and focus-outline contrast of at least 3:1. After native hover it uses Tab to remove focus
+while asserting that hover remains active; it does not move the pointer away or alter
+the unchanged measurement/contrast observer. All launches retain `chromiumSandbox: true`
+and use the existing local helper through
+
+```bash
+CHROME_DEVEL_SANDBOX=/workspace/repos/real-estate-intelligence/apps/web/.impeccable/review/runtime/chrome_sandbox
+```
+
+Focused red/green command, with that environment prefix:
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/support/accessibility-browser.test.ts -t 'dark rail links'
+```
+
+Before the CSS repair, session 44813 failed as expected (exit 1, 6.91s): eight explicit
+1:1 failures covered brand and Privacy, hover and hover-with-focus, at both widths.
+After repair, session 95722 passed (exit 0, 6.02s; one executed test, 12 filtered).
+The affected helper command, with the same environment prefix, was
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/support/accessibility-browser.test.ts
+integration/support/accessibility-catalog.test.ts
+integration/support/accessibility-evidence.test.ts
+integration/support/accessibility-fault.test.ts
+integration/support/accessibility-references.test.ts
+```
+
+Session 24488 passed all 20 tests in all five files (exit 0, 71.63s).
+
+Repository `pnpm lint` passed in session 32013 (exit 0), including context-boundary and
+migration-convention checks. Complete `pnpm typecheck` passed in session 44099 (exit 0),
+including all eight workspaces and strict integration typechecking. Prettier reported
+the changed CSS and browser regression unchanged, and `git diff --check` passed.
+Parent retains the post-fix production build/gates, targeted owned production check,
+fresh integral 43-partition invocation, final census and finish handoffs. The failed
+partial campaign and all its artifacts remain unchanged and cannot establish acceptance.
+The story remains in progress; no commit, push, deployment or acceptance was performed.
+
+Parent post-fix session 84015 passed `pnpm test` (all 2,697 tests) and `pnpm build`,
+completing the four current root gates with the preceding full lint and typecheck.
+All 30 incumbent authored captures and their 30 dependencies were independently rehashed
+without mismatch. They consume authored canvas CSS, not the changed production stylesheet.
+
+Directed owned production invocation `accessibility-focused-d085-20261025-0533`
+failed at the unchanged 600-second deadline, native exit 1 at `2026-10-25T05:43:07Z`.
+Its ledger retains 26 approved scenario attempts, one inconclusive setup pilot and one
+failed executor-preparation attempt; the previously failing contrast case 8 passed.
+Its setup consumed 93.119 seconds versus 44.794 in the prior comparable D-084 PT/960
+partition. No final campaign, teardown, manifest or SQL-boundary report was written.
+Exact-label post-exit inventory found all owned containers, volumes and networks absent;
+no recovery mutation was necessary. The separate recovery receipt explicitly preserves
+the missing native proof and foreign comparison. Raw interrupted evidence is unchanged.
+
+One controlled warm-image check, `accessibility-focused-d085-warm-20261025-0545`,
+uses the same native command, assertions, sandbox and 600-second limit, with no overlapping
+expensive gates. It is not an automatic retry or acceptance; a second timeout requires
+diagnosis before any further replay or executor adjustment. Fresh integral verification,
+final reconciliation and required finish handoffs remain open.
+
+The controlled warm-image invocation passed with native exit 0 at `2026-10-25T05:55:08Z`:
+596.29 seconds total, 591.96 seconds in the test, 42 other partitions filtered. Independent
+reconciliation validates 264 manifest hashes, 29 approved matrix cells, 30 approved scenario
+attempts and one inconclusive setup pilot without issues. All 29 axe reports have zero
+violations and incomplete results; 10,760 contrast roles are computed. SQL is unchanged,
+outside/forbidden empty, diagnosticLeak false, and native cleanup confirms owned removal
+and foreign preservation at `2026-10-25T05:55:08.305Z`. The 1,197 source/backend/executor
+files remain byte-identical to the candidate. Supplemental post-exit image inspection
+failed because the recorded image ID no longer exists; this is explicitly missing proof,
+not a new acceptance claim. Future safe image inspection occurs while images are available.
+
+Fresh integral invocation `accessibility-full-d085-20261025-0556` runs the same native
+43-partition file without a name filter and with `--bail 1`, retaining the unchanged
+600-second per-test limit and sandbox. No root gate overlaps it. Earlier directed or
+D-084 passes cannot fill missing cells. Story acceptance, final census and handoffs remain open.
+
+## Auto Run Result
+
+The accessibility extension is built and independently reviewed. Product fixes preserve Placa,
+native keyboard/disclosure behavior, honest source/price distinctions and private prepared Ask
+inputs. The final VPS continuation repairs executor preparation/scheduling and genuine sibling-read
+readiness while preserving assertions, deadlines, sandboxing, all 72 partition equivalents and the
+six semantic scenarios. Production presentation remains externally owned under D-080.
+
+Changed files since the preceding HEAD:
+
+- `apps/web/src/styles/components.css`: measured rail-hover contrast uses existing enamel token;
+  `routes.tsx`: formatting of the already accepted redirect.
+- `apps/web/vite.config.ts`, root `package.json`, `scripts/test-coverage.sh`: serial shared-host
+  execution, with unchanged tests, isolation, deadlines and coverage floors.
+- `compose.yaml`: owned web readiness checks local `index.html` without following external root.
+- `integration/support/accessibility-catalog.ts` and `accessibility-steps.ts`: existing-fixture
+  ordered native tests and explicit partition/state coverage, including external entry boundary.
+- Native browser, catalogue, fixture and step regression tests and
+  `integration/web-accessibility.integration.test.ts`: demonstrated executor/entry/privacy
+  regressions and state preparation; no hidden retry or skip.
+- `_bmad/scripts/render_skill.py` and its regression: lazy active-initiative path resolution;
+  `.gitignore`: generated immutable render output stays local.
+- Existing plan, epic, implementation handoff, parent verification and finish packet: exact
+  evidence, failures/limits and mandatory final review outcomes, without another report layer.
+
+Verification: full lint (32013), complete strict types (44099), 2,697 unit tests and production
+builds (84015) pass. All eight unchanged coverage floors pass (32481). Directed executor/catalogue
+regressions (91938), latest ESLint (25084), strict integration types (27166), scoped formatting,
+Markdown lint and diff checks pass. Renderer regression/config utilities pass (64720). Final
+native campaign exits 0 (182 selected tests); the one-time proof closes 72/72 equivalents with
+zero reconciliation errors. Existing valid results are reused by identity/dependency, with no
+repeated product gate for documentation. Required commit hooks remain part of delivery.
+
+Review: Quick zero findings; finish reviewer `disposition: ship`; documenter No changes.
+Patches by verdict: high 0, medium 0, low 0. Deferred/rejected findings: none.
+Follow-up review recommended: false; no unverified changed risk was established.
+
+Residual limits: no assistive-technology pronunciation or physical touch/daylight certification;
+external Landing and all unauthorized production/publication obligations remain outstanding in
+their owner scope. Historical inconclusive paint and failed executions remain preserved, without
+acceptance claims or indefinite follow-up. Sixteen original host containers remain temporarily
+stopped under owner authorization while development continues; Landing, Caddy and Dev Container
+are preserved, with the existing restoration order recorded in the parent verification.

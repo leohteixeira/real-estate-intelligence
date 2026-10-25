@@ -1,9 +1,83 @@
 # Accessibility implementation handoff
 
-Implementation-only handoff for ticket 6.12. The plan remains in progress. No acceptance,
-commit, push, deployment, external source enablement, model call or public write is claimed.
-The parent owns BMAD step-03 Verify, finite visual/review rounds and the final integral run.
-Historical campaign attempts are immutable diagnostic evidence, not current-build acceptance.
+Current continuation: the plan's **Resumable execution correction — 2026-10-25**.
+There is no demonstrated open product defect. Final acceptance requires the scoped independent
+handoffs and delivery; all campaign
+partitions and the one-time reconciliation pass.
+
+The `115112` invocation is terminal at 13:36:45Z, exit 1, after 15 complete partitions;
+coverage is 59/72 equivalents before final reconciliation. Its failed Place subread recovery
+has native owned/foreign cleanup, unchanged SQL and no boundary escape, but no acceptance.
+A successful parent read starts dependent reads; the executor checked all loaders before
+awaiting their content. The existing child-content/global-settled waits now run after the
+clicked alert disappears and before the unchanged zero-loader assertion. No product,
+assertion, test deadline or retry policy changed. Earlier evidence and executed sources remain
+preserved in [the parent verification](accessibility-parent-verify-2026-10-25.md).
+
+Directed `subreads-pt-BR-390`, prefix
+`runtime/accessibility-subread-readiness-20261025-134105`, passes all 18 tests: native exit 0
+at `14:01:19.359249Z`, 29 approved audit cells and the boundary attempt, zero executor errors.
+Native teardown at `14:01:18.756Z` confirms owned removal and foreign preservation; SQL is
+unchanged, outside/forbidden arrays empty and diagnostic leak false. Scoped ESLint, Prettier
+and strict integration TypeScript pass. The frozen 40-file executor is
+`83402c16e262969b6fedf147adae8d04add23f492b3b12b4499f60d17a404db4`.
+One comparison confirms only the declared main integration-test file changes from `496621…`;
+source, backend, runtime files and served assets are identical.
+
+The `140138` invocation is terminal, native exit 1 at `15:19:50.135849Z`, after three
+complete subread partitions (PT/960, PT/1440 and EN/390). Coverage is 63/72 equivalents before
+reconciliation. EN/960 failed during preparation of reductions loading; it supplies no acceptance.
+The parent verification records the repeated readiness reassessment and native cleanup.
+Directed EN/960, `runtime/accessibility-independent-reads-20261025-152338`, passes all
+18 tests, native exit 0 at `15:44:00.172512Z`: 29 approved audit cells plus the boundary attempt,
+no executor errors. SQL is unchanged, outside/forbidden arrays empty and diagnostic leak false;
+native cleanup at `15:43:59.551Z` confirms owned removal and foreign preservation. Scoped ESLint
+(25084), Prettier and strict integration TypeScript (27166) pass. The shared helper awaits actual
+unheld sibling content before its unchanged zero-loader assertion on navigation and recovery.
+Executor `0122c07f0ca5120525ebbe779adb91663c0b37b7b2d2f504f8de065d5094229d` changes only the main
+integration test; product/runtime dependencies are identical.
+
+The final eight-partition invocation, `runtime/accessibility-final-8-20261025-154452`,
+ended native exit 0 at `17:16:03.366646Z`: 182 selected tests pass; the 450 other registered
+cases are outside this invocation's name filter, not skipped assertions. Execution used one
+worker, bail 1, nice 10, CPUs 0–1 and Compose parallelism one. Both adaptation partitions
+complete, including EN teardown at `17:16:02.091Z`.
+
+The one-time reconciliation passes with no errors: **72/72 catalogue equivalents and all six
+semantic scenarios**, combining 35 new complete runs with the previously validated 25-run
+receipt. The new evidence verifies 6,412 manifest hashes, 682 audit cells, 752 attempts
+(717 approved plus 35 setup pilots), unchanged SQL, network boundaries, runtime/served assets,
+and native owned removal/foreign preservation. The 174 new axe incomplete nodes in 29 groups
+are closed by their paired computed contrast evidence (minimum 8.185:1 against 4.5:1);
+original axe reports and prior adjudication remain preserved. No product defect or evidence
+uncertainty remains open in this acceptance slice. This does not certify assistive-technology
+pronunciation or physical touch/daylight perception.
+
+Proof: `runtime/accessibility-final-8-20261025-154452.reconciliation.json`. Reuse this completed
+proof and unchanged product gates; do not replay accepted equivalents for documentary changes.
+Required scoped independent reviews pass as recorded below; authorized delivery remains.
+
+Keep all 72 catalog partitions, assertions, hooks and gates. Reuse the verified prior 25 runs
+and unchanged product lint/types/unit/build/coverage; reconcile the 35 new complete runs once.
+Do not replay completed equivalents. One heavy workload at a time.
+
+Other projects and unused shared dependencies were stopped at 10:27Z with explicit owner
+authorization. Landing, Caddy and the Dev Container remain running; landing HTTP 200 is
+verified. All 16 original containers and their data are preserved. Exact restoration order
+and historical execution evidence are in
+[the parent verification](accessibility-parent-verify-2026-10-25.md). Do not recreate or
+restart the shared stack during the live campaign. No push/deploy/publication is authorized.
+
+No proven product defect remains open. Hover contrast and recovery readiness are repaired;
+D-087 is a bounded non-reproduction, retained as inconclusive historical evidence. Do not
+add diagnostics, inventories, duplicate reports or broad review rounds. Required independent
+reviews use ready current inputs and count the entire story history. After acceptance and
+applicable gates, commit, update the ticket and advance in `tickets.py next` order.
+
+Implementation handoff for ticket 6.12; the plan remains in progress. Parent owns final
+verification, evidence reconciliation, required review and delivery. The product change and
+invariant descriptions below remain applicable; superseded execution history is preserved
+in the parent verification instead of repeated here.
 
 ## Product changes
 
@@ -43,7 +117,8 @@ Historical campaign attempts are immutable diagnostic evidence, not current-buil
 ## Executor and regressions
 
 The new campaign is `integration/web-accessibility.integration.test.ts`. Its browser, evidence,
-catalog and transport helpers are `integration/support/accessibility-{browser,evidence,catalog,fault}.ts`.
+catalog and transport helpers are
+`integration/support/accessibility-{browser,evidence,catalog,fault}.ts`.
 Their tests cover native keyboard visibility/closed nested disclosures and stable identity,
 programmatic-only exclusion and clipped controls, actual enclosing focus paint,
 selected/unselected real consumers,
@@ -62,7 +137,8 @@ scroll during traversal; real-CSS regression preserves both normal/reduced scrol
 Faults preserve actual admitted bytes and inject only hold, HTTP503, truncation or interrupted
 recorded SSE. Valid recovery continues the genuine API request. Distinct subread recovery actions
 occur once per native region/alert identity with actual response/dispatch receipts. Canonical
-synthetic Property/Listing variants are read as provided; no extra SQL seed/license mutation is used.
+synthetic Property/Listing variants are read as provided; no extra SQL seed/license mutation is
+used.
 Search retention uses supported next-cursor pagination, not a historical visit with gcTime=0.
 
 Transport lifecycle tests use real Chromium cancellation and an open-disclosure primary failure.
@@ -100,13 +176,20 @@ Verify will freeze and record its own complete identity before the integral run.
 The last pre-pilot commands all exited 0:
 
 ```sh
-pnpm exec prettier --write apps/web/src/landing/landing.css integration/support/property-capture.ts integration/support/accessibility-browser.test.ts
-pnpm exec eslint integration/support/property-capture.ts integration/support/accessibility-browser.test.ts
+pnpm exec prettier --write apps/web/src/landing/landing.css
+integration/support/property-capture.ts integration/support/accessibility-browser.test.ts
+pnpm exec eslint integration/support/property-capture.ts
+integration/support/accessibility-browser.test.ts
 pnpm exec tsc --noEmit --project tsconfig.integration.json
 pnpm --filter @rei/web typecheck
-pnpm exec vitest run --config vitest.integration.config.ts integration/support/accessibility-browser.test.ts integration/support/accessibility-evidence.test.ts integration/support/accessibility-fault.test.ts
-pnpm --filter @rei/web exec vitest run --dir src src/landing/LandingPage.test.tsx src/shell/AppShell.test.tsx src/search/SearchResults.test.tsx
-pnpm exec vitest run --config vitest.integration.config.ts integration/support/property-capture.test.ts
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/support/accessibility-browser.test.ts
+integration/support/accessibility-evidence.test.ts
+integration/support/accessibility-fault.test.ts
+pnpm --filter @rei/web exec vitest run --dir src src/landing/LandingPage.test.tsx
+src/shell/AppShell.test.tsx src/search/SearchResults.test.tsx
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/support/property-capture.test.ts
 ```
 
 Results were 11/11 accessibility helpers in 18.13s, 50/50 selected web regressions in 7.14s,
@@ -116,7 +199,8 @@ also formatted and selected-linted before freezing; the exact root gates remain 
 The last directed command was:
 
 ```sh
-pnpm exec vitest run --config vitest.integration.config.ts integration/web-accessibility.integration.test.ts -t 'partition: adaptation-pt-BR$' --bail 1
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/web-accessibility.integration.test.ts -t 'partition: adaptation-pt-BR$' --bail 1
 ```
 
 It exited 0: 223.79s test / 224.92s invocation, one selected partition, 37 not selected by `-t`.
@@ -173,8 +257,12 @@ These need explicit finish adjudication; zero axe violations does not approve in
 Do not substitute the directed pilots for this command. Run serially after the diff review:
 
 ```sh
-pnpm exec vitest run --config vitest.integration.config.ts integration/support/accessibility-browser.test.ts integration/support/accessibility-evidence.test.ts integration/support/accessibility-fault.test.ts integration/support/property-capture.test.ts
-pnpm exec vitest run --config vitest.integration.config.ts integration/web-accessibility.integration.test.ts --bail 1
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/support/accessibility-browser.test.ts
+integration/support/accessibility-evidence.test.ts
+integration/support/accessibility-fault.test.ts integration/support/property-capture.test.ts
+pnpm exec vitest run --config vitest.integration.config.ts
+integration/web-accessibility.integration.test.ts --bail 1
 pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build
 pnpm run test:coverage
 pnpm exec vitest list --config vitest.integration.config.ts
@@ -264,3 +352,20 @@ Search authored-reference packet. Their metadata/source SHA must be checked agai
 authored files before reuse. No new render-authored LandingDesktop/LandingMobile reference is
 claimed; the parent resolves that reference gap before integral Verify without changing product
 bytes. This does not replace the plan's finite visual comparison.
+
+## Final independent handoffs — 2026-10-25
+
+The mandatory third broad review round across the story's full history is complete; no optional
+lens or new general audit was launched. Pinned BMAD Quick reviewed the baseline unified diff,
+acceptance, instructions and surrounding contracts by inspection and returned `[]`: zero findings,
+zero patches, zero deferrals and zero rejections. Impeccable finish reviewer opened all ten named
+required captures first and returned **`disposition: ship`**, with no material fixes. Its scope is
+this accessibility extension; unavailable historical detector raw data and absent comp/card inputs
+remain explicit, and external Landing is not accepted here.
+
+The required documenter returned **No changes** after checking PRODUCT, DESIGN/sidecar, tokens,
+component/place styles and sampled operational components/briefs. The hover repair reuses
+`--enamel-200`; there is no new system decision. Existing broader/future navigation wording,
+universal plate/count examples, abbreviated sidecar narrative and obsolete local Landing guidance
+remain recorded drift, not canonized or repaired in this ordinary extension. No review-triggered
+product or executor change invalidates the completed campaign or product gates.

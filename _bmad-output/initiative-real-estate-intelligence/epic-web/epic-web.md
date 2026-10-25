@@ -60,6 +60,73 @@ shared with another epic, Description says which part this epic delivers.
 
 ## Notes
 
+- Execution update (owner direction, 2026-10-25): the existing story 6.12 plan amendment governs
+  all remaining handoffs. D-087 did not reproduce the historical paint discrepancy; close it as
+  inconclusive evidence, retaining its temporary source only with raw artifacts. Details exceeded
+  the unchanged 600-second batch deadline, so reuse Discovery's locale/width partitioning: 48
+  total partitions retain every screen audit and anchor journey. Verify the affected partition
+  before the final whole campaign, reuse unchanged gates, run one heavy job, and retain only
+  mandatory reviews scoped to demonstrated risks. This scheduling change is not a new decision.
+- Decision: D-087 observes the conflicting EN/1440 Place final PNG with one standalone
+  native Vitest diagnostic, reusing the four-service production fixture, synthetic reads,
+  existing traversal/capture sequence and owned cleanup. Record viewport/media/scroll and
+  computed label/ancestor colors around each unchanged capture, then one ordinary viewport
+  screenshot immediately after the final full capture. Run after the current campaign;
+  keep its executor/support files frozen. Preserve raw images and SQL/network boundaries.
+  No CSS, delay, retry or scroll repair is inferred; a non-reproduction leaves history
+  dependence unresolved (agent, on the owner's behalf, 2026-10-25).
+- Decision: D-086 waits for the actual visible Ask record and enabled Follow control after
+  valid catalogue recovery, before auditPair and disclosure preparation. D-085's failed
+  recovery began in the loading state and gained five controls during traversal; the
+  first footer focus was then displaced outside the viewport. Preserve native keyboard
+  traversal, captures, assertions and deadlines, retain failed evidence, verify the
+  affected partition and then run the complete campaign on the new executor version.
+  Reuse semantic success contracts rather than adding timing or scroll mechanisms
+  (agent, on the owner's behalf, 2026-10-25).
+- Decision: D-085 repairs the demonstrated dark-rail hover cascade with one component
+  rule using the existing enamel-200 foreground, preserving the more specific nav hover.
+  The fresh full invocation failed after 31 passing partitions: Privacy measured 1:1;
+  a deterministic native regression also reproduces the affected brand at 960/1440,
+  hover with and without focus. Verify default/focus/hover numerically with actual CSS,
+  retain the failed artifacts, and rerun the whole campaign on corrected bytes. No pointer
+  reset, contrast exemption, new token/dependency, observer change or weaker gate; earlier
+  white-link captures do not adjudicate the failing hover state (agent, on the owner's
+  behalf, 2026-10-25).
+- Decision: D-084 changes the existing web healthcheck from the redirecting root to
+  the already served local `/index.html`. Pilot 54110 reached healthy PostgreSQL/API,
+  but wget followed the root 308 externally and health logs returned 404. The parent
+  stopped only the exact owned web container; preserve that failed pilot and verify
+  the local document through a configuration regression and real HTTP receipt before
+  another pilot. No new endpoint, retry, deadline or UI change is needed (agent, on the
+  owner's behalf, 2026-10-25).
+
+- Decision: D-083 reduces the existing web and instrumented coverage worker limit from
+  two to one after serial workspaces still failed the first Search readiness wait, while
+  all 532 web tests passed under one worker in 148.70 seconds. Reuse the existing scheduler;
+  preserve isolation, assertions, deadlines and coverage floors. These observations support
+  the bounded execution choice without claiming a specific React/jsdom scheduling cause
+  (agent, on the owner's behalf, 2026-10-25).
+- Decision: D-082 bounds the root unit-test scheduler to one workspace at a time, reusing
+  the coverage command's existing pnpm option. D-074 already bounds web workers but does not
+  prevent AI and web pools from competing for the two available CPUs. The unchanged complete
+  filter test timed out under that overlap and passed alone in 3.45 seconds; preserve its
+  five-second deadline, assertions and all existing coverage floors (agent, on the owner's
+  behalf, 2026-10-25).
+- Decision: D-081 uses the official bundled Chromium setuid sandbox helper from an ignored
+  repository-local runtime directory with root ownership and mode 4755. Supply its path only
+  through the process environment; preserve `chromiumSandbox: true`. Do not alter the host,
+  shared Playwright cache, assertions or deadlines. The focused launch regression passes;
+  complete browser verification remains required (agent, on the owner's behalf, 2026-10-25).
+- Decision: D-079 repairs only the outdated local skill renderer and its regression tests,
+  using the installed official BMAD setup; select the existing initiative in ignored personal
+  configuration and preserve all story baselines (agent, on the owner's behalf, 2026-10-24).
+- Decision: D-080 preserves committed presentation migration 08c0d5e/d3cedf8/a5ca572.
+  Test the exact root 308 without following its external destination; retain all seven local
+  operational screen families, states, locales, keyboard and responsive checks. Presentation
+  visual/motion/WebGL/privacy acceptance belongs to the portfolio repository and remains an
+  explicit outstanding obligation, never inferred from the redirect. This supersedes only the
+  local Landing coverage in D-070/D-078 (agent, on the owner's behalf, 2026-10-24).
+
 - Decision: D-078 withdraws the uncommitted D-077 CDP experiment after Discovery again
   timed out at 600 seconds with 16 approved checks. Retain D-076's existing single capture.
   Bound Discovery by locale/width, reusing the campaign's existing partition model: six
@@ -309,3 +376,14 @@ shared with another epic, Description says which part this epic delivers.
   is not absence of local persistence. Missing publication/retention/rights evidence remains a
   real-processing gate. Preserve every test gate and VPS block (agent, on the owner's behalf,
   2026-10-22).
+
+Story 6.12 final local evidence (2026-10-25): native final invocation exits 0 at
+17:16:03.366646Z, 182 selected tests pass. One-time reconciliation closes 72/72 catalogue
+equivalents and all six semantic scenarios using 35 new complete runs and the validated 25-run
+receipt. New evidence verifies 6,412 manifest hashes, 682 cells, unchanged SQL, runtime/assets,
+network and native owned/foreign cleanup; 174 new axe incomplete nodes are adjudicated by paired
+computed contrast (minimum 8.185:1 versus 4.5:1), preserving originals. Existing product gates
+remain valid. Mandatory final round 3: Quick zero findings, finish `disposition: ship`, documenter
+No changes. No additional product change or audit; authorized commit/tracker delivery follows.
+Exact proof and finite limits remain in the existing 2026-10-25 parent verification and finish
+packet. External Landing and production obligations are not accepted by this local evidence.
