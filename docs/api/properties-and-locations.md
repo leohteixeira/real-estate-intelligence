@@ -205,9 +205,26 @@ Neighborhood disagreement remains visible and does not repair a source's address
 weight below 0.75 caps the final probability at 0.89. At least 0.90 joins automatically; 0.50 to
 below 0.90 records `properties.match.queued-for-review`; lower values remain separate. Stored
 comparisons retain input/configuration identities, raw/final probability, coverage, incompatibilities
-and safe reason contributions. These probabilities are deterministic rules, not measured calibration.
+and safe reason contributions. These scores remain deterministic rules, not statistically
+calibrated probabilities.
 Each current assignment identifies the configuration actually executed; detail does not select a
 configuration by the greatest stored version across different configuration IDs.
+
+The 3.7 labelled-fixture calibration retains these exact versioned weights. Every monthly view
+has precision 1.0 and recall 1.0 (5 true positives, 31 true negatives, no false positives or
+negatives), with both recorded regression floors fixed at 1.0. All 36 unique unordered pairs
+are scored in each of thirteen monthly retained-evidence views through the production normalizer
+and comparison rule. These are repeated views of nine synthetic identities, without independent
+validation or uncertain-match labels; they do not calibrate real-world probabilities or justify
+moving either fixed threshold. Labels only evaluate decisions in tests and never enter scoring.
+To emit the full reproducible metrics, including configuration and dataset identities:
+
+```bash
+pnpm --filter @rei/infrastructure exec vitest run --dir src src/properties/property-resolution-calibration.test.ts --reporter=verbose
+```
+
+The verbose reporter displays test console metrics that Vitest's default agent reporter omits;
+this changes reporting only and preserves every assertion and gate.
 
 Stable source/listing ordering and complete-link grouping require every pair in a group to pass;
 the smallest original Property UUID survives. Detail resolves old Property IDs to the current group

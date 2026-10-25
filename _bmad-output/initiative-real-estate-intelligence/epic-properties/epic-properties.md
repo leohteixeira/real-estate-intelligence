@@ -63,6 +63,16 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
 
 ## Notes
 
+- Decision: D-093 (agent, on the owner's behalf, 2026-10-25) fixes the measured existing
+  `d092-initial` v1 weights without an artificial configuration-version change. Calibration
+  evaluates every one of the 36 labelled pairs in each of thirteen monthly retained-evidence
+  views: 5 true positives, 31 true negatives, no false positives/negatives, precision/recall 1.0
+  in each view. A native Vitest gate pins both floors at 1.0 and checks unique complete pairs
+  and authentic replay inputs. Keep the owner's fixed 0.90/0.50 thresholds; these data justify
+  no move and contain no uncertain-match labels to calibrate 0.50. Repeated views of the same
+  nine synthetic identities are not independent samples or statistical probability calibration.
+  Labels remain test-only; fixture bytes, runtime configuration, services and UI are unchanged.
+
 - Decision: D-092 (agent, on the owner's behalf, 2026-10-25) resolves story 3.6's weights/text
   unknown: version the initial coordinate/image/area/bedroom/description weights
   0.150/0.510/0.170/0.085/0.085, use available-weight normalization, NFC lowercase Unicode-token
