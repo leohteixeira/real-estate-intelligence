@@ -108,7 +108,7 @@ describe('PostgresSnapshotLifecycle', () => {
       ),
     ).toEqual([row.object_key]);
     expect(f.query.mock.calls[0]?.[0]).toContain(
-      'COALESCE(next_reconciliation_at, expires_at) <= $1',
+      'COALESCE(next_reconciliation_at, CASE WHEN suppressed THEN $1 ELSE expires_at END) <= $1',
     );
     expect(f.query.mock.calls[0]?.[0]).not.toContain('NOT deleted');
     expect(f.query.mock.calls[0]?.[0]).toContain('ORDER BY selection_order, object_key LIMIT $2');

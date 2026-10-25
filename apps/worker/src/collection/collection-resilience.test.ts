@@ -797,6 +797,36 @@ describe('shared page and photograph admission', () => {
     expect(await photo).toBe('dhash64-v1:0000000000000000');
     expect(wrapped.policiesFor('first-source')).toBe(policies);
   });
+  it('rechecks listing suppression after the shared photo rate wait', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const fingerprintPhoto = vi.fn(async () => 'dhash64-v1:0000000000000000');
+    const wrapped = new ResilientListingSource(
+      { ...source(), fingerprintPhoto },
+      register({ status: 'configured', limit: 1, windowSeconds: 1 }, true),
+    );
+    await wrapped.fetchPage('first-source', null, signal());
+    let suppressed = false;
+    const admit = vi.fn(async () => {
+      if (suppressed)
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.listing.suppressed' });
+    });
+    const waiting = failureKind(
+      wrapped.fingerprintPhoto(
+        'first-source',
+        'https://fixture.invalid/photo',
+        signal(),
+        undefined,
+        admit,
+      ),
+    );
+    await vi.advanceTimersByTimeAsync(10);
+    suppressed = true;
+    await vi.advanceTimersByTimeAsync(990);
+    expect(await waiting).toBe('rejected');
+    expect(admit).toHaveBeenCalledOnce();
+    expect(fingerprintPhoto).not.toHaveBeenCalled();
+  });
   it('rechecks independent photo permission after a rate wait and preserves holds', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);

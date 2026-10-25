@@ -33,6 +33,7 @@ import type { ListingSource, RawListingDocument } from './listing-source.port.js
 import { ListingSourceAccessRefusal } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
+import type { ListingSuppressionAuthority } from './listing-suppression.port.js';
 import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
 const IDS = Array.from(
@@ -120,6 +121,10 @@ class RunRepositoryDouble implements CollectionRunRepository {
     throw new Error('One-shot failure must not be used.');
   }
   public observations: PersistedCollectionObservation[] = [];
+  public suppressedIds: string[] = [];
+  public async listObservedListingIds() {
+    return [...this.suppressedIds, ...this.observations.map((item) => item.sourceListingId)];
+  }
 
   public async pause(_transaction: Transaction, _runId: UuidV7, hold: SourceHold) {
     this.run = pauseCollectionRun(this.run!, hold);
@@ -191,6 +196,7 @@ class RunRepositoryDouble implements CollectionRunRepository {
       return { committed: false, run: this.run };
     }
     this.observations.push(...input.observations);
+    this.suppressedIds.push(...(input.suppressedListingIds ?? []));
     const parsedDelta = input.observations.filter(({ outcome }) => outcome === 'parsed').length;
     const changedDelta = input.observations.filter(({ changed }) => changed).length;
     const failedDelta = input.observations.filter(({ outcome }) => outcome === 'failed').length;
@@ -199,7 +205,8 @@ class RunRepositoryDouble implements CollectionRunRepository {
       expectedCursor: input.expectedCursor,
       nextCursor: input.nextCursor,
       checkpointedAt: input.checkpointedAt,
-      observedDelta: input.observations.length,
+      observedDelta: input.observations.length + (input.suppressedListingIds?.length ?? 0),
+      suppressedDelta: input.suppressedListingIds?.length ?? 0,
       parsedDelta,
       changedDelta,
       failedDelta,
@@ -218,6 +225,7 @@ function fixture(
     { documents: [document('AUR-PN-001')], nextCursor: 'fixture:2026-10:2', exhausted: true },
   ],
   sanitizer?: SnapshotSanitizer,
+  suppression?: ListingSuppressionAuthority,
 ) {
   const order: string[] = [];
   const source: ListingSource = {
@@ -285,6 +293,7 @@ function fixture(
       clock,
       outbox,
       sanitizer,
+      suppression,
     ),
     source,
     snapshots,
@@ -299,6 +308,43 @@ function fixture(
 }
 
 describe('CollectSourceRun', () => {
+  it.each(['discovered', 'commit', 'upload'] as const)(
+    'counts suppression at %s without retaining payload or parsed evidence',
+    async (stage) => {
+      const suppression = {
+        isSuppressed: vi.fn(
+          async (identity) => stage === 'discovered' && identity.sourceListingId === 'AUR-BV-001',
+        ),
+        lockAndCheck: vi.fn(
+          async (_tx, identity) => stage === 'commit' && identity.sourceListingId === 'AUR-BV-001',
+        ),
+      };
+      const f = fixture(undefined, undefined, suppression);
+      const lockRun = vi.spyOn(f.runs, 'lockRunForPage');
+      if (stage === 'upload')
+        vi.mocked(f.snapshots.store).mockRejectedValueOnce(
+          new ExternalFailure({ kind: 'rejected', operation: 'collection.listing.suppressed' }),
+        );
+      const run = await f.service.execute(
+        'synthetic-portal-aurora',
+        'suppressed-run',
+        null,
+        AbortSignal.timeout(1000),
+      );
+      expect(run).toMatchObject({
+        observedCount: 2,
+        parsedCount: 1,
+        suppressedCount: 1,
+        failedCount: 0,
+      });
+      expect(f.runs.suppressedIds).toEqual(['AUR-BV-001']);
+      expect(f.runs.observations.map((item) => item.sourceListingId)).toEqual(['AUR-PN-001']);
+      expect(f.runs.parsedEvidence).toHaveLength(1);
+      if (stage === 'commit') expect(suppression.lockAndCheck).toHaveBeenCalledBefore(lockRun);
+      if (stage !== 'commit') expect(f.source.parse).toHaveBeenCalledOnce();
+    },
+  );
+
   it('projects a real-category page before storage, parsing, observations and events', async () => {
     const original = { ...document('listing-1'), sourceId: 'privacy-fixture' };
     const safe = {

@@ -58,6 +58,7 @@ const document = {
 const sanitized = new CanonicalSnapshotSanitizer().sanitize(document);
 const input: StoreRawSnapshotInput = {
   sourceId: document.sourceId,
+  sourceListingId: document.sourceListingId,
   synthetic: false,
   acquisitionId: 'operation-1',
   mediaType: 'application/json',
@@ -539,6 +540,12 @@ describe('encrypted storage lifecycle', () => {
   });
   it('refuses missing keys, unsanitized bytes, changed acquisition content and unknown reads', async () => {
     const f = fixture();
+    const unowned = { ...input };
+    Reflect.deleteProperty(unowned, 'sourceListingId');
+    await expect(f.store.store(unowned, AbortSignal.timeout(1000))).rejects.toMatchObject({
+      kind: 'forbidden',
+    });
+    expect(f.lifecycle.generations.size).toBe(0);
     const missing = new S3RawSnapshotStore({ ...config, lifecycle: f.lifecycle });
     await expect(missing.store(input, AbortSignal.timeout(1000))).rejects.toMatchObject({
       kind: 'forbidden',

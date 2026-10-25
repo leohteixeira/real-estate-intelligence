@@ -577,6 +577,7 @@ test('listing-provenance preserves its complete real-service campaign', async ()
           const stored = await historicalStore.store(
             {
               sourceId: historicalSource,
+              sourceListingId: historicalInput.sourceListingId,
               acquisitionId: 'historical-provenance',
               mediaType: 'application/json' as const,
               synthetic: false,

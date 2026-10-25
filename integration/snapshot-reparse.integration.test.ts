@@ -373,6 +373,7 @@ test('snapshot-reparse preserves its complete real-service campaign', async () =
           const stored = await localStore.store(
             {
               sourceId,
+              sourceListingId: 'fixture-listing',
               mediaType: 'application/json' as const,
               synthetic,
               acquisitionId: options.operation ?? `fixture-${randomBytes(8).toString('hex')}`,

@@ -29,6 +29,7 @@ import type { ListingSource, RawListingDocument } from './listing-source.port.js
 import { ListingSourceAccessRefusal } from './listing-source.port.js';
 import type { RawSnapshotStore } from './raw-snapshot-store.port.js';
 import type { SourceRegisterRepository } from './source-register.repository.js';
+import type { ListingSuppressionAuthority } from './listing-suppression.port.js';
 import type { SnapshotSanitizer } from './snapshot-sanitizer.port.js';
 
 const IDS = [
@@ -120,6 +121,7 @@ function fixture(
     enabled?: boolean;
     document?: RawListingDocument;
     sanitizer?: SnapshotSanitizer;
+    suppression?: ListingSuppressionAuthority;
   } = {},
 ) {
   const calls: string[] = [];
@@ -245,6 +247,8 @@ function fixture(
     clock,
     outbox,
     options.sanitizer,
+    5000,
+    options.suppression,
   );
   return {
     service,
@@ -262,6 +266,41 @@ function fixture(
 }
 
 describe('CollectSourceOnce', () => {
+  it('refuses suppressed one-shot work before storage or parsing, and checks page admission', async () => {
+    const suppression = {
+      isSuppressed: vi.fn(async () => true),
+      lockAndCheck: vi.fn(async () => true),
+    };
+    const f = fixture({ suppression });
+    await expect(
+      f.service.execute('synthetic-data', 'operation-1', null, AbortSignal.timeout(1000)),
+    ).rejects.toMatchObject({ operation: 'collection.listing.suppressed' });
+    expect(f.snapshots.store).not.toHaveBeenCalled();
+    expect(f.source.parse).not.toHaveBeenCalled();
+    expect(f.outbox.append).not.toHaveBeenCalled();
+    const admit = vi.mocked(f.source.fetchPage).mock.calls[0]![4]!;
+    expect(
+      await admit(
+        { sourceId: 'synthetic-data', sourceListingId: 'SYN-SP-0001' },
+        AbortSignal.timeout(1000),
+      ),
+    ).toBe(false);
+  });
+  it('refuses a prepared one-shot at the locked commit boundary without publishing', async () => {
+    const suppression = {
+      isSuppressed: vi.fn(async () => false),
+      lockAndCheck: vi.fn(async () => true),
+    };
+    const f = fixture({ suppression });
+    await expect(
+      f.service.execute('synthetic-data', 'operation-1', null, AbortSignal.timeout(1000)),
+    ).rejects.toMatchObject({ operation: 'collection.listing.suppressed' });
+    expect(f.source.parse).toHaveBeenCalledOnce();
+    expect(suppression.lockAndCheck).toHaveBeenCalledOnce();
+    expect(f.runs.persistCompleted).not.toHaveBeenCalled();
+    expect(f.outbox.append).not.toHaveBeenCalled();
+  });
+
   it('replays a concurrent completion after an empty initial lookup without external work', async () => {
     const context = fixture({ replay: result() });
     vi.mocked(context.runs.loadRunByOperationKey).mockResolvedValueOnce(null);
@@ -533,6 +572,7 @@ describe('CollectSourceOnce', () => {
       null,
       signal,
       deadlineAt,
+      undefined,
     );
     expect(context.snapshots.store).toHaveBeenCalledWith(expect.any(Object), signal, deadlineAt);
   });

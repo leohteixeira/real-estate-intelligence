@@ -127,7 +127,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
         const migrations = (await readdir(migrationDirectory))
           .filter((name) => name.endsWith('.sql'))
           .sort();
-        for (const migration of migrations.filter((name) => !/^400[67]_/.test(name))) {
+        for (const migration of migrations.filter((name) => !/^(400[67]|4012)_/.test(name))) {
           await connection.query(await readFile(new URL(migration, migrationDirectory), 'utf8'));
         }
         // A pre-4006 synthetic identity survives the upgrade exactly, without an encryption key.
@@ -169,6 +169,13 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
         await connection.query(
           await readFile(
             new URL('4007_collection_add_snapshot_reparse.sql', migrationDirectory),
+            'utf8',
+          ),
+        );
+        // Suppression builds on lifecycle/reparse; apply it after the legacy upgrade fixtures.
+        await connection.query(
+          await readFile(
+            new URL('4012_collection_add_listing_suppression.sql', migrationDirectory),
             'utf8',
           ),
         );
@@ -458,6 +465,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
         await store.store(
           {
             sourceId: SOURCE,
+            sourceListingId: document.sourceListingId,
             synthetic: false,
             acquisitionId: JSON.stringify(['private-once', SOURCE, document.sourceListingId]),
             mediaType: 'application/json' as const,
@@ -482,6 +490,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
           store.store(
             {
               sourceId: SOURCE,
+              sourceListingId: document.sourceListingId,
               synthetic: false,
               acquisitionId: JSON.stringify(['private-once', SOURCE, document.sourceListingId]),
               mediaType: 'application/json' as const,
@@ -621,6 +630,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
               missingKey.store(
                 {
                   sourceId: SOURCE,
+                  sourceListingId: document.sourceListingId,
                   synthetic: false,
                   acquisitionId: 'missing-key',
                   mediaType: 'application/json' as const,
@@ -744,6 +754,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
             const pendingStore = lateAdapter.store(
               {
                 sourceId: SOURCE,
+                sourceListingId: document.sourceListingId,
                 synthetic: false,
                 acquisitionId: 'late-aborted-put',
                 mediaType: 'application/json' as const,
@@ -961,6 +972,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
                 fairStore.store(
                   {
                     sourceId: SOURCE,
+                    sourceListingId: document.sourceListingId,
                     synthetic: false,
                     acquisitionId: `fair-selection-${name}`,
                     mediaType: 'application/json' as const,
@@ -1183,6 +1195,7 @@ test('snapshot-lifecycle preserves its complete real-service campaign', async ()
                 incrementalAdapter.store(
                   {
                     sourceId: SOURCE,
+                    sourceListingId: document.sourceListingId,
                     synthetic: false,
                     acquisitionId: `incremental-selection-${name}`,
                     mediaType: 'application/json' as const,

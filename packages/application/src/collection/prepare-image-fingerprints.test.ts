@@ -56,6 +56,32 @@ const source = (
 const signal = () => AbortSignal.timeout(2_000);
 
 describe('transient photo preparation', () => {
+  it('rechecks suppression before each photograph and never publishes partial evidence', async () => {
+    let suppressed = false;
+    const photo = vi.fn(async () => {
+      suppressed = true;
+      return 'dhash64-v1:0000000000000000';
+    });
+    const admit = vi.fn(async () => {
+      if (suppressed)
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.listing.suppressed' });
+    });
+    await expect(
+      prepareImageFingerprints(
+        source(photo),
+        registry(async () => registration),
+        document,
+        listing,
+        false,
+        signal(),
+        undefined,
+        admit,
+      ),
+    ).rejects.toMatchObject({ operation: 'collection.listing.suppressed' });
+    expect(photo).toHaveBeenCalledOnce();
+    expect(admit).toHaveBeenCalledTimes(2);
+  });
+
   it('selects first three distinct URLs in order and retains hash collisions', async () => {
     const calls: string[] = [];
     const prepared = await prepareImageFingerprints(

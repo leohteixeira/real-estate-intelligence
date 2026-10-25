@@ -52,7 +52,11 @@ describe('CollectionAuditConsumer', () => {
     expect(context.subscriber.subscribe).toHaveBeenCalledWith(
       {
         consumerName: COLLECTION_AUDIT_CONSUMER,
-        eventTypes: ['collection.snapshot.parsed', 'collection.run.completed'],
+        eventTypes: [
+          'collection.snapshot.parsed',
+          'collection.run.completed',
+          'collection.listing.suppressed',
+        ],
       },
       expect.any(Function),
     );
