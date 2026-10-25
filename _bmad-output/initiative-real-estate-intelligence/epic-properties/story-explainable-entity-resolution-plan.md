@@ -3,7 +3,7 @@ title: 'Explainable entity resolution'
 type: 'feature'
 ticket: 6
 created: '2026-10-25'
-status: 'built'
+status: done
 baseline_revision: 'f4b33b71ca9bf57ad04b617e19bfe98cd2c42b7a'
 route: 'full'
 route_source: 'auto'
@@ -661,3 +661,15 @@ required release CI, image digests or public production evidence. Main integrati
   This local acceptance supplies no claim of remote CI, registry publication or public deploy;
   those remain required in their release stories from the active branch. Main integration
   follows completion of all stories. No real sources or model calls were used.
+
+### Orchestrator acceptance
+
+- Story 3.6 marked done after the built workflow verified a clean working tree and all 42
+  reviewed files committed after the preserved original baseline. No source changed after
+  passing verification; implementation/test/document hooks all passed without fixes.
+- Delivered implementation: `3d8b98e5e6842ffbb9213d350be003cbd60be8dd`;
+  tests: `51dface914cd517f80e9c316bb90ad0bb6a75020`;
+  verified delivery record: `cedb07a6c9e938fef1794723e2e8a554fcd2afca`.
+- The independent finding was withdrawn on its historical-evidence contract; no supported
+  defect or required local acceptance remains open. Release/public-production proof remains
+  owned by the applicable release tickets and is not claimed by this closure.
