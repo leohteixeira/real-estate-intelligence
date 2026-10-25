@@ -12,10 +12,7 @@ import { PrivacyNotice } from './privacy/PrivacyNotice';
 export function AppRoutes() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<PresentationRedirect />}
-      />
+      <Route path="/" element={<PresentationRedirect />} />
       <Route element={<AppShell documentMode />}>
         <Route path="/privacy" element={<PrivacyNotice />} />
       </Route>

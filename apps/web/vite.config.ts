@@ -88,6 +88,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     // Bound shared-host DOM contention without changing isolation or test deadlines.
-    maxWorkers: 2,
+    maxWorkers: 1,
   },
 });

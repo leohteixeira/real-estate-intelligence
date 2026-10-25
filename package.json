@@ -12,7 +12,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
     "lint": "eslint . && node scripts/check-context-boundaries.mjs && node scripts/check-migration-conventions.mjs",
-    "test": "pnpm -r test",
+    "test": "pnpm -r --workspace-concurrency=1 test",
     "test:coverage": "bash scripts/test-coverage.sh",
     "test:integration": "pnpm run build && vitest run --config vitest.integration.config.ts",
     "test:integration:list": "vitest list --config vitest.integration.config.ts",

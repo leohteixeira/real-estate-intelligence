@@ -8,7 +8,7 @@ set -Eeuo pipefail
 coverage_args=(
   # Bound instrumented workers so shared-host CPU contention cannot starve
   # native five-second UI tests. Keep isolation, deadlines and assertions intact.
-  --maxWorkers=2
+  --maxWorkers=1
   --coverage
   --coverage.provider=v8
   --coverage.reporter=text
