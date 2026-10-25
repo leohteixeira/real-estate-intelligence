@@ -147,3 +147,11 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
 - Tracer bullet: entry 2; entry 1 precedes it so epic-properties opens on the contracts.
 - Assumption: entries that run in parallel take consecutive migration numbers inside the block of
   this context in entry order (3, 4, 5, 7).
+
+- Decision: D-091 makes source/listing suppression permanent before resumable owner-command
+  cleanup. Preserve only minimum suppression/audit/run identity and cleanup metadata; erase owned
+  Collection/platform/audit collected copies and reject delayed parsed delivery. Shared synthetic
+  ownership and real fixed expiry remain intact. Properties/Market derived erasure belongs to
+  stories 3.12/4.8; historical unidentifiable real orphans retain existing expiry. Implementation
+  and verification evidence remains in the removal/suppression story plan
+  (agent, on the owner's behalf, 2026-10-25).

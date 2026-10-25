@@ -277,3 +277,35 @@ The release evidence must include the full `main` commit, five manifest digests,
 public TLS/readiness receipt, linked Tempo trace and database evidence, and rollback/backup receipt.
 Until these checks actually pass on the authorized VPS, story 1.12 and epic criterion 6 stay pending
 production even when all local checks pass.
+
+## Remove and permanently suppress a collected listing
+
+Run the owner-only worker command against the intended application's database and object store,
+using its existing protected configuration. There is no removal HTTP endpoint or scheduled job.
+For an already configured development tools profile:
+
+```bash
+pnpm --filter @rei/worker listing:remove synthetic-data SYN-SP-0001
+docker compose --profile tools run --rm listing-removal-command synthetic-data SYN-SP-0001
+```
+
+The two positional arguments are the registered source ID and stable source listing ID. Unknown
+sources, unsafe identifiers, options and extra arguments fail. Use the exact identity recorded by
+Collection; a source URL or snapshot ID is not a listing identity. The command shares the existing
+collection deadline, storage resilience, telemetry and bounded shutdown configuration.
+
+A successful result includes `completed: true`, the permanent suppression ID and its event ID.
+Repetition returns that identity and emits no additional suppression event. Suppression commits
+before cleanup: a storage failure, cancellation or nonzero exit requires rerunning the same command
+after the cause is resolved. Do not remove suppression rows to recover cleanup. A failed attempt
+has already blocked collection, access, reparse and new parsed-event authority, but does not certify
+physical deletion. Existing snapshot retention reconciles late writes using durable tombstones;
+keep that worker capability running after an interrupted upload.
+
+Removal erases the target's observations, parsed/reparse evidence, image fingerprints and matching
+platform/audit parsed payloads. Shared synthetic bytes remain usable by other unsuppressed owners.
+Minimum suppression/audit identity, inbox markers, historical run identity/count/checkpoint/manifest
+and necessary cleanup metadata remain. Real generation expiry remains fixed. Historical real
+orphans without identifiable listing ownership retain their original expiry. Existing Properties
+and Market derived-data erasure is reserved for stories 3.12 and 4.8; do not describe Collection
+completion as erasure of those future capabilities. See [ADR 0015](../../specs/adrs/0015-handling-of-collected-data.md).

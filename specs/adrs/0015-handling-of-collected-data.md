@@ -131,6 +131,38 @@ the listing payload or any image. It checks again before persisting a payload or
 downstream artifact, so a later run, redelivery or reprocessing operation cannot recreate the
 listing or its artifacts.
 
+### Accepted clarification — D-091, 2026-10-25
+
+Accepted by the agent on the owner's behalf, 2026-10-25, for collection story 2.10.
+The owner invokes removal with the stable source/listing identity through the worker command.
+Suppression commits before external deletion, remains permanent if deletion fails or the command
+is interrupted, and uses the same suppression/event identity when resumed. Completion means that
+owned object deletion and Collection/platform/audit erasure have succeeded; it is not a scheduled
+retry or a claim that an incomplete attempt erased content.
+
+Only the source/listing identity, suppression/event IDs and timestamps, minimal historical run
+listing identities, and necessary immutable object cleanup metadata remain. Run counters,
+checkpoints and completed manifest evidence retain their historical meaning without keeping a
+snapshot URL, parsed payload or image fingerprints for the removed observation. Platform and
+audit erase matching `collection.snapshot.parsed` copies through their owning capabilities.
+Audit's append-only rule has one narrow exception: an owner-authorized deletion of these collected
+copies for the matching permanently erased identity. Other audit deletion and all mutation remain
+forbidden. Inbox markers and the minimal suppression event remain; audit's own identity tombstone
+and current Collection authority reject delayed parsed delivery even after inbox pruning.
+
+New real reservations carry the explicit listing identity before upload. Suppression makes them
+unavailable immediately, without extending or shortening the original 30-day expiry. Existing
+retention reconciles suppressed real generations and durable synthetic cleanup tombstones so a
+cancelled late PUT cannot restore access. Globally addressed synthetic objects survive while an
+unsuppressed listing owns them; object ownership and deletion are serialized. Historical real
+orphans without an observation cannot be attributed from their one-way acquisition hash and keep
+the existing expiry/reconciliation bound.
+
+Collection suppression also prevents new downstream facts through current parsed-event authority.
+Erasure of pre-existing Properties and Market derived records belongs to stories 3.12 and 4.8;
+this Collection command does not claim those capabilities. Implementation and verification evidence
+belongs to the existing [story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-removal-request-and-suppression-list-plan.md).
+
 ## Consequences
 
 Collectors and parsers must share one sanitizer and one closed allowlist, and storage must support

@@ -359,3 +359,25 @@ installs Chromium's bundled SUID sandbox helper on the ephemeral runner and sets
 existing root-owned helper (for example
 `CHROME_DEVEL_SANDBOX=/usr/local/sbin/chrome-devel-sandbox pnpm run test:integration:prefix`).
 Keep `chromiumSandbox: true`; a sandbox startup failure is an executor failure, not browser evidence.
+
+## Verify listing removal and suppression
+
+After building the application, infrastructure and worker prerequisites, run the native owned
+PostgreSQL 18/MinIO/RabbitMQ campaign serially with other heavy checks:
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts integration/listing-suppression.integration.test.ts
+```
+
+It invokes the actual worker collection/removal commands and verifies permanent replay identity,
+owner-scoped Collection/platform/audit erasure, delayed parsed delivery after an inbox marker is
+removed, shared synthetic ownership, storage failure/resumption, prepared collection/reparse,
+suppressed portal checkpoint/count/manifest evidence, and an explicitly owned encrypted local real
+reservation with cancellation and late-PUT reconciliation. The local real fixture generates its
+key in memory and performs no outside source or photograph requests. It does not exercise future
+Properties/Market derived-data erasure or infer historical orphan ownership.
+
+Run the affected snapshot lifecycle, snapshot reparse, resumable collection, image fingerprint and
+synthetic collection campaigns after this campaign, preserving fixed expiry, accepted fixture
+hashes, independent source permissions and existing coverage gates. Exact results and tested tree
+identity belong in the [existing story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-removal-request-and-suppression-list-plan.md).
