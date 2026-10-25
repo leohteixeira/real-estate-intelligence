@@ -3,7 +3,7 @@ title: 'Image fingerprints at collection'
 type: 'feature'
 ticket: '9'
 created: '2026-10-25'
-status: 'built'
+status: done
 baseline_revision: '04811bcc7edbd2f091fc919eaa15d233491b9c45'
 route: 'full'
 route_source: 'auto'
@@ -381,3 +381,15 @@ Residual operational limitation: the official MinIO tag no longer supports fresh
 Exact original-digest recovery establishes local evidence only; platform delivery must pin a
 reproducible immutable fixture source before required remote CI. Public deployment/main/HTTPS
 acceptance belongs to authorized story 1.12 and is not claimed by this image-acquisition story.
+
+### Orchestration acceptance
+
+The build workflow finalized as `built` with a clean product working copy. All reviewed files
+are committed after the canonical baseline. The orchestrator accepts ticket 2.9 as `done`:
+implementation `da5f65068e54ef4f8e4fd8337b24c36f0b38f24c`, tests
+`be121ef6e0e0ee6c6eb3b4b2b3298ae432ad1ef6`, and decision/evidence records
+`8e5e66de0110733957cc576ab9d3b477a3ec394c`. Separate owner authorization/runbook update:
+`bfeb877f628d3149f02bfeec9f34a8c20c607972`. Every applicable staged secret, formatting,
+ESLint/Markdown and Conventional Commit hook passed. Documentation line-length hook failures
+were corrected before successful commits; product verification was not repeated for prose edits.
+No deployment or push occurred as part of this story. Continue the existing ticket order.
