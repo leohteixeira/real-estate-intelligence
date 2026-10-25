@@ -1,7 +1,9 @@
+import { prepareImageFingerprints } from './prepare-image-fingerprints.js';
 import {
   decideSourceEnablement,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  CollectionSnapshotAcquired,
   DomainValidationError,
   hashCollectionManifest,
   parseCollectionSourceListingId,
@@ -109,24 +111,7 @@ export class CollectSourceOnce {
     }
     try {
       const startedAt = run.startedAt;
-      const page = await this.source
-        .fetchPage(sourceId, null, signal, deadlineAt)
-        .catch(async (error: unknown) => {
-          if (error instanceof ListingSourceAccessRefusal) {
-            const held = await this.sources.holdAtomically(
-              sourceId,
-              { reason: error.reason, heldAt: this.clock.now() },
-              signal,
-            );
-            if (!held?.hold)
-              throw new Error('Source hold could not be persisted.', { cause: error });
-            await this.transactions.runInTransaction(
-              (transaction) => this.runs.pause(transaction, run.runId, held.hold!),
-              signal,
-            );
-          }
-          throw error;
-        });
+      const page = await this.source.fetchPage(sourceId, null, signal, deadlineAt);
       if (!page.exhausted || page.documents.length !== 1) {
         throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch' });
       }
@@ -162,7 +147,16 @@ export class CollectSourceOnce {
 
       signal.throwIfAborted();
       const parsedListing = await this.source.parse(document, signal);
-      const listing = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
+      const trusted = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
+      const listing = await prepareImageFingerprints(
+        this.source,
+        this.sources,
+        original,
+        trusted,
+        synthetic,
+        signal,
+        deadlineAt,
+      );
       signal.throwIfAborted();
 
       return await this.transactions.runInTransaction(async (transaction) => {
@@ -200,7 +194,12 @@ export class CollectSourceOnce {
         }
         if (!persisted.created) return Object.freeze({ ...persisted.result, replayed: true });
 
-        const parsed = new CollectionSnapshotParsed({
+        const parsed = new (
+          listing.imageFingerprints.length === 0 ||
+            listing.imageFingerprints.some((item) => item.startsWith('dhash64-v1:'))
+            ? CollectionSnapshotAcquired
+            : CollectionSnapshotParsed
+        )({
           eventId: parsedEventId,
           aggregateId: snapshotId,
           occurredAt: completedAt,
@@ -237,6 +236,18 @@ export class CollectSourceOnce {
         return persisted.result;
       }, signal);
     } catch (error) {
+      if (error instanceof ListingSourceAccessRefusal) {
+        const held = await this.sources.holdAtomically(
+          sourceId,
+          { reason: error.reason, heldAt: this.clock.now() },
+          signal,
+        );
+        if (!held?.hold) throw new Error('Source hold could not be persisted.', { cause: error });
+        await this.transactions.runInTransaction(
+          (transaction) => this.runs.pause(transaction, run.runId, held.hold!),
+          signal,
+        );
+      }
       // AbortSignal.any preserves the first cause. Deadline exhaustion is recoverable even
       // when an adapter sanitizes that abort to ExternalFailure.cancelled.
       const timedOut =

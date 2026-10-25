@@ -1,5 +1,6 @@
 import {
   CollectionSnapshotCorrected,
+  CollectionSnapshotPerceptuallyCorrected,
   parseUuidV7,
   parseReparseLabel,
   parseCollectedListing,
@@ -113,7 +114,8 @@ export class ReparseSnapshot {
         removeAbort();
       }
       const trusted = { ...parsed, imageFingerprints: fingerprints };
-      const listing = sanitized?.sanitizeParsed(trusted) ?? parseCollectedListing(trusted, true);
+      const listing =
+        sanitized?.sanitizeParsed(trusted) ?? parseCollectedListing(trusted, true, true);
       active();
       return await this.transactions.runInTransaction(async (transaction) => {
         const locked = await this.repository.lockForCommit(transaction, identity);
@@ -132,7 +134,10 @@ export class ReparseSnapshot {
         )
           throw new ExternalFailure({ kind: 'rejected', operation: 'collection.snapshot.reparse' });
         const eventId = await this.identifiers.generate(transaction);
-        const event = new CollectionSnapshotCorrected({
+        const Correction = fingerprints.some((item) => item.startsWith('dhash64-v1:'))
+          ? CollectionSnapshotPerceptuallyCorrected
+          : CollectionSnapshotCorrected;
+        const event = new Correction({
           eventId,
           aggregateId: observation.snapshotId,
           occurredAt: this.clock.now(),

@@ -1,7 +1,9 @@
+import { prepareImageFingerprints } from './prepare-image-fingerprints.js';
 import {
   decideSourceEnablement,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  CollectionSnapshotAcquired,
   StaleCollectionCheckpointError,
   hashCollectionManifest,
   parseCollectionCheckpointCursor,
@@ -247,10 +249,23 @@ export class CollectSourceRun {
           signal.throwIfAborted();
           try {
             const parsedListing = await this.source.parse(document, signal);
-            const listing = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
+            const trusted = sanitized?.sanitizeParsed(parsedListing) ?? parsedListing;
+            const listing = await prepareImageFingerprints(
+              this.source,
+              this.sources,
+              original,
+              trusted,
+              synthetic,
+              signal,
+              deadlineAt,
+            );
             prepared.push({ document, stored, listing, failureReason: null });
           } catch (error) {
-            if (error instanceof ExternalFailure && error.kind === 'rejected') {
+            if (
+              error instanceof ExternalFailure &&
+              error.kind === 'rejected' &&
+              error.operation !== 'collection.source.photo'
+            ) {
               prepared.push({
                 document,
                 stored,
@@ -331,7 +346,12 @@ export class CollectSourceRun {
               });
               if (item.listing !== null && parsedEventId !== null)
                 parsedEvents.push(
-                  new CollectionSnapshotParsed({
+                  new (item.listing.imageFingerprints.length === 0 ||
+                    item.listing.imageFingerprints.some((fingerprint) =>
+                      fingerprint.startsWith('dhash64-v1:'),
+                    )
+                    ? CollectionSnapshotAcquired
+                    : CollectionSnapshotParsed)({
                     eventId: parsedEventId,
                     aggregateId: snapshotId,
                     occurredAt,

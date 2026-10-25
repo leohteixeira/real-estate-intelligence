@@ -137,7 +137,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
     const rows = await postgresClientFor(transaction, this.connection).query<{ event: unknown }>(
       `SELECT evidence.event FROM collection.parsed_event_evidence evidence
        JOIN collection.snapshot_observation observation ON observation.snapshot_id=evidence.snapshot_id
-       WHERE observation.run_id=$1 AND observation.source_listing_id=$2 AND evidence.event_version=1
+       WHERE observation.run_id=$1 AND observation.source_listing_id=$2 AND evidence.event_version IN (1,3)
        ORDER BY observation.observed_at,observation.snapshot_id`,
       [runId, sourceListingId],
     );
@@ -160,7 +160,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
       `SELECT evidence.event FROM collection.parsed_event_evidence evidence
        JOIN collection.snapshot_observation observation ON observation.snapshot_id=evidence.snapshot_id
        JOIN collection.collection_run run ON run.run_id=observation.run_id
-       WHERE run.source_id=$1 AND observation.source_listing_id=$2 AND evidence.event_version=1
+       WHERE run.source_id=$1 AND observation.source_listing_id=$2 AND evidence.event_version IN (1,3)
          AND run.status='completed' AND NOT (evidence.event_id=ANY($3::uuid[]))
          AND NOT EXISTS (SELECT 1 FROM collection.completed_event_evidence completed WHERE completed.run_id=run.run_id)
          AND NOT EXISTS (SELECT 1 FROM collection.collection_run earlier WHERE earlier.source_id=run.source_id
@@ -181,7 +181,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
     snapshotId: string,
   ): Promise<readonly ParsedCollectionEvent[]> {
     const rows = await postgresClientFor(transaction, this.connection).query<{ event: unknown }>(
-      `SELECT event FROM collection.parsed_event_evidence WHERE snapshot_id=$1 AND event_version=2
+      `SELECT event FROM collection.parsed_event_evidence WHERE snapshot_id=$1 AND event_version IN (2,4)
        ORDER BY (event->'payload'->'correction'->>'order')::integer DESC`,
       [snapshotId],
     );

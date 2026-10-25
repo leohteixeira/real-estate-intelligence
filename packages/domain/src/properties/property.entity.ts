@@ -1,4 +1,4 @@
-import { parseCollectionSnapshotParsed, CollectionSnapshotParsed } from '../collection/index.js';
+import { parseCollectionEvent, CollectionSnapshotParsed } from '../collection/index.js';
 import type { PlaceRef } from '../locations/index.js';
 import { DomainValidationError, parseUuidV7, type UuidV7 } from '../shared/index.js';
 import { PropertiesEvent } from './properties.events.js';
@@ -47,9 +47,12 @@ export class Property {
         'Property and Listing identities must be distinct.',
         'listingId',
       );
-    this.initial = parseCollectionSnapshotParsed(
+    const initial = parseCollectionEvent(
       event instanceof CollectionSnapshotParsed ? { ...event } : event,
     );
+    if (!(initial instanceof CollectionSnapshotParsed))
+      throw new DomainValidationError('Expected an acquisition fact.', 'event');
+    this.initial = initial;
     const breadcrumbs = resolved.breadcrumbs.map(placeReference);
     const place = placeReference(resolved.place);
     const kinds = ['country', 'state', 'city', 'zone', 'neighborhood', 'street-block'];

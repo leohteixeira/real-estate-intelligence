@@ -10,6 +10,10 @@ export {
   CollectionRunCompleted,
   CollectionRunRequested,
   CollectionSnapshotParsed,
+  CollectionSnapshotAcquired,
+  CollectionSnapshotPerceptuallyCorrected,
+  parseCollectionSnapshotAcquired,
+  parseCollectionSnapshotPerceptuallyCorrected,
   CollectionSnapshotCorrected,
   parseCollectionSnapshotCorrected,
   parseImageFingerprints,
@@ -105,3 +109,5 @@ export type {
   SyntheticSaoPauloListingReference,
   SyntheticSaoPauloMatchLabel,
 } from './synthetic-sao-paulo.match-labels.js';
+
+export { dhash64, fingerprintDistance, fingerprintSimilarity } from './image-fingerprint.js';

@@ -34,10 +34,11 @@ export function sanitizeSnapshotListing(
   const advertiser = object(listing.advertiser);
   if (!Array.isArray(listing.features) || !Array.isArray(listing.imageFingerprints))
     throw new TypeError('Unsupported canonical listing arrays.');
-  // Only already-computed cryptographic fingerprints are supported for real snapshots.
+  // Only explicitly versioned, already-computed fingerprints are supported for real snapshots.
   if (
     listing.imageFingerprints.some(
-      (item) => typeof item !== 'string' || !/^sha256:[a-f0-9]{64}$/.test(item),
+      (item) =>
+        typeof item !== 'string' || !/^(?:sha256:[a-f0-9]{64}|dhash64-v1:[a-f0-9]{16})$/.test(item),
     )
   )
     throw new TypeError('Unsupported canonical image fingerprint.');
@@ -68,6 +69,7 @@ export function sanitizeSnapshotListing(
       maskedDescription: maskSnapshotText(listing.maskedDescription, knownNames),
       imageFingerprints: listing.imageFingerprints,
     },
+    true,
     true,
   );
 }

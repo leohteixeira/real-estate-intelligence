@@ -36,6 +36,7 @@ export class InMemoryListingSource implements ListingSource {
   public constructor(
     private readonly document: RawListingDocument,
     private readonly listing: CollectedListing,
+    private readonly photoFingerprints: ReadonlyMap<string, string> = new Map(),
   ) {}
 
   public async fetchPage(sourceId: string, cursor: string | null, signal: AbortSignal) {
@@ -50,6 +51,20 @@ export class InMemoryListingSource implements ListingSource {
       nextCursor: null,
       exhausted: true,
     });
+  }
+
+  public readonly photoRequests: string[] = [];
+  public async fingerprintPhoto(
+    _sourceId: string,
+    photoUrl: string,
+    signal: AbortSignal,
+  ): Promise<string> {
+    signal.throwIfAborted();
+    this.photoRequests.push(photoUrl);
+    const fingerprint = this.photoFingerprints.get(photoUrl);
+    if (!fingerprint)
+      throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.photo' });
+    return fingerprint;
   }
 
   public async parse(
@@ -394,6 +409,7 @@ export class InMemoryCollectionRunRepository implements CollectionRunRepository 
           outcome: item.outcome,
           changed: item.changed,
           failureReason: item.failureReason,
+          imageFingerprints: item.imageFingerprints == null ? null : [...item.imageFingerprints],
         }),
       ),
     ]);

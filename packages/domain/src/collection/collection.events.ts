@@ -245,7 +245,11 @@ function stringArray(value: unknown, field: string): readonly string[] {
   return result;
 }
 
-export function parseImageFingerprints(value: unknown, allowEmpty = true): readonly string[] {
+export function parseImageFingerprints(
+  value: unknown,
+  allowEmpty = true,
+  perceptual = false,
+): readonly string[] {
   const field = 'payload.listing.imageFingerprints';
   if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.length > 100) {
     return fail(`${field} must contain between 1 and 100 fingerprints.`, field);
@@ -254,6 +258,7 @@ export function parseImageFingerprints(value: unknown, allowEmpty = true): reado
     const itemField = `${field}[${index}]`;
     const fingerprint = stringValue(item, itemField, 1_000);
     if (
+      !(perceptual && /^dhash64-v1:[a-f0-9]{16}$/.test(fingerprint)) &&
       !/^sha256:[a-f0-9]{64}$/.test(fingerprint) &&
       !/^(?:fixture|synthetic)(?:[-:][a-z0-9]{1,32}){1,8}$/.test(fingerprint)
     ) {
@@ -264,7 +269,10 @@ export function parseImageFingerprints(value: unknown, allowEmpty = true): reado
     }
     return fingerprint;
   });
-  if (new Set(result).size !== result.length) {
+  if (
+    new Set(result.filter((item) => !perceptual || !item.startsWith('dhash64-v1:'))).size !==
+    result.filter((item) => !perceptual || !item.startsWith('dhash64-v1:')).length
+  ) {
     return fail(`${field} must not contain duplicate fingerprints.`, field);
   }
   return result;
@@ -359,6 +367,7 @@ function parseAdvertiser(value: unknown): CollectedListingAdvertiser {
 export function parseCollectedListing(
   value: unknown,
   allowEmptyFingerprints = false,
+  perceptual = false,
 ): CollectedListing {
   const parsed = exactRecord(
     value,
@@ -422,13 +431,18 @@ export function parseCollectedListing(
     ),
     advertiser: parseAdvertiser(parsed.advertiser),
     maskedDescription: maskedDescription(parsed.maskedDescription),
-    imageFingerprints: parseImageFingerprints(parsed.imageFingerprints, allowEmptyFingerprints),
+    imageFingerprints: parseImageFingerprints(
+      parsed.imageFingerprints,
+      allowEmptyFingerprints,
+      perceptual,
+    ),
   };
 }
 
 function parseSnapshotPayload(
   value: unknown,
   allowEmptyFingerprints = false,
+  perceptual = false,
 ): CollectionSnapshotParsedPayload {
   const parsed = exactRecord(value, ['run', 'snapshot', 'source', 'listing'], 'payload');
   const run = exactRecord(parsed.run, ['runId'], 'payload.run');
@@ -456,7 +470,7 @@ function parseSnapshotPayload(
         'payload.source.observedAt',
       ),
     },
-    listing: parseCollectedListing(parsed.listing, allowEmptyFingerprints),
+    listing: parseCollectedListing(parsed.listing, allowEmptyFingerprints, perceptual),
   };
 }
 
@@ -547,8 +561,8 @@ export class CollectionSnapshotParsed extends DomainEvent<
   typeof COLLECTION_SNAPSHOT_PARSED_TYPE,
   CollectionSnapshotParsedPayload
 > {
-  public constructor(input: CollectionSnapshotParsedInput) {
-    const payload = parseSnapshotPayload(input.payload);
+  public constructor(input: CollectionSnapshotParsedInput, version: 1 | 3 = 1) {
+    const payload = parseSnapshotPayload(input.payload, version === 3, version === 3);
     const aggregateId = parseUuidV7(input.aggregateId);
     if (aggregateId !== payload.snapshot.snapshotId) {
       fail('Parsed snapshot aggregateId must equal payload.snapshot.snapshotId.', 'aggregateId');
@@ -557,10 +571,17 @@ export class CollectionSnapshotParsed extends DomainEvent<
       ...input,
       aggregateId,
       type: COLLECTION_SNAPSHOT_PARSED_TYPE,
-      version: COLLECTION_EVENT_VERSION,
+      version,
       traceContext: input.traceContext ?? null,
       payload,
     });
+  }
+}
+
+/** Acquisition with empty or versioned perceptual evidence; legacy v1 stays strict. */
+export class CollectionSnapshotAcquired extends CollectionSnapshotParsed {
+  public constructor(input: CollectionSnapshotParsedInput) {
+    super(input, 3);
   }
 }
 
@@ -582,7 +603,10 @@ export function parseReparseLabel(value: unknown, field: string): string {
   return parsed;
 }
 
-function parseCorrectionPayload(value: unknown): CollectionSnapshotCorrectedPayload {
+function parseCorrectionPayload(
+  value: unknown,
+  perceptual = false,
+): CollectionSnapshotCorrectedPayload {
   const parsed = exactRecord(
     value,
     ['run', 'snapshot', 'source', 'listing', 'correction'],
@@ -598,6 +622,7 @@ function parseCorrectionPayload(value: unknown): CollectionSnapshotCorrectedPayl
   const original = parseSnapshotPayload(
     { run: parsed.run, snapshot: parsed.snapshot, source: parsed.source, listing: parsed.listing },
     true,
+    perceptual,
   );
   return {
     ...original,
@@ -632,8 +657,9 @@ export class CollectionSnapshotCorrected extends DomainEvent<
       typeof COLLECTION_SNAPSHOT_PARSED_TYPE,
       CollectionSnapshotCorrectedPayload
     >,
+    version: 2 | 4 = 2,
   ) {
-    const payload = parseCorrectionPayload(input.payload);
+    const payload = parseCorrectionPayload(input.payload, version === 4);
     if (parseUuidV7(input.aggregateId) !== payload.snapshot.snapshotId)
       fail('Correction aggregate must identify the original snapshot.', 'aggregateId');
     if (parseUuidV7(input.eventId) === payload.correction.originalParsedEventId)
@@ -641,11 +667,41 @@ export class CollectionSnapshotCorrected extends DomainEvent<
     super({
       ...input,
       type: COLLECTION_SNAPSHOT_PARSED_TYPE,
-      version: 2,
+      version,
       traceContext: input.traceContext ?? null,
       payload,
     });
   }
+}
+
+/** Perceptual correction retains its acquisition hashes and multiplicity. */
+export class CollectionSnapshotPerceptuallyCorrected extends CollectionSnapshotCorrected {
+  public constructor(
+    input: CollectionEventInput<
+      typeof COLLECTION_SNAPSHOT_PARSED_TYPE,
+      CollectionSnapshotCorrectedPayload
+    >,
+  ) {
+    super(input, 4);
+  }
+}
+
+export function parseCollectionSnapshotAcquired(value: unknown): CollectionSnapshotAcquired {
+  const parsed = envelope(value, COLLECTION_SNAPSHOT_PARSED_TYPE, 3);
+  return new CollectionSnapshotAcquired({
+    ...parsed,
+    payload: parseSnapshotPayload(parsed.payload, true, true),
+  });
+}
+
+export function parseCollectionSnapshotPerceptuallyCorrected(
+  value: unknown,
+): CollectionSnapshotPerceptuallyCorrected {
+  const parsed = envelope(value, COLLECTION_SNAPSHOT_PARSED_TYPE, 4);
+  return new CollectionSnapshotPerceptuallyCorrected({
+    ...parsed,
+    payload: parseCorrectionPayload(parsed.payload, true),
+  });
 }
 
 export function parseCollectionSnapshotCorrected(value: unknown): CollectionSnapshotCorrected {
@@ -740,9 +796,18 @@ export function parseCollectionEvent(value: unknown): CollectionEvent {
   const parsed = record(value, 'event');
   switch (parsed.type) {
     case COLLECTION_SNAPSHOT_PARSED_TYPE:
-      return parsed.version === 2
-        ? parseCollectionSnapshotCorrected(value)
-        : parseCollectionSnapshotParsed(value);
+      switch (parsed.version) {
+        case 1:
+          return parseCollectionSnapshotParsed(value);
+        case 2:
+          return parseCollectionSnapshotCorrected(value);
+        case 3:
+          return parseCollectionSnapshotAcquired(value);
+        case 4:
+          return parseCollectionSnapshotPerceptuallyCorrected(value);
+        default:
+          return fail('Event version is not supported.', 'version');
+      }
     case COLLECTION_RUN_COMPLETED_TYPE:
       return parseCollectionRunCompleted(value);
     case COLLECTION_RUN_REQUESTED_TYPE:

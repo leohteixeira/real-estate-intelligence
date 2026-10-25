@@ -49,3 +49,9 @@ export type {
 export { buildSyntheticSaoPauloReplay } from './synthetic-sao-paulo.replay.js';
 export type { SyntheticSaoPauloReplayEvent } from './synthetic-sao-paulo.replay.js';
 export { SyntheticSaoPauloListingSource } from './synthetic-sao-paulo-listing-source.js';
+export {
+  SharpImageFingerprint,
+  MAX_PHOTO_BYTES,
+  MAX_PHOTO_PIXELS,
+} from './sharp-image-fingerprint.js';
+export { HttpListingPhoto } from './http-listing-photo.js';

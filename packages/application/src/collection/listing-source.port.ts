@@ -25,6 +25,8 @@ export interface RawListingDocument {
   readonly observedAt: string;
   readonly mediaType: 'application/json';
   readonly bytes: Uint8Array;
+  /** Transient discovery metadata; never part of snapshot bytes or parsed evidence. */
+  readonly photoUrls?: readonly string[];
 }
 
 export interface ListingSourcePage {
@@ -42,6 +44,13 @@ export interface ListingSource {
     deadlineAt?: number,
   ): Promise<ListingSourcePage>;
   parse(document: RawListingDocument, signal: AbortSignal): Promise<CollectedListing>;
+  /** Single photo attempt, returning only computed evidence across the boundary. */
+  fingerprintPhoto?(
+    sourceId: string,
+    photoUrl: string,
+    signal: AbortSignal,
+    deadlineAt?: number,
+  ): Promise<string>;
 }
 
 /** Documents the closed failure type adapters are required to use. */

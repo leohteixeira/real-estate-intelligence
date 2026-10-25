@@ -35,8 +35,11 @@ function timestamp(value: unknown): string {
   return parseRfc3339Timestamp(value.toISOString(), 'timestamp');
 }
 function originalFingerprints(value: unknown, synthetic: boolean): readonly string[] {
-  const fingerprints = parseImageFingerprints(value);
-  if (!synthetic && fingerprints.some((item) => !/^sha256:[0-9a-f]{64}$/.test(item)))
+  const fingerprints = parseImageFingerprints(value, true, true);
+  if (
+    !synthetic &&
+    fingerprints.some((item) => !/^(?:sha256:[0-9a-f]{64}|dhash64-v1:[a-f0-9]{16})$/.test(item))
+  )
     return rejected();
   return Object.freeze([...fingerprints]);
 }

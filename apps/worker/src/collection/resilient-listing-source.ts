@@ -30,6 +30,31 @@ export class ResilientListingSource implements ListingSource {
     signal: AbortSignal,
     deadlineAt = Number.POSITIVE_INFINITY,
   ) {
+    return this.acquire(sourceId, signal, deadlineAt, false, (attempt) =>
+      this.adapter.fetchPage(sourceId, cursor, attempt),
+    );
+  }
+
+  public fingerprintPhoto(
+    sourceId: string,
+    photoUrl: string,
+    signal: AbortSignal,
+    deadlineAt = Number.POSITIVE_INFINITY,
+  ): Promise<string> {
+    return this.acquire(sourceId, signal, deadlineAt, true, async (attempt) => {
+      if (!this.adapter.fingerprintPhoto)
+        throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.photo' });
+      return this.adapter.fingerprintPhoto(sourceId, photoUrl, attempt);
+    });
+  }
+
+  private async acquire<T>(
+    sourceId: string,
+    signal: AbortSignal,
+    deadlineAt: number,
+    photo: boolean,
+    operation: (signal: AbortSignal) => Promise<T>,
+  ): Promise<T> {
     let policies = this.#sources.get(sourceId);
     if (!policies) {
       policies = new CollectionDependencyPolicies(this.settings, this.now, this.random);
@@ -38,14 +63,14 @@ export class ResilientListingSource implements ListingSource {
     const state = policies;
     return state.withinDeadline(
       async (scoped) => {
-        const registration = await this.collectible(sourceId, scoped);
+        const registration = await this.collectible(sourceId, scoped, photo);
         state.configureRate(registration.rate);
         return state.execute(
           async (attempt) => {
-            await this.collectible(sourceId, attempt);
+            await this.collectible(sourceId, attempt, photo);
             attempt.throwIfAborted();
             try {
-              return await this.adapter.fetchPage(sourceId, cursor, attempt);
+              return await operation(attempt);
             } catch (error) {
               if (error instanceof ListingSourceAccessRefusal) {
                 state.breaker.policy.trip();
@@ -74,7 +99,7 @@ export class ResilientListingSource implements ListingSource {
     return this.#sources.get(sourceId);
   }
 
-  private async collectible(sourceId: string, signal: AbortSignal) {
+  private async collectible(sourceId: string, signal: AbortSignal, photo = false) {
     signal.throwIfAborted();
     const pending = this.#pendingHolds.get(sourceId);
     if (pending) {
@@ -86,6 +111,8 @@ export class ResilientListingSource implements ListingSource {
     if (source?.hold) throw new ListingSourceAccessRefusal(source.hold.reason);
     if (!source?.enabled || !source.permissions.collectionAllowed)
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch-page' });
+    if (photo && !source.permissions.imageFetchingAllowed)
+      throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.photo' });
     return source;
   }
 

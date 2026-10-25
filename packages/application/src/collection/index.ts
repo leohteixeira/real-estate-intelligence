@@ -75,3 +75,4 @@ export type {
   SnapshotLifecycle,
   SnapshotRetention,
 } from './snapshot-lifecycle.port.js';
+export type { ImageFingerprintComputer } from './image-fingerprint.port.js';

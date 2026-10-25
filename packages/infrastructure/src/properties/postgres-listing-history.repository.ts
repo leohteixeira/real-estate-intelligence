@@ -179,7 +179,7 @@ export class PostgresListingHistoryRepository implements ListingHistoryRepositor
        JOIN properties.listing listing ON listing.source_id=fact.source_id AND listing.source_listing_id=fact.source_listing_id
        JOIN properties.property property ON property.property_id=listing.property_id
        LEFT JOIN properties.listing_current current ON current.listing_id=listing.listing_id
-       WHERE fact.source_id=$1 AND fact.event_version=2 AND effect.event_id IS NULL
+       WHERE fact.source_id=$1 AND fact.event_version IN (2,4) AND effect.event_id IS NULL
          AND ((current.state IS NULL AND property.initial_event_id::text=fact.event->'payload'->'correction'->>'originalParsedEventId')
            OR EXISTS (SELECT 1 FROM jsonb_array_elements(current.state->'acquisitions') acquisition
              WHERE acquisition->'original'->>'eventId'=fact.event->'payload'->'correction'->>'originalParsedEventId'))
@@ -204,7 +204,7 @@ export class PostgresListingHistoryRepository implements ListingHistoryRepositor
        JOIN properties.listing listing ON listing.source_id=fact.source_id AND listing.source_listing_id=fact.source_listing_id
        LEFT JOIN properties.original_effect effect ON effect.event_id=fact.event_id
        LEFT JOIN properties.listing_acquisition acquisition ON acquisition.event_id=fact.event_id
-       WHERE fact.source_id=$1 AND fact.event_version=1 AND effect.event_id IS NULL AND acquisition.event_id IS NULL
+       WHERE fact.source_id=$1 AND fact.event_version IN (1,3) AND effect.event_id IS NULL AND acquisition.event_id IS NULL
        GROUP BY fact.source_listing_id ORDER BY CASE WHEN fact.source_listing_id > COALESCE(
          (SELECT original_cursor FROM properties.source_work WHERE source_id=$1),'') THEN 0 ELSE 1 END,
          fact.source_listing_id LIMIT $2`,
