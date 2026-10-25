@@ -9,8 +9,8 @@ daemon, independently of the Dev Container. Preserve the live portfolio landing 
 data, volumes and configuration; unrelated projects may remain stopped for capacity.
 
 The binding public base is `https://leohteixeira.com/real-estate-intelligence/`. No new domain or
-subdomain is authorized. The public-prefix adaptation and production evidence are remaining
-delivery work; the earlier local readiness checks do not establish either.
+subdomain is authorized. The public-prefix adaptation is prepared and verified locally; production
+evidence remains delivery work. Local readiness and browser checks do not establish public acceptance.
 
 ## Prerequisites
 
@@ -48,25 +48,26 @@ Application processes retain the existing OpenTelemetry preload in their image c
 
 ## Record the release and prepare images
 
-Use a clean checkout of the exact authorized `main` revision. The CI `containers` job builds the
-five existing Dockerfiles sequentially, tags them with the checked-out GitHub SHA and records the
-OCI revision label. It does **not** publish images. A passing local build is feasibility evidence;
-record the actual remote run URL and conclusion when it exists.
+Use a clean checkout of the exact gated `main` revision. The existing secrets, format, workspace,
+coverage, real-service integration and container jobs remain mandatory. The `publish` job runs only
+on a push to `refs/heads/main`, depends on all five jobs, authenticates to GHCR with its scoped
+Actions `GITHUB_TOKEN`, and publishes all five images serially. Its `release-<full-sha>` artifact
+contains BuildKit metadata and `images.txt` with the full revision and immutable manifest references.
+The web image is built with `VITE_PUBLIC_BASE=/real-estate-intelligence/`; privacy controller name
+and contact use the existing public repository variables. Set those approved public identity
+variables before publishing. No provider key or infrastructure credential enters a build argument.
+A passing local build is feasibility evidence. Record the actual remote run URL and conclusions.
+Do not substitute a developer image or an ungated main push for those gates. Branch protections and
+required review remain unchanged. The parent delivery performs the actual mandatory pre-push hook.
 
-After the required gates pass and the pertinent commits reach `main`, build/publish that revision:
-
-```bash
-git switch main
-git status --short
-git rev-parse HEAD
-export REI_RELEASE_COMMIT="$(git rev-parse HEAD)"
-# Set REI_IMAGE_REPOSITORY to the authorized registry namespace before this loop.
-for image in migrate api worker ai web; do
-  docker buildx build --push --file "docker/${image}.Dockerfile" \
-    --label "org.opencontainers.image.revision=${REI_RELEASE_COMMIT}" \
-    --tag "${REI_IMAGE_REPOSITORY}/${image}:${REI_RELEASE_COMMIT}" .
-done
-```
+For this private repository, the host also needs authenticated GHCR pull access with package-read
+permission. Load that credential through the approved protected operator mechanism and use
+`docker login ghcr.io --password-stdin`; never print it, embed it in commands or save it in Git.
+The three repositories are private. The preparation environment has working GitHub SSH Git
+access, but the Dev Container has no authenticated `gh` session and the host has no `gh` binary.
+No API/registry credential was observed. Remote CI/PR/protection observations and private registry
+pulls require valid authorized access. CI/PR observations must be obtained through an authorized
+API or UI; missing evidence is not a pass.
 
 Record each published manifest's sha256 digest alongside that full canonical commit, CI run URL,
 UTC timestamp and deployment actor in the operator release ledger. Tags provide human lookup;
@@ -76,16 +77,24 @@ those 64-character manifest hashes without the `sha256:` prefix. Verify the OCI 
 five images, including migrations, against the recorded commit. Do not reuse a developer image
 or infer production identity from the worktree or a mutable tag.
 
-Supply required settings in the operator's process environment from the secret store. Never paste
-secret-bearing Compose output into logs, tickets or chat. `env.example` is for development only.
-Disable automatic env-file loading for every production operation:
+The existing workspace operator now supplies scoped `rei-*` operations under its existing
+exclusive operation lock. Run from `/root/portfolio-workspace` on the VPS host. Automatic `.env*`
+loading is disabled; the operator passes only explicit protected `/etc/portfolio/*.conf` files.
+Do not print resolved Compose configuration or inspect container environments.
 
 ```bash
-export COMPOSE_DISABLE_ENV_FILE=1
-export COMPOSE_ENV_FILES=
-docker compose --file compose.production.yaml config --quiet
-docker compose --file compose.production.yaml pull
+# Read capacity and current service identities before any heavy operation.
+free -m
+df -h /root/portfolio-workspace
+sudo ./infra/portfolio rei-config
 ```
+
+`rei-config` preserves existing shared credentials and creates only this application's settings,
+root-owned with mode 0600. It refuses to generate replacement keys when dedicated volumes already
+exist without their configuration. Privately populate `real-estate-intelligence.conf` with
+`REI_RELEASE_COMMIT` (full gated main SHA), the five manifest digests from Actions and the approved
+runtime gateway key. Preserve the generated snapshot key. Existing approved loaders may populate
+the gateway key without exposing its source or value. Runtime keys never enter image builds.
 
 Required settings are `REI_IMAGE_REPOSITORY`, the five `REI_*_DIGEST` values, `DATABASE_URL`,
 `RABBITMQ_URL`, `ASK_DISPATCH_SECRET`, `AI_INTERNAL_TOKEN`, `AI_GATEWAY_API_KEY`, `OBJECT_STORE_ENDPOINT`,
@@ -96,15 +105,53 @@ private endpoints; there is no development credential fallback. Do not share the
 
 ## Start and route the stack
 
-Take and verify a restorable database backup before applying migrations. Preserve the prior release
-ledger and its image digests. Run one migration owner with API and worker writes stopped:
+Prepare only the dedicated PG18/PostGIS and MinIO services, existing RabbitMQ and the existing
+collector/Tempo/Loki chain. No global `up`, `services` or `provision` command belongs in this release.
+The scoped dependency list excludes shared PG17, Elasticsearch, Grafana and unrelated projects.
+The dedicated database/storage have no published ports, bounded CPU/memory/PIDs and named volumes.
+Each has a 512 MiB memory bound; storage includes measured headroom for its bundled administration
+client during provisioning. The rehearsal with 256 MiB terminated that client with exit 137.
+The exact original immutable MinIO manifest also supplies its bundled `mc` binary for provisioning;
+there is no separate CLI image dependency. Provisioning creates `rei_app`, its database and broker
+vhost, a private `rei-snapshots` bucket and an application identity limited to that bucket's
+list/get/put/delete operations. It grants no administrative storage access to the worker.
+
+Before editing the bind-mounted Caddy candidate or updating landing configuration, securely retain
+the previous actual Caddy bytes, landing image ID/tag and protected release settings. The preparation
+copy `/tmp/rei-caddy-before-prefix.Caddyfile` contains the pre-edit candidate bytes; the parent must
+retain its verified identity in protected host backup storage before activation. Editing the mount
+does not reload Caddy's active configuration.
 
 ```bash
-docker compose --file compose.production.yaml stop api worker
-docker compose --file compose.production.yaml run --rm migrations
-docker compose --file compose.production.yaml up --detach --wait api worker ai web
-docker compose --file compose.production.yaml ps
+sudo ./infra/portfolio rei-services
+sudo ./infra/portfolio rei-provision
+sudo ./infra/portfolio rei-deploy
 ```
+
+`rei-deploy` validates all required settings, pulls digest-pinned images and verifies every OCI
+revision label against `REI_RELEASE_COMMIT`. It stops only this app's API/worker, then takes a
+pre-migration backup even on the first deployment. Before any dump, while API/worker are stopped,
+it queries every queue in the configured dedicated RabbitMQ vhost using actual JSON counts. All
+ready and unacknowledged counts must be zero, including retry/dead-letter queues; a backlog,
+failed query or invalid observation refuses the backup before preserving data. Drain owned work
+through the existing worker, then stop API/worker and recheck. Never purge messages or touch
+another application's vhost. Pending unpublished outbox rows may remain: the restored worker
+replays them normally. Do not reset `published_at`; retention makes blanket replay unsafe.
+
+The backup restores the actual custom-format
+dump into a separately named temporary verification database with `--exit-on-error`, including
+object owners. Only that verification database is removed afterward. While writers remain stopped,
+it stops only dedicated storage long enough to archive the original volume using the existing
+BusyBox image with a read-only volume mount and no network, validates the archive, and resumes it
+if previously running. The backup contains database globals, encrypted objects,
+protected configuration/encryption keys, Caddy bytes, previous container image identities and hashes.
+A `COMPLETE` marker is written only after successful verification. A failed restore/archive prevents
+migration. Treat the backup directory as secret-bearing and retain it outside the application volume.
+
+After successful backup, migrations run once; API, worker, AI and web activate without building or
+starting dependencies. A migration/activation failure leaves API and worker stopped. Successful
+activation does not reload Caddy or prove public acceptance. No seeded production collection or
+model execution is enabled.
 
 The migration runner records applied versions and stops on SQL failure. Stop the release on any
 failed migration or unhealthy service; inspect sanitized owned-service logs. Restrict changes
@@ -125,7 +172,25 @@ operational route such as `/real-estate-intelligence/places`. When appending `/p
 link resolver must retain the configured application prefix instead of replacing it with an
 origin-relative path.
 
-Before applying the route, adapt and verify the asset base, client router, links, redirects, API,
+The production web uses Vite assets, router basename, native row links, same-origin JSON and SSE
+under the same explicit base. Root-based owned fixtures continue to build at `/`. Nginx strips only
+the API prefix and disables response buffering for SSE; Caddy preserves the application prefix and
+flushes streams. Both Caddy exact roots redirect to `/en/projects/real-estate-intelligence`.
+
+After healthy application activation, validate and reload only Caddy:
+
+```bash
+sudo ./infra/portfolio rei-proxy
+```
+
+Release the tested landing through its own independent repository/operator command. Its production
+Compose defaults the Real Estate runtime demo URL to the site prefix; explicit operational URLs
+remain unchanged. The landing resolver appends `places` to the configured origin/prefix roots.
+The pre-release public observations had 404 for both Real Estate presentations; verify that the
+new landing release establishes its checked-in bilingual presentations as well as preserving `/`,
+`/en`, `/pt`, other presentations and existing application route configuration.
+
+Before accepting the route, verify the asset base, client router, links, redirects, API,
 streaming/SSE and readiness URLs for the prefix. No global `/api`, `/ready` or application route
 may capture paths owned by the landing or another project. Verify public HTTPS, direct navigation
 and refresh of deep routes, navigation, assets, API, streaming and both languages; a home-page
@@ -181,7 +246,31 @@ ledger and validate with `config --quiet`; stop API/worker writes and start the 
 application images. Applied migrations are not automatically reversed. Check prior image/schema
 compatibility before restart; if incompatible, use the verified pre-release backup through the
 verified recovery procedure, accepting and recording its recovery-point data loss.
-Never delete volumes, run broad prune commands or restart another project to recover this stack.
+For incompatible schemas, keep current writers stopped and restore into a separately provisioned
+empty PostgreSQL 18 target using the retained globals and `pg_restore --exit-on-error`. Use the same
+PostGIS-capable image, application role/owner, extensions and encryption keys. Restore `snapshots.tar`
+only into a new empty dedicated object volume while its storage process is stopped, then restore
+matching protected storage credentials. Verify private bucket access and snapshot decryption before
+pointing a compatible image release at those recovery targets. Retain both original volumes and
+record the recovery point; no in-place overwrite or automatic down migration is provided.
+
+Broker recovery also requires a **new empty dedicated vhost**, such as
+`real-estate-intelligence-recovery-<UTC>`, alongside the new PostgreSQL/object targets. Preserve the
+original vhost and all messages; never reuse, purge or delete it during recovery. Through the
+existing protected infra Compose connection, create the unused name with `rabbitmqctl add_vhost`
+and grant only the application identity scoped permissions with
+`rabbitmqctl set_permissions -p <new-vhost> rei_app '.*' '.*' '.*'`; grant no management/admin tags
+or other vhost permissions. Verify its queue list is empty. Privately set the restored release's
+`RABBITMQ_URL` to that exact new vhost, with matching scoped credentials, before resuming its
+API/worker. Use a release compatible with the restored schema and keys. The proven empty broker
+cut at backup means every published pre-recovery-point event has completed its transactional
+consumer effect; unpublished rows remain replayable. A new recovery vhost prevents later messages
+from the original timeline entering restored state. Keep the original targets intact for evidence.
+
+Restore the securely retained prior Caddy bytes, validate, and reload only Caddy when returning to
+the prior routing configuration. Restore landing's previous image tag through its existing rollback
+command if needed. Do not use global backup/restore: those target unrelated PG17 databases.
+Never delete original volumes, run broad prune commands or restart another project to recover this stack.
 Repeat public readiness and the synthetic trace check after rollback.
 
 The release evidence must include the full `main` commit, five manifest digests, remote CI run,

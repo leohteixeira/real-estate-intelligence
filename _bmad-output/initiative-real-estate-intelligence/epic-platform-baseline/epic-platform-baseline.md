@@ -88,6 +88,14 @@ for it here.
 
 ## Notes
 
+- D-090 (2026-10-25): continuation uses the existing site's explicit public prefix, Vite base,
+  router basename and native-link prefixing. GHCR publication is serial and restricted to main
+  after all existing CI gates. Scoped operator commands reuse the lock/protected configuration
+  for dedicated PG18, private bucket-scoped snapshot storage and the existing broker/Tempo chain.
+  Actual restore verification precedes migration; failed migration retains stopped writers and
+  Caddy validation/reload is a separate post-health operation. No global start or shared PG17
+  change is introduced. Preparation remains uncommitted pending parent review and production proof.
+
 - Owner authorization update (2026-10-25): deliver on the existing VPS using
   `https://leohteixeira.com/real-estate-intelligence/`, preserving exact-root redirects to the
   project presentation and opening the demo at an operational route such as `places`. Required

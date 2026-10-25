@@ -340,3 +340,22 @@ forbidden Node/manual harness patterns in static, dynamic and CommonJS imports, 
 unprefixed built-ins. Basic file/crypto/module fixture APIs are permitted. Record changes to this
 standard through [ADR 0020](../../specs/adrs/0020-vitest-integration-standard.md), not an ad hoc
 per-package runner or ESLint configuration.
+
+## Verify the production public prefix
+
+After building the workspaces, run `pnpm run test:integration:prefix`. Image preparation is serial
+and finishes before the native HTTP/browser campaign. The campaign owns separate root and
+`/real-estate-intelligence` fixtures with real PostgreSQL and RabbitMQ, matching root and prefixed
+web images and unchanged service health gates. It checks scoped readiness, direct/refresh routes,
+asset requests, PT/EN navigation, Search-to-Property native anchors and return links, language
+persistence and real authenticated prepared SSE over Nginx. The prefix fixture also rejects global
+`/ready`, `/api/v1` and `/index.html` exposure. No worker, model or real-source request is required.
+Prior dependency outage/recovery and accessibility campaigns remain valid for unchanged inputs;
+this focused campaign establishes only the continuation's changed routing/transport behavior.
+
+The CI runner installs the pinned Playwright Chromium and OS dependencies before this gate. It
+installs Chromium's bundled SUID sandbox helper on the ephemeral runner and sets
+`CHROME_DEVEL_SANDBOX`. In a Dev Container where unprivileged namespaces are restricted, use the
+existing root-owned helper (for example
+`CHROME_DEVEL_SANDBOX=/usr/local/sbin/chrome-devel-sandbox pnpm run test:integration:prefix`).
+Keep `chromiumSandbox: true`; a sandbox startup failure is an executor failure, not browser evidence.

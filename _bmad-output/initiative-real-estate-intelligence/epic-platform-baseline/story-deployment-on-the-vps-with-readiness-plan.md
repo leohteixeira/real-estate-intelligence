@@ -3,7 +3,7 @@ title: 'Deployment on the VPS with readiness'
 type: 'feature'
 ticket: '12'
 created: '2026-10-25'
-status: blocked
+status: built
 baseline_revision: '567b03cdb265aca972e236e85404080f85683c5f'
 route: 'full'
 route_source: 'auto'
@@ -18,8 +18,6 @@ context:
   - '/workspace/repos/real-estate-intelligence/specs/adrs/0020-vitest-integration-standard.md'
 warnings: [oversized]
 deferred: []
-blocked_at: '2026-10-25'
-blocked_reason: 'Local delivery verified in 578753d, adf13bf and d2ea034. Production work was authorized on 2026-10-25 and is queued after the active story: remaining prerequisites are public-prefix adaptation, dedicated PG18/storage/application credentials, remote CI and immutable images from main, deployment, public HTTPS and linked Tempo evidence. Historical authorization deferral no longer applies.'
 ---
 
 <intent-contract>
@@ -187,6 +185,27 @@ timeouts. Do not revisit accepted accessibility evidence or audit unrelated modu
 - verdicts: 0 findings — high 0, medium 0, low 0, false 0, maybe-false 0
 - findings: none. The independent Quick reviewer inspected the diff, acceptance criteria and
   surrounding consumers; no unmet local requirement or concrete bug was established.
+
+### 2026-10-25 — Authorized continuation review pass
+
+- verdicts: 1 findings — high 1, medium 0, low 0, false 0, maybe-false 0
+- findings:
+  - `[high]` `[patch]` A database-only recovery can strand a pre-backup published event whose
+    consumer commits and acknowledges after the backup. Verified against `rei_backup`,
+    `PostgresOutbox.claimPending` (`published_at IS NULL`) and transactional audit consumers.
+    The targeted correction requires an observed empty dedicated broker vhost while this app's
+    writers are stopped, and recovery into a new empty vhost while retaining the original.
+    Applied the empty-vhost precondition before any dump and the new-vhost recovery instructions.
+    Five focused tests and a real backlog-rejection/drained-backup rehearsal passed; independent
+    targeted follow-up found no remaining defect. No blanket outbox replay, queue purge or
+    unrelated-project operation was added.
+
+### 2026-10-25 — Targeted broker/backup follow-up
+
+- verdicts: 0 findings — high 0, medium 0, low 0, false 0, maybe-false 0
+- findings: none. The same independent Quick reviewer inspected only the corrected broker-cut
+  precondition, tests and new-vhost recovery instructions. The original risk is resolved without
+  reopening the public-prefix implementation or accepted historical stories.
 
 ## Verification
 
@@ -381,3 +400,317 @@ separate production authorization. The story must not be marked done from the lo
 
 Delivery commits: `578753d` (runtime/configuration) and `adf13bf` (tests) passed every applicable
 pre-commit and commit-message hook. Documentation is committed separately with the same hooks.
+
+### Authorized continuation result — 2026-10-25
+
+The continuation prepares prefix-scoped Vite/router/native links, API/SSE/readiness transport,
+Nginx/image layout, immutable MinIO input and gated main-only image publication. Its changed files
+and direct evidence are itemized in the implementation handoff receipts below. The independent
+landing changes preserve the application prefix; shared infrastructure adds scoped PG18/storage,
+provisioning, verified consistent backup, digest/revision validation and separately gated proxy
+activation. Existing plans and runbook carry the operational sequence; no extra report is created.
+
+Review accounting preserves the earlier broad Quick pass (zero findings), adds one continuation
+Quick pass (one high patch), and one strictly targeted follow-up (zero findings). Patched entries:
+high 1, medium 0, low 0. Deferred and rejected findings: none. Follow-up recommendation is false;
+the demonstrated broker/backup risk has independent closure. No broad accessibility or product
+audit was restarted. Final web coverage passed all original floors; direct browser and operator
+proofs remain valid. Actual commit hooks, remote gates, main publication and production receipts
+remain mandatory. A built plan describes reviewed preparation and does not mark the ticket done.
+
+## Authorized continuation — 2026-10-25
+
+This section applies the owner's later explicit instruction and supersedes the historical
+external-only restrictions and local-only acceptance above. Preserve the read-only historical
+intent contract, original baseline, accepted readiness code, prior checks and one independent
+Quick review. Story 2.9 is now done. Resume this existing story rather than create a new plan.
+Continuation source baseline: `cf7092a3d343a26cc868dbd7ecb693d228181169`.
+Implementation preparation is recorded below; the historical `baseline_revision` remains unchanged.
+
+### Outcome and delivery phases
+
+Deliver this application on the existing VPS at
+`https://leohteixeira.com/real-estate-intelligence/`, from a protected/gated `main` revision,
+with immutable published images, public database/broker readiness and the observed linked
+HTTP/outbox/publish/consumer Tempo trace. No subdomain. Preserve synthetic-only data, privacy,
+landing availability, other project data and one heavy job at a time (8 GB / 2 vCPU).
+
+The implementation handoff prepares and verifies the necessary code, configuration, tests and
+operator commands without committing, pushing or activating production changes. Return the
+concrete diff and check results for the required parent review. The parent then completes
+commits/hooks, push/CI/merge, image publication and scoped activation/public evidence in this
+same story. These phases sequence mandatory review before publication; authorization is already
+granted and must not be requested again. Do not mark the story done from implementation alone.
+
+### Implementation tasks for this continuation
+
+- [x] `apps/web/vite.config.ts`, `apps/web/src/{App.tsx,routes.tsx,api,ask,shared,shell}` and affected
+      callers: inspect the existing router/URL model and reuse it to support an explicit public
+      base while retaining existing root-based owned integration fixtures. Apply the prefix to
+      assets, navigation, direct/deep routes, locale links, redirects, API and streaming/SSE.
+      Resolve only reachable affected paths; no general accessibility/design audit or new UI.
+- [x] `docker/{web.Dockerfile,web-nginx.conf}`, `compose.production.yaml`: build the production
+      web for this public base, scope reverse-proxy readiness/API routes, preserve deep-route
+      SPA fallback and SSE behavior. Keep secrets out of build args/images. Only web joins edge;
+      dependency ports remain private. Existing exact roots ultimately redirect to presentation.
+- [x] Existing focused web/unit tests and `integration/` native Vitest/Testcontainers/Supertest/
+      Playwright support: add meaningful prefix/deep-link/API/stream regressions and exercise
+      affected browser journeys in both languages. Reuse fixtures and prior unchanged readiness
+      outage/recovery/a11y evidence. Browser/build/coverage jobs never overlap. No retry/skip or
+      inflated timeout. Observe actual product readiness before assertions.
+- [x] `compose.yaml` and any exact related fixture image references: replace the unavailable
+      MinIO tag with the same original immutable manifest available from the mirror below.
+      Preserve the original binary/S3 semantics; local cached tags are insufficient for CI.
+- [x] `.github/workflows/ci.yml`: preserve every existing secrets/format/workspace/coverage/
+      integration/container gate. Prepare publication of the five images with full revision labels
+      and manifest digest evidence from gated `main` only, in serial order. Choose the existing
+      GitHub repository registry capability after inspecting it; no secrets in output and no
+      bypassing protections. Required local pre-push hooks remain intact.
+- [x] In the independent landing repository read its `AGENTS.md` and installed Next documentation
+      before changes. `src/content/project-links.ts` currently only appends `places` when pathname
+      equals `/`: fix the demonstrated prefixed-root defect using the existing `appRoute`, and add
+      focused regression cases in `src/content/presentations.test.ts`. Preserve explicit operational
+      links, cards/presentations and other projects. Set the scoped public runtime demo URL through
+      its existing production Compose/config mechanism. Do not commit landing work in product Git.
+- [x] `/workspace/infra/{portfolio,compose.yaml,caddy/Caddyfile}` and existing infrastructure tests:
+      prepare minimal scoped host operations for this app, dedicated bounded PG18 instance/role/
+      volume, app RabbitMQ vhost/user, private snapshot storage/bucket credentials, protected
+      configuration, backup verification and compatible recovery. Reuse existing networks/limits
+      and collector/Tempo, never upgrade/start shared PG17 or unrelated services. Do not call the
+      global `up/services/provision` operations that start unrelated projects. Validate candidate
+      Caddy then reload only after healthy app activation. Scope Caddy under this app prefix;
+      redirect both exact roots to the existing presentation convention; keep landing fallback.
+      Reuse the operator lock and protected `.conf` approach where sufficient; no general operator
+      redesign, additional reporting layer or data deletion. No host mutation in this preparation
+      handoff; provide commands to parent for reviewed activation.
+- [x] `docs/operations/deployment.md`, this plan and existing epic: update the concrete runbook,
+      release/recovery sequence and concise verification receipts. Preserve failed/prior evidence.
+      Record material owner-level decisions before action in the external decisions file and
+      English epic Notes; routine scheduling/config plumbing needs no new decision. Never create
+      another report duplicating these records.
+
+### Known operational facts and safe inputs
+
+- Host SSH is available as `root@172.18.0.1` using `ssh -F /dev/null -o BatchMode=yes
+-o ConnectTimeout=5 -o UserKnownHostsFile=/tmp/rei-vps-gateway-known-hosts
+-o StrictHostKeyChecking=yes`. The host checkout `/root/portfolio-workspace` is the bind mount
+  of `/workspace`; host production Docker is distinct from container development Docker.
+- Host observation 2026-10-25 19:30 UTC: 7,940 MiB RAM, 5,026 MiB available, no swap; only
+  landing, Caddy and Dev Container running. Unrelated projects are intentionally stopped.
+  Root filesystem has 37 GiB free. Recheck capacity before heavy jobs or activation.
+- Previous landing image `portfolio/landing:ef35648c8e97-20261024030918`, image ID
+  `sha256:86cf5ebf1ed052c4f866e606bd26e9e75b909ce12068efa1703e709076622e23`;
+  Caddy `caddy:2.10.2-alpine`, image ID
+  `sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d`.
+  Caddy binds host `infra/caddy/Caddyfile`. Record/back up its actual bytes and release/config
+  securely before activation. Do not export existing credential-bearing container environments.
+- Networks `portfolio-edge`, `portfolio-data`, `portfolio-telemetry` already exist. Shared PG17
+  stays unchanged and stopped. Required RabbitMQ, collector, Tempo and collector's Loki dependency
+  can be selectively started during activation. No global start/restart/prune or volume removal.
+- Exact original MinIO manifest is available as
+  `public.ecr.aws/y9w4h2u9/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e`.
+  Its amd64 child is `sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2`;
+  image config `sha256:69b2ec208575b69597784255eec6fa6a2985ee9e1a47f4411a51f7f5fdd193a9`.
+  Prior bounded diagnosis established DockerHub/Quay original tag unavailable and official
+  download 410; do not repeat registry research. Story 2.9 passed with this exact manifest
+  locally restored under the old tag. Clean-cache CI still needs the immutable reference.
+- Never read, search, inspect or edit `.env*` in any repository/host path. Processes may load
+  the existing provider keys using the authorized loader. Newly generated operational settings
+  belong in root-owned protected host `.conf` files without logged values; never commit them.
+  No real provider calls are needed for this story's trace probe.
+- Root workspace has existing uncommitted owner-authorization additions in the two goal documents,
+  an intentionally untracked-from-delivery decisions change, and unrelated Python cache. Preserve
+  these; only pertinent infra/docs receive independent workspace commits. Product Git is separate.
+
+### Additional observable acceptance
+
+- Given the final delivered main revision, remote CI gates and five immutable image digests are
+  recorded and match their OCI revision labels; production runs independently of Dev Container.
+- Given real public HTTPS, both exact app roots redirect to presentation; `/places` and deeper
+  accepted routes load directly and on refresh, assets/API/stream requests retain the prefix,
+  navigation and both languages work, and landing `/`, `/en`, `/pt`, presentations and other
+  existing route configurations remain preserved. No global API/readiness route is introduced.
+- Given healthy PG18 and authenticated scoped broker, public prefixed `/ready` reports both
+  available. A synthetic audit HTTP 202 links one saved carrier/outbox row, publish and consumer
+  effect in the existing Tempo. Record actual revision/digests/time, event/trace ID and sanitized
+  durable effect evidence. Do not infer a missing observation or call unrelated model/source APIs.
+- Given first/repeated migration, take a verified restorable backup before touching persistent
+  data, retain application/Caddy/landing previous identities and compatible recovery instructions.
+  No automatic down migration, data deletion or unrelated service restart occurs.
+
+### Continuation verification sequence
+
+Run directly affected unit/configuration tests first. Then the necessary native prefix/browser
+campaign and affected image checks, serially. Run lint/typecheck/test/build and applicable coverage
+floors on stabilized changed sources; reuse valid unchanged results with source/dependency identity
+noted. The mandatory actual pre-push hook is still executed. Independent review is restricted to
+this continuation's changed behavior and affected risks: one earlier broad Quick pass already ran.
+No completed story or accepted accessibility campaign is reopened.
+
+After reviewed commits, execute required remote CI and main publication, start only required
+host dependencies, verify backup then migrate and activate the application, validate/reload Caddy,
+update landing through its own tested release, and perform public HTTPS/journey/readiness/Tempo
+checks. Record new evidence here before story closure. Scheduled production collection remains
+story 2.12; the final goal campaign runs on the published application after all required stories.
+
+### Implementation handoff receipts — 2026-10-25
+
+Prepared against canonical continuation baseline
+`cf7092a3d343a26cc868dbd7ecb693d228181169`. These receipts establish local preparation only.
+No commit, push, publication, host provisioning, production migration, proxy reload or landing
+activation was performed by the implementer. Parent review and the remaining delivery phases below
+are mandatory. D-090 records the scoped publication decision; its append-only Portuguese complement
+supplies the external record's required fields. The English epic Notes and this runbook remain in
+product Git; landing and shared infrastructure remain changes in their independent repositories.
+
+The existing Vite public base and React Router basename now scope assets, router links and default
+API/SSE endpoints. The shared native PropertyRow anchor uses a small public-path helper because
+basename does not transform native hrefs supplied by SearchResults or PlaceReductions. External
+and hash links retain their existing meanings. Root fixtures continue to use the default `/` build.
+Nginx serves only the selected base from its own `/srv/rei` root, strips the prefix only when
+forwarding versioned API requests, and retains finite SSE streaming and scoped readiness. Caddy
+preserves the prefix, redirects both exact roots to the presentation and keeps the landing fallback.
+The independent landing resolver now appends `places` to either origin or configured prefix roots,
+preserves explicit operational links, and receives the default demo URL through production Compose.
+
+CI retains every existing gate and prepares a gated-main-only serial five-image GHCR publication
+with full OCI revisions and manifest digest artifacts, using Actions `GITHUB_TOKEN`. The native
+integration job explicitly installs Playwright Chromium/OS dependencies and its SUID sandbox helper
+on the ephemeral runner. Shared infrastructure now has explicitly selected dedicated bounded PG18
+and storage services, scoped broker/bucket identities, protected idempotent configuration and
+operator commands under the existing lock. A pre-migration backup requires a successful actual
+restore plus a validated stopped-storage archive before `COMPLETE`; failed migration keeps this
+application's writers stopped. Proxy activation separately requires all four application services
+healthy and a valid candidate. No global startup or shared PG17 change is introduced.
+
+| Changed behavior                                                                                 | Direct evidence                                                                                  | Result                                          |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| Public base, default/overridden API base, authenticated SSE URL and native anchors               | Five web unit files; `/tmp/rei-continuation-unit-direct.log`                                     | 70/70 passed, 14.68 s                           |
+| Production image isolation and owned fixture configuration                                       | Existing production/support tests; `/tmp/rei-continuation-config.log`                            | 35/35 passed, 5.16 s                            |
+| Root and prefixed production transport plus bilingual browser journeys                           | `integration/web-prefix.integration.test.ts`; `/tmp/rei-continuation-prefix-browser-sandbox.log` | 2/2 passed, 88.33 s                             |
+| Landing root/prefix demo links and preserved explicit routes                                     | `src/content/presentations.test.ts` in landing repository                                        | 3/3 passed; scoped ESLint passed                |
+| Operator scope, configuration retention, failed restore/archive/migration and proxy health gates | `python3 -m unittest infra/test_portfolio.py`; `/tmp/rei-continuation-infra.log`                 | 19/19 passed                                    |
+| Actual PG18/broker/storage provisioning and verified backup                                      | Isolated native rehearsal; `/tmp/rei-continuation-operator-rehearsal-final.log`                  | Passed; backup receipt `20261025T194822237713Z` |
+
+The browser campaign observes native fixture readiness before assertions and uses real authenticated
+prepared SSE over Nginx, without a worker, source or model call. In both English and Portuguese it
+loads and reloads Place, clicks Search, follows a native Property anchor, reloads Property, returns
+to Search, follows the prepared Ask session through completion, switches locale and reloads, and
+loads Privacy. It checks prefixed asset/stream requests and zero off-base requests/page errors.
+The default fixture has no price reductions; the same corrected PropertyRow helper serves that
+reachable reduction caller. Prefix fixtures also reject global readiness/API/index exposure.
+
+The first browser execution failed at Chromium startup because the container restricts unprivileged
+namespaces (`/tmp/rei-continuation-prefix-browser.log`, 2 failed, 78.87 s). It established no browser
+journey. The passing execution explicitly sets the existing
+`CHROME_DEVEL_SANDBOX=/usr/local/sbin/chrome-devel-sandbox`, retaining sandboxing and all deadlines.
+No retry, skip, timeout inflation or assertion weakening was added.
+
+The operator rehearsal copies only the three selected service definitions into a separately named
+local Docker project with its own networks, volumes and generated protected fixture configuration.
+It runs actual provisioning twice and backup once, verifies native `uuidv7()`, restores
+the real custom-format dump, validates the archive, observes healthy storage resumption and requires
+the complete marker. All owned resources are cleaned afterward; the host daemon is untouched.
+Its first run terminated the MinIO administration client with exit 137 at 256 MiB. At 512 MiB,
+provisioning and restore/archive passed but the local Compose rejected `start --wait`. Final code
+uses the existing BusyBox image for tar (the original MinIO contains mc but no tar), retains a
+512 MiB storage limit, consumes broker listings without early pipe closure, and resumes only
+storage with `up --no-deps --no-recreate --wait`. The final full rehearsal passed. Earlier failed
+logs remain `/tmp/rei-continuation-operator-rehearsal.log` and
+`/tmp/rei-continuation-operator-rehearsal-512.log`; neither is a production failure or approval.
+
+Both local web images built successfully. Root image ID is
+`sha256:33252797b05d0911ad14bf0629de4a2fd11e3db10d0ba36554735edb496ad40c`; prefixed image ID is
+`sha256:945064d16b590f36237c510a419ecf368d10e91220ab3d48e0a331ed727ca9c8`.
+These are local feasibility identities, not published manifest receipts or a main release.
+Build logs are `/tmp/rei-continuation-images.log` and `/tmp/rei-continuation-prefix-image.log`.
+Hadolint for the changed Dockerfile, shell syntax and scoped ESLint passed. Candidate Caddy
+validation passed in an isolated local container. Default shared Compose selection excludes the
+new profiled services; explicit profile configuration validates with synthetic settings and
+automatic `.env` loading disabled. Previous Caddy bytes were retained before editing at
+`/tmp/rei-caddy-before-prefix.Caddyfile`, SHA256
+`d918d81c30008e84dc3751e81d0170dae266dec9783b4a5a7cef019407159d55`.
+The parent must preserve this copy securely before activating the bind-mounted candidate.
+
+Backend/package sources and the dependency lockfile are unchanged from the canonical continuation
+baseline (`git diff --quiet <baseline> -- packages apps/api apps/worker apps/ai pnpm-lock.yaml`
+exited zero). Valid accepted readiness outage/recovery, accessibility and seven unchanged workspace
+coverage results can be reused with that identity. Changed web coverage remains pending the final
+stabilized version after required parent review. No fresh full-root unit or coverage pass is claimed.
+The mandatory pre-push hook still runs lint/typecheck/test/build; remote CI still requires complete
+workspace coverage and every integration campaign.
+
+Stabilized root `pnpm run lint`, strict `pnpm run typecheck` (including the integration compiler)
+and `pnpm run build` all exited zero in the serial check session. Logs are
+`/tmp/rei-continuation-{lint,typecheck,build}.log`. The build retains its existing large-chunk
+warning. Changed-file Prettier checks and the four affected Markdown documents passed
+(`/tmp/rei-continuation-format-check.log`, `/tmp/rei-continuation-markdown-scoped.log`). An initial
+Markdownlint invocation also scanned ignored generated `_bmad/render` artifacts and failed; those
+unrelated artifacts were not changed, and no full local Markdownlint pass is claimed. The scoped
+run uses the repository's unchanged rules with CLI `--no-globs` to select the four changed documents.
+The Chromium crash core from the initial sandbox failure was removed; no core/cache is a delivery
+artifact.
+
+### Remaining continuation delivery gates
+
+- [x] Parent independent review of this continuation delta and targeted corrections.
+- [x] Final changed-web coverage, with all existing floors preserved.
+- [ ] Mandatory hooks and separate product/landing/workspace commits. Preserve unrelated owner
+      changes and the external decisions file.
+- [ ] Authenticated remote PR/CI/protection observations, reviewed main integration and successful
+      gated publication with five full revision/digest receipts. GitHub SSH Git works, but the
+      Dev Container has no authenticated gh/API credential, the host has no gh binary/API token,
+      and private GHCR pull credentials have not been observed. Obtain valid authorized access;
+      do not infer CI/protection success or bypass the gate using another publication mechanism.
+- [ ] Scoped host configuration/provisioning, protected previous identities/Caddy backup, successful
+      verified pre-migration backup, migration and healthy application activation.
+- [ ] Validate/reload only Caddy and release the landing from its own tested repository. The public
+      pre-release baseline had 404 for both Real Estate presentations; the landing release must
+      establish the checked-in bilingual presentations and preserve the other site routes.
+- [ ] Actual public HTTPS direct/deep/reload/navigation/locale/assets/API/finite SSE acceptance,
+      public readiness with both dependencies available, and linked production Tempo/outbox/publish/
+      consumer effect evidence with full release identities and UTC times.
+
+Story 1.12 and epic criterion 6 remain pending production. The existing deployment runbook contains
+the exact scoped activation commands and compatible recovery sequence; no approval is requested
+again for work already authorized by the owner.
+
+### Final changed-web coverage — 2026-10-25
+
+The unchanged coverage flags and exclusions from `scripts/test-coverage.sh`, selected only for
+`@rei/web`, passed 41 files / 540 tests in 93.72 seconds on the stabilized public-prefix sources.
+Statement/branch/function/line coverage is 95.96% / 90.91% / 96.54% / 97.18%, above the existing
+80/75/80/80 floors. The command exited zero; `/tmp/rei-continuation-web-coverage.log` retains the
+receipt. The subsequent correction concerns only operator recovery and its documentation/tests;
+these web results remain valid. The actual mandatory pre-push gate and remote CI are still pending.
+
+### Targeted broker/backup consistency correction — 2026-10-25
+
+The verified review finding is patched: while API/worker are stopped and before any dump,
+`rei-backup` reads all queues in the configured dedicated vhost through RabbitMQ's JSON formatter.
+Ready/unacknowledged counts must be valid nonnegative integers and all zero, including retry and
+dead-letter queues; backlog, invalid observation or CLI failure refuses the backup. The error
+instructs draining owned work with the existing worker and stopping/rechecking, never purging.
+Unpublished outbox rows remain untouched and replay normally. Recovery instructions now require
+new empty PG/object/vhost targets, preserving original messages and configuring the compatible
+restored release for only the new vhost before resuming; no `published_at` reset is introduced.
+
+Five focused operator tests passed, including ready/unack backlog, malformed counts/CLI failure,
+writer-stop/check/dump ordering, drained complete backup and existing restore/archive failures
+(`/tmp/rei-broker-cut-unit.log`). The owned local rehearsal observed actual RabbitMQ JSON for an
+empty vhost, one ready retry message and ACK-drained retry/dead-letter queues. Backlog rejected
+before any dump/COMPLETE; the drained cut completed real restore/archive verification and healthy
+storage resumption, receipt `20261025T195711581176Z` (`/tmp/rei-broker-cut-rehearsal.log`). Only fixture
+resources were removed. The two edited documents passed scoped Markdownlint and Prettier. No
+product/browser/coverage/build rerun, commit or host activation occurred; parent web coverage and
+review records above remain preserved. Independent targeted follow-up returned no findings.
+
+### Reviewed continuation commit checkpoint — 2026-10-25
+
+Product implementation:
+`690ece9a56101f278832a815ab42e0738c22150c`; tests:
+`5dd43b36026b4a9d5cab7f74f0cc4fe3ab3e3313` passed all applicable pre-commit
+and commit-message hooks without automatic content changes. The final complete operator regression
+suite passed 22 tests (`/tmp/rei-continuation-infra-final.log`), including the corrected broker cut.
+The plan is built preparation; the ticket remains in progress pending the remote and production
+acceptance below. No push/main/CI/publication/deploy success is inferred from these commits.
