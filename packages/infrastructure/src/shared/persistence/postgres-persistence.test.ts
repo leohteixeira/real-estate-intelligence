@@ -53,7 +53,7 @@ describe('PostgreSQL persistence adapters', () => {
     const query = vi.fn();
     const controller = new AbortController();
     controller.abort();
-    const probe = new PostgresAvailabilityProbe({ query } as unknown as DatabaseConnection);
+    const probe = new PostgresAvailabilityProbe({ queryAbortable: query });
 
     await expect(probe.isAvailable(controller.signal)).resolves.toBe(false);
     expect(query).not.toHaveBeenCalled();
@@ -61,10 +61,10 @@ describe('PostgreSQL persistence adapters', () => {
 
   it('reports PostgreSQL availability after a successful probe', async () => {
     const query = vi.fn().mockResolvedValue([{ '?column?': 1 }]);
-    const probe = new PostgresAvailabilityProbe({ query } as unknown as DatabaseConnection);
+    const probe = new PostgresAvailabilityProbe({ queryAbortable: query });
 
     await expect(probe.isAvailable(new AbortController().signal)).resolves.toBe(true);
-    expect(query).toHaveBeenCalledWith('SELECT 1');
+    expect(query).toHaveBeenCalledWith('SELECT 1', [], expect.any(AbortSignal));
   });
 
   it.each([new Error('database unavailable'), 'connection refused'])(
@@ -72,15 +72,27 @@ describe('PostgreSQL persistence adapters', () => {
     async (failure) => {
       const onError = vi.fn();
       const query = vi.fn().mockRejectedValue(failure);
-      const probe = new PostgresAvailabilityProbe(
-        { query } as unknown as DatabaseConnection,
-        onError,
-      );
+      const probe = new PostgresAvailabilityProbe({ queryAbortable: query }, onError);
 
       await expect(probe.isAvailable(new AbortController().signal)).resolves.toBe(false);
       expect(onError).toHaveBeenCalledWith(expect.any(Error));
     },
   );
+
+  it('passes the readiness cancellation signal to the abortable query', async () => {
+    const controller = new AbortController();
+    const queryAbortable = vi.fn(
+      (_sql: string, _params: readonly unknown[], signal: AbortSignal) =>
+        new Promise<never>((_resolve, reject) =>
+          signal.addEventListener('abort', () => reject(signal.reason), { once: true }),
+        ),
+    );
+    const probe = new PostgresAvailabilityProbe({ queryAbortable });
+    const pending = probe.isAvailable(controller.signal);
+    controller.abort(new Error('readiness deadline'));
+    await expect(pending).resolves.toBe(false);
+    expect(queryAbortable).toHaveBeenCalledWith('SELECT 1', [], controller.signal);
+  });
 
   it('begins, commits, and releases the exact leased client', async () => {
     const query = vi.fn().mockResolvedValue({ rows: [] });

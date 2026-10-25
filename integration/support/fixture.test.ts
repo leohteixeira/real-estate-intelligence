@@ -368,3 +368,18 @@ test('retains falsy throws and every nested resource failure while releasing lat
     ),
   ).rejects.toBe('');
 });
+
+test('API-only fixtures own auto-started broker ports and retain them on staged startup', async () => {
+  vi.mocked(getPort).mockReset().mockResolvedValueOnce(48101).mockResolvedValueOnce(48102);
+  const { owned, builder } = fixture();
+  await owned.up(['api']);
+  expect(builder.withEnvironment).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      RABBITMQ_PORT: '48101',
+      RABBITMQ_MANAGEMENT_PORT: '48102',
+    }),
+  );
+  await owned.up(['api']);
+  expect(getPort).toHaveBeenCalledTimes(2);
+  await owned.down();
+});

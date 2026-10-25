@@ -1,5 +1,10 @@
 import type { INestApplication } from '@nestjs/common';
-import { DATABASE_AVAILABILITY_PROBE, type DatabaseAvailabilityProbe } from '@rei/application';
+import {
+  BROKER_AVAILABILITY_PROBE,
+  InMemoryBrokerAvailabilityProbe,
+  DATABASE_AVAILABILITY_PROBE,
+  type DatabaseAvailabilityProbe,
+} from '@rei/application';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,15 +16,20 @@ describe('HealthController', () => {
   let app: INestApplication;
   let baseUrl: string;
   let available: boolean;
+  let brokerProbe: InMemoryBrokerAvailabilityProbe;
   let probe: DatabaseAvailabilityProbe;
 
   beforeEach(async () => {
     available = true;
+    brokerProbe = new InMemoryBrokerAvailabilityProbe();
     probe = { isAvailable: vi.fn(async () => available) };
 
     const module = await Test.createTestingModule({
       controllers: [HealthController],
-      providers: [{ provide: DATABASE_AVAILABILITY_PROBE, useValue: probe }],
+      providers: [
+        { provide: DATABASE_AVAILABILITY_PROBE, useValue: probe },
+        { provide: BROKER_AVAILABILITY_PROBE, useValue: brokerProbe },
+      ],
     }).compile();
 
     app = module.createNestApplication();
@@ -38,12 +48,16 @@ describe('HealthController', () => {
   });
 
   it('serves liveness without consulting the database', async () => {
+    available = false;
+    brokerProbe.available = false;
+    const brokerCall = vi.spyOn(brokerProbe, 'isAvailable');
     const response = await fetch(`${baseUrl}/health`);
 
     expect(response.status).toBe(200);
     expect(response.headers.get(REQUEST_ID_HEADER)).toMatch(UUID_PATTERN);
     await expect(response.json()).resolves.toEqual({ status: 'healthy' });
     expect(probe.isAvailable).not.toHaveBeenCalled();
+    expect(brokerCall).not.toHaveBeenCalled();
   });
 
   it('reports readiness when the database is available', async () => {
@@ -51,7 +65,11 @@ describe('HealthController', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get(REQUEST_ID_HEADER)).toMatch(UUID_PATTERN);
-    await expect(response.json()).resolves.toEqual({ status: 'ready', database: 'available' });
+    await expect(response.json()).resolves.toEqual({
+      status: 'ready',
+      database: 'available',
+      broker: 'available',
+    });
   });
 
   it('returns 503 when the database is unavailable', async () => {
@@ -64,6 +82,41 @@ describe('HealthController', () => {
     await expect(response.json()).resolves.toEqual({
       status: 'not-ready',
       database: 'unavailable',
+      broker: 'available',
+    });
+  });
+  it.each([true, false])(
+    'reports independent statuses during broker failure (database %s)',
+    async (database) => {
+      available = database;
+      brokerProbe.available = false;
+      const response = await fetch(`${baseUrl}/ready`);
+      expect(response.status).toBe(503);
+      await expect(response.json()).resolves.toEqual({
+        status: 'not-ready',
+        database: database ? 'available' : 'unavailable',
+        broker: 'unavailable',
+      });
+    },
+  );
+
+  it('starts both probes concurrently with the same two-second cancellation signal', async () => {
+    let databaseSignal: AbortSignal | undefined;
+    probe.isAvailable = vi.fn((signal) => {
+      databaseSignal = signal;
+      return new Promise<boolean>((resolve) =>
+        signal.addEventListener('abort', () => resolve(false), { once: true }),
+      );
+    });
+    const brokerCall = vi.spyOn(brokerProbe, 'isAvailable');
+    const response = await fetch(`${baseUrl}/ready`);
+    expect(response.status).toBe(503);
+    expect(databaseSignal?.aborted).toBe(true);
+    expect(brokerCall).toHaveBeenCalledWith(databaseSignal);
+    await expect(response.json()).resolves.toEqual({
+      status: 'not-ready',
+      database: 'unavailable',
+      broker: 'available',
     });
   });
 });
