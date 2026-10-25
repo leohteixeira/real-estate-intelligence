@@ -19,7 +19,7 @@ context:
 warnings: [oversized]
 deferred: []
 blocked_at: '2026-10-25'
-blocked_reason: 'Local readiness, composition, CI image-build preparation and operator runbook delivered in 578753d, adf13bf and d2ea034 with required checks and independent review. Pending separately authorized production prerequisites, registry/remote CI evidence, deployment from main, public HTTPS readiness and linked Tempo trace; no deployment or publication performed.'
+blocked_reason: 'Local delivery verified in 578753d, adf13bf and d2ea034. Production work was authorized on 2026-10-25 and is queued after the active story: remaining prerequisites are public-prefix adaptation, dedicated PG18/storage/application credentials, remote CI and immutable images from main, deployment, public HTTPS and linked Tempo evidence. Historical authorization deferral no longer applies.'
 ---
 
 <intent-contract>
@@ -149,6 +149,21 @@ timeouts. Do not revisit accepted accessibility evidence or audit unrelated modu
   unchanged.
 
 ## Plan Change Log
+
+- 2026-10-25 owner authorization supersedes historical external-only limitations in this plan:
+  scoped VPS operations, dependencies, push/PR/CI/image publication/merge and deployment from
+  `main` are authorized for the application, landing and workspace infrastructure. Deliver under
+  `https://leohteixeira.com/real-estate-intelligence/`; preserve landing/project paths, exact-root
+  presentation redirects and a prefix-preserving operational demo link. Finish current story 2.9
+  before resuming ticket order. Update prefix integration and prove actual public journeys,
+  readiness, synthetic effects and a linked Tempo trace before acceptance. Prior local evidence
+  stays valid for unchanged inputs; no campaign is interrupted for this documentation update.
+  Use dedicated bounded PG18 rather than modifying shared PostgreSQL. Keep production independent
+  of the Dev Container, protected host configuration, verified backups and targeted recovery.
+  A demonstrated CI prerequisite also remains: the existing official MinIO fixture tag is no
+  longer downloadable. Story 2.9 restored the exact original manifest locally from a mirror;
+  that cache recovery does not establish clean-cache remote CI reproducibility. Resolve the
+  immutable fixture-image input before the required remote run, preserving real S3 semantics.
 
 - Readiness adds an automatic RabbitMQ dependency to development API startup. Existing API-only
   campaigns therefore receive owned broker ports from their current fixture helper; the regression

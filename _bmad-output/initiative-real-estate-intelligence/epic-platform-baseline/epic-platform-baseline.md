@@ -88,6 +88,13 @@ for it here.
 
 ## Notes
 
+- Owner authorization update (2026-10-25): deliver on the existing VPS using
+  `https://leohteixeira.com/real-estate-intelligence/`, preserving exact-root redirects to the
+  project presentation and opening the demo at an operational route such as `places`. Required
+  push, PR, CI, image publication, merge to `main`, scoped infrastructure changes and production
+  checks are authorized. Shared PostgreSQL must remain unchanged; provision a dedicated PG18
+  instance. Preserve landing availability, project data and one heavy job at a time. This
+  supersedes the earlier subdomain proposal and authorization deferral, not missing evidence.
 - Story 1.12 local delivery adds independent database/broker readiness, an exact web `/ready`
   proxy, CI image builds without publishing, application-only production Compose and the
   [VPS runbook](../../../docs/operations/deployment.md). These prepared artifacts do not establish
