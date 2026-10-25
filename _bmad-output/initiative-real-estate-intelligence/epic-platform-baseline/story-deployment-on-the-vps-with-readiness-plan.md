@@ -3,7 +3,7 @@ title: 'Deployment on the VPS with readiness'
 type: 'feature'
 ticket: '12'
 created: '2026-10-25'
-status: 'built'
+status: blocked
 baseline_revision: '567b03cdb265aca972e236e85404080f85683c5f'
 route: 'full'
 route_source: 'auto'
@@ -18,6 +18,8 @@ context:
   - '/workspace/repos/real-estate-intelligence/specs/adrs/0020-vitest-integration-standard.md'
 warnings: [oversized]
 deferred: []
+blocked_at: '2026-10-25'
+blocked_reason: 'Local readiness, composition, CI image-build preparation and operator runbook delivered in 578753d, adf13bf and d2ea034 with required checks and independent review. Pending separately authorized production prerequisites, registry/remote CI evidence, deployment from main, public HTTPS readiness and linked Tempo trace; no deployment or publication performed.'
 ---
 
 <intent-contract>
