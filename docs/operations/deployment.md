@@ -3,7 +3,9 @@
 Story 1.12 has verified local readiness and deployment preparation. **Production deployment, public
 HTTPS readiness, remote CI execution and a production Tempo trace remain unverified.** On
 2026-10-25 the owner authorized the operational work, repository push/PR/CI/image publication/merge
-and deployment needed to deliver from `main`. Execute those steps when their gates and
+and deployment needed for delivery. The owner's later instruction uses `feat/phase-1` for
+publication while the goal is in progress; integration into `main` follows completion of all
+stories. Execute those steps when their gates and
 prerequisites are ready; they are no longer deferred for authorization. Use the VPS host Docker
 daemon, independently of the Dev Container. Preserve the live portfolio landing and other projects'
 data, volumes and configuration; unrelated projects may remain stopped for capacity.
@@ -48,16 +50,18 @@ Application processes retain the existing OpenTelemetry preload in their image c
 
 ## Record the release and prepare images
 
-Use a clean checkout of the exact gated `main` revision. The existing secrets, format, workspace,
-coverage, real-service integration and container jobs remain mandatory. The `publish` job runs only
-on a push to `refs/heads/main`, depends on all five jobs, authenticates to GHCR with its scoped
-Actions `GITHUB_TOKEN`, and publishes all five images serially. Its `release-<full-sha>` artifact
+Use a clean checkout of the exact gated `feat/phase-1` revision while the goal is in progress.
+The existing secrets, format, workspace, coverage, real-service integration and container jobs
+remain mandatory. The workflow accepts pushes to `main` and `feat/phase-1`; publication depends
+on all five required jobs and runs only for those exact push refs.
+Publication authenticates to GHCR with its scoped Actions `GITHUB_TOKEN`
+and publishes all five images serially. Its `release-<full-sha>` artifact
 contains BuildKit metadata and `images.txt` with the full revision and immutable manifest references.
 The web image is built with `VITE_PUBLIC_BASE=/real-estate-intelligence/`; privacy controller name
 and contact use the existing public repository variables. Set those approved public identity
 variables before publishing. No provider key or infrastructure credential enters a build argument.
 A passing local build is feasibility evidence. Record the actual remote run URL and conclusions.
-Do not substitute a developer image or an ungated main push for those gates. Branch protections and
+Do not substitute a developer image or an ungated push for those gates. Branch protections and
 required review remain unchanged. The parent delivery performs the actual mandatory pre-push hook.
 
 For this private repository, the host also needs authenticated GHCR pull access with package-read
@@ -92,7 +96,8 @@ sudo ./infra/portfolio rei-config
 `rei-config` preserves existing shared credentials and creates only this application's settings,
 root-owned with mode 0600. It refuses to generate replacement keys when dedicated volumes already
 exist without their configuration. Privately populate `real-estate-intelligence.conf` with
-`REI_RELEASE_COMMIT` (full gated main SHA), the five manifest digests from Actions and the approved
+`REI_RELEASE_COMMIT` (full gated release SHA on `feat/phase-1`), the five manifest digests from
+Actions and the approved
 runtime gateway key. Preserve the generated snapshot key. Existing approved loaders may populate
 the gateway key without exposing its source or value. Runtime keys never enter image builds.
 
@@ -273,7 +278,8 @@ command if needed. Do not use global backup/restore: those target unrelated PG17
 Never delete original volumes, run broad prune commands or restart another project to recover this stack.
 Repeat public readiness and the synthetic trace check after rollback.
 
-The release evidence must include the full `main` commit, five manifest digests, remote CI run,
+The release evidence must include the full commit and source branch, five manifest digests,
+remote CI run,
 public TLS/readiness receipt, linked Tempo trace and database evidence, and rollback/backup receipt.
 Until these checks actually pass on the authorized VPS, story 1.12 and epic criterion 6 stay pending
 production even when all local checks pass.

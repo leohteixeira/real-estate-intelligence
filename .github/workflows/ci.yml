@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, feat/phase-1]
   pull_request:
 
 permissions:
@@ -143,8 +143,8 @@ jobs:
           done
 
   publish:
-    name: Publish gated main images
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    name: Publish gated release images
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/phase-1')
     needs: [secrets, format, workspace, integration, containers]
     runs-on: ubuntu-latest
     timeout-minutes: 30

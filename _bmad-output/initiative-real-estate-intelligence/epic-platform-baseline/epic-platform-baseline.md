@@ -88,6 +88,12 @@ for it here.
 
 ## Notes
 
+- Owner execution update (2026-10-25): publish exact gated `feat/phase-1` commits while the goal
+  is in progress; integrate into `main` after all stories are complete. This supersedes the
+  earlier default-branch/main-only publication requirement in D-088/D-090 and story 1.12.
+  Preserve CI, five immutable image identities, public HTTPS/readiness/Tempo evidence and
+  all functional acceptance. Workflow push/publication selectors include the exact branch.
+
 - D-090 (2026-10-25): continuation uses the existing site's explicit public prefix, Vite base,
   router basename and native-link prefixing. GHCR publication is serial and restricted to main
   after all existing CI gates. Scoped operator commands reuse the lock/protected configuration

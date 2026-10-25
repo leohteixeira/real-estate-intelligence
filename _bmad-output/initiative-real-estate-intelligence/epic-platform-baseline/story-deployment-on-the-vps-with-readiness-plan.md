@@ -19,7 +19,7 @@ context:
 warnings: [oversized]
 deferred: []
 blocked_at: '2026-10-25'
-blocked_reason: 'Authenticated GitHub API/PR/CI and private GHCR pull access unavailable; required product main CI, five release digests and public production evidence remain unobserved.'
+blocked_reason: 'Private remote CI observations and GHCR package-read access unavailable; five release digests and public production evidence remain unobserved. Publish feat/phase-1 during the goal per the owner update; main/PR/merge is not an intermediate prerequisite.'
 ---
 
 <intent-contract>
@@ -431,8 +431,13 @@ Implementation preparation is recorded below; the historical `baseline_revision`
 
 ### Outcome and delivery phases
 
+Owner update (2026-10-25): publish the current `feat/phase-1` branch until all stories are
+complete. This supersedes historical default-branch/main-only prerequisites below and in the
+original intent contract; retain their prior evidence. Final integration into `main` follows
+story completion. CI, immutable image identities and public functional evidence stay mandatory.
+
 Deliver this application on the existing VPS at
-`https://leohteixeira.com/real-estate-intelligence/`, from a protected/gated `main` revision,
+`https://leohteixeira.com/real-estate-intelligence/`, from an exact gated `feat/phase-1` revision,
 with immutable published images, public database/broker readiness and the observed linked
 HTTP/outbox/publish/consumer Tempo trace. No subdomain. Preserve synthetic-only data, privacy,
 landing availability, other project data and one heavy job at a time (8 GB / 2 vCPU).
@@ -440,7 +445,7 @@ landing availability, other project data and one heavy job at a time (8 GB / 2 v
 The implementation handoff prepares and verifies the necessary code, configuration, tests and
 operator commands without committing, pushing or activating production changes. Return the
 concrete diff and check results for the required parent review. The parent then completes
-commits/hooks, push/CI/merge, image publication and scoped activation/public evidence in this
+commits/hooks, branch push/CI, image publication and scoped activation/public evidence in this
 same story. These phases sequence mandatory review before publication; authorization is already
 granted and must not be requested again. Do not mark the story done from implementation alone.
 
@@ -465,7 +470,8 @@ granted and must not be requested again. Do not mark the story done from impleme
       Preserve the original binary/S3 semantics; local cached tags are insufficient for CI.
 - [x] `.github/workflows/ci.yml`: preserve every existing secrets/format/workspace/coverage/
       integration/container gate. Prepare publication of the five images with full revision labels
-      and manifest digest evidence from gated `main` only, in serial order. Choose the existing
+      and manifest digest evidence in serial order. Owner follow-up: push/publication selectors
+      also accept gated `feat/phase-1` while the goal is in progress. Choose the existing
       GitHub repository registry capability after inspecting it; no secrets in output and no
       bypassing protections. Required local pre-push hooks remain intact.
 - [x] In the independent landing repository read its `AGENTS.md` and installed Next documentation
@@ -526,7 +532,8 @@ granted and must not be requested again. Do not mark the story done from impleme
 
 ### Additional observable acceptance
 
-- Given the final delivered main revision, remote CI gates and five immutable image digests are
+- Given the exact delivered `feat/phase-1` revision, remote CI gates and five immutable image
+  digests are
   recorded and match their OCI revision labels; production runs independently of Dev Container.
 - Given real public HTTPS, both exact app roots redirect to presentation; `/places` and deeper
   accepted routes load directly and on refresh, assets/API/stream requests retain the prefix,
@@ -549,7 +556,7 @@ noted. The mandatory actual pre-push hook is still executed. Independent review 
 this continuation's changed behavior and affected risks: one earlier broad Quick pass already ran.
 No completed story or accepted accessibility campaign is reopened.
 
-After reviewed commits, execute required remote CI and main publication, start only required
+After reviewed commits, execute required remote CI and branch publication, start only required
 host dependencies, verify backup then migrate and activate the application, validate/reload Caddy,
 update landing through its own tested release, and perform public HTTPS/journey/readiness/Tempo
 checks. Record new evidence here before story closure. Scheduled production collection remains
@@ -659,8 +666,10 @@ artifact.
 - [x] Final changed-web coverage, with all existing floors preserved.
 - [x] Mandatory hooks and separate product/landing/workspace commits. Preserve unrelated owner
       changes and the external decisions file.
-- [ ] Authenticated remote PR/CI/protection observations, reviewed main integration and successful
-      gated publication with five full revision/digest receipts. GitHub SSH Git works, but the
+- [x] Extend existing workflow push/publication selectors to `feat/phase-1`, preserving all gates.
+- [ ] Obtain observed successful remote CI and gated publication with five full revision/digest
+      receipts. Main integration/PR/merge follows all stories, per the owner's later instruction.
+      GitHub SSH Git works, but the
       Dev Container has no authenticated gh/API credential, the host has no gh binary/API token,
       and private GHCR pull credentials have not been observed. Obtain valid authorized access;
       do not infer CI/protection success or bypass the gate using another publication mechanism.
