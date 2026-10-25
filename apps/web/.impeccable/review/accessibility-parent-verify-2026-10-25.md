@@ -20,7 +20,7 @@ pronunciation or physical touch/daylight perception.
 
 Proof: `runtime/accessibility-final-8-20261025-154452.reconciliation.json`. Reuse this completed
 proof and unchanged product gates; do not replay accepted equivalents for documentary changes.
-Required scoped independent reviews pass as recorded below; authorized delivery remains.
+Required scoped independent reviews and applicable commit hooks pass. Story 6.12 is done.
 
 The following checkpoints retain historical failures and limits; they do not replace this final proof.
 
@@ -190,7 +190,7 @@ pronunciation or physical touch/daylight perception.
 
 Proof: `runtime/accessibility-final-8-20261025-154452.reconciliation.json`. Reuse this completed
 proof and unchanged product gates; do not replay accepted equivalents for documentary changes.
-Required scoped independent reviews pass as recorded below; authorized delivery remains.
+Required scoped independent reviews and applicable commit hooks pass. Story 6.12 is done.
 
 Reassessment before another attempt: the same mistaken model also affects initial navigation.
 `enter` observes the intentionally held child's status, while independent Market/series/neighbour
@@ -1060,3 +1060,7 @@ component/place styles and sampled operational components/briefs. The hover repa
 universal plate/count examples, abbreviated sidecar narrative and obsolete local Landing guidance
 remain recorded drift, not canonized or repaired in this ordinary extension. No review-triggered
 product or executor change invalidates the completed campaign or product gates.
+
+Delivery checkpoint: `a3b9508`, `731378e`, `58d3ef0`, `f3f1864`, `0bdd735`; all applicable hooks
+pass and the working copy is clean before tracker acceptance. Product/executor bytes remain
+those of the reconciled evidence. Story 6.12 is done; external Landing is not accepted here.

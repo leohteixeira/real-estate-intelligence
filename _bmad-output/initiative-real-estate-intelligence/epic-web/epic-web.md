@@ -387,3 +387,8 @@ remain valid. Mandatory final round 3: Quick zero findings, finish `disposition:
 No changes. No additional product change or audit; authorized commit/tracker delivery follows.
 Exact proof and finite limits remain in the existing 2026-10-25 parent verification and finish
 packet. External Landing and production obligations are not accepted by this local evidence.
+
+Story 6.12 delivered: `a3b9508`, `731378e`, `58d3ef0`, `f3f1864`, `0bdd735`; applicable commit
+hooks pass, reviewed files are committed and the working copy is clean at acceptance. The
+repository ticket is done. External Landing and production obligations remain outstanding;
+continue with the repository-pinned `tickets.py next` without migrating the ticket store.

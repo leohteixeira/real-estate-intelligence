@@ -3,7 +3,7 @@ title: 'Accessibility at WCAG 2.2 level AA'
 type: 'feature'
 ticket: '12'
 created: '2026-10-22'
-status: 'built'
+status: done
 baseline_revision: '0d9fcdcb579cc78683a64d7aed3d93c219794473'
 route: 'full'
 route_source: 'auto'
@@ -350,7 +350,7 @@ removed raw artifacts. All earlier failures and bounded conclusions remain histo
       exact keyboard receipts, full/top/region captures, axe incomplete triage, token role table and
       primary W3C methodology. Conduct at most two batched visual inspection rounds with incumbent
       artboards; parent owns one detector call and fresh finite finish reviewer/documenter handoffs.
-- [ ] This plan and epic — record actual commands/results, surprises, known limits and review.
+- [x] This plan and epic — record actual commands/results, surprises, known limits and review.
       Run exact gates serially, integration discovery/browser and unchanged coverage; use
       auto-commit
       implementation → tests/evidence → docs → tracker acceptance, never push.
@@ -1282,3 +1282,10 @@ their owner scope. Historical inconclusive paint and failed executions remain pr
 acceptance claims or indefinite follow-up. Sixteen original host containers remain temporarily
 stopped under owner authorization while development continues; Landing, Caddy and Dev Container
 are preserved, with the existing restoration order recorded in the parent verification.
+
+Delivery: reviewed implementation, tests and records are committed as `a3b9508`, `731378e`,
+`58d3ef0`, `f3f1864` and `0bdd735`. All applicable pre-commit and commit-message hooks pass;
+formatting leaves campaign product/executor bytes unchanged. The working copy is clean at
+that delivery checkpoint. Story 6.12 is marked done on this evidence; the D-080 external
+Landing obligation remains outstanding in its owner scope. The next ticket is selected with
+the repository-pinned `_bmad/method/scripts/tickets.py next`, without a ticket-layout migration.

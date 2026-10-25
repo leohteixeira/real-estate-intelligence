@@ -55,7 +55,7 @@ pronunciation or physical touch/daylight perception.
 
 Proof: `runtime/accessibility-final-8-20261025-154452.reconciliation.json`. Reuse this completed
 proof and unchanged product gates; do not replay accepted equivalents for documentary changes.
-Required scoped independent reviews pass as recorded below; authorized delivery remains.
+Required scoped independent reviews and applicable commit hooks pass. Story 6.12 is done.
 
 Keep all 72 catalog partitions, assertions, hooks and gates. Reuse the verified prior 25 runs
 and unchanged product lint/types/unit/build/coverage; reconcile the 35 new complete runs once.
@@ -369,3 +369,7 @@ component/place styles and sampled operational components/briefs. The hover repa
 universal plate/count examples, abbreviated sidecar narrative and obsolete local Landing guidance
 remain recorded drift, not canonized or repaired in this ordinary extension. No review-triggered
 product or executor change invalidates the completed campaign or product gates.
+
+Delivery checkpoint: `a3b9508`, `731378e`, `58d3ef0`, `f3f1864`, `0bdd735`; all applicable hooks
+pass and the working copy is clean before tracker acceptance. Product/executor bytes remain
+those of the reconciled evidence. Story 6.12 is done; external Landing is not accepted here.
