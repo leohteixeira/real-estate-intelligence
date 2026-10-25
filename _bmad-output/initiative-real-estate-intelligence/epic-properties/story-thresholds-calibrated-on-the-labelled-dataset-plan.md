@@ -3,7 +3,7 @@ title: 'Thresholds calibrated on the labelled dataset'
 type: 'feature'
 ticket: 7
 created: '2026-10-25'
-status: 'built'
+status: done
 baseline_revision: '4c31ec868a87ccd94be5751b12799319fb7715b4'
 route: 'oneshot'
 route_source: 'auto'
@@ -113,3 +113,11 @@ predicted positives must produce zero precision rather than an accidental passin
 - Limits: nine synthetic identities with repeated monthly views are not independent validation
   samples or statistical calibration. No uncertain-match labels calibrate the review threshold.
   No runtime/fixture/dependency/UI change, real source, model call, deploy or publication occurred.
+
+### Orchestrator acceptance
+
+- Story 3.7 accepted after its built workflow, complete passing gates and independent review.
+  Test commit: `45a80b1862c0d3cd5054be4ded26cf0b1db482e2`;
+  verified documentation: `a97b719a860ffb75a5da7a3a2c77bf6b623ae2e0`.
+  All four reviewed files were committed after the original baseline with a clean tree;
+  test/document hooks passed. Only this acceptance record changed afterward.
