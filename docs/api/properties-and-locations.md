@@ -1,10 +1,11 @@
 # Properties and locations API reference
 
 The seven read endpoints below are a versioned, synthetic contract surface. Property and listing
-detail query persisted owned-synthetic listing history first, then use prepared fallback for
-existing fixture IDs. Place navigation reads a persisted synthetic reference; property search,
-and counts remain prepared; largest reductions query persisted original market effects. No read starts
-collection, publishes events, resolves entities or calculates market figures. The prepared fixture
+detail query persisted owned-synthetic listing history and current identity groups first, then use
+prepared fallback for existing fixture IDs. Place navigation reads a persisted synthetic reference;
+property search and counts remain prepared; largest reductions query persisted property-minimum
+effects. No read starts collection, publishes events, resolves entities or calculates market figures.
+The prepared fixture
 is the unchanged collection replay: five prepared properties, nine listing identities and thirteen
 monthly observations from October 2025 through October 2026. Supplementary permission, expiry and missing-value
 examples are separate from that population.
@@ -23,8 +24,9 @@ Persisted history keeps `dataMode: "synthetic-stub"`, uses
 `fixtureVersion: "persisted-synthetic-history-v1"`, and anchors `asOf` to its latest original
 acquisition or market event: the maximum retained effective date, not the final publication's
 date. Legacy rows without authenticated completion history retain the
-`persisted-initial-synthetic-v1` view. Each is an unresolved single-listing property, not a
-physical-property match.
+`persisted-initial-synthetic-v1` view. Reconciled current groups use
+`persisted-synthetic-resolution-v1`, retaining the maximum original member `asOf`. Original
+one-listing Property/Listing identities remain immutable; current membership is separate.
 
 ## Persisted listing history
 
@@ -124,8 +126,9 @@ newer current values, rewrite the published creation/history/revisions or emit r
 pre-creation market events. Historical corrections and current text-display rights apply to these
 backfilled values exactly as to other acquisitions.
 
-Detail retains no sale, no comparison, no production match score and explicitly illustrative
-uncalibrated evidence. Amounts are exact BRL cents; price per square meter is calculated and rounded
+Detail retains no recorded sale or neighborhood comparison. Prepared examples retain explicitly
+illustrative evidence; reconciled groups expose actual, uncalibrated deterministic rule scores.
+Amounts are exact BRL cents; price per square meter is calculated and rounded
 by the backend from the current canonical area. If that derived value rounds to zero
 or exceeds the positive safe-integer contract, both Property and Listing return `null` for the
 metric while preserving the exact original asking-price cents.
@@ -175,11 +178,44 @@ The worker job uses `LISTING_HISTORY_BATCH_SIZE` (1–100, default 25),
 `LISTING_HISTORY_INTERVAL_MS` (at least 100, default 250), and `LISTING_HISTORY_TIMEOUT_MS`
 (at least 100, default 5000). Cycles do not overlap, database work receives cancellation, shutdown
 cancels active reconciliation, and OpenTelemetry records the reconciliation span and effect count.
+Each cycle runs identity resolution after listing history under the same cancellation deadline;
+unchanged persisted inputs publish no new decision or membership event.
 
 The ingestion-only `resolveFixtureAddress(address, transaction?)` forwards the verified
 Collection transaction scope into Locations. Its SQL uses the same active pool lease, after
 evidence verification; foreign or inactive scopes are rejected. Ordinary picker and published
 address queries use the bounded pool and retain its existing timeouts.
+
+## Deterministic entity resolution
+
+Resolution runs in the worker, never during a read. New causal membership requires at least one
+retained authentic listing envelope. A legacy identity without that evidence retains its unresolved
+read/history view, with no invented assignment or revision, while eligible identities advance.
+A future authentic listing event makes it eligible for the next complete scan.
+
+Configuration `d092-initial`, version 1,
+uses base weights 0.150 coordinates, 0.510 images, 0.170 area, 0.085 bedrooms and 0.085
+masked-description token overlap. Coordinates are unavailable in the current Collection contract;
+reference centroids are not listing coordinates. Available signals are renormalized. Comparable
+images use existing exact/dHash evidence, area uses the smaller/larger ratio, bedrooms use equality,
+and description uses Unicode-token Jaccard without a model. Scores use twelve decimal places.
+
+Different normalized city, state, street or canonical property type forces final probability zero.
+Neighborhood disagreement remains visible and does not repair a source's address. Available base
+weight below 0.75 caps the final probability at 0.89. At least 0.90 joins automatically; 0.50 to
+below 0.90 records `properties.match.queued-for-review`; lower values remain separate. Stored
+comparisons retain input/configuration identities, raw/final probability, coverage, incompatibilities
+and safe reason contributions. These probabilities are deterministic rules, not measured calibration.
+Each current assignment identifies the configuration actually executed; detail does not select a
+configuration by the greatest stored version across different configuration IDs.
+
+Stable source/listing ordering and complete-link grouping require every pair in a group to pass;
+the smallest original Property UUID survives. Detail resolves old Property IDs to the current group
+and `/listings/:id` returns that requested member. Every member retains its own history, provenance,
+rights and published values. The summary selects the lowest active asking price with a Listing-ID
+tie-break, and source disagreement remains explicit. Corrected matching inputs can split a group;
+removal alone does not change identity. Corrections and association changes do not invent market
+price effects or rewrite an emitted listing revision.
 
 ## Persisted synthetic geography and address resolution
 
@@ -285,12 +321,18 @@ endpoint returns `400`. `nextCursor: null` marks the last page. The cursor is an
 token, not an authorization or tamper-proof security token. `totalItems` is the full matching count.
 
 Reductions use `fixtureVersion: "persisted-synthetic-reductions-v1"` and `dataMode: "synthetic-stub"`.
-Each actual persisted Property currently owns one Listing, without physical-property matching or
-catalog grouping. The endpoint selects its latest strictly negative original `price-changed` effect
-by effective date through `asOf`; canonical history position resolves equal dates. Later price
-increases and removals do not discard that historical reduction. There is no 30-day or active-only
-filter. Rows sort by exact positive percentage descending, then Property ID ascending. The selected
-Listing is linked by `listingId` and original provenance.
+Each current persisted group contributes at most one row. The endpoint selects its latest
+strictly negative authentic property-minimum effect by effective date through `asOf`, retaining
+canonical causal order for equal dates. A nonminimum member's price change is not a property
+reduction. Later price increases and removals do not discard a historical reduction. There is no
+30-day or active-only filter. Rows sort by exact positive percentage descending, then Property ID
+ascending. `listingId` and provenance identify the selected member of the historical drop.
+
+An initial group whose members have not previously been resolved reconstructs minimum history
+from authentic retained listing envelopes, preserving each member's revision order. These safe
+historical facts reference their original cause; they do not publish new events. Creation, addition,
+association and parser corrections cannot manufacture a price reduction. Unresolved legacy
+singletons retain their genuine original history where no grouped minimum history applies.
 The backend computes signed `changePercent = (currentMinorUnits - previousMinorUnits) /
 previousMinorUnits * 100` on every property price-history item and `reductionPercent = -changePercent`
 on reductions. Clients format those facts without recalculating them.
@@ -310,12 +352,17 @@ page; unknown scopes return `404`. Database failures return sanitized `500`, nev
 Persisted cursors bind the endpoint, place and page size, but are live navigation tokens: they do
 not freeze a dataset snapshot, so new facts can change membership, totals and offsets between pages.
 
-Collecting all 39 original catalog runs yields 115 acquisitions and three actual Properties with
-recorded reductions: Brisa Santana (68000000 → 65500000), Cobalto Tatuapé (95000000 → 92000000),
-then Aurora Bela Vista (80000000 → 78000000). The separate prepared adapter retains four grouped
-examples for its own tests; production does not mix them with persisted rows or invent a drop when
-an unchanged listing returns. None of these asking-price changes records a sale or a market
-appreciation metric.
+The 39 original catalog runs contain 115 acquisitions. Their four current grouped reductions,
+in percentage order, are Tatuapé (95000000 → 92000000), Bela Vista (80000000 → 78000000),
+Santana (67000000 → 65500000), then Vila Mariana (126000000 → 124000000).
+Santana's previous group minimum comes from Aurora at 67000000;
+Brisa's own previous asking price of 68000000 is not the property's minimum. Original member
+provenance identifies the listing causing each drop. Vila Mariana's cheaper listing returns on
+2026-06-01: its unchanged individual asking price genuinely lowers the active group minimum.
+This property effect does not fabricate an individual listing price change. The separate prepared
+adapter retains its illustrative examples; production does not mix them with persisted rows.
+None of these asking-price changes records a
+sale or a market appreciation metric.
 
 ## Response models and public validators
 
@@ -348,7 +395,12 @@ wire data. They do not fetch source URLs.
   Feature rows carry `feature`, `reportingCount`, `reportingPercent`, reporting `listingIds` and
   distinct `sourceIds`. The percentage uses all grouped listings as denominator; missing reports
   never prove feature absence. Features not reported anywhere have no row.
-- `preparedEvidence`: labelled `prepared-fixture`, listing membership from fixture ground truth,
+- `preparedEvidence` is discriminated by `kind`. The `deterministic-rule` branch contains actual
+  `productionMatchScore` and `rawProbability` (null for a single member),
+  `probabilityBasis: "deterministic-uncalibrated"`, `configurationId`, `configurationVersion`,
+  member `listingIds` and `rule-comparison` reasons: compared listing IDs, feature, availability,
+  nullable score and contribution. It exposes no description text, image or fingerprint payload.
+  The `prepared-fixture` branch retains listing membership from fixture ground truth,
   `illustrativeProbability` (0.95 for grouped examples, 1 for a single listing),
   `probabilityBasis: "prepared-not-calibrated"`, and `productionMatchScore: null`. These values
   are prepared examples, neither measured nor calibrated scores. Typed `reasons` contain only

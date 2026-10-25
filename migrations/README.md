@@ -52,7 +52,8 @@ NNNN_<context>_<description>.sql
 `properties` schema. Property and Listing IDs are distinct UUIDv7 values. The durable source/listing
 identity is unique, independent of expiring inbox markers. Immutable canonical incoming facts retain
 their original provenance; a separate disposition stores `initial`, `pending-history` or
-`pending-correction`. Later verified facts are not yet projected into history. Money is constrained
+`pending-correction`. Migration 1002 adds reconciliation of verified facts into owned listing
+history; 1003 admits perceptual fingerprint facts. Money is constrained
 to safe-integer BRL cents. No foreign key or query crosses into Collection or Locations.
 
 `4008_collection_add_parsed_event_evidence.sql` stores Collection-owned strict canonical parsed
@@ -60,6 +61,25 @@ publication evidence, written atomically with initial/paged collection or repars
 It verifies event time and values without depending on retained outbox rows or inventing legacy
 evidence. Update triggers protect original evidence; deletion remains possible for the later
 ADR 0015 suppression capability. Properties verifies it only through the Collection facade.
+
+## Current property identity
+
+`1004_properties_create_entity_resolution.sql` adds versioned resolution configuration, safe pair
+comparisons, current listing assignments, causal property revisions and authentic property-minimum
+effects. The immutable initial one-listing relationship from 1001 is unchanged. Foreign keys stay
+inside Properties; comparisons reference owned input facts and retain no description or image copy.
+Assignments reference the configuration actually executed through its composite ID/version key.
+
+The existing history worker reconciles current membership after history. A shared short transaction
+guard serializes resolution with initial/history writes. Membership, comparison/review deduplication,
+property revisions, minimum effects and outbox append commit atomically. Cancelled or failed cycles
+leave no partial group; the next bounded scan resumes from durable state. Original listing envelopes
+remain the authority for causal event values and revisions, independently of corrected matching
+inputs. An initial baseline or parser correction does not replay historical prices as new reductions.
+An entirely new group's baseline retains authentic historical minimum effects with their original
+causes and no fabricated publication ID, property revision or outbox entry.
+Legacy identities without a retained authentic listing envelope keep their unresolved read/history
+view until a real event makes them eligible; no creation envelope or revision is reconstructed.
 
 ## Synthetic Locations reference
 

@@ -63,6 +63,37 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
 
 ## Notes
 
+- Decision: D-092 (agent, on the owner's behalf, 2026-10-25) resolves story 3.6's weights/text
+  unknown: version the initial coordinate/image/area/bedroom/description weights
+  0.150/0.510/0.170/0.085/0.085, use available-weight normalization, NFC lowercase Unicode-token
+  Jaccard, min/max area, bedroom equality and best comparable exact/dHash similarity. Coordinates
+  are unavailable under the current source contract. Same normalized city/state/street and
+  compatible type gate automatic identity; retain neighborhood disagreement. Incompatibility
+  yields final zero, and available base weight below 0.75 caps the score at 0.89. Keep fixed
+  0.90/0.50 bands, store raw/final evidence and explicitly uncalibrated configuration identity;
+  labels remain test-only and calibration belongs to 3.7. Complete-link groups retain the smallest
+  original property UUID, with separate current assignment/revisions, correction-driven splits,
+  unchanged immutable lineage and no split solely from removal. Share a short Properties
+  transaction guard with chronology writes, reuse the existing worker cycle/restart scan and make
+  unchanged inputs a no-op. Emit existing causal v2 property events from authentic emitted listing
+  revisions, retaining v1 listing facts and correction-without-repricing. Grouped details preserve
+  individual rights/provenance and gain an additive actual-rule evidence branch while the prepared
+  branch remains exact; adapt only directly affected readers/reductions. The story plan records
+  concrete acceptance and compatibility boundaries.
+
+- D-092 eligibility clarification: legacy identities without any retained authentic listing
+  envelope stay explicitly unresolved and receive no invented causal assignment/revision. They
+  do not block the complete eligible population; a future real event admits them on the next
+  scan. Existing assignments cannot silently lose authority, and scan bounds still fail atomically.
+  The existing upgrade campaign proves both legacy preservation and eligible progress.
+
+- D-092 historical baseline clarification: a wholly new group reconstructs genuine minimum
+  history from immutable retained listing envelopes in causal revision order, without publishing
+  invented historical v2 events. Safe minimum facts retain their authentic cause and optional
+  actual publication in the existing minimum-history structure. Creation/association is not
+  repricing; mixed previously processed groups do not gain retrospective membership replay.
+  The scoped campaign proves first resolution after complete collection and D-037 preservation.
+
 - Story 3.10 implementation: exact-provenance Collection metadata now supplies persisted snapshot
   status, and both persisted/prepared detail GETs apply current per-source text rights. Denied
   dates preserve immutable changes and corrected dated transitions without rewriting events.
