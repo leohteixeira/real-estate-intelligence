@@ -9,6 +9,8 @@ import {
   CollectionListingSuppressed,
   CollectionRunCompleted,
   CollectionSnapshotParsed,
+  CollectionSnapshotAcquired,
+  CollectionSnapshotPerceptuallyCorrected,
   CollectionSnapshotCorrected,
   parseCollectionSnapshotCorrected,
   parseCollectionEvent,
@@ -633,5 +635,63 @@ describe('collection event contracts', () => {
     );
     nested(suppressed, 'payload').reason = 'provider detail';
     expect(() => parseCollectionListingSuppressed(suppressed)).toThrow(DomainValidationError);
+  });
+});
+
+describe('perceptual acquisition and correction versions', () => {
+  it('keeps v1/v2 strict while preserving empty and colliding v3/v4 evidence', () => {
+    const original = parsedInput();
+    for (const fingerprints of [
+      [],
+      ['dhash64-v1:0000000000000000', 'dhash64-v1:0000000000000000'],
+    ]) {
+      const input = {
+        ...original,
+        payload: {
+          ...original.payload,
+          listing: { ...original.payload.listing, imageFingerprints: fingerprints },
+        },
+      };
+      const acquired = new CollectionSnapshotAcquired(input);
+      expect(acquired.version).toBe(3);
+      expect(parseCollectionEvent(wire(acquired)).payload).toStrictEqual(acquired.payload);
+      expect(() => parseCollectionSnapshotParsed(wire(acquired))).toThrow();
+      expect(() => new CollectionSnapshotParsed(input)).toThrow();
+      const corrected = new CollectionSnapshotPerceptuallyCorrected({
+        ...input,
+        eventId: '0199c8f2-2394-7ba0-8f9e-286378779219',
+        payload: {
+          ...input.payload,
+          correction: {
+            kind: 'parser-correction',
+            operationKey: 'reparse',
+            parserRevision: 'parser-2',
+            originalParsedEventId: acquired.eventId,
+            order: 1,
+          },
+        },
+      });
+      expect(corrected.version).toBe(4);
+      expect(parseCollectionEvent(wire(corrected)).payload).toStrictEqual(corrected.payload);
+      expect(() => parseCollectionSnapshotCorrected(wire(corrected))).toThrow();
+      if (fingerprints.length)
+        expect(() => new CollectionSnapshotCorrected({ ...corrected })).toThrow();
+    }
+    for (const fingerprints of [
+      ['dhash64-v1:bad'],
+      ['https://photos.invalid/image.png'],
+      ['sha256:' + 'a'.repeat(64), 'sha256:' + 'a'.repeat(64)],
+    ]) {
+      expect(
+        () =>
+          new CollectionSnapshotAcquired({
+            ...original,
+            payload: {
+              ...original.payload,
+              listing: { ...original.payload.listing, imageFingerprints: fingerprints },
+            },
+          }),
+      ).toThrow();
+    }
   });
 });

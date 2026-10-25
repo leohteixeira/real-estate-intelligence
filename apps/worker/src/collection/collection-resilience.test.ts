@@ -32,7 +32,10 @@ const input: StoreRawSnapshotInput = {
   bytes: new Uint8Array([1, 2, 3]),
 };
 
-function register(rate: SourceRatePolicy = { status: 'configured', limit: 100, windowSeconds: 1 }) {
+function register(
+  rate: SourceRatePolicy = { status: 'configured', limit: 100, windowSeconds: 1 },
+  images = false,
+) {
   return new InMemorySourceRegisterRepository(
     ['first-source', 'second-source'].map((sourceId) =>
       createSourceRegistration({
@@ -43,7 +46,7 @@ function register(rate: SourceRatePolicy = { status: 'configured', limit: 100, w
         enabledAt: '2026-10-10T00:00:00Z',
         permissions: {
           collectionAllowed: true,
-          imageFetchingAllowed: false,
+          imageFetchingAllowed: images,
           listingTextDisplayAllowed: false,
         },
         review: {
@@ -768,5 +771,65 @@ describe('collection dependency resilience', () => {
     const timeout = failureKind(timed.store(input, signal(), 100));
     await vi.advanceTimersByTimeAsync(100);
     expect(await timeout).toBe('exhausted');
+  });
+});
+
+describe('shared page and photograph admission', () => {
+  afterEach(() => vi.useRealTimers());
+  it('charges photo attempts to the same per-source page limiter', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const fingerprintPhoto = vi.fn(async () => 'dhash64-v1:0000000000000000');
+    const wrapped = new ResilientListingSource(
+      { ...source(), fingerprintPhoto },
+      register({ status: 'configured', limit: 1, windowSeconds: 1 }, true),
+    );
+    await wrapped.fetchPage('first-source', null, signal());
+    const policies = wrapped.policiesFor('first-source');
+    const photo = wrapped.fingerprintPhoto(
+      'first-source',
+      'https://fixture.invalid/photo',
+      signal(),
+    );
+    await vi.advanceTimersByTimeAsync(999);
+    expect(fingerprintPhoto).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await photo).toBe('dhash64-v1:0000000000000000');
+    expect(wrapped.policiesFor('first-source')).toBe(policies);
+  });
+  it('rechecks independent photo permission after a rate wait and preserves holds', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    const registerPort = register({ status: 'configured', limit: 1, windowSeconds: 1 }, true);
+    const find = registerPort.findById.bind(registerPort);
+    let denied = false;
+    vi.spyOn(registerPort, 'findById').mockImplementation(async (id) => {
+      const current = await find(id);
+      return current && denied
+        ? { ...current, permissions: { ...current.permissions, imageFetchingAllowed: false } }
+        : current;
+    });
+    const fingerprintPhoto = vi.fn(async () => 'dhash64-v1:0000000000000000');
+    const wrapped = new ResilientListingSource({ ...source(), fingerprintPhoto }, registerPort);
+    await wrapped.fetchPage('first-source', null, signal());
+    const waiting = failureKind(
+      wrapped.fingerprintPhoto('first-source', 'https://fixture.invalid/photo', signal()),
+    );
+    await vi.advanceTimersByTimeAsync(10);
+    denied = true;
+    await vi.advanceTimersByTimeAsync(990);
+    expect(await waiting).toBe('forbidden');
+    expect(fingerprintPhoto).not.toHaveBeenCalled();
+    denied = false;
+    fingerprintPhoto.mockImplementation(async () => {
+      throw new ListingSourceAccessRefusal('block');
+    });
+    const refused = failureKind(
+      wrapped.fingerprintPhoto('first-source', 'https://fixture.invalid/photo', signal()),
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await refused).toBe('forbidden');
+    expect((await find('first-source'))?.hold?.reason).toBe('block');
+    expect(await failureKind(wrapped.fetchPage('first-source', null, signal()))).toBe('forbidden');
   });
 });

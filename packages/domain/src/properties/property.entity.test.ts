@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { CollectionSnapshotParsed } from '../collection/index.js';
+import {
+  CollectionSnapshotParsed,
+  CollectionSnapshotAcquired,
+  CollectionSnapshotPerceptuallyCorrected,
+} from '../collection/index.js';
 import type { ResolvedPropertyPlace } from './property.entity.js';
 import { Property } from './property.entity.js';
 
@@ -103,4 +107,37 @@ describe('initial Property aggregate', () => {
         new Property(id(10), id(11), event, { ...refs, place: { ...refs.place, kind: 'city' } }),
     ).toThrow();
   });
+});
+
+it('initializes v3 perceptual evidence and refuses a v4 correction as a new Property', () => {
+  const acquired = new CollectionSnapshotAcquired({
+    ...event,
+    payload: {
+      ...event.payload,
+      listing: {
+        ...event.payload.listing,
+        imageFingerprints: ['dhash64-v1:0000000000000000', 'dhash64-v1:0000000000000000'],
+      },
+    },
+  });
+  const property = new Property(id(10), id(11), acquired, refs);
+  expect(property.initial.version).toBe(3);
+  expect(property.normalized.imageFingerprints.map((entry) => entry.value)).toEqual(
+    acquired.payload.listing.imageFingerprints,
+  );
+  const correction = new CollectionSnapshotPerceptuallyCorrected({
+    ...acquired,
+    eventId: id(20),
+    payload: {
+      ...acquired.payload,
+      correction: {
+        kind: 'parser-correction',
+        operationKey: 'reparse',
+        parserRevision: 'revision-2',
+        originalParsedEventId: acquired.eventId,
+        order: 1,
+      },
+    },
+  });
+  expect(() => new Property(id(10), id(11), correction, refs)).toThrow();
 });

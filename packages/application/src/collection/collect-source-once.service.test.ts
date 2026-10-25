@@ -488,8 +488,10 @@ describe('CollectSourceOnce', () => {
       expect(context.source.parse).toHaveBeenCalledWith(safe, expect.any(AbortSignal));
       expect(sanitizeParsed).toHaveBeenCalledWith(LISTING);
       expect(context.persistedInput()?.sourceUrl).toBe(safe.sourceUrl);
-      expect(context.persistedInput()?.imageFingerprints).toEqual(projected.imageFingerprints);
-      expect(context.events[0]?.[0]?.payload).toMatchObject({ listing: projected });
+      expect(context.persistedInput()?.imageFingerprints).toEqual([]);
+      expect(context.events[0]?.[0]?.payload).toMatchObject({
+        listing: { ...projected, imageFingerprints: [] },
+      });
     },
   );
   it('persists the pre-I/O run and pauses it on a durable source refusal without snapshots', async () => {
