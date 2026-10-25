@@ -1,5 +1,10 @@
 import { Controller, Get, Inject, Res } from '@nestjs/common';
-import { DATABASE_AVAILABILITY_PROBE, type DatabaseAvailabilityProbe } from '@rei/application';
+import {
+  BROKER_AVAILABILITY_PROBE,
+  type BrokerAvailabilityProbe,
+  DATABASE_AVAILABILITY_PROBE,
+  type DatabaseAvailabilityProbe,
+} from '@rei/application';
 import type { HealthResponse, ReadinessResponse } from '@rei/contracts';
 import type { Response } from 'express';
 
@@ -10,6 +15,8 @@ export class HealthController {
   public constructor(
     @Inject(DATABASE_AVAILABILITY_PROBE)
     private readonly probe: DatabaseAvailabilityProbe,
+    @Inject(BROKER_AVAILABILITY_PROBE)
+    private readonly brokerProbe: BrokerAvailabilityProbe,
   ) {}
 
   /** Liveness: the process is up. It never touches a dependency. */
@@ -18,16 +25,19 @@ export class HealthController {
     return { status: 'healthy' };
   }
 
-  /** Readiness: the process can serve traffic, which requires the database. */
+  /** Readiness: the process can serve traffic, which requires the database and authenticated broker. */
   @Get('ready')
   public async ready(@Res() response: Response<ReadinessResponse>): Promise<void> {
-    const available = await this.probe.isAvailable(AbortSignal.timeout(READINESS_TIMEOUT_MS));
-
-    if (!available) {
-      response.status(503).json({ status: 'not-ready', database: 'unavailable' });
-      return;
-    }
-
-    response.status(200).json({ status: 'ready', database: 'available' });
+    const signal = AbortSignal.timeout(READINESS_TIMEOUT_MS);
+    const [database, broker] = await Promise.all([
+      this.probe.isAvailable(signal),
+      this.brokerProbe.isAvailable(signal),
+    ]);
+    const ready = database && broker;
+    response.status(ready ? 200 : 503).json({
+      status: ready ? 'ready' : 'not-ready',
+      database: database ? 'available' : 'unavailable',
+      broker: broker ? 'available' : 'unavailable',
+    });
   }
 }

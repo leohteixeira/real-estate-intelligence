@@ -2,6 +2,7 @@
 export interface ApiConfig {
   readonly port: number;
   readonly databaseUrl: string;
+  readonly rabbitMqUrl: string;
 }
 
 const DEFAULT_PORT = 8200;
@@ -13,6 +14,11 @@ export function readConfig(env: NodeJS.ProcessEnv): ApiConfig {
     throw new Error('DATABASE_URL is required. See env.example.');
   }
 
+  const rabbitMqUrl = env.RABBITMQ_URL?.trim();
+  if (!rabbitMqUrl) {
+    throw new Error('RABBITMQ_URL is required. See env.example.');
+  }
+
   const rawPort = env.API_PORT?.trim();
   const port = rawPort ? Number.parseInt(rawPort, 10) : DEFAULT_PORT;
 
@@ -20,5 +26,5 @@ export function readConfig(env: NodeJS.ProcessEnv): ApiConfig {
     throw new Error(`API_PORT must be a valid port number, got ${String(rawPort)}.`);
   }
 
-  return { port, databaseUrl };
+  return { port, databaseUrl, rabbitMqUrl };
 }

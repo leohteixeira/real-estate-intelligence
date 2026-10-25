@@ -83,6 +83,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       API_PORT: 8200
+      RABBITMQ_URL: amqp://${RABBITMQ_USER:-realestate}:${RABBITMQ_PASSWORD:-realestate}@rabbitmq:5672/${RABBITMQ_VHOST:-real-estate-intelligence}
       ASK_DISPATCH_SECRET: ${ASK_DISPATCH_SECRET:-}
       DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
@@ -92,6 +93,8 @@ services:
     depends_on:
       migrations:
         condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
     healthcheck:
       test:
         [

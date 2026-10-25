@@ -5,7 +5,7 @@ import type { DatabaseConnection } from './database-connection.js';
 /** PostgreSQL adapter for {@link DatabaseAvailabilityProbe}. */
 export class PostgresAvailabilityProbe implements DatabaseAvailabilityProbe {
   public constructor(
-    private readonly connection: DatabaseConnection,
+    private readonly connection: Pick<DatabaseConnection, 'queryAbortable'>,
     private readonly onError: (error: Error) => void = () => {},
   ) {}
 
@@ -15,8 +15,8 @@ export class PostgresAvailabilityProbe implements DatabaseAvailabilityProbe {
     }
 
     try {
-      await this.connection.query('SELECT 1');
-      return true;
+      await this.connection.queryAbortable('SELECT 1', [], signal);
+      return !signal.aborted;
     } catch (error) {
       // The message is already redacted by DatabaseConnection.
       this.onError(error instanceof Error ? error : new Error(String(error)));

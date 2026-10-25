@@ -1,0 +1,147 @@
+name: real-estate-intelligence-production
+
+# Application services only. The operator provisions dependencies in shared infrastructure.
+x-runtime: &runtime
+  restart: unless-stopped
+  cpus: 0.25
+  mem_limit: 256m
+  pids_limit: 128
+  labels:
+    portfolio.production: 'true'
+  logging:
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '3'
+      labels: portfolio.production,com.docker.compose.project,com.docker.compose.service
+
+x-telemetry: &telemetry
+  NODE_ENV: production
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://portfolio-collector:4318
+
+services:
+  migrations:
+    image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/migrate@sha256:${REI_MIGRATE_DIGEST:?Set the migration image digest}'
+    restart: 'no'
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 64
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Provision PostgreSQL 18 and an application database first}
+    networks: [data]
+
+  api:
+    <<: *runtime
+    image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/api@sha256:${REI_API_DIGEST:?Set the API image digest}'
+    environment:
+      <<: *telemetry
+      API_PORT: 8200
+      DATABASE_URL: ${DATABASE_URL:?Provision PostgreSQL 18 and an application database first}
+      RABBITMQ_URL: ${RABBITMQ_URL:?Provision the application broker user and vhost first}
+      ASK_DISPATCH_SECRET: ${ASK_DISPATCH_SECRET:?Set an application dispatch secret}
+      OTEL_SERVICE_NAME: real-estate-intelligence-api
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    networks: [app, data, telemetry]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          '-e',
+          "fetch('http://127.0.0.1:8200/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  worker:
+    <<: *runtime
+    image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/worker@sha256:${REI_WORKER_DIGEST:?Set the worker image digest}'
+    mem_limit: 384m
+    environment:
+      <<: *telemetry
+      DATABASE_URL: ${DATABASE_URL:?Provision PostgreSQL 18 and an application database first}
+      RABBITMQ_URL: ${RABBITMQ_URL:?Provision the application broker user and vhost first}
+      API_BASE_URL: http://api:8200
+      AI_URL: http://ai:4111
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?Set an internal execution token}
+      ASK_DISPATCH_SECRET: ${ASK_DISPATCH_SECRET:?Set an application dispatch secret}
+      OBJECT_STORE_ENDPOINT: ${OBJECT_STORE_ENDPOINT:?Provision private object storage first}
+      OBJECT_STORE_REGION: ${OBJECT_STORE_REGION:?Set the object storage region}
+      OBJECT_STORE_BUCKET: ${OBJECT_STORE_BUCKET:?Provision the snapshot bucket first}
+      OBJECT_STORE_ACCESS_KEY_ID: ${OBJECT_STORE_ACCESS_KEY_ID:?Set scoped object storage credentials}
+      OBJECT_STORE_SECRET_ACCESS_KEY: ${OBJECT_STORE_SECRET_ACCESS_KEY:?Set scoped object storage credentials}
+      SNAPSHOT_ENCRYPTION_KEY_ID: ${SNAPSHOT_ENCRYPTION_KEY_ID:?Provision snapshot encryption first}
+      SNAPSHOT_ENCRYPTION_KEY_BASE64: ${SNAPSHOT_ENCRYPTION_KEY_BASE64:?Provision snapshot encryption first}
+      OTEL_SERVICE_NAME: real-estate-intelligence-worker
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    networks: [app, data, telemetry]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          '-e',
+          "require('node:fs').accessSync('/tmp/real-estate-intelligence-worker-ready')",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    stop_grace_period: 30s
+
+  ai:
+    <<: *runtime
+    image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/ai@sha256:${REI_AI_DIGEST:?Set the AI image digest}'
+    mem_limit: 384m
+    environment:
+      <<: *telemetry
+      AI_PORT: 4111
+      API_BASE_URL: http://api:8200
+      AI_INTERNAL_TOKEN: ${AI_INTERNAL_TOKEN:?Set an internal execution token}
+      AI_GATEWAY_API_KEY: ${AI_GATEWAY_API_KEY:?Supply the approved gateway key from the secret store}
+      OTEL_SERVICE_NAME: real-estate-intelligence-ai
+    networks: [app, telemetry]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          '-e',
+          "fetch('http://127.0.0.1:4111/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  web:
+    <<: *runtime
+    image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/web@sha256:${REI_WEB_DIGEST:?Set the web image digest}'
+    mem_limit: 64m
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      app: {}
+      edge:
+        aliases: [real-estate-web]
+    healthcheck:
+      test: [CMD, wget, '-q', '-O', /dev/null, 'http://127.0.0.1:3200/index.html']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+networks:
+  app: {}
+  edge:
+    external: true
+    name: portfolio-edge
+  data:
+    external: true
+    name: portfolio-data
+  telemetry:
+    external: true
+    name: portfolio-telemetry

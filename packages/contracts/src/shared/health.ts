@@ -7,4 +7,5 @@ export interface HealthResponse {
 export interface ReadinessResponse {
   readonly status: 'ready' | 'not-ready';
   readonly database: 'available' | 'unavailable';
+  readonly broker: 'available' | 'unavailable';
 }

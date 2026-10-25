@@ -172,6 +172,16 @@ export class ComposeFixture<TContainer = OwnedContainer> {
       COMPOSE_DISABLE_ENV_FILE: '1',
       COMPOSE_ENV_FILES: '',
     };
+    // API readiness now authenticates to RabbitMQ, which Compose starts as its dependency.
+    // Older database/API-only campaigns must also own these automatically started host ports.
+    if (services.includes('api') || services.includes('web')) {
+      for (const name of ['RABBITMQ_PORT', 'RABBITMQ_MANAGEMENT_PORT']) {
+        if (!this.environment[name]) {
+          const [port] = await allocatePorts(1);
+          this.environment[name] = String(port);
+        }
+      }
+    }
     this.dirty = true;
     let builder = this.create(root, 'compose.yaml')
       .withEnvironment(this.environment)

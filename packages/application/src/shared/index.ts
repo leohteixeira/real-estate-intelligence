@@ -35,3 +35,8 @@ export { UUID_V7_GENERATOR } from './uuid-v7-generator.js';
 export { RETAINED_PUBLICATION_READER } from './retained-publication-reader.js';
 export type { RetainedPublicationReader } from './retained-publication-reader.js';
 export type { UuidV7Generator } from './uuid-v7-generator.js';
+export {
+  BROKER_AVAILABILITY_PROBE,
+  InMemoryBrokerAvailabilityProbe,
+} from './broker-availability-probe.js';
+export type { BrokerAvailabilityProbe } from './broker-availability-probe.js';

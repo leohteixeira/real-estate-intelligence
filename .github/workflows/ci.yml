@@ -115,3 +115,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Prove all integration campaigns and fixture cleanup
         run: pnpm run test:integration
+
+  containers:
+    name: Build application images (no publishing)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build all five images serially for the checked-out commit
+        env:
+          REVISION: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          for image in migrate api worker ai web; do
+            docker buildx build --load --file "docker/${image}.Dockerfile" \
+              --label "org.opencontainers.image.revision=${REVISION}" \
+              --tag "rei-${image}:${REVISION}" .
+          done
