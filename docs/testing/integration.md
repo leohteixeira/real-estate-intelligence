@@ -146,6 +146,31 @@ worker command uses bounded stdin and the production worker image without DB/bro
 or absent authority fails categorically. Shared exact-label teardown verifies foreign Docker
 containers and volumes survive. See [the RunExecutor reference](../api/run-executor.md).
 
+## Verify dependency readiness and production configuration
+
+After building TypeScript, prepare the three readiness images serially with the normal Compose
+build command. Image installation and packaging happen outside the HTTP campaign deadline:
+
+```bash
+pnpm run test:integration:readiness
+```
+
+The official `test:integration` command also prepares these images before discovering campaigns.
+To reuse images just prepared for the same source version, run the Vitest file selection directly.
+Readiness requires those prepared images, tags them into its unique fixture project, and owns
+PostgreSQL 18, authenticated
+RabbitMQ and HTTP through both API and production Nginx. It checks independent pause/stop failures,
+the shared two-second deadline, both-down statuses, recovery without an API restart, rejected
+credentials/vhost, unchanged queues, dependency-free liveness and the existing landing redirect.
+After a stopped dependency restarts, its native health condition must pass within the existing
+fixture startup allowance before the unchanged API recovery polling begins. A running container
+alone does not establish an authenticated broker.
+The configuration tests render only synthetic settings with env-file loading disabled; missing
+required image/dependency settings fail before startup. They check immutable image references,
+resource bounds, no published ports and AI/web network and credential boundaries. Existing API-only
+fixtures allocate owned ports for their automatically started broker dependency. These are local
+proofs; [the runbook](../operations/deployment.md) keeps public VPS/Tempo and remote CI evidence pending.
+
 ## Adopt the web accessibility harness
 
 After building, run the production entries and isolated shared components together:

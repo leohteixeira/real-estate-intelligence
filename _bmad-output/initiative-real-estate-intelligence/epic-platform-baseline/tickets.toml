@@ -142,7 +142,7 @@ covers = ["B12", "B7"]
 after = [4, 7, 8, 14]
 hitl = true
 risk = "medium"
-unknown = "Which trace backend runs in production."
+notes = ["D-088 selects the existing collector and Tempo; local preparation is verified while deployment, public readiness and the production trace remain pending."]
 
 [[entry]]
 id = 13

@@ -152,14 +152,23 @@ The API and the worker are started with `node -r ./dist/otel.js dist/main.js`. T
 mandatory: without it the process still starts, but without instrumentation, because `http`,
 `express` and `pg` would already have been loaded by the time the SDK tried to instrument them.
 
+## Deployment preparation
+
+[The VPS runbook](docs/operations/deployment.md) defines PostgreSQL 18 and object storage
+prerequisites, immutable application images, operator commands, public readiness, linked Tempo
+evidence and rollback. `compose.production.yaml` runs only the five application images on scoped
+shared networks, without host ports. CI builds those images without publishing. Production
+deployment, remote CI execution, public HTTPS readiness and a production trace remain pending;
+local readiness does not complete story 1.12.
+
 ## Endpoints
 
-| Service | Method | Route                                                          | Description                                            |
-| ------- | ------ | -------------------------------------------------------------- | ------------------------------------------------------ |
-| API     | `GET`  | `/health`                                                      | Liveness. Touches no dependency at all.                |
-| API     | `GET`  | `/ready`                                                       | Readiness. Answers 503 when PostgreSQL does not reply. |
-| API     | `GET`  | `/api/v1/properties`, `/api/v1/listings/:id`, `/api/v1/places` | Synthetic properties, listings and place navigation.   |
-| AI      | `GET`  | `/health`                                                      | Dependency-free liveness.                              |
+| Service | Method | Route                                                          | Description                                                                      |
+| ------- | ------ | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| API     | `GET`  | `/health`                                                      | Liveness. Touches no dependency at all.                                          |
+| API     | `GET`  | `/ready`                                                       | Readiness. Answers 503 when PostgreSQL or authenticated RabbitMQ is unavailable. |
+| API     | `GET`  | `/api/v1/properties`, `/api/v1/listings/:id`, `/api/v1/places` | Synthetic properties, listings and place navigation.                             |
+| AI      | `GET`  | `/health`                                                      | Dependency-free liveness.                                                        |
 
 The [properties and locations API reference](docs/api/properties-and-locations.md) documents all
 seven GET families, query validation, paging, event contracts, stable fixture IDs, description

@@ -88,6 +88,17 @@ for it here.
 
 ## Notes
 
+- Story 1.12 local delivery adds independent database/broker readiness, an exact web `/ready`
+  proxy, CI image builds without publishing, application-only production Compose and the
+  [VPS runbook](../../../docs/operations/deployment.md). These prepared artifacts do not establish
+  B12 or done criterion 6: authorized `main` deployment, public HTTPS readiness, remote CI and a
+  linked production Tempo trace remain pending (2026-10-25).
+
+- Decision: deployment preparation reuses the shared OpenTelemetry collector and existing
+  Grafana Tempo backend (D-088). Public readiness, deployment from `main`, and the production
+  request/outbox/publish/consumer trace remain unverified until authorized deployment. PostgreSQL
+  18 compatibility and object storage are explicit prerequisites; the shared PostgreSQL 17 instance
+  must not be changed by this story (agent, on the owner's behalf, 2026-10-25).
 - Decision: the cross-cutting foundations are their own opening epic (owner, 2026-10-10).
 - Decision: the VPS with Docker, the domain with TLS and an AI Gateway key with Zero Data Retention
   already exist (owner, 2026-10-10).
