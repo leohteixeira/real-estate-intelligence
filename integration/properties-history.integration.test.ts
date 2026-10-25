@@ -305,7 +305,9 @@ test('properties-history preserves its complete real-service campaign', async ()
             const property = (await get(`properties/${row.property_id}`, parsePropertyResponse))
               .property;
             acquisitions += listing.collectionCount;
-            expect(property.listings[0]).toStrictEqual(listing);
+            expect(property.listings.find((member) => member.id === listing.id)).toStrictEqual(
+              listing,
+            );
             const observations = SYNTHETIC_SAO_PAULO_DATASET.runs
               .flatMap((run) => run.observations)
               .filter(
@@ -364,6 +366,74 @@ test('properties-history preserves its complete real-service campaign', async ()
           const registeredPlaces = [...syntheticPlaces(), ...supplementaryPlaces()];
           const reductions = (place = 'sao-paulo', query = '') =>
             get(`places/${place}/largest-reductions${query}`, parseReductionsResponse);
+          const catalogIdentities = new Set(identities.map((item) => item.listing_id));
+          const catalogExpected = await Promise.all(
+            [
+              {
+                members: ['COB-TT-001'],
+                source: 'COB-TT-001',
+                previous: 95000000,
+                current: 92000000,
+                at: '2026-09-01T12:00:00.000Z',
+                place: 'sao-paulo-tatuape-fictional-block',
+              },
+              {
+                members: ['AUR-BV-001', 'BRI-BV-001', 'COB-BV-001'],
+                source: 'AUR-BV-001',
+                previous: 80000000,
+                current: 78000000,
+                at: '2026-07-01T12:00:00.000Z',
+                place: 'sao-paulo-bela-vista-fictional-block',
+              },
+              {
+                members: ['AUR-SN-001', 'BRI-SN-001'],
+                source: 'BRI-SN-001',
+                previous: 67000000,
+                current: 65500000,
+                at: '2026-02-01T12:00:00.000Z',
+                place: 'sao-paulo-santana-fictional-block',
+              },
+              {
+                members: ['BRI-VM-001', 'COB-VM-001'],
+                source: 'COB-VM-001',
+                previous: 126000000,
+                current: 124000000,
+                at: '2026-06-01T12:00:00.000Z',
+                place: 'sao-paulo-vila-mariana-fictional-block',
+              },
+            ].map(async (expected) => {
+              const identity = identities.find(
+                (item) => item.source_listing_id === expected.source,
+              )!;
+              const effect = (
+                await get(`listings/${identity.listing_id}`, parseListingResponse)
+              ).listing.history.find(
+                (item) =>
+                  item.effectiveAt === expected.at &&
+                  (item.type === 'price-changed' || item.type === 'reappeared'),
+              )!;
+              expect(effect.type).toBe(
+                expected.source === 'COB-VM-001' ? 'reappeared' : 'price-changed',
+              );
+              return {
+                propertyId: identities
+                  .filter((item) => expected.members.includes(item.source_listing_id))
+                  .map((item) => item.property_id)
+                  .sort()[0]!,
+                listingId: identity.listing_id,
+                place: (() => {
+                  const place = registeredPlaces.find((item) => item.id === expected.place)!;
+                  return { id: place.id, kind: place.kind, name: place.name };
+                })(),
+                effectiveAt: expected.at,
+                previousMinorUnits: expected.previous,
+                currentMinorUnits: expected.current,
+                reductionPercent:
+                  ((expected.previous - expected.current) / expected.previous) * 100,
+                provenance: effect.provenance,
+              };
+            }),
+          );
           const assertRankings = async () => {
             const rows = await connection.query<{ listing_id: string }>(
               'SELECT listing_id::text FROM properties.listing ORDER BY listing_id',
@@ -376,8 +446,15 @@ test('properties-history preserves its complete real-service campaign', async ()
               const scope = registeredPlaces
                 .filter((item) => item.breadcrumbs.some((crumb) => crumb.id === place.id))
                 .map((item) => item.id);
-              const scoped = details.filter((item) => scope.includes(item.place.id));
+              const scoped = details.filter((item) =>
+                scope.includes(
+                  item.provenance.sourceListingId === 'COB-BV-001'
+                    ? 'sao-paulo-bela-vista-fictional-block'
+                    : item.place.id,
+                ),
+              );
               const expected = scoped
+                .filter((listing) => !catalogIdentities.has(listing.id))
                 .flatMap((listing) => {
                   let effect;
                   for (const item of listing.history)
@@ -405,6 +482,7 @@ test('properties-history preserves its complete real-service campaign', async ()
                       ]
                     : [];
                 })
+                .concat(catalogExpected.filter((item) => scope.includes(item.place.id)))
                 .sort((a, b) => {
                   const difference =
                     BigInt(b.previousMinorUnits - b.currentMinorUnits) *
@@ -418,7 +496,10 @@ test('properties-history preserves its complete real-service campaign', async ()
                       : a.propertyId.localeCompare(b.propertyId);
                 });
               const full = await reductions(place.id);
-              expect(full.totalItems, place.id).toBe(expected.length);
+              expect(
+                full.totalItems,
+                `${place.id}: ${JSON.stringify({ expected, actual: full.items })}`,
+              ).toBe(expected.length);
               expect(full.items, place.id).toStrictEqual(expected.slice(0, 20));
               expect(full.metadata.fixtureVersion).toBe('persisted-synthetic-reductions-v1');
               expect(full.metadata.dataMode).toBe('synthetic-stub');
@@ -452,14 +533,15 @@ test('properties-history preserves its complete real-service campaign', async ()
           const catalogRanking = await assertRankings();
           expect(
             catalogRanking.totalItems,
-            'Only three actual identities have original drops, not four prepared groups.',
-          ).toBe(3);
+            'Four current groups retain authentic minimum drops, including the cheaper member returning.',
+          ).toBe(4);
           expect(
             catalogRanking.items.map((item) => [item.previousMinorUnits, item.currentMinorUnits]),
           ).toStrictEqual([
-            [68000000, 65500000],
             [95000000, 92000000],
             [80000000, 78000000],
+            [67000000, 65500000],
+            [126000000, 124000000],
           ]);
           const firstPage = await reductions('sao-paulo', '?pageSize=1');
           expect(firstPage.nextCursor).toBeTruthy();
@@ -497,9 +579,10 @@ test('properties-history preserves its complete real-service campaign', async ()
             mediaType: 'application/json' as const,
             bytes: new TextEncoder().encode(JSON.stringify(listing)),
           });
-          const first = parseCollectedListing(
-            JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES)),
-          );
+          const first = {
+            ...parseCollectedListing(JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES))),
+            imageFingerprints: ['fixture-fingerprint:owned-five-types'],
+          };
           const price = { ...first, askingPriceMinorUnits: first.askingPriceMinorUnits - 100000 };
           const description = {
             ...price,
@@ -717,6 +800,12 @@ test('properties-history preserves its complete real-service campaign', async ()
             sourceId: 'synthetic-portal-cobalto',
             sourceListingId: 'OWNED-CORRECTION-FIRST',
             sourceUrl: 'https://synthetic.invalid/listings/owned-correction-first',
+            bytes: new TextEncoder().encode(
+              JSON.stringify({
+                ...first,
+                imageFingerprints: ['fixture-fingerprint:owned-correction-first'],
+              }),
+            ),
           };
           const correctionRun = await collect(
             'synthetic-portal-cobalto',
@@ -1108,7 +1197,12 @@ test('properties-history preserves its complete real-service campaign', async ()
             sourceUrl: 'https://synthetic.invalid/listings/owned-temporal-inversion',
             observedAt,
             mediaType: 'application/json' as const,
-            bytes: new TextEncoder().encode(JSON.stringify(first)),
+            bytes: new TextEncoder().encode(
+              JSON.stringify({
+                ...first,
+                imageFingerprints: ['fixture-fingerprint:owned-temporal-inversion'],
+              }),
+            ),
           });
           const initialObservation = new Date(Date.now() - 5 * 86400000).toISOString();
           const seed = await collect(
@@ -1431,6 +1525,7 @@ test('properties-history preserves its complete real-service campaign', async ()
                 ...first,
                 askingPriceMinorUnits: price,
                 maskedDescription: description,
+                imageFingerprints: [`fixture-fingerprint:owned-${identity.toLowerCase()}`],
               }),
             ),
           });
@@ -1556,6 +1651,16 @@ test('properties-history preserves its complete real-service campaign', async ()
                   [observedIdentities[0]],
                 )
               ).length === 1,
+          );
+          await waitFor(
+            'observation seed assigned before the inverted updates',
+            async () =>
+              (
+                await connection.query<{ processed_revision: number }>(
+                  'SELECT assignment.processed_revision FROM properties.listing_assignment assignment JOIN properties.listing listing USING(listing_id) WHERE listing.source_listing_id=$1',
+                  [observedIdentities[0]],
+                )
+              )[0]?.processed_revision === 1,
           );
           let releaseDocuments, enteredDocuments: () => void;
           const documentRelease = new Promise<void>((resolve) => {
@@ -1766,6 +1871,52 @@ test('properties-history preserves its complete real-service campaign', async ()
                 .listings[0],
             ).toStrictEqual(item.response!.listing);
           }
+          await waitFor('resolution catches up with inverted listing revisions', async () => {
+            const revisions = await connection.query<{
+              processed_revision: string;
+              revision: string;
+            }>(
+              'SELECT assignment.processed_revision::text,(SELECT max(revision)::text FROM properties.listing_event event WHERE event.listing_id=listing.listing_id) AS revision FROM properties.listing listing JOIN properties.listing_assignment assignment USING(listing_id) WHERE listing.source_listing_id=ANY($1::text[])',
+              [observedIdentities],
+            );
+            return (
+              revisions.length === 2 &&
+              revisions.every((row) => row.processed_revision === row.revision)
+            );
+          });
+          for (const [index, item] of observationResponses.entries()) {
+            const originalDrop = item.response!.listing.history.find(
+              (effect) =>
+                effect.type === 'price-changed' &&
+                effect.currentMinorUnits === 1200000 &&
+                effect.effectiveAt === observationB,
+            )!;
+            const rankedDrop = (await reductions()).items.find(
+              (row) => row.listingId === item.listing_id,
+            )!;
+            expect(rankedDrop.previousMinorUnits).toBe(1300000);
+            expect(rankedDrop.currentMinorUnits).toBe(1200000);
+            expect(rankedDrop.effectiveAt).toBe(observationB!);
+            expect(rankedDrop.provenance).toStrictEqual(originalDrop.provenance);
+            expect(rankedDrop.provenance.runId).toBe(runB.runId);
+            const facts = await connection.query<{
+              cause_at: string;
+              effect_at: string;
+              envelope_at: string | null;
+            }>(
+              `SELECT cause.event->'payload'->>'effectiveAt' AS cause_at,effect.minimum_effect->>'effectiveAt' AS effect_at,publication.payload->>'effectiveAt' AS envelope_at
+               FROM properties.property_minimum_effect effect JOIN properties.listing_event cause ON cause.event_id=effect.cause_event_id
+               LEFT JOIN platform.outbox publication ON publication.event_id=effect.publication_event_id
+               WHERE cause.listing_id=$1 AND cause.event->>'type'='properties.listing.price-changed' AND cause.event->'payload'->'listing'->>'askingPriceMinorUnits'='1200000'`,
+              [item.listing_id],
+            );
+            expect(facts).toHaveLength(1);
+            expect(facts[0]!.cause_at).toBe(observationB!);
+            expect(facts[0]!.effect_at).toBe(observationB!);
+            if (index === 0) expect(facts[0]!.envelope_at).not.toBeNull();
+            if (facts[0]!.envelope_at !== null)
+              expect(facts[0]!.envelope_at >= observationA!).toBe(true);
+          }
           // Additional identities use an already owned source without widening Collection authority.
           // This source already has January 2027 runs. Shift the live clock beyond that cursor while
           // retaining real elapsed start/observation/completion differences during overlapping fetches.
@@ -1777,7 +1928,12 @@ test('properties-history preserves its complete real-service campaign', async ()
             sourceUrl: `https://synthetic.invalid/listings/${identity}`,
             observedAt,
             mediaType: 'application/json' as const,
-            bytes: new TextEncoder().encode(JSON.stringify(first)),
+            bytes: new TextEncoder().encode(
+              JSON.stringify({
+                ...first,
+                imageFingerprints: [`fixture-fingerprint:owned-${identity.toLowerCase()}`],
+              }),
+            ),
           });
           const edgeRun = (
             sourceId: string,
@@ -2628,6 +2784,7 @@ test('properties-history preserves its complete real-service campaign', async ()
                 JSON.stringify({
                   ...first,
                   askingPriceMinorUnits: position === 2 ? amount : index === 0 ? 1000000 : 800000,
+                  imageFingerprints: [`fixture-fingerprint:owned-${identity.toLowerCase()}`],
                 }),
               ),
             }));

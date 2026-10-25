@@ -4,8 +4,93 @@ import type { DatabaseConnection } from '../shared/persistence/database-connecti
 import { PostgresTransactionRunner } from '../shared/persistence/postgres-transaction.js';
 import { PostgresPropertyRepository } from './postgres-property.repository.js';
 import { fixtureId, initialEvent, initialProperty } from './property.test-fixture.js';
+import {
+  INITIAL_RESOLUTION_CONFIGURATION,
+  compareResolutionInputs,
+  NormalizedListing,
+} from '@rei/domain';
 
 describe('PostgresPropertyRepository', () => {
+  it('hydrates current singleton configuration and authentic minimum facts without inventing null-price changes', async () => {
+    const property = await initialProperty();
+    const input = {
+      listingId: property.listingId,
+      originalPropertyId: property.propertyId,
+      inputEventId: initialEvent.eventId,
+      inputHash: `sha256:${'a'.repeat(64)}`,
+      listing: new NormalizedListing(initialEvent),
+    };
+    const comparison = compareResolutionInputs(input, { ...input, listingId: fixtureId(112) });
+    const fact = {
+      propertyId: property.propertyId,
+      placeId: property.resolved.place.id,
+      areaSquareMeters: 82.5,
+      minimumMinorUnits: 78500000,
+      currency: 'BRL' as const,
+      selectedListingId: property.listingId,
+      provenance: property.provenance,
+      activeListingIds: [property.listingId],
+    };
+    const currentConfiguration = {
+      ...INITIAL_RESOLUTION_CONFIGURATION,
+      id: 'owned-current',
+      version: 1,
+    };
+    const snapshot = {
+      members: [
+        {
+          property_id: property.propertyId,
+          listing_id: property.listingId,
+          original_property_id: property.propertyId,
+          event: initialEvent,
+          resolved_place: property.resolved,
+          state: null,
+        },
+      ],
+      pairs: [] as { evidence: typeof comparison; configuration: typeof currentConfiguration }[],
+      configuration: currentConfiguration as typeof currentConfiguration | null,
+      effects: [
+        {
+          effectiveAt: property.provenance.observedAt,
+          previous: fact,
+          current: { ...fact, minimumMinorUnits: 78000000 },
+        },
+        {
+          effectiveAt: property.provenance.observedAt,
+          previous: fact,
+          current: { ...fact, minimumMinorUnits: null },
+        },
+      ],
+    };
+    const query = vi.fn(async (_sql: string, parameters?: readonly unknown[]) =>
+      parameters?.[0] === fixtureId(999) ? [] : [snapshot],
+    );
+    const repository = new PostgresPropertyRepository({ query } as unknown as DatabaseConnection);
+    expect(await repository.getCurrentGroup(fixtureId(999))).toBeNull();
+    let group = (await repository.getCurrentGroup(property.listingId))!;
+    expect(group.configuration).toEqual(currentConfiguration);
+    expect(group.members[0]!.initial).toEqual(initialEvent);
+    expect(group.states).toEqual([{ listingId: property.listingId, state: null }]);
+    expect(group.priceChanges).toMatchObject([
+      {
+        previousMinorUnits: 78500000,
+        currentMinorUnits: 78000000,
+        provenance: property.provenance,
+      },
+    ]);
+    expect(group.priceChanges).toHaveLength(1);
+    snapshot.pairs.push(
+      { evidence: comparison, configuration: currentConfiguration },
+      { evidence: comparison, configuration: { ...currentConfiguration, id: 'owned-other' } },
+    );
+    group = (await repository.getCurrentGroup(property.listingId))!;
+    expect(group.comparisons).toEqual([comparison]);
+    snapshot.pairs.length = 0;
+    snapshot.configuration = null;
+    await expect(repository.getCurrentGroup(property.listingId)).rejects.toThrow(
+      'configuration is unavailable',
+    );
+  });
   it('scopes every mutation to its own active pool transaction and own schema', async () => {
     const property = await initialProperty();
     const query = vi.fn(async (sql: string, params?: readonly unknown[]) => {

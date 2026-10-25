@@ -198,6 +198,7 @@ test('properties-history-upgrade preserves its complete real-service campaign', 
             .sort();
           const upgrades = [
             '1002_properties_create_listing_history.sql',
+            '1004_properties_create_entity_resolution.sql',
             '4009_collection_create_completed_event_evidence.sql',
             '4010_collection_add_failed_one_shot_runs.sql',
           ];
@@ -553,6 +554,22 @@ test('properties-history-upgrade preserves its complete real-service campaign', 
               await connection.query<{ count: number }>(
                 "SELECT count(*)::integer AS count FROM platform.outbox WHERE aggregate_id=$1 AND event_type='properties.listing.created'",
                 [missingProperty!.listingId],
+              )
+            )[0]!.count,
+          ).toBe(0);
+          await waitFor(
+            'eligible legacy identity resolves while expired-creation identity remains unresolved',
+            async () => {
+              const assigned = await connection.query<{ listing_id: string }>(
+                'SELECT listing_id::text FROM properties.listing_assignment ORDER BY listing_id',
+              );
+              return assigned.length === 1 && assigned[0]!.listing_id === property!.listingId;
+            },
+          );
+          expect(
+            (
+              await connection.query<{ count: number }>(
+                "SELECT count(*)::integer AS count FROM platform.outbox WHERE event_type LIKE 'properties.property.%'",
               )
             )[0]!.count,
           ).toBe(0);

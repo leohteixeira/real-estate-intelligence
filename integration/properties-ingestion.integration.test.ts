@@ -285,16 +285,17 @@ test('properties-ingestion preserves its complete real-service campaign', async 
                         sourceUrl: `https://synthetic.invalid/listings/${sourceListingId}`,
                         observedAt: '2026-10-10T11:59:59.000Z',
                         mediaType: 'application/json' as const,
-                        bytes: location
-                          ? new TextEncoder().encode(
-                              JSON.stringify({
-                                ...parseCollectedListing(
-                                  JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES)),
-                                ),
-                                location,
-                              }),
-                            )
-                          : SYNTHETIC_LISTING_BYTES,
+                        bytes: new TextEncoder().encode(
+                          JSON.stringify({
+                            ...parseCollectedListing(
+                              JSON.parse(new TextDecoder().decode(SYNTHETIC_LISTING_BYTES)),
+                            ),
+                            ...(location ? { location } : {}),
+                            imageFingerprints: [
+                              `fixture-fingerprint:v1:ingestion-${sourceListingId.toLowerCase()}`,
+                            ],
+                          }),
+                        ),
                       },
                     ]
                   : [],
@@ -367,7 +368,9 @@ test('properties-ingestion preserves its complete real-service campaign', async 
           )[0];
           let detail = await get(`properties/${identity!.property_id}`, parsePropertyResponse);
           const listing = await get(`listings/${identity!.listing_id}`, parseListingResponse);
-          expect(listing.listing).toStrictEqual(detail.property.listings[0]);
+          expect(listing.listing).toStrictEqual(
+            detail.property.listings.find((member) => member.id === identity!.listing_id),
+          );
           expect(identity!.property_id).not.toBe(identity!.listing_id);
           expect(listing.listing.askingPriceMinorUnits).toBe(
             original.payload.listing.askingPriceMinorUnits,
@@ -438,13 +441,17 @@ test('properties-ingestion preserves its complete real-service campaign', async 
           await waitFor(
             'completed unchanged acquisition',
             async () =>
-              (await get(`properties/${identity!.property_id}`, parsePropertyResponse)).property!
-                .listings[0]!.collectionCount === 2,
+              (
+                await get(`properties/${identity!.property_id}`, parsePropertyResponse)
+              ).property!.listings.find((member) => member.id === identity!.listing_id)!
+                .collectionCount === 2,
           );
           detail = await get(`properties/${identity!.property_id}`, parsePropertyResponse);
-          expect(detail!.property.listings[0]!.history.map((item) => item.type)).toStrictEqual([
-            'created',
-          ]);
+          expect(
+            detail.property.listings
+              .find((member) => member.id === identity!.listing_id)!
+              .history.map((item) => item.type),
+          ).toStrictEqual(['created']);
           const laterBaseline = { ...baseline, facts: 2, inbox: 2 };
           await stable(laterBaseline);
           // Exact canonical mutations and refused source authority fail before dedup/effects.
@@ -581,8 +588,8 @@ test('properties-ingestion preserves its complete real-service campaign', async 
           );
           await stable({ properties: 2, listings: 2, facts: 4, inbox: 4, creations: 2 });
           const secondIdentity = (
-            await connection.query<{ property_id: string }>(
-              'SELECT property_id::text FROM properties.listing WHERE source_listing_id=$1',
+            await connection.query<{ property_id: string; listing_id: string }>(
+              'SELECT property_id::text, listing_id::text FROM properties.listing WHERE source_listing_id=$1',
               ['SYN-SP-0002'],
             )
           )[0];
@@ -591,7 +598,11 @@ test('properties-ingestion preserves its complete real-service campaign', async 
             parsePropertyResponse,
           );
           expect(secondDetail.metadata.asOf).toBe(secondWire.payload.source.observedAt);
-          expect(secondDetail!.property.listings[0]!.collectionCount).toBe(1);
+          expect(
+            secondDetail.property.listings.find(
+              (member) => member.id === secondIdentity!.listing_id,
+            )!.collectionCount,
+          ).toBe(1);
           expect(secondDetail.property.priceChanges).toStrictEqual([]);
           const creations = await connection.query<{
             occurred_at: Date;
@@ -697,10 +708,13 @@ test('properties-ingestion preserves its complete real-service campaign', async 
           expect(upgradedHistorical.property.summary.breadcrumbs).toStrictEqual(
             historicalDetail.property.summary.breadcrumbs,
           );
-          expect(upgradedHistorical!.property.listings[0]!.collectionCount).toBe(1);
-          expect(
-            upgradedHistorical!.property.listings[0]!.history.map((item) => item.type),
-          ).toStrictEqual(['created']);
+          const upgradedHistoricalMember = upgradedHistorical.property.listings.find(
+            (member) => member.id === historicalIdentity!.listing_id,
+          )!;
+          expect(upgradedHistoricalMember.collectionCount).toBe(1);
+          expect(upgradedHistoricalMember.history.map((item) => item.type)).toStrictEqual([
+            'created',
+          ]);
           const historicalListing = await get(
             `listings/${historicalIdentity!.listing_id}`,
             parseListingResponse,
@@ -884,7 +898,11 @@ test('properties-ingestion preserves its complete real-service campaign', async 
           const realShapedListing = (
             await get(`listings/${realShapedRow!.listing_id}`, parseListingResponse)
           ).listing;
-          expect(realShapedListing).toStrictEqual(realShapedDetail.property.listings[0]);
+          expect(realShapedListing).toStrictEqual(
+            realShapedDetail.property.listings.find(
+              (member) => member.id === realShapedRow!.listing_id,
+            ),
+          );
           expect(realShapedListing.features).toStrictEqual([
             'pool',
             'caf\u00E9',
@@ -892,7 +910,15 @@ test('properties-ingestion preserves its complete real-service campaign', async 
           ]);
           expect(
             realShapedDetail.property.featureAgreement.map((row) => row.feature),
-          ).toStrictEqual(realShapedListing.features);
+          ).toStrictEqual(['caf\u00E9', 'pool', 'unknown amenity']);
+          for (const agreement of realShapedDetail.property.featureAgreement) {
+            expect(agreement).toMatchObject({
+              reportingCount: 1,
+              reportingPercent: 100,
+              listingIds: [realShapedRow!.listing_id],
+              sourceIds: ['synthetic-data'],
+            });
+          }
           expect([
             realShapedListing.bedrooms,
             realShapedListing.bathrooms,
@@ -993,7 +1019,12 @@ test('properties-ingestion preserves its complete real-service campaign', async 
             expect(
               !/Local real-shaped|"current"|"versions"|"text"|excerpt/.test(JSON.stringify(denied)),
             ).toBeTruthy();
-            const listing = 'listing' in denied ? denied.listing : denied.property.listings[0]!;
+            const listing =
+              'listing' in denied
+                ? denied.listing
+                : denied.property.listings.find(
+                    (member) => member.id === realShapedRow!.listing_id,
+                  )!;
             expect(listing.provenance).toStrictEqual(model.provenance);
             expect(listing.fieldEffectiveAt).toStrictEqual(realShapedListing.fieldEffectiveAt);
           }

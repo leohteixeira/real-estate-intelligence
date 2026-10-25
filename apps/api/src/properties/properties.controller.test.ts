@@ -220,6 +220,9 @@ describe('production properties and locations module HTTP contract', () => {
   });
   it('returns prepared probability/reasons, backend percentages, type/feature agreement and property reductions', async () => {
     const property = parsePropertyResponse(await get(`properties/${syntheticReadId(1)}`)).property;
+    expect(property.preparedEvidence.kind).toBe('prepared-fixture');
+    if (property.preparedEvidence.kind !== 'prepared-fixture')
+      throw new Error('Expected prepared evidence.');
     expect(property.preparedEvidence.illustrativeProbability).toBe(0.95);
     expect(property.preparedEvidence.probabilityBasis).toBe('prepared-not-calibrated');
     expect(property.preparedEvidence.productionMatchScore).toBeNull();

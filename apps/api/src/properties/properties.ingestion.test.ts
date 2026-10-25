@@ -56,8 +56,12 @@ describe('persisted initial property through production Nest HTTP wiring', () =>
       .overrideProvider(DATABASE_CONNECTION)
       .useValue({
         close: async () => undefined,
-        query: async (_sql: string, params: readonly unknown[]) =>
-          [property.propertyId, property.listingId].includes(params[0] as Property['propertyId'])
+        query: async (sql: string, params: readonly unknown[]) => {
+          // This initial-only fixture has no current resolution assignment.
+          if (sql.startsWith('WITH members AS (')) return [];
+          return [property.propertyId, property.listingId].includes(
+            params[0] as Property['propertyId'],
+          )
             ? [
                 {
                   property_id: property.propertyId,
@@ -66,7 +70,8 @@ describe('persisted initial property through production Nest HTTP wiring', () =>
                   resolved_place: property.resolved,
                 },
               ]
-            : [],
+            : [];
+        },
       })
       .overrideProvider(COLLECTION_FACADE)
       .useValue({

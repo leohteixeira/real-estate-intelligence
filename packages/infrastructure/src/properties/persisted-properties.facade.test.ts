@@ -3,6 +3,12 @@ import {
   CollectionSnapshotParsed,
   CollectionSnapshotCorrected,
   ListingChronology,
+  Property,
+  NormalizedListing,
+  INITIAL_RESOLUTION_CONFIGURATION,
+  compareResolutionInputs,
+  type ListingChronologyState,
+  type ResolutionInput,
 } from '@rei/domain';
 import { createHash } from 'node:crypto';
 import { PersistedPropertiesFacade } from './persisted-properties.facade.js';
@@ -11,6 +17,206 @@ import { projectInitialProperty } from './persisted-property.projection.js';
 import { fixtureId, initialEvent, initialProperty } from './property.test-fixture.js';
 
 describe('listing provenance and current text permissions', () => {
+  it('composes actual members with independent rights, requested IDs, source disagreement and active minimum ties', async () => {
+    const first = await initialProperty();
+    const event = new CollectionSnapshotParsed({
+      ...initialEvent,
+      eventId: fixtureId(103),
+      aggregateId: fixtureId(102),
+      payload: {
+        ...initialEvent.payload,
+        run: { runId: fixtureId(101) },
+        snapshot: { ...initialEvent.payload.snapshot, snapshotId: fixtureId(102) },
+        source: {
+          ...initialEvent.payload.source,
+          sourceId: 'synthetic-portal-aurora',
+          sourceListingId: 'OWNED-SECOND',
+        },
+        listing: {
+          ...initialEvent.payload.listing,
+          areaSquareMeters: 80,
+          features: ['balcony'],
+          location: {
+            ...initialEvent.payload.listing.location,
+            neighborhood: 'Published disagreement',
+          },
+        },
+      },
+    });
+    const second = new Property(fixtureId(110), fixtureId(111), event, first.resolved);
+    const input = (property: Property): ResolutionInput => ({
+      listingId: property.listingId,
+      originalPropertyId: property.propertyId,
+      inputEventId: property.initial.eventId,
+      inputHash: `sha256:${'a'.repeat(64)}`,
+      listing: new NormalizedListing(property.initial),
+    });
+    const comparison = compareResolutionInputs(input(first), input(second));
+    const state = new ListingChronology(
+      second,
+      null,
+      (text) => `sha256:${createHash('sha256').update(text).digest('hex')}`,
+    );
+    const at = '2026-10-12T12:00:00.000Z';
+    state.remove(at, fixtureId(120));
+    const group = {
+      propertyId: first.propertyId,
+      // The requested first listing deliberately follows another member in the projection.
+      members: [second, first],
+      states: [] as { listingId: string; state: ListingChronologyState | null }[],
+      configuration: INITIAL_RESOLUTION_CONFIGURATION,
+      comparisons: [comparison],
+      priceChanges: [
+        {
+          effectiveAt: at,
+          previousMinorUnits: 80000000,
+          currentMinorUnits: 78500000,
+          changePercent: -1.875,
+          provenance: first.provenance,
+        },
+      ],
+    };
+    const metadata = vi.fn(async (provenance: Property['provenance']) => ({
+      availability: 'available' as const,
+      collectedAt: provenance.observedAt,
+      expiresAt: '2026-11-09T11:59:59.000Z',
+    }));
+    const rights = vi.fn(async (sourceId: string) => ({
+      sourceId,
+      collectionAllowed: true,
+      imageFetchingAllowed: false,
+      listingTextDisplayAllowed: sourceId === first.provenance.sourceId,
+    }));
+    const history = { getState: vi.fn(async () => null) };
+    const facade = new PersistedPropertiesFacade(
+      {
+        getProperty: async () => first,
+        getListing: async () => first,
+        getCurrentGroup: async () => group,
+      },
+      {
+        getSourcePermissions: rights,
+        getSnapshotMetadata: metadata,
+      },
+      new SyntheticPropertiesAdapter(),
+      history,
+    );
+    const response = (await facade.getProperty(second.propertyId))!;
+    expect(response.property.listings.map((listing) => listing.id)).toEqual([
+      second.listingId,
+      first.listingId,
+    ]);
+    expect(response.property.listings.map((listing) => listing.position)).toEqual([1, 2]);
+    expect(response.property.summary.askingPrice!.listingId).toBe(first.listingId);
+    expect(response.property.summary.activeListingCount).toBe(2);
+    expect(response.property.summary.areaSquareMeters).toBeNull();
+    expect(response.property.summary.bedrooms).toBe(first.normalized.bedrooms.value);
+    expect(response.property.summary.priceReduced).toBe(true);
+    expect(
+      response.property.sourceAgreement.find((field) => field.field === 'neighborhood')!.agrees,
+    ).toBe(false);
+    expect(
+      response.property.sourceAgreement.find((field) => field.field === 'areaSquareMeters')!.agrees,
+    ).toBe(false);
+    expect(
+      response.property.featureAgreement.find((feature) => feature.feature === 'balcony'),
+    ).toMatchObject({ reportingCount: 2, reportingPercent: 100 });
+    expect(response.property.preparedEvidence).toMatchObject({
+      kind: 'deterministic-rule',
+      productionMatchScore: comparison.probability,
+      rawProbability: comparison.rawProbability,
+      configurationId: INITIAL_RESOLUTION_CONFIGURATION.id,
+      probabilityBasis: 'deterministic-uncalibrated',
+    });
+    expect(response.property.listings[0]!.description.permission).toBe('denied');
+    expect(response.property.listings[1]!.description.permission).toBe('allowed');
+    expect(metadata).toHaveBeenCalledWith(first.provenance);
+    expect(metadata).toHaveBeenCalledWith(second.provenance);
+    expect((await facade.getListing(first.listingId))!.listing.id).toBe(first.listingId);
+    expect(history.getState).not.toHaveBeenCalled();
+    group.states = [{ listingId: second.listingId, state: state.state }];
+    expect((await facade.getProperty(first.propertyId))!.property.summary.activeListingCount).toBe(
+      1,
+    );
+    group.states.push({
+      listingId: first.listingId,
+      state: new ListingChronology(
+        first,
+        null,
+        (text) => `sha256:${createHash('sha256').update(text).digest('hex')}`,
+      ).state,
+    });
+    const firstRemoved = new ListingChronology(
+      first,
+      null,
+      (text) => `sha256:${createHash('sha256').update(text).digest('hex')}`,
+    );
+    firstRemoved.remove(at, fixtureId(121));
+    group.states[1] = { listingId: first.listingId, state: firstRemoved.state };
+    const inactive = (await facade.getProperty(first.propertyId))!;
+    expect(inactive.property.summary.askingPrice).toBeNull();
+    expect(inactive.property.summary.pricePerSquareMeter).toBeNull();
+    expect(inactive.metadata.asOf).toBe(at);
+    expect(inactive.property.summary.timeOnMarketDays).toBe(2);
+    metadata.mockRejectedValue(new Error('Group snapshot unavailable'));
+    await expect(facade.getProperty(first.propertyId)).rejects.toThrow(
+      'Group snapshot unavailable',
+    );
+  });
+
+  it('exposes no score for an actual singleton and preserves missing/prepared reads and search', async () => {
+    const property = await initialProperty();
+    const prepared = new SyntheticPropertiesAdapter();
+    const search = vi.spyOn(prepared, 'search');
+    const facade = new PersistedPropertiesFacade(
+      {
+        getProperty: async () => property,
+        getListing: async () => property,
+        getCurrentGroup: async () => ({
+          propertyId: property.propertyId,
+          members: [property],
+          states: [],
+          comparisons: [],
+          configuration: INITIAL_RESOLUTION_CONFIGURATION,
+          priceChanges: [],
+        }),
+      },
+      {
+        getSourcePermissions: async (sourceId) => ({
+          sourceId,
+          collectionAllowed: true,
+          imageFetchingAllowed: false,
+          listingTextDisplayAllowed: true,
+        }),
+        getSnapshotMetadata: async () => ({
+          availability: 'unavailable',
+          collectedAt: property.provenance.observedAt,
+          expiresAt: null,
+        }),
+      },
+      prepared,
+    );
+    expect(
+      (await facade.getProperty(property.propertyId))!.property.preparedEvidence,
+    ).toMatchObject({
+      kind: 'deterministic-rule',
+      productionMatchScore: null,
+      rawProbability: null,
+      reasons: [],
+    });
+    await facade.search({});
+    expect(search).toHaveBeenCalledWith({});
+    const missing = new PersistedPropertiesFacade(
+      { getProperty: async () => null, getListing: async () => null },
+      {
+        getSourcePermissions: vi.fn(),
+        getSnapshotMetadata: vi.fn(),
+      },
+      prepared,
+    );
+    expect(await missing.getProperty(fixtureId(999))).toBeNull();
+    expect(await missing.getListing(fixtureId(999))).toBeNull();
+  });
   it('delegates reductions only to the persisted query, including empty and failed reads', async () => {
     const prepared = new SyntheticPropertiesAdapter();
     const preparedReductions = vi.spyOn(prepared, 'largestReductions');

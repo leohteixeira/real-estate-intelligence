@@ -144,6 +144,9 @@ test('properties-contracts preserves its complete real-service campaign', async 
         expect(property.property.sale.status).toBe('not-recorded');
         expect(property.property.priceChanges.length).toBe(2);
         expect(property.property.preparedEvidence.productionMatchScore).toBe(null);
+        expect(property.property.preparedEvidence.kind).toBe('prepared-fixture');
+        if (property.property.preparedEvidence.kind !== 'prepared-fixture')
+          throw new Error('Expected prepared evidence.');
         expect(property.property.preparedEvidence.illustrativeProbability).toBe(0.95);
         expect(property.property.preparedEvidence.probabilityBasis).toBe('prepared-not-calibrated');
         expect(

@@ -42,6 +42,8 @@ describe('synthetic properties read facade', () => {
       property.sourceAgreement.find((agreement) => agreement.field === 'neighborhood')!.agrees,
     ).toBe(false);
     expect(property.preparedEvidence.productionMatchScore).toBeNull();
+    if (property.preparedEvidence.kind !== 'prepared-fixture')
+      throw new Error('Expected prepared evidence.');
     expect(property.preparedEvidence.illustrativeProbability).toBe(0.95);
     expect(property.preparedEvidence.probabilityBasis).toBe('prepared-not-calibrated');
     expect(property.sourceAgreement.find((entry) => entry.field === 'propertyType')!.agrees).toBe(

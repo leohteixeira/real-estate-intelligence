@@ -396,3 +396,79 @@ describe('Property compact native evidence', () => {
     expect(chart.querySelector('svg text')).toBeNull();
   });
 });
+
+describe('actual deterministic grouping evidence', () => {
+  it.each(['pt-BR', 'en'] as const)(
+    'renders uncalibrated actual rules and preserves detail navigation in %s',
+    async (locale) => {
+      const fixture = propertyDetailFixture();
+      const response = parsePropertyResponse({
+        ...fixture,
+        property: {
+          ...fixture.property,
+          preparedEvidence: {
+            kind: 'deterministic-rule',
+            label: 'D-092 deterministic identity rules; probabilities are not calibrated',
+            listingIds: fixture.property.listings.map((listing) => listing.id),
+            productionMatchScore: 0.9,
+            rawProbability: 0.9,
+            probabilityBasis: 'deterministic-uncalibrated',
+            configurationId: 'd092-initial',
+            configurationVersion: 1,
+            reasons: [
+              {
+                type: 'rule-comparison',
+                listingIds: fixture.property.listings.slice(0, 2).map((listing) => listing.id),
+                feature: 'images',
+                available: true,
+                score: 1,
+                contribution: 0.6,
+              },
+              {
+                type: 'rule-comparison',
+                listingIds: fixture.property.listings.slice(0, 2).map((listing) => listing.id),
+                feature: 'coordinates',
+                available: false,
+                score: null,
+                contribution: 0,
+              },
+            ],
+          },
+        },
+      });
+      mount(response, `/properties/${propertyId}`, locale);
+      expect(
+        await screen.findByText(
+          locale === 'en' ? 'Match rule score' : 'Pontuação de correspondência',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          locale === 'en'
+            ? 'Deterministic rule score; not statistically calibrated.'
+            : 'Pontuação de regras determinísticas; sem calibração estatística.',
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          locale === 'en' ? 'Illustrative probability' : 'Probabilidade ilustrativa',
+        ),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText(
+          new RegExp(locale === 'en' ? 'Rule evidence label' : 'Rótulo da evidência de regras'),
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          new RegExp(
+            locale === 'en'
+              ? 'Received prepared-evidence label'
+              : 'Rótulo recebido da evidência preparada',
+          ),
+        ),
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByText(/90/).length).toBeGreaterThan(0);
+    },
+  );
+});

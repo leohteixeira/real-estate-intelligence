@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Logger } from '@nestjs/common';
-import type { ReconcileListingHistory } from '@rei/application';
+import type { ReconcileListingHistory, ReconcilePropertyResolution } from '@rei/application';
 import { ListingHistoryJob } from './listing-history.job';
 
 afterEach(() => {
@@ -18,7 +18,10 @@ describe('ListingHistoryJob bounded cancellation', () => {
       );
       return 0;
     });
-    const job = new ListingHistoryJob({ execute } as unknown as ReconcileListingHistory);
+    const job = new ListingHistoryJob(
+      { execute } as unknown as ReconcileListingHistory,
+      { execute: vi.fn(async () => 0) } as unknown as ReconcilePropertyResolution,
+    );
     job.start();
     job.start();
     await vi.advanceTimersByTimeAsync(1000);
@@ -34,7 +37,10 @@ describe('ListingHistoryJob bounded cancellation', () => {
     vi.useFakeTimers();
     const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
     const execute = vi.fn().mockRejectedValueOnce(new Error('owned failure')).mockResolvedValue(2);
-    const job = new ListingHistoryJob({ execute } as unknown as ReconcileListingHistory);
+    const job = new ListingHistoryJob(
+      { execute } as unknown as ReconcileListingHistory,
+      { execute: vi.fn(async () => 0) } as unknown as ReconcilePropertyResolution,
+    );
     job.start();
     await vi.advanceTimersByTimeAsync(300);
     expect(warn).toHaveBeenCalledWith('Listing history reconciliation failed');
