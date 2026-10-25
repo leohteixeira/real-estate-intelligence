@@ -78,3 +78,17 @@ describe('readConfig', () => {
     expect(readConfig({ VITE_PRIVACY_CONTACT_EMAIL: email }).privacyContactEmail).toBeNull();
   });
 });
+
+it('uses the Vite public base for same-origin API and router paths', () => {
+  expect(readConfig({ BASE_URL: '/real-estate-intelligence/' })).toMatchObject({
+    apiBaseUrl: '/real-estate-intelligence',
+    publicBase: '/real-estate-intelligence',
+  });
+  expect(readConfig({ BASE_URL: '/' })).toMatchObject({ apiBaseUrl: '', publicBase: '' });
+  expect(
+    readConfig({
+      BASE_URL: '/real-estate-intelligence/',
+      VITE_API_BASE_URL: 'https://api.example.test',
+    }).apiBaseUrl,
+  ).toBe('https://api.example.test');
+});

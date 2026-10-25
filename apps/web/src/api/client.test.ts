@@ -104,3 +104,14 @@ describe('public GET transport', () => {
     ).rejects.toBe(abort);
   });
 });
+
+it('retains an explicit deployment prefix for versioned JSON reads', async () => {
+  const request = vi.fn().mockResolvedValue(new Response('{}'));
+  vi.stubGlobal('fetch', request);
+  await createApiClient('/real-estate-intelligence/').read(
+    '/places',
+    new AbortController().signal,
+    (value) => value,
+  );
+  expect(request.mock.calls[0]?.[0]).toBe('/real-estate-intelligence/api/v1/places');
+});

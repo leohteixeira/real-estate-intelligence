@@ -321,3 +321,19 @@ describe('Ask authenticated JSON and finite SSE', () => {
     });
   });
 });
+
+it('retains a deployment prefix on authenticated JSON and finite SSE requests', async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(JSON.stringify(queued)))
+    .mockResolvedValueOnce(response(wire(0) + wire(1) + wire(2)));
+  vi.stubGlobal('fetch', fetcher);
+  const client = createAskClient('/real-estate-intelligence/');
+  const signal = new AbortController().signal;
+  await client.run(runId, 'fixture-capability-only', signal);
+  await client.events(runId, 'fixture-capability-only', undefined, signal, vi.fn());
+  expect(fetcher.mock.calls.map((call) => call[0])).toEqual([
+    `/real-estate-intelligence/api/v1/runs/${runId}`,
+    `/real-estate-intelligence/api/v1/runs/${runId}/events`,
+  ]);
+});
