@@ -3,7 +3,7 @@ title: 'Properties in production'
 type: 'chore'
 ticket: '13'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'f8ca60b9d46d29e0e387edf7c6c20c60394d7318'
 route: 'oneshot'
 route_source: 'auto'
