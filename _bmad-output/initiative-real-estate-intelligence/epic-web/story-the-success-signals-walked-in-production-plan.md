@@ -3,7 +3,7 @@ title: 'The success signals walked in production'
 type: 'feature'
 ticket: '13'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'c721e45c2cb49f8f9a83eb77223d415c1a5533aa'
 route: 'full'
 route_source: 'auto'
