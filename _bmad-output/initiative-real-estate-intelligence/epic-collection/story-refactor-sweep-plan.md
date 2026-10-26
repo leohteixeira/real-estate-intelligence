@@ -3,7 +3,7 @@ title: 'Collection refactor sweep'
 type: 'chore'
 ticket: '13'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '07dda57005b15400587093af8c925c9d7c8f08e5'
 route: 'oneshot'
 route_source: 'auto'
