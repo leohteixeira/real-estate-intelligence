@@ -22,6 +22,7 @@ export class ConsumeParsedListing {
     private readonly transactions: TransactionRunner,
     private readonly inbox: Inbox,
     private readonly history: Pick<ListingHistoryRepository, 'enqueue'>,
+    private readonly suppression?: import('../collection/index.js').ListingSuppressionAuthority,
   ) {}
   public async execute(untrusted: unknown, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
@@ -32,8 +33,13 @@ export class ConsumeParsedListing {
     )
       throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
     await this.transactions.runInTransaction(async (transaction) => {
-      if (!(await this.collection.verifyParsedEvent(transaction, event)))
+      if (!(await this.collection.verifyParsedEvent(transaction, event))) {
+        if (await this.suppression?.lockAndCheck(transaction, event.payload.source)) {
+          await this.inbox.record(transaction, PARSED_LISTING_CONSUMER, event.eventId);
+          return;
+        }
         throw new ExternalFailure({ kind: 'rejected', operation: 'properties.parsed-listing' });
+      }
       signal.throwIfAborted();
       // Authenticated corrections are durable work; their business refusal is scoped during
       // reconciliation, so an invalid correction cannot discard its valid original acquisition.

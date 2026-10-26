@@ -32,6 +32,8 @@ export const INITIAL_RESOLUTION_CONFIGURATION: ResolutionConfiguration = Object.
 export interface ResolutionInput {
   readonly listingId: string;
   readonly originalPropertyId: string;
+  /** A privacy erasure preserves existing survivors while their matching evidence is unchanged. */
+  readonly continuityGroupId?: string;
   readonly inputEventId: string;
   /** Digest of substantive matching values; excludes prices, activity and acquisition clocks. */
   readonly inputHash: string;
@@ -216,12 +218,22 @@ export function resolvePropertyGroups(
   if (new Set(ordered.map((input) => input.listingId)).size !== inputs.length)
     throw new TypeError('Duplicate resolution listing.');
   const groups: ResolutionInput[][] = [];
+  const retained = new Map<string, ResolutionInput[]>();
+  for (const input of ordered)
+    if (input.continuityGroupId) {
+      parseUuidV7(input.continuityGroupId);
+      const members = retained.get(input.continuityGroupId) ?? [];
+      members.push(input);
+      retained.set(input.continuityGroupId, members);
+    }
+  groups.push(...retained.values());
   const automatic = new Set(
     comparisons
       .filter((pair) => pair.decision === 'automatic')
       .map((pair) => [pair.leftListingId, pair.rightListingId].sort().join('/')),
   );
   for (const input of ordered) {
+    if (input.continuityGroupId) continue;
     const group = groups.find((members) =>
       members.every((member) =>
         automatic.has([input.listingId, member.listingId].sort().join('/')),

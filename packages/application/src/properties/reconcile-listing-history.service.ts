@@ -59,6 +59,7 @@ export class ReconcileListingHistory {
     private readonly identifiers: UuidV7Generator,
     private readonly hash: (text: string) => string,
     private readonly publications: RetainedPublicationReader,
+    private readonly suppression?: import('../collection/index.js').ListingSuppressionAuthority,
   ) {}
   public async execute(limit: number, signal: AbortSignal): Promise<number> {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
@@ -120,6 +121,13 @@ export class ReconcileListingHistory {
                   kind: 'rejected',
                   operation: 'properties.listing-history',
                 });
+              if (
+                await this.suppression?.lockAndCheck(transaction, {
+                  sourceId: next.run.sourceId,
+                  sourceListingId: identity,
+                })
+              )
+                return;
               await this.properties.lockSourceIdentity(transaction, next.run.sourceId, identity);
               await this.history.markRun(
                 transaction,
@@ -349,6 +357,13 @@ export class ReconcileListingHistory {
     await this.transactions.runInTransaction(async (transaction) => {
       if (!(await this.collection.verifyCompletedEvent(transaction, run.event)))
         throw new ExternalFailure({ kind: 'rejected', operation: 'properties.listing-history' });
+      if (
+        await this.suppression?.lockAndCheck(transaction, {
+          sourceId: run.sourceId,
+          sourceListingId: identity,
+        })
+      )
+        return;
       const facts = await this.collection.getRunListingFacts(transaction, run.runId, identity);
       await this.properties.lockSourceIdentity(transaction, run.sourceId, identity);
       if (await this.history.appliedRun(transaction, run.sourceId, identity, run.runId)) return;

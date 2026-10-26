@@ -52,6 +52,22 @@ export class PostgresListingSuppression implements ListingSuppressionRepository 
       ).length !== 0
     );
   }
+  public async verifySuppressionEvent(
+    transaction: Transaction,
+    event: import('@rei/domain').CollectionListingSuppressed,
+  ): Promise<boolean> {
+    const rows = await postgresClientFor(transaction, this.connection).query(
+      `SELECT 1 FROM collection.listing_suppression WHERE source_id=$1 AND source_listing_id=$2 AND event_id=$3 AND suppression_id=$4 AND suppressed_at=$5`,
+      [
+        event.payload.sourceId,
+        event.payload.sourceListingId,
+        event.eventId,
+        event.aggregateId,
+        event.occurredAt,
+      ],
+    );
+    return rows.length === 1;
+  }
   public async record(transaction: Transaction, input: ListingSuppression) {
     const client = postgresClientFor(transaction, this.connection);
     await lockListing(client, input);

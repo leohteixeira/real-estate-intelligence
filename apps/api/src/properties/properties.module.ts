@@ -13,6 +13,7 @@ import {
 import {
   PersistedPropertiesFacade,
   PostgresPropertyRepository,
+  PostgresListingSuppression,
   PostgresPropertySearchRepository,
   PostgresListingHistoryRepository,
   PostgresPropertyReductionsRepository,
@@ -57,6 +58,7 @@ import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
             { now: () => new Date().toISOString() },
           ),
           search,
+          new PostgresListingSuppression(connection),
         ),
     },
   ],

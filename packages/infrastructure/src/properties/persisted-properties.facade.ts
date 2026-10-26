@@ -34,6 +34,7 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
     private readonly history?: Pick<PostgresListingHistoryRepository, 'getState'>,
     private readonly reductions?: Pick<LargestReductionsService, 'execute'>,
     private readonly searchService?: Pick<SearchPropertiesService, 'execute'>,
+    private readonly suppression?: import('@rei/application').ListingSuppressionAuthority,
   ) {}
   public search(query: SearchQuery): Promise<SearchResponse> {
     if (!this.searchService) throw new Error('Persisted search query is unavailable.');
@@ -47,7 +48,13 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
     const property = await this.repository.getProperty(id);
     if (property) return this.projectPersisted(property);
     const response = await this.prepared.getProperty(id);
-    if (!response) return null;
+    if (
+      !response ||
+      (
+        await Promise.all(response.property.listings.map((listing) => this.isSuppressed(listing)))
+      ).some(Boolean)
+    )
+      return null;
     return {
       ...response,
       property: {
@@ -62,7 +69,9 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
     const property = await this.repository.getListing(id);
     if (!property) {
       const response = await this.prepared.getListing(id);
-      return response ? { ...response, listing: await this.applyRights(response.listing) } : null;
+      return response && !(await this.isSuppressed(response.listing))
+        ? { ...response, listing: await this.applyRights(response.listing) }
+        : null;
     }
     const response = await this.projectPersisted(property);
     return {
@@ -183,6 +192,18 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
         listings: [await this.applyRights({ ...listing, snapshot })],
       },
     };
+  }
+
+  private async isSuppressed(listing: ListingDetail): Promise<boolean> {
+    return (
+      (await this.suppression?.isSuppressed(
+        {
+          sourceId: listing.provenance.sourceId,
+          sourceListingId: listing.provenance.sourceListingId,
+        },
+        new AbortController().signal,
+      )) ?? false
+    );
   }
 
   private async applyRights(listing: ListingDetail): Promise<ListingDetail> {

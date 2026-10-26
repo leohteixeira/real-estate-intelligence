@@ -10,6 +10,7 @@ import {
   RETAINED_PUBLICATION_READER,
   UUID_V7_GENERATOR,
   ConsumeParsedListing,
+  ConsumeListingSuppression,
   ConsumeListingCompletion,
   ReconcileListingHistory,
   ReconcilePropertyResolution,
@@ -27,6 +28,9 @@ import {
 } from '@rei/application';
 import {
   PostgresPropertyRepository,
+  PostgresPropertySuppressionRepository,
+  PostgresListingSuppression,
+  PostgresOutbox,
   PostgresPropertyResolutionRepository,
   PostgresListingHistoryRepository,
   type DatabaseConnection,
@@ -34,6 +38,7 @@ import {
 import { DATABASE_CONNECTION } from '../persistence.module';
 import { CollectionModule } from '../collection/index';
 import { LocationsModule } from '../locations/index';
+import { ListingSuppressionConsumer } from './listing-suppression.consumer';
 import { ParsedListingConsumer } from './parsed-listing.consumer';
 import { ListingCompletionConsumer } from './listing-completion.consumer';
 import { ListingHistoryJob } from './listing-history.job';
@@ -41,6 +46,31 @@ import { ListingHistoryJob } from './listing-history.job';
 @Module({
   imports: [CollectionModule, LocationsModule],
   providers: [
+    {
+      provide: ConsumeListingSuppression,
+      inject: [
+        DATABASE_CONNECTION,
+        TRANSACTION_RUNNER,
+        INBOX,
+        OUTBOX_APPEND_PORT,
+        UUID_V7_GENERATOR,
+      ],
+      useFactory: (
+        connection: DatabaseConnection,
+        transactions: TransactionRunner,
+        inbox: Inbox,
+        outbox: OutboxAppendPort,
+        identifiers: UuidV7Generator,
+      ) =>
+        new ConsumeListingSuppression(
+          new PostgresListingSuppression(connection),
+          new PostgresPropertySuppressionRepository(connection, new PostgresOutbox(connection)),
+          transactions,
+          inbox,
+          outbox,
+          identifiers,
+        ),
+    },
     {
       provide: ReconcilePropertyResolution,
       inject: [DATABASE_CONNECTION, TRANSACTION_RUNNER, OUTBOX_APPEND_PORT, UUID_V7_GENERATOR],
@@ -82,6 +112,7 @@ import { ListingHistoryJob } from './listing-history.job';
         OUTBOX_APPEND_PORT,
         UUID_V7_GENERATOR,
         RETAINED_PUBLICATION_READER,
+        DATABASE_CONNECTION,
       ],
       useFactory: (
         collection: CollectionHistoryFacade,
@@ -92,6 +123,7 @@ import { ListingHistoryJob } from './listing-history.job';
         outbox: OutboxAppendPort,
         identifiers: UuidV7Generator,
         publications: RetainedPublicationReader,
+        connection: DatabaseConnection,
       ) =>
         new ReconcileListingHistory(
           collection,
@@ -103,6 +135,7 @@ import { ListingHistoryJob } from './listing-history.job';
           identifiers,
           (text) => `sha256:${createHash('sha256').update(text).digest('hex')}`,
           publications,
+          new PostgresListingSuppression(connection),
         ),
     },
     {
@@ -119,6 +152,7 @@ import { ListingHistoryJob } from './listing-history.job';
         TRANSACTION_RUNNER,
         INBOX,
         LISTING_HISTORY_REPOSITORY,
+        DATABASE_CONNECTION,
       ],
       useFactory: (
         collection: CollectionFacade,
@@ -127,13 +161,28 @@ import { ListingHistoryJob } from './listing-history.job';
         transactions: TransactionRunner,
         inbox: Inbox,
         history: ListingHistoryRepository,
+        connection: DatabaseConnection,
       ) =>
-        new ConsumeParsedListing(collection, locations, repository, transactions, inbox, history),
+        new ConsumeParsedListing(
+          collection,
+          locations,
+          repository,
+          transactions,
+          inbox,
+          history,
+          new PostgresListingSuppression(connection),
+        ),
     },
+    ListingSuppressionConsumer,
     ParsedListingConsumer,
     ListingCompletionConsumer,
     ListingHistoryJob,
   ],
-  exports: [ParsedListingConsumer, ListingCompletionConsumer, ListingHistoryJob],
+  exports: [
+    ParsedListingConsumer,
+    ListingSuppressionConsumer,
+    ListingCompletionConsumer,
+    ListingHistoryJob,
+  ],
 })
 export class PropertiesModule {}

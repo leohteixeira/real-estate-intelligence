@@ -16,6 +16,12 @@ export interface ListingSuppressionAuthority {
   isSuppressed(identity: ListingIdentity, signal: AbortSignal): Promise<boolean>;
   lockAndCheck(transaction: Transaction, identity: ListingIdentity): Promise<boolean>;
 }
+export interface ListingSuppressionEventAuthority {
+  verifySuppressionEvent(
+    transaction: Transaction,
+    event: import('@rei/domain').CollectionListingSuppressed,
+  ): Promise<boolean>;
+}
 export interface ListingSuppressionRepository extends ListingSuppressionAuthority {
   record(
     transaction: Transaction,

@@ -134,6 +134,36 @@ export class PostgresOutbox
     );
   }
 
+  public async erasePropertiesListingCopies(
+    transaction: Transaction,
+    identity: {
+      readonly sourceId: string;
+      readonly sourceListingId: string;
+      readonly listingId: string | null;
+    },
+  ): Promise<void> {
+    await postgresClientFor(transaction, this.connection).query(
+      `DELETE FROM platform.outbox WHERE event_type=ANY($1::text[]) AND (
+        jsonb_path_exists(payload, '$.** ? (@.sourceId == $sourceId && @.sourceListingId == $sourceListingId)', $2::jsonb)
+        OR ($3::text IS NOT NULL AND jsonb_path_exists(payload, '$.** ? (@ == $listingId)', $2::jsonb)))`,
+      [
+        [
+          'properties.listing.created',
+          'properties.listing.price-changed',
+          'properties.listing.description-changed',
+          'properties.listing.removed',
+          'properties.listing.reappeared',
+          'properties.property.asking-price-changed',
+          'properties.property.merged',
+          'properties.property.split',
+          'properties.match.queued-for-review',
+        ],
+        JSON.stringify(identity),
+        identity.listingId,
+      ],
+    );
+  }
+
   public async append(transaction: Transaction, events: readonly EventEnvelope[]): Promise<void> {
     return runOutboxAppendSpan(async () => {
       const client = postgresClientFor(transaction, this.connection);

@@ -4,6 +4,7 @@ import { RabbitMqEventBroker } from '@rei/infrastructure';
 import { MarketListingConsumer } from './market/index';
 import {
   ParsedListingConsumer,
+  ListingSuppressionConsumer,
   ListingCompletionConsumer,
   ListingHistoryJob,
 } from './properties/index';
@@ -50,6 +51,7 @@ async function bootstrap(): Promise<void> {
   await collectionConsumer.start();
   await collectionRunConsumer.start();
   await context.get(ParsedListingConsumer).start();
+  await context.get(ListingSuppressionConsumer).start();
   await context.get(ListingCompletionConsumer).start();
   await context.get(MarketListingConsumer).start();
   await context.get(AskRunRequestConsumer).start();

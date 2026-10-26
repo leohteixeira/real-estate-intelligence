@@ -82,6 +82,7 @@ export type {
   ListingIdentity,
   ListingSuppression,
   ListingSuppressionAuthority,
+  ListingSuppressionEventAuthority,
   ListingSuppressionRepository,
   CollectedCopyErasure,
   ListingAdmission,

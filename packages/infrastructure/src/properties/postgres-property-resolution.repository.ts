@@ -71,11 +71,14 @@ export class PostgresPropertyResolutionRepository implements PropertyResolutionR
       property_id: string;
       event: unknown;
       state: ListingChronologyState | null;
+      continuity_group_id: string | null;
+      stored_input_hash: string | null;
     }>(
-      `SELECT listing.listing_id::text,listing.property_id::text,fact.event,current.state
+      `SELECT listing.listing_id::text,listing.property_id::text,fact.event,current.state,CASE WHEN assignment.suppression_continuity_hash IS NOT NULL THEN assignment.property_id::text ELSE NULL END AS continuity_group_id,assignment.suppression_continuity_hash AS stored_input_hash
        FROM properties.listing listing JOIN properties.property property ON property.property_id=listing.property_id
        JOIN properties.incoming_fact fact ON fact.event_id=property.initial_event_id
        LEFT JOIN properties.listing_current current ON current.listing_id=listing.listing_id
+       LEFT JOIN properties.listing_assignment assignment ON assignment.listing_id=listing.listing_id
        WHERE EXISTS (SELECT 1 FROM properties.listing_event retained WHERE retained.listing_id=listing.listing_id)
           OR EXISTS (SELECT 1 FROM properties.listing_assignment assigned WHERE assigned.listing_id=listing.listing_id)
        ORDER BY listing.listing_id LIMIT $1`,
@@ -87,7 +90,7 @@ export class PostgresPropertyResolutionRepository implements PropertyResolutionR
       );
     // Legacy identities without any retained authentic market envelope remain unresolved.
     // Already assigned identities stay in the scan and fail below if their causal facts disappear.
-    return rows.map((row) => {
+    const inputs = rows.map((row) => {
       const acquisition = row.state?.acquisitions.at(-1);
       const listing = new NormalizedListing(
         acquisition ? (acquisition.corrected ?? acquisition.original) : row.event,
@@ -103,6 +106,19 @@ export class PostgresPropertyResolutionRepository implements PropertyResolutionR
         listing,
       };
     });
+    const changed = new Set(
+      rows
+        .filter(
+          (row, index) =>
+            row.continuity_group_id && row.stored_input_hash !== inputs[index]!.inputHash,
+        )
+        .map((row) => row.continuity_group_id),
+    );
+    return inputs.map((input, index) =>
+      rows[index]!.continuity_group_id && !changed.has(rows[index]!.continuity_group_id)
+        ? { ...input, continuityGroupId: rows[index]!.continuity_group_id! }
+        : input,
+    );
   }
   public async save(
     transaction: Transaction,
@@ -408,6 +424,11 @@ export class PostgresPropertyResolutionRepository implements PropertyResolutionR
     }
     for (const member of input.inputs) {
       const a = assignments.get(member.listingId)!;
+      if (!member.continuityGroupId)
+        await client.query(
+          'UPDATE properties.listing_assignment SET suppression_continuity_hash=NULL WHERE listing_id=$1 AND suppression_continuity_hash IS NOT NULL',
+          [member.listingId],
+        );
       await client.query(
         `INSERT INTO properties.listing_assignment (listing_id,property_id,assignment_revision,processed_revision,market_fact,input_event_id,input_hash,configuration_id,configuration_version) VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9)
         ON CONFLICT (listing_id) DO UPDATE SET property_id=EXCLUDED.property_id,assignment_revision=EXCLUDED.assignment_revision,processed_revision=EXCLUDED.processed_revision,market_fact=EXCLUDED.market_fact,input_event_id=EXCLUDED.input_event_id,input_hash=EXCLUDED.input_hash,configuration_id=EXCLUDED.configuration_id,configuration_version=EXCLUDED.configuration_version
@@ -475,7 +496,7 @@ async function nextRevision(client: DatabaseClient, propertyId: string): Promise
   return rows[0]!.revision;
 }
 
-function matchingHash(listing: NormalizedListing): string {
+export function matchingHash(listing: NormalizedListing): string {
   const values = [
     listing.propertyType.value,
     normalizePlaceName(listing.location.city.value),
