@@ -142,7 +142,7 @@ covers = ["B12", "B7"]
 after = [4, 7, 8, 14]
 hitl = true
 risk = "medium"
-notes = ["D-088 selects the existing collector and Tempo; local preparation is verified while deployment, public readiness and the production trace remain pending.", "Owner update (2026-10-25): publish from feat/phase-1 until every story is complete; main is not an intermediate publication prerequisite. Existing CI, immutable image identity, HTTPS, readiness and trace gates still apply.", "Owner update (2026-10-26): publish manually on this VPS without PR, merge or remote CI; retain local checks, immutable host image IDs, verified backup and actual public readiness/trace evidence."]
+notes = ["D-088 selects the existing collector and Tempo; local preparation is verified while deployment, public readiness and the production trace remain pending.", "Owner update (2026-10-25): publish from feat/phase-1 until every story is complete; main is not an intermediate publication prerequisite. Existing CI, immutable image identity, HTTPS, readiness and trace gates still apply.", "Owner update (2026-10-26): publish manually on this VPS without PR, merge or remote CI; retain local checks, immutable host image IDs, verified backup and actual public readiness/trace evidence.", "Production acceptance (2026-10-26): manual feat/phase-1 release 13edbbb7bfee8d69746c34c518191b0dec659754 is healthy; public HTTPS readiness and linked Tempo trace c47e36b2538a1dfaca9a4d770cb891d0 passed. Protected release evidence and verified pre-migration backup are recorded in the existing plan."]
 
 [[entry]]
 id = 13

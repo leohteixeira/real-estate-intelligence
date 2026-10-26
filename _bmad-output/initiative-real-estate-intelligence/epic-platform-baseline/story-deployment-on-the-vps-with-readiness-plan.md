@@ -3,7 +3,7 @@ title: 'Deployment on the VPS with readiness'
 type: 'feature'
 ticket: '12'
 created: '2026-10-25'
-status: built
+status: done
 baseline_revision: '567b03cdb265aca972e236e85404080f85683c5f'
 route: 'full'
 route_source: 'auto'
@@ -894,3 +894,36 @@ The plan is built preparation, not completed public acceptance. Next: commit the
 inputs, build the five exact-source images serially, record their actual local Docker IDs and
 OCI revision, verify the pre-migration backup, activate scoped services and landing, validate/reload
 Caddy, and observe actual public readiness, journeys and the linked Tempo/database effect.
+
+### Manual production acceptance — 2026-10-26
+
+- Delivered `feat/phase-1` commit `13edbbb7bfee8d69746c34c518191b0dec659754` through
+  the host Docker daemon. All five serial, bounded image builds passed; each local immutable
+  image ID and OCI revision was verified before activation and against the healthy containers.
+  No PR, merge, remote CI or registry publication is claimed or required for this release.
+- The existing local 3,282-test/full-gate receipt remains applicable to unchanged application
+  code/dependencies. The manual release delta passed 29 operator tests, 25 production-config
+  tests, strict integration type checking, scoped checks, independent targeted review and hooks.
+- Checkpoint: `/var/backups/portfolio/rei-manual-prepublication-20261026T192030Z`.
+  Verified pre-migration backup: `/var/backups/portfolio/rei-20261026T192057527951Z`.
+  Restore verification and private object archive verification passed before all 35 migrations.
+  No original volume or other project's data was removed or changed.
+- At `2026-10-26T19:23:16Z`, API, worker, AI and web were healthy on the recorded image IDs.
+  Caddy validated and reloaded. Public HTTPS `/real-estate-intelligence/ready` returned 200:
+  `status=ready`, `database=available`, `broker=available`. TLS verification used the default
+  trust store. Both exact application roots returned 308 to the project presentation.
+- Both landing languages and Real Estate presentations returned 200. The independent landing
+  release is commit `5c1cc9e17eed8848857e25adb001f851ea84dbbf`; its actual image ID is retained
+  in the receipt. Demo links resolve to `/real-estate-intelligence/places`. Deep operational
+  routes and both prefixed assets returned 200. Global `/ready` and `/api/v1/places` remained
+  landing 404s. HTTP document checks do not claim the later complete browser journeys.
+- A single public audit POST returned 202 for event
+  `01a179a9-c88c-7414-aede-4f30470eb6af`, trace `c47e36b2538a1dfaca9a4d770cb891d0`.
+  Tempo returned `http.request`, `outbox.append`, `outbox.publish`, `messaging.consume` on that
+  exact trace. The durable outbox publication, audit event and `audit.event-log` inbox marker
+  share that event and saved carrier. No collection or model call produced this proof.
+- Durable release identities, actual container observations, HTTPS receipts, SQL readback and
+  the Tempo export are retained in the checkpoint's protected `publication.json`. Previous
+  landing image/configuration and actual active Caddy JSON remain recoverable there.
+- Story 1.12 acceptance is met. Synthetic scheduled collection, business production proofs and
+  complete browser journeys proceed in their dependent stories; they were not inferred here.

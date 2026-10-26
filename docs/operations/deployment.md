@@ -1,21 +1,26 @@
 # Deploy the prepared VPS application stack
 
-Story 1.12 has verified local readiness and deployment preparation. **Production deployment, public
-HTTPS readiness and a production Tempo trace remain unverified.** The 2026-10-26 owner instruction
-authorizes a manual release from the current `feat/phase-1` revision without PR, merge or remote
-CI. Local gates, reviewed changes, immutable identities, verified backup and public acceptance
-remain required. The registry workflow remains available for ordinary releases. On
-2026-10-25 the owner authorized the operational work, repository push/PR/CI/image publication/merge
-and deployment needed for delivery. The owner's later instruction uses `feat/phase-1` for
-publication while the goal is in progress; integration into `main` follows completion of all
-stories. Execute those steps when their gates and
-prerequisites are ready; they are no longer deferred for authorization. Use the VPS host Docker
-daemon, independently of the Dev Container. Preserve the live portfolio landing and other projects'
-data, volumes and configuration; unrelated projects may remain stopped for capacity.
+Story 1.12 was accepted on 2026-10-26 after manual publication from `feat/phase-1` commit
+`13edbbb7bfee8d69746c34c518191b0dec659754`. Five bounded host builds, immutable image checks,
+verified backup/restore, all 35 migrations, healthy application containers, public HTTPS readiness
+and one linked production Tempo trace passed. The owner explicitly authorized this release
+without PR, merge or remote CI; none is claimed. The registry workflow remains available for
+ordinary releases. Local checks, backups and actual public acceptance remain required.
+
+The protected release receipt is
+`/var/backups/portfolio/rei-manual-prepublication-20261026T192030Z/publication.json`; it contains
+all image identities, observed container state, HTTPS paths, persisted audit effects and the Tempo
+export. The verified pre-migration backup is
+`/var/backups/portfolio/rei-20261026T192057527951Z`. Trace
+`c47e36b2538a1dfaca9a4d770cb891d0` links request, outbox append, publish and consumer for audit
+event `01a179a9-c88c-7414-aede-4f30470eb6af`. Synthetic collection, business production proofs
+and complete browser journeys belong to the dependent stories; these receipts do not infer them.
+Preserve the live landing and other projects' data, volumes and configuration. Use the host Docker
+daemon independently of the Dev Container, with one heavy operation at a time.
 
 The binding public base is `https://leohteixeira.com/real-estate-intelligence/`. No new domain or
-subdomain is authorized. The public-prefix adaptation is prepared and verified locally; production
-evidence remains delivery work. Local readiness and browser checks do not establish public acceptance.
+subdomain is authorized. The prefix is active in production. Public routing, assets and readiness
+are observed; dependent stories still establish their business journeys through the published UI.
 
 ## Prerequisites
 
@@ -370,8 +375,8 @@ local Docker image IDs for manual mode or manifest digests and observed remote C
 mode, public TLS/readiness receipt, linked Tempo trace and database evidence, and rollback/backup
 receipt. Remote CI and registry publication are not claimed or required for the owner-authorized
 manual release.
-Until these checks actually pass on the authorized VPS, story 1.12 and epic criterion 6 stay pending
-production even when all local checks pass.
+These checks passed for the manual release recorded above. Repeat the affected acceptance checks
+when a later release changes their code or dependencies; documentation alone needs no product rerun.
 
 ## Remove and permanently suppress a collected listing
 
