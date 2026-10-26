@@ -1,4 +1,4 @@
-import type { AskRunRepository } from './ask-run.repository.js';
+import type { AskRunRepository, AskVisitorAdmission } from './ask-run.repository.js';
 import type { AskLiveRun, TextAskCreateInput, PriceInputRefusalReason } from '@rei/domain';
 export const ASK_LIVE_FACADE = Symbol('ASK_LIVE_FACADE');
 export type TextAskAdmission =
@@ -9,12 +9,14 @@ export interface AskLiveFacade extends AskRunRepository {
     request: import('@rei/domain').RoutedAskCreateInput,
     capability: string,
     key: string,
+    admission: AskVisitorAdmission,
     signal?: AbortSignal,
   ): Promise<AskLiveRun>;
   createText(
     request: TextAskCreateInput,
     capability: string,
     key: string,
+    admission: AskVisitorAdmission,
     signal?: AbortSignal,
   ): Promise<TextAskAdmission>;
 }

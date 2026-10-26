@@ -1,4 +1,4 @@
-import type { AskRunRepository } from './ask-run.repository.js';
+import type { AskRunRepository, AskVisitorAdmission } from './ask-run.repository.js';
 import type { TextAskCreateInput } from '@rei/domain';
 import type { MarketCalculationFacade } from '../market/index.js';
 import type { AskLiveFacade, TextAskAdmission } from './ask-live.facade.js';
@@ -11,6 +11,7 @@ export class AskRunService implements AskLiveFacade {
     request: TextAskCreateInput,
     capability: string,
     key: string,
+    admission: AskVisitorAdmission,
     signal?: AbortSignal,
   ): Promise<TextAskAdmission> {
     signal?.throwIfAborted();
@@ -21,6 +22,7 @@ export class AskRunService implements AskLiveFacade {
       { ...request, inputs: { ...extraction.inputs } },
       capability,
       key,
+      admission,
       signal,
     );
     return { kind: 'accepted', run };
@@ -29,6 +31,7 @@ export class AskRunService implements AskLiveFacade {
     request: import('@rei/domain').RoutedAskCreateInput,
     capability: string,
     key: string,
+    admission: AskVisitorAdmission,
     signal?: AbortSignal,
   ): Promise<import('@rei/domain').AskLiveRun> {
     signal?.throwIfAborted();
@@ -38,6 +41,7 @@ export class AskRunService implements AskLiveFacade {
       { ...request, inputs: extracted.kind === 'refused' ? null : extracted.inputs },
       capability,
       key,
+      admission,
       signal,
     );
   }

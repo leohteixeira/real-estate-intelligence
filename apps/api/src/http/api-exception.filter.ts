@@ -12,6 +12,7 @@ import type { ErrorResponse } from '@rei/contracts';
 import type { Request, Response } from 'express';
 
 import { getRequestId, REQUEST_ID_HEADER } from './request-id';
+import { AskQuotaException } from './ask-quota.exception';
 import { AskPendingLimitException } from './ask-pending-limit.exception';
 
 interface PublicError {
@@ -84,7 +85,9 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const request = http.getRequest<Request>();
     const response =
-      http.getResponse<Response<ErrorResponse | AskPendingLimitException['refusal']>>();
+      http.getResponse<
+        Response<ErrorResponse | AskPendingLimitException['refusal'] | AskQuotaException['refusal']>
+      >();
     const exceptionStatus = getExceptionStatus(exception);
     const status = isHttpErrorStatus(exceptionStatus)
       ? exceptionStatus
@@ -101,7 +104,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     response.setHeader(REQUEST_ID_HEADER, requestId);
-    if (exception instanceof AskPendingLimitException) {
+    if (exception instanceof AskPendingLimitException || exception instanceof AskQuotaException) {
       response.status(status).json(exception.refusal);
       return;
     }

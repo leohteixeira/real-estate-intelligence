@@ -14,7 +14,7 @@ import {
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
-import { ASK_LIVE_FACADE, AskLiveError, type AskLiveFacade } from '@rei/application';
+import { ASK_LIVE_FACADE, AskLiveError, AskQuotaError, type AskLiveFacade } from '@rei/application';
 import {
   parseAskCommandHeaders,
   parseRoutedAskCreate,
@@ -35,6 +35,8 @@ import { askBearerCapability } from './ask.controller';
 import { readAskConfig } from './ask.config';
 import { askRequestWork } from './ask-request-signal';
 import { readQuery } from '../http/read-query';
+import { askVisitorAdmission } from './ask-visitor.cookie';
+import { AskQuotaException } from '../http/ask-quota.exception';
 import { AskPendingLimitException } from '../http/ask-pending-limit.exception';
 export function strongAskBearer(header: unknown): string {
   const capability = askBearerCapability(header);
@@ -45,6 +47,7 @@ export async function liveAuthorized<T>(work: () => Promise<T>): Promise<T> {
   try {
     return await work();
   } catch (error) {
+    if (error instanceof AskQuotaError) throw new AskQuotaException(error);
     if (error instanceof AskLiveError) {
       if (error.kind === 'forbidden') throw new ForbiddenException();
       if (error.kind === 'conflict') throw new ConflictException();
@@ -121,7 +124,8 @@ export class AskLiveController {
   ) {
     readQuery(request, 'none');
     const capability = strongAskBearer(request.headers.authorization);
-    if (!readAskConfig(process.env).secret) throw new ServiceUnavailableException();
+    const config = readAskConfig(process.env);
+    if (!config.secret) throw new ServiceUnavailableException();
     let input;
     let key;
     try {
@@ -142,9 +146,10 @@ export class AskLiveController {
     } catch {
       throw new BadRequestException();
     }
+    const admission = askVisitorAdmission(request, response, config);
     if (input.mode === 'routed-text-v1' || input.mode === 'routed-text-explanation-v1') {
       const run = await askRequestWork(request, (signal) =>
-        liveAuthorized(() => this.live.createRouted(input, capability, key, signal)),
+        liveAuthorized(() => this.live.createRouted(input, capability, key, admission, signal)),
       );
       return (
         input.mode === 'routed-text-explanation-v1'
@@ -159,7 +164,7 @@ export class AskLiveController {
     }
     if (input.mode !== 'structured-price-v1') {
       const result = await askRequestWork(request, (signal) =>
-        liveAuthorized(() => this.live.createText(input, capability, key, signal)),
+        liveAuthorized(() => this.live.createText(input, capability, key, admission, signal)),
       );
       if (result.kind === 'refused') {
         response?.status(422);
@@ -178,7 +183,7 @@ export class AskLiveController {
       };
     }
     const run = await askRequestWork(request, (signal) =>
-      liveAuthorized(() => this.live.create(input, capability, key, signal)),
+      liveAuthorized(() => this.live.create(input, capability, key, admission, signal)),
     );
     return { mode: input.mode, runId: run.id, threadId: run.threadId, state: 'queued' };
   }

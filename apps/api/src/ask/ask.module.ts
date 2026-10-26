@@ -23,6 +23,7 @@ import {
   PostgresModelExplanationRepository,
 } from '@rei/infrastructure';
 import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
+import { readAskConfig } from './ask.config';
 import { AskController } from './ask.controller';
 import { AskLiveController } from './ask-live.controller';
 import { AskDispatchController } from './ask-dispatch.controller';
@@ -75,7 +76,15 @@ import { AskInternalController, AskDecisionController } from './ask-internal.con
         outbox: OutboxAppendPort,
         market: MarketCalculationFacade,
       ) =>
-        new AskRunService(new PostgresAskRunRepository(connection, transactions, outbox), market),
+        new AskRunService(
+          new PostgresAskRunRepository(
+            connection,
+            transactions,
+            outbox,
+            readAskConfig(process.env).quotas,
+          ),
+          market,
+        ),
     },
   ],
   exports: [ASK_FACADE],

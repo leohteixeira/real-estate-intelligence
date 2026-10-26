@@ -16,6 +16,10 @@ import type {
 import { randomBytes } from 'node:crypto';
 import {
   AskLiveError,
+  AskQuotaError,
+  validatedAskDemoQuotaPolicy,
+  type AskDemoQuotaPolicy,
+  type AskVisitorAdmission,
   askAdmissionPolicy,
   type AskRunRepository,
   type OutboxAppendPort,
@@ -105,12 +109,15 @@ class AskTerminalEvent extends DomainEvent<
 /** Every lifecycle mutation is a short API-owned transaction; network work holds no SQL scope. */
 export class PostgresAskRunRepository implements AskRunRepository {
   private readonly inbox: PostgresInbox;
+  private readonly quotas: AskDemoQuotaPolicy;
   private expiryFrontier = '0';
   public constructor(
     private readonly connection: DatabaseConnection,
     private readonly transactions: TransactionRunner,
     private readonly outbox: OutboxAppendPort,
+    quotas: AskDemoQuotaPolicy = { visitorDailyLimit: 20, globalDailyLimit: 100 },
   ) {
+    this.quotas = validatedAskDemoQuotaPolicy(quotas);
     this.inbox = new PostgresInbox(connection);
   }
   private async transaction<T>(
@@ -123,7 +130,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
         signal,
       );
     } catch (error) {
-      if (signal?.aborted || error instanceof AskLiveError) throw error;
+      if (signal?.aborted || error instanceof AskLiveError || error instanceof AskQuotaError)
+        throw error;
       throw new AskLiveError('unavailable');
     }
   }
@@ -196,6 +204,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
     untrusted: ValidatedAskCreate,
     capability: string,
     key: string,
+    admission: AskVisitorAdmission,
     signal?: AbortSignal,
   ): Promise<AskLiveRun> {
     const request: ValidatedAskCreate = structuredClone(
@@ -232,6 +241,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
     );
     if (!/^[A-Za-z0-9_-]{43,128}$/.test(capability) || !/^[A-Za-z0-9_-]{16,128}$/.test(key))
       throw new AskLiveError('invalid');
+    if (!admission || !/^[0-9a-f]{64}$/.test(admission.visitorDigest))
+      throw new AskLiveError('invalid');
+    const visitorDigest = admission.visitorDigest;
     const creationKey = askDigest(key);
     const fingerprint = askDigest(
       JSON.stringify([
@@ -308,11 +320,32 @@ export class PostgresAskRunRepository implements AskRunRepository {
         [threadId],
       );
       if (pending[0]!.count >= askDeliveryPolicy.pendingLimit) throw new AskLiveError('capacity');
+      // Serialize all new acceptances; replay and authorization have already returned.
+      await this.lock(client, 'demo-quota:global');
       const id = await this.uuid(client);
       const eventId = await this.uuid(client);
-      const clock = await client.query<{ at: Date; deadline: Date }>(
-        "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) SELECT at, at + interval '120 seconds' AS deadline FROM observed",
+      const clock = await client.query<{
+        at: Date;
+        deadline: Date;
+        day_start: Date;
+        reopens_at: Date;
+      }>(
+        `WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at),
+         local_day AS (SELECT at, (at AT TIME ZONE 'America/Sao_Paulo')::date AS day FROM observed)
+         SELECT at, at + interval '120 seconds' AS deadline,
+           day::timestamp AT TIME ZONE 'America/Sao_Paulo' AS day_start,
+           (day + 1)::timestamp AT TIME ZONE 'America/Sao_Paulo' AS reopens_at FROM local_day`,
       );
+      const usage = await client.query<{ global_count: number; visitor_count: number }>(
+        `SELECT count(*)::integer AS global_count,
+         count(*) FILTER (WHERE visitor_digest=$3)::integer AS visitor_count
+         FROM ask.run WHERE admitted_at >= $1 AND admitted_at < $2`,
+        [clock[0]!.day_start, clock[0]!.reopens_at, visitorDigest],
+      );
+      if (usage[0]!.global_count >= this.quotas.globalDailyLimit)
+        throw new AskQuotaError('global', clock[0]!.reopens_at.toISOString());
+      if (usage[0]!.visitor_count >= this.quotas.visitorDailyLimit)
+        throw new AskQuotaError('visitor', clock[0]!.reopens_at.toISOString());
       const at = clock[0]!.at.toISOString();
       const run = parseAskLiveRun({
         basis: request.mode,
@@ -339,7 +372,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
           : {}),
       });
       await client.query(
-        `INSERT INTO ask.run (id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document,admitted_at,queue_expires_at) VALUES ($1,$2,$3,$4,$5,'queued',$6,$7,$8,$9,$10)`,
+        `INSERT INTO ask.run (id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document,admitted_at,queue_expires_at,visitor_digest) VALUES ($1,$2,$3,$4,$5,'queued',$6,$7,$8,$9,$10,$11)`,
         [
           id,
           threadId,
@@ -351,6 +384,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
           run,
           clock[0]!.at,
           clock[0]!.deadline,
+          visitorDigest,
         ],
       );
       await this.append(client, run);

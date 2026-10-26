@@ -85,6 +85,8 @@ services:
       API_PORT: 8200
       RABBITMQ_URL: amqp://${RABBITMQ_USER:-realestate}:${RABBITMQ_PASSWORD:-realestate}@rabbitmq:5672/${RABBITMQ_VHOST:-real-estate-intelligence}
       ASK_DISPATCH_SECRET: ${ASK_DISPATCH_SECRET:-}
+      ASK_VISITOR_DAILY_LIMIT: ${ASK_VISITOR_DAILY_LIMIT:-20}
+      ASK_GLOBAL_DAILY_LIMIT: ${ASK_GLOBAL_DAILY_LIMIT:-100}
       DATABASE_URL: postgres://${POSTGRES_USER:-realestate}:${POSTGRES_PASSWORD:-realestate}@postgres:5432/${POSTGRES_DB:-real_estate_intelligence}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       OTEL_SERVICE_NAME: real-estate-intelligence-api

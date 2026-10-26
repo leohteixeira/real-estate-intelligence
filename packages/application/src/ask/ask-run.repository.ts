@@ -10,6 +10,30 @@ import type {
   PriceToolRequest,
   ValidatedAskCreate,
 } from '@rei/domain';
+export interface AskVisitorAdmission {
+  readonly visitorDigest: string;
+}
+export interface AskDemoQuotaPolicy {
+  readonly visitorDailyLimit: number;
+  readonly globalDailyLimit: number;
+}
+export function validatedAskDemoQuotaPolicy(policy: AskDemoQuotaPolicy): AskDemoQuotaPolicy {
+  if (
+    ![policy.visitorDailyLimit, policy.globalDailyLimit].every(
+      (value) => Number.isSafeInteger(value) && value > 0,
+    )
+  )
+    throw new TypeError('Invalid Ask quota configuration.');
+  return Object.freeze({ ...policy });
+}
+export class AskQuotaError extends Error {
+  public constructor(
+    public readonly scope: 'visitor' | 'global',
+    public readonly reopensAt: string,
+  ) {
+    super('Ask daily quota exceeded.');
+  }
+}
 export const ASK_RUN_REPOSITORY = Symbol('ASK_RUN_REPOSITORY');
 export class AskLiveError extends Error {
   public constructor(
@@ -47,6 +71,7 @@ export interface AskRunRepository {
     request: ValidatedAskCreate,
     capability: string,
     key: string,
+    admission: AskVisitorAdmission,
     signal?: AbortSignal,
   ): Promise<AskLiveRun>;
   run(id: string, capability: string, signal?: AbortSignal): Promise<AskLiveRun | null>;

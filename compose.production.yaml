@@ -39,6 +39,8 @@ services:
       DATABASE_URL: ${DATABASE_URL:?Provision PostgreSQL 18 and an application database first}
       RABBITMQ_URL: ${RABBITMQ_URL:?Provision the application broker user and vhost first}
       ASK_DISPATCH_SECRET: ${ASK_DISPATCH_SECRET:?Set an application dispatch secret}
+      ASK_VISITOR_DAILY_LIMIT: ${ASK_VISITOR_DAILY_LIMIT:-20}
+      ASK_GLOBAL_DAILY_LIMIT: ${ASK_GLOBAL_DAILY_LIMIT:-100}
       OTEL_SERVICE_NAME: real-estate-intelligence-api
     depends_on:
       migrations:
