@@ -392,3 +392,22 @@ Story 6.12 delivered: `a3b9508`, `731378e`, `58d3ef0`, `f3f1864`, `0bdd735`; app
 hooks pass, reviewed files are committed and the working copy is clean at acceptance. The
 repository ticket is done. External Landing and production obligations remain outstanding;
 continue with the repository-pinned `tickets.py next` without migrating the ticket store.
+
+Story 6.13 implementation evidence (2026-10-26, before publication): Ask now binds the existing
+composer to explained routed admission, ordered SSE/cursor recovery, current-receipt confirmation,
+explicit cancellation and locally retained live history. Prepared inspection remains separately
+labelled; navigation aborts transport without cancelling work. Exact backend money and actual
+accepted explanation/decision receipts are presented with PT/EN copy. Validated quota scope/reset
+is retained through bounded sanitized transport errors; missing evidence remains explicit. The
+Gateway privacy probe also recognizes the precisely observed affirmative all-attempts grammar,
+with matching counts/providers/system execution, while preserving fail-closed model/route and
+warning checks. D-066/D-068 remain historical prepared-only evidence, not live acceptance.
+Focused AI tests (100), existing Ask tests (57), live UI/headless tests (61) and strict web
+TypeScript build pass locally. Final repository lint, strict workspace/integration
+checks and complete serial build pass. Affected coverage passes AI 356 tests (96.75% lines,
+90.57% branches) and web 634 tests (97.17% lines, 91.31% branches). Unchanged backend/integration
+evidence is reused. Two demonstrated review findings were fixed and targeted independent
+follow-up found none; the detector reports no findings. The existing oversized Search test was
+split without losing assertions or changing deadlines; scoped and final coverage pass, with
+original failed logs preserved. Host publication, public desktop/mobile journeys and matching
+Tempo evidence remain pending; local results do not close CAP-19 production acceptance.
