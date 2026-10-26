@@ -3,7 +3,7 @@ title: 'Thread capability and demo quotas'
 type: 'feature'
 ticket: '12'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '4ca99ffb50ff57b859bb8f56f5fa2b4a4297ee61'
 route: 'full'
 route_source: 'auto'
@@ -372,3 +372,23 @@ Residual limits: an anonymous browser identity does not identify a person; the i
 cap remains the aggregate bound. Migration 6009 must precede the new API when deployed. This story
 makes no live-model, billing, public-HTTPS or production rollout claim; downstream publication
 and the final published E2E campaign remain separate required goal work.
+
+## Story Closure
+
+Story 5.12 is done. Acceptance, all six matrix rows and affected dependency regressions passed
+on the delivered source; independent quick review returned zero findings. The built delivery
+verified all 32 reviewed paths committed and all 25 non-document source hashes unchanged after
+normal hooks. No product check was repeated for documentation-only closure.
+
+Delivered commits:
+
+- `99e5ceafd5bacb58ebcb492bc8a42dcb072fc531` — implementation.
+- `4a11cc0e6f41c57d954179ae3c4a0d2149c423a6` — direct and native verification.
+- `66f609cbfdeef3daa9b628cb0e3aac39a4ec30eb` — policy, operations and evidence.
+
+Normal secrets, formatter, ESLint, shell, Markdown and commit-message hooks passed where
+applicable. The first documentation commit attempt correctly failed Markdown line-length checks
+on the parent-added file descriptions; wrapping those lines resolved it without a code change
+or bypass. The orchestrator marked ticket 5.12 done only after the reviewed delivery was clean.
+Publication and final published E2E evidence remain required downstream goal work; this closure
+adds no production claim.
