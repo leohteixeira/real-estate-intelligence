@@ -111,10 +111,11 @@ describe('receipt-bound model orchestration', () => {
     expect(result.model).toBe(settings.secondary);
     expect(generate.mock.calls.map(([request]) => request.model)).toEqual([
       settings.primary,
+      settings.primary,
       settings.secondary,
       settings.secondary,
     ]);
-    expect(transport.reserved).toBe(256);
+    expect(transport.reserved).toBe(272);
   });
   it.each([
     undefined,
@@ -304,15 +305,16 @@ describe('receipt-bound model orchestration', () => {
         return acknowledged(request.model);
       }),
       model = new ReceiptModelExplainer({ generate }, transport);
+    await expect(
+      model.explain(receipt, context, new AbortController().signal, Date.now() + 10000),
+    ).rejects.toMatchObject({ kind: 'transient' });
     for (let i = 0; i < 2; i++)
       await expect(
         model.explain(receipt, context, new AbortController().signal, Date.now() + 10000),
-      ).rejects.toMatchObject({ kind: 'transient' });
-    await expect(
-      model.explain(receipt, context, new AbortController().signal, Date.now() + 10000),
-    ).rejects.toMatchObject({ kind: 'budget' });
+      ).rejects.toMatchObject({ kind: 'budget' });
+    expect(transport.reserved).toBeLessThanOrEqual(1000);
     expect(transport.accepted).toBeNull();
-    expect(generate).toHaveBeenCalledTimes(9);
+    expect(generate).toHaveBeenCalledTimes(8);
   });
   it('refuses stale, future, wrong model/route/privacy evidence and warnings', () => {
     const proof = {

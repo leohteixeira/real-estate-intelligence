@@ -12,7 +12,7 @@ import { acknowledged, modelReceipt, modelTransportFixture } from './model-test.
 import { modelExplanationSettings as settings } from './model-explanation.settings';
 import type { ModelExplanationTransport } from './model-explanation.port';
 
-function runs(generate: LanguageModel['generate']) {
+function runs(generate: LanguageModel['generate'], now: () => number = Date.now) {
   const fixtures = new Map<string, ReturnType<typeof modelTransportFixture>>();
   const transport: ModelExplanationTransport = {
     async execute(request, grant, signal, deadline) {
@@ -24,7 +24,7 @@ function runs(generate: LanguageModel['generate']) {
       return fixture.execute(request, grant, signal, deadline);
     },
   };
-  const model = new ReceiptModelExplainer({ generate }, transport);
+  const model = new ReceiptModelExplainer({ generate }, transport, now, () => 1);
   return {
     fixtures,
     async explain(index: number, signal = new AbortController().signal, remainingMs = 10000) {
@@ -58,6 +58,16 @@ function good(request: LanguageModelRequest) {
   );
 }
 
+async function settle<T>(promise: Promise<T>): Promise<T> {
+  const outcome = promise.then(
+    (value) => ({ value }),
+    (error: unknown) => ({ error }),
+  );
+  await vi.advanceTimersByTimeAsync(101);
+  const result = await outcome;
+  if ('error' in result) throw result.error;
+  return result.value;
+}
 describe('model/route-isolated named resilience across runs', () => {
   afterEach(() => vi.useRealTimers());
   it('an open primary never suppresses a healthy approved secondary, including half-open recovery', async () => {
@@ -68,12 +78,12 @@ describe('model/route-isolated named resilience across runs', () => {
     });
     const campaign = runs(generate);
     for (let index = 0; index < settings.breaker.minimumCalls + 2; index++) {
-      expect((await campaign.explain(index)).model).toBe(settings.secondary);
-      vi.advanceTimersByTime(401);
+      expect((await settle(campaign.explain(index))).model).toBe(settings.secondary);
+      vi.advanceTimersByTime(301);
     }
     expect(
       generate.mock.calls.filter(([request]) => request.model === settings.primary),
-    ).toHaveLength(settings.breaker.minimumCalls);
+    ).toHaveLength(settings.breaker.minimumCalls + settings.retry.lowTrafficRetryReserve);
     const probes = generate.mock.calls.length;
     generate.mockImplementation(async (request) => good(request));
     vi.advanceTimersByTime(settings.breaker.openDuration);
@@ -82,6 +92,30 @@ describe('model/route-isolated named resilience across runs', () => {
     expect(generate.mock.calls.length - probes).toBe(4);
     for (const fixture of campaign.fixtures.values())
       expect(fixture.reserved).toBeLessThanOrEqual(1000);
+  });
+  it('returns real slow model output and counts each logical phase once before opening only its route', async () => {
+    vi.useFakeTimers();
+    let now = 0;
+    const generate = vi.fn(async (request: LanguageModelRequest) => {
+      now += settings.slowCallThresholdMs;
+      return good(request);
+    });
+    const campaign = runs(generate, () => now);
+    for (let index = 0; index < settings.breaker.minimumCalls / 2; index++) {
+      if (index > 0 && index % 5 === 0) vi.advanceTimersByTime(1001);
+      const explanation = await campaign.explain(index);
+      expect(explanation.model).toBe(settings.primary);
+      expect(explanation.text).toBe(explanationFacts(modelReceipt, 'en').join(' '));
+      expect(generate).toHaveBeenCalledTimes((index + 1) * 2);
+    }
+    vi.advanceTimersByTime(1001);
+    expect((await campaign.explain(100)).model).toBe(settings.secondary);
+    expect(
+      generate.mock.calls.filter(([request]) => request.model === settings.primary),
+    ).toHaveLength(settings.breaker.minimumCalls);
+    expect(
+      generate.mock.calls.filter(([request]) => request.model === settings.secondary),
+    ).toHaveLength(2);
   });
   it('refuses exhausted quota without current-call fallback, opens only its route, then allows circuit-open fallback', async () => {
     vi.useFakeTimers();
@@ -119,7 +153,7 @@ describe('model/route-isolated named resilience across runs', () => {
       const campaign = runs(generate);
       for (let index = 0; index < settings.breaker.minimumCalls + 2; index++) {
         await expect(campaign.explain(index)).rejects.toMatchObject({ kind });
-        vi.advanceTimersByTime(401);
+        vi.advanceTimersByTime(301);
       }
       expect(generate).toHaveBeenCalledTimes(settings.breaker.minimumCalls + 2);
       generate.mockImplementation(async (request: LanguageModelRequest) => good(request));
@@ -133,7 +167,7 @@ describe('model/route-isolated named resilience across runs', () => {
         throw new ResilienceTimeoutError(3500, settings.policies.timeout);
       return good(request);
     });
-    expect((await runs(generate).explain(1)).model).toBe(settings.secondary);
+    expect((await settle(runs(generate).explain(1))).model).toBe(settings.secondary);
     generate.mockClear();
     generate.mockImplementation(async () => {
       throw new DOMException('private abort reason', 'AbortError');
@@ -141,7 +175,7 @@ describe('model/route-isolated named resilience across runs', () => {
     const campaign = runs(generate);
     for (let index = 0; index < settings.breaker.minimumCalls + 2; index++) {
       await expect(campaign.explain(index)).rejects.toMatchObject({ kind: 'cancelled' });
-      vi.advanceTimersByTime(401);
+      vi.advanceTimersByTime(301);
     }
     expect(generate).toHaveBeenCalledTimes(settings.breaker.minimumCalls + 2);
     generate.mockImplementation(async (request) => good(request));
@@ -163,11 +197,11 @@ describe('model/route-isolated named resilience across runs', () => {
       return good(request);
     });
     const campaign = runs(generate);
-    await expect(campaign.explain(1)).rejects.toMatchObject({ kind: 'exhausted' });
+    await expect(settle(campaign.explain(1))).rejects.toMatchObject({ kind: 'exhausted' });
     primaryHealthy = true;
     expect((await campaign.explain(2)).model).toBe(settings.primary);
     primaryHealthy = false;
-    await expect(campaign.explain(3)).rejects.toMatchObject({ kind: 'transient' });
+    await expect(settle(campaign.explain(3))).rejects.toMatchObject({ kind: 'transient' });
     expect(
       generate.mock.calls.filter(([request]) => request.model === settings.secondary),
     ).toHaveLength(1);
@@ -183,10 +217,10 @@ describe('model/route-isolated named resilience across runs', () => {
     });
     const campaign = runs(generate);
     const pending = campaign.explain(1);
-    await vi.advanceTimersByTimeAsync(settings.timeoutMs);
+    await vi.advanceTimersByTimeAsync(settings.timeoutMs * 2 + settings.retry.baseDelayMs + 1);
     expect((await pending).model).toBe(settings.secondary);
-    expect(generate).toHaveBeenCalledTimes(3);
-    expect([...campaign.fixtures.values()][0]?.reserved).toBe(256);
+    expect(generate).toHaveBeenCalledTimes(4);
+    expect([...campaign.fixtures.values()][0]?.reserved).toBe(272);
   });
   it('caller abort during a live timeout-wrapped attempt records neither circuit failure nor fallback', async () => {
     vi.useFakeTimers();
@@ -204,7 +238,7 @@ describe('model/route-isolated named resilience across runs', () => {
       await vi.advanceTimersByTimeAsync(1);
       controller.abort(new ResilienceTimeoutError(1, 'caller-deadline'));
       await asserted;
-      vi.advanceTimersByTime(401);
+      vi.advanceTimersByTime(301);
     }
     expect(generate).toHaveBeenCalledTimes(settings.breaker.minimumCalls + 2);
     generate.mockImplementation(async (request) => good(request));
@@ -221,7 +255,7 @@ describe('model/route-isolated named resilience across runs', () => {
       await expect(campaign.explain(index, new AbortController().signal, 10)).rejects.toMatchObject(
         { kind: 'cancelled' },
       );
-      vi.advanceTimersByTime(401);
+      vi.advanceTimersByTime(301);
     }
     expect(generate).toHaveBeenCalledTimes(settings.breaker.minimumCalls + 2);
     generate.mockImplementation(async (request) => good(request));

@@ -12,6 +12,7 @@ describe('categorical price dependency telemetry', () => {
     addEvent.mockClear();
     const telemetry = new PriceToolTelemetry();
     telemetry.onModuleInit();
+    telemetry.onModuleInit();
     const diagnostics = channel('nestjs:resilience:fallback');
     diagnostics.publish({
       type: 'fallback',
@@ -31,6 +32,10 @@ describe('categorical price dependency telemetry', () => {
     });
     diagnostics.publish({ type: 'fallback', policy: 'unrelated', error: 'secret' });
     expect(add).toHaveBeenCalledTimes(1);
+    expect(
+      safePricePolicyAttributes({ type: 'private payload', policy: 'price-tool.fail-closed' }),
+    ).toBeUndefined();
+    expect(safePricePolicyAttributes(null)).toBeUndefined();
     telemetry.onModuleDestroy();
     diagnostics.publish({ type: 'fallback', policy: 'price-tool.fail-closed', error: 'secret' });
     expect(add).toHaveBeenCalledTimes(1);

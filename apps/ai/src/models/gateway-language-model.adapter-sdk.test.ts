@@ -10,7 +10,7 @@ import { modelExplanationSettings as settings } from './model-explanation.settin
 import { acknowledged, modelReceipt, modelTransportFixture } from './model-test.fixture';
 
 // Real pinned SDKs, with every HTTP request intercepted locally; no SDK/module mocks.
-function response(text: string): Record<string, unknown> {
+function response(text: string, model: string = settings.primary): Record<string, unknown> {
   return {
     content: [{ type: 'text', text }],
     finishReason: { unified: 'stop', raw: 'stop' },
@@ -18,7 +18,7 @@ function response(text: string): Record<string, unknown> {
       inputTokens: { total: 1, noCache: 1, cacheRead: 0, cacheWrite: 0 },
       outputTokens: { total: 1, text: 1, reasoning: 0 },
     },
-    providerMetadata: acknowledged(settings.primary).metadata,
+    providerMetadata: acknowledged(model).metadata,
     warnings: [],
   };
 }
@@ -134,6 +134,110 @@ describe('pinned Gateway/AI SDK normalization with offline HTTP transport', () =
           new AbortController().signal,
         ),
       ).rejects.toMatchObject({ kind: 'transient' });
+      expect(fetch).toHaveBeenCalledOnce();
+    },
+  );
+  it.each(['connection reset', '502 HTML', '503 nonconforming JSON'] as const)(
+    'retries native SDK %s with fresh reservations before eligible secondary recovery',
+    async (fault) => {
+      vi.useFakeTimers();
+      const fixture = modelTransportFixture();
+      const models: string[] = [];
+      const times: number[] = [];
+      const fetch = vi.fn<NonNullable<GatewayProviderSettings['fetch']>>(async (_url, init) => {
+        const model = new Headers(init?.headers).get('ai-language-model-id') ?? 'missing';
+        models.push(model);
+        times.push(Date.now());
+        expect(fixture.operations.filter((operation) => operation === 'reserve')).toHaveLength(
+          models.length,
+        );
+        if (model === settings.primary) {
+          if (fault === 'connection reset')
+            throw new TypeError('fetch failed', {
+              cause: Object.assign(new Error('private network detail'), { code: 'ECONNRESET' }),
+            });
+          const status = fault === '502 HTML' ? 502 : 503;
+          return fault === '502 HTML'
+            ? new Response('<html>private upstream failure</html>', {
+                status,
+                headers: { 'retry-after': '0.2' },
+              })
+            : Response.json(
+                { unexpected: 'private upstream detail' },
+                { status, headers: { 'retry-after': '0.2' } },
+              );
+        }
+        const probe = String(init?.body).includes(settings.probeText);
+        return Response.json(
+          response(probe ? 'ready' : explanationFacts(modelReceipt, 'en').join(' '), model),
+        );
+      });
+      const pending = new ReceiptModelExplainer(adapter(fetch), fixture, Date.now, () => 1).explain(
+        modelReceipt,
+        {
+          version: 1,
+          eventId: modelReceipt.eventId,
+          runId: modelReceipt.runId,
+          threadId: modelReceipt.threadId,
+          executionId: modelReceipt.executionId,
+          checkpointGrant: 's'.repeat(43),
+          locale: 'en',
+        },
+        new AbortController().signal,
+        Date.now() + 10000,
+      );
+      await vi.advanceTimersByTimeAsync(301);
+      const explanation = await pending;
+      expect(explanation.model).toBe(settings.secondary);
+      expect(models).toEqual([
+        settings.primary,
+        settings.primary,
+        settings.secondary,
+        settings.secondary,
+      ]);
+      expect(times[1]! - times[0]!).toBe(fault === 'connection reset' ? 100 : 200);
+      expect(fixture.reserved).toBe(272);
+      expect(fixture.operations.filter((operation) => operation === 'accept')).toHaveLength(1);
+      expect(fixture.accepted).toEqual(explanation);
+    },
+  );
+  it.each(['connection reset', '502 HTML', '503 nonconforming JSON'] as const)(
+    'sanitizes native SDK %s as transient while preserving only canonical retry advice',
+    async (fault) => {
+      const fetch = vi.fn<NonNullable<GatewayProviderSettings['fetch']>>(async () => {
+        if (fault === 'connection reset')
+          throw new TypeError('fetch failed', {
+            cause: Object.assign(new Error('private network detail'), { code: 'ECONNRESET' }),
+          });
+        return fault === '502 HTML'
+          ? new Response('<html>private upstream failure</html>', {
+              status: 502,
+              headers: { 'retry-after': '0.2' },
+            })
+          : Response.json(
+              { unexpected: 'private upstream detail' },
+              { status: 503, headers: { 'retry-after': '0.2' } },
+            );
+      });
+      const failure = await adapter(fetch)
+        .generate(
+          {
+            model: settings.primary,
+            route: settings.route,
+            prompt: settings.probeText,
+            maxOutputTokens: settings.probeTokens,
+            zeroDataRetention: true,
+          },
+          new AbortController().signal,
+        )
+        .catch((error: unknown) => error);
+      expect(failure).toMatchObject({
+        kind: 'transient',
+        message: 'Model explanation unavailable.',
+        retryAfterMs: fault === 'connection reset' ? undefined : 200,
+      });
+      expect(failure).not.toHaveProperty('cause');
+      expect(JSON.stringify(failure)).not.toContain('private');
       expect(fetch).toHaveBeenCalledOnce();
     },
   );

@@ -60,8 +60,9 @@ export function modelTransportFixture(): ModelExplanationTransport & {
         this.accepted = structuredClone(request.explanation);
         return { operation: 'accept', explanation: this.accepted };
       }
+      if (this.reserved + request.maxOutputTokens > 1000)
+        throw new ModelExplanationFailure('budget');
       this.reserved += request.maxOutputTokens;
-      if (this.reserved > 1000) throw new ModelExplanationFailure('budget');
       return parseModelExplanationResponse({
         operation: 'reserve',
         reservation: {
