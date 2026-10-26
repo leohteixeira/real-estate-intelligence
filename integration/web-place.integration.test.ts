@@ -184,6 +184,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 await expect
                   .poll(() => page.locator('.place-median .fig__value').textContent())
                   .toBe(expectedFigure);
+                await page.locator('.place-navigation a').first().waitFor({ state: 'visible' });
                 await expect.poll(() => page.locator('.place-navigation a').count()).toBe(5);
                 const overviewRead = await requestHttp(`${base}/api/v1/places/${bela}/market`);
                 expect(overviewRead.status).toBe(200);
@@ -397,6 +398,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                       page.getByRole('heading', { name: 'Bela Vista', exact: true }).count(),
                     )
                     .toBe(1);
+                  await page.locator('.place-navigation a').first().waitFor({ state: 'visible' });
                   await expect.poll(() => page.locator('.place-navigation a').count()).toBe(5);
                   expect(await publicNavigation.locator('[aria-current="page"]').count()).toBe(1);
                   expect(
@@ -836,6 +838,111 @@ test('web place tracer follows production acquisition, proxy and browser journey
             () => historyContext.close(),
           );
         }
+        // Run the real operator only after ordinary fixtures, then observe all six browser cases.
+        await compose(
+          'run',
+          '--rm',
+          '--no-deps',
+          'listing-removal-command',
+          'synthetic-data',
+          'SYN-SP-0001',
+        );
+        await expect
+          .poll(async () => (await readMedian()).recordCount, { timeout: 60000, interval: 200 })
+          .toBe(0);
+        for (const width of [390, 960, 1440])
+          for (const locale of ['pt-BR', 'en'] as const) {
+            const erasedContext = await browser.newContext({
+              viewport: { width, height: width === 390 ? 1706 : 1366 },
+              reducedMotion: 'reduce',
+            });
+            await preserveCleanup(
+              async () => {
+                await erasedContext.route('**/*', async (route) => {
+                  if (new URL(route.request().url()).origin === base) await route.continue();
+                  else await route.abort();
+                });
+                await erasedContext.addInitScript(
+                  (choice) => localStorage.setItem('rei.locale', choice),
+                  locale,
+                );
+                const page = await erasedContext.newPage();
+                await page.goto(`${base}/places/${bela}`);
+                const overviewRead = await requestHttp(`${base}/api/v1/places/${bela}/market`);
+                const erased = parsePlaceMarketResponse(await overviewRead.json());
+                expect(erased.counts).toEqual({ properties: 0, activeListings: 0, sources: 0 });
+                for (const figure of Object.values(erased.figures)) {
+                  expect(figure.value).toBeNull();
+                  expect(figure.recordCount).toBe(0);
+                  expect(figure.sources).toEqual([]);
+                }
+                expect(erased.parentMedian?.median.value).toBeNull();
+                expect(erased.parentMedian?.median.recordCount).toBe(0);
+                await expect
+                  .poll(() => page.locator('.place-counts').textContent())
+                  .toContain(
+                    locale === 'en'
+                      ? '0 properties · 0 active listings · 0 sources'
+                      : '0 imóveis · 0 anúncios ativos · 0 fontes',
+                  );
+                await expect
+                  .poll(() => page.locator('.place-median .place-unavailable').textContent())
+                  .toBe(locale === 'en' ? 'Median not available' : 'Mediana não disponível');
+                await expect
+                  .poll(() => page.locator('.place-parent .place-unavailable').textContent())
+                  .toBe(locale === 'en' ? 'Median not available' : 'Mediana não disponível');
+                const neighboursRead = await requestHttp(
+                  `${base}/api/v1/places/${bela}/market/neighbours`,
+                );
+                const neighbours = parsePlaceMarketNeighboursResponse(await neighboursRead.json());
+                expect(
+                  neighbours.items.map((row) => [
+                    row.place.id,
+                    row.median.value?.minorUnits,
+                    row.movement.value,
+                  ]),
+                ).toEqual([['sao-paulo-vila-mariana', 450000, 50]]);
+                const neighbour = page
+                  .locator('.place-neighbours')
+                  .getByRole('link', { name: 'Vila Mariana', exact: true })
+                  .locator('..');
+                await expect
+                  .poll(() => neighbour.locator('.place-neighbour__median .num').textContent())
+                  .toBe(locale === 'en' ? 'R$ 4,500 /m²' : 'R$ 4.500 /m²');
+                const seriesRead = await requestHttp(
+                  `${base}/api/v1/places/${bela}/market/monthly-series`,
+                );
+                const series = parsePlaceMarketSeriesResponse(await seriesRead.json());
+                expect(series.points).toHaveLength(12);
+                await expect.poll(() => page.locator('.place-series tbody tr').count()).toBe(12);
+                await toggleOverviewDisclosure(
+                  page,
+                  page.locator('.place-series-disclosure'),
+                  true,
+                );
+                for (const [index, point] of series.points.entries()) {
+                  expect(point.median.value).toBeNull();
+                  expect(point.median.recordCount).toBe(0);
+                  expect(point.median.sources).toEqual([]);
+                  expect(point.parentMedian?.value).toBeNull();
+                  expect(point.parentMedian?.recordCount).toBe(0);
+                  expect(point.parentMedian?.sources).toEqual([]);
+                  const row = page.locator('.place-series tbody tr').nth(index);
+                  expect(await row.locator('th').textContent()).toBe(point.month);
+                  expect(await row.locator('td .num').allTextContents()).toEqual([
+                    locale === 'en' ? 'Not available' : 'Não disponível',
+                    locale === 'en' ? 'Not available' : 'Não disponível',
+                  ]);
+                }
+                await checkAccessibility(page, `place-suppressed-${width}-${locale}`);
+                await page.screenshot({
+                  path: new URL(`place-suppressed-${width}-${locale}.png`, captures).pathname,
+                  fullPage: true,
+                });
+              },
+              () => erasedContext.close(),
+            );
+          }
       },
       () => cleanupAll(() => browser.close()),
     );

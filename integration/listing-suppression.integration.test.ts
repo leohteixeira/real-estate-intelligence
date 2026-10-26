@@ -1,3 +1,4 @@
+import { exerciseMarketSuppression } from './support/market-suppression.ts';
 import { createHash, randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { expect, test, vi } from 'vitest';
@@ -1422,6 +1423,12 @@ test('listing suppression erases owned copies, survives failures and prevents pr
           ),
         ).toBe(run.parsedCount);
         await relay();
+        await exerciseMarketSuppression({
+          db,
+          broker,
+          base: `http://127.0.0.1:${api}`,
+          remove: (identity) => cli('remove-listing', 'synthetic-data', identity),
+        });
         console.log(
           'Listing suppression campaign passed: actual CLI, durable single-event replay, owner-safe erasure, delayed audit, reparse/acquisition races, suppressed manifests, deletion failure/resume, cancellation, unexpired owned orphan and real/synthetic late-write reconciliation.',
         );

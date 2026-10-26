@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { PropertiesEvent, PropertiesEventV2, type ListingFact } from '@rei/domain';
+import {
+  CollectionListingSuppressed,
+  PropertiesListingSuppressed,
+  PropertiesEvent,
+  PropertiesEventV2,
+  type ListingFact,
+} from '@rei/domain';
 import type { Transaction } from '@rei/application';
 import { DatabaseConnection, PostgresTransactionRunner } from '../shared/index.js';
 import { PostgresMarketPriceFacts } from './market-price-facts.pg-repository.js';
@@ -412,4 +418,214 @@ it('upserts source completion monotonically in the owned transaction and reads o
   read.mockResolvedValue([{ source_id: 'synthetic-source', completed_at: new Date(NaN) }]);
   await expect(f.repository.readCompletions(['synthetic-source'])).rejects.toThrow();
   await f.connection.close();
+});
+
+const suppression = new CollectionListingSuppressed({
+  traceContext: null,
+  eventId: id(600),
+  aggregateId: id(601),
+  occurredAt: date,
+  payload: { sourceId: fact.sourceId, sourceListingId: fact.sourceListingId },
+});
+const notification = new PropertiesListingSuppressed({
+  eventId: id(602),
+  aggregateId: fact.listingId,
+  occurredAt: date,
+  payload: {
+    ...suppression.payload,
+    causeEventId: suppression.eventId,
+    suppressionId: suppression.aggregateId,
+    listingId: fact.listingId,
+    originalPropertyId: fact.propertyId,
+    listingRevision: 1,
+    assignmentRevision: 0,
+    changes: [
+      {
+        previousPropertyId: fact.propertyId,
+        propertyId: id(603),
+        previousRevision: 0,
+        revision: 1,
+      },
+    ],
+  },
+});
+describe('Market permanent erasure fences', () => {
+  it.each(['sourceId', 'sourceListingId'] as const)(
+    'rejects suppressed %s reuse of a retained survivor UUID before fencing it',
+    async (field) => {
+      const f = fixture();
+      const source = {
+        sourceId: fact.sourceId,
+        sourceListingId: fact.sourceListingId,
+        [field]: field === 'sourceId' ? 'suppressed-source' : 'suppressed-listing',
+      };
+      const incoming = new PropertiesEventV2('properties.listing.created', {
+        eventId: id(610),
+        aggregateId: fact.listingId,
+        occurredAt: date,
+        payload: {
+          revision: 2,
+          assignmentRevision: 0,
+          effectiveAt: date,
+          listing: { ...fact, ...source, provenance: { ...fact.provenance, ...source } },
+        },
+      });
+      f.query.mockImplementation(async (sql, parameters = []) => {
+        if (sql.includes('AS erased')) return [{ erased: true }];
+        if (sql.includes('FROM market.listing_price_identity'))
+          return [
+            {
+              identical: parameters[1] === fact.sourceId && parameters[2] === fact.sourceListingId,
+            },
+          ];
+        if (sql.includes('FROM market.listing_suppression_receipt')) return [{}];
+        return [];
+      });
+      await expect(
+        f.transactions.runInTransaction((tx) => f.repository.project(tx, incoming)),
+      ).rejects.toThrow('rejected');
+      expect(f.query.mock.calls.at(-1)![0]).toBe('ROLLBACK');
+      expect(
+        f.query.mock.calls.some(
+          ([sql]) =>
+            sql.startsWith('INSERT INTO market.listing_erasure_identity') ||
+            sql.startsWith('INSERT INTO market.erased_listing_fact') ||
+            sql.startsWith('INSERT INTO market.listing_state_evidence'),
+        ),
+      ).toBe(false);
+      await f.connection.close();
+    },
+  );
+  it.each([suppression, notification])(
+    'erases current references before evidence and recomputes survivors: $type',
+    async (incoming) => {
+      const f = fixture();
+      f.query.mockImplementation(async (sql) =>
+        sql.startsWith('SELECT property_id FROM market.property_price_current')
+          ? [{ property_id: id(603) }]
+          : [],
+      );
+      await f.transactions.runInTransaction((tx) => f.repository.erase(tx, incoming));
+      const calls = f.query.mock.calls.map(([sql]) => sql);
+      expect(calls.join('\n')).not.toMatch(/FROM (collection|properties|platform)\./);
+      expect(calls.find((sql) => sql.includes('set_config'))).toContain(
+        'market.listing_erasure_identity',
+      );
+      expect(
+        calls.findIndex((sql) => sql.startsWith('DELETE FROM market.listing_state_current')),
+      ).toBeLessThan(
+        calls.findIndex((sql) => sql.startsWith('DELETE FROM market.listing_state_evidence')),
+      );
+      expect(
+        calls.findIndex((sql) => sql.includes('INSERT INTO market.erased_price_event')),
+      ).toBeLessThan(
+        calls.findIndex((sql) => sql.startsWith('DELETE FROM market.price_event_evidence')),
+      );
+      expect(calls.join('\n')).toContain('$.** ? (@.sourceId == $sourceId');
+      expect(calls).toContain('COMMIT');
+      await f.connection.close();
+    },
+  );
+  it('keeps Collection-first distinct from a later Properties transition and fences notification conflicts', async () => {
+    const f = fixture();
+    await f.transactions.runInTransaction((tx) => f.repository.erase(tx, suppression));
+    await f.transactions.runInTransaction((tx) => f.repository.erase(tx, notification));
+    expect(
+      f.query.mock.calls.some(([sql]) =>
+        sql.startsWith('INSERT INTO market.erased_anchor_redirect'),
+      ),
+    ).toBe(true);
+    for (const identical of [true, false]) {
+      f.query.mockImplementation(async (sql) =>
+        sql.includes('FROM market.properties_suppression_receipt') ? [{ identical }] : [],
+      );
+      const action = f.transactions.runInTransaction((tx) => f.repository.erase(tx, notification));
+      if (identical) await action;
+      else await expect(action).rejects.toThrow('rejected');
+    }
+    for (const table of [
+      'listing_suppression_receipt',
+      'listing_price_identity',
+      'erased_anchor_redirect',
+    ]) {
+      f.query.mockImplementation(async (sql) =>
+        sql.includes(`FROM market.${table}`) ? [{ identical: false }] : [],
+      );
+      await expect(
+        f.transactions.runInTransaction((tx) => f.repository.erase(tx, notification)),
+      ).rejects.toThrow('rejected');
+    }
+    await f.connection.close();
+  });
+  it('does not redirect a deleted non-anchor member and accepts an empty original anchor', async () => {
+    const f = fixture();
+    for (const changes of [
+      [{ previousPropertyId: id(604), propertyId: id(604), previousRevision: 0, revision: 1 }],
+      [{ previousPropertyId: fact.propertyId, propertyId: null, previousRevision: 0, revision: 1 }],
+    ]) {
+      const incoming = new PropertiesListingSuppressed({
+        ...notification,
+        eventId: id(605),
+        payload: { ...notification.payload, changes },
+      });
+      await f.transactions.runInTransaction((tx) => f.repository.erase(tx, incoming));
+    }
+    const redirects = f.query.mock.calls.filter(([sql]) =>
+      sql.startsWith('INSERT INTO market.erased_anchor_redirect'),
+    );
+    expect(redirects).toHaveLength(1);
+    expect(redirects[0]?.[1]?.[1]).toBeNull();
+    const absent = new PropertiesListingSuppressed({
+      ...notification,
+      aggregateId: suppression.aggregateId,
+      payload: {
+        ...notification.payload,
+        listingId: null,
+        originalPropertyId: null,
+        listingRevision: null,
+        assignmentRevision: null,
+        changes: [],
+      },
+    });
+    await f.transactions.runInTransaction((tx) => f.repository.erase(tx, absent));
+    await f.connection.close();
+  });
+  it('screens future listing state and assignments into fingerprints and rejects their conflicts', async () => {
+    const f = fixture();
+    // A permanent identity receipt screens every later state even after transport pruning.
+    f.query.mockImplementation(async (sql) =>
+      sql.includes('AS erased')
+        ? [{ erased: true }]
+        : sql.includes('FROM market.listing_erasure_identity')
+          ? [{ source_id: fact.sourceId, source_listing_id: fact.sourceListingId }]
+          : [],
+    );
+    await f.transactions.runInTransaction((tx) => f.repository.project(tx, event));
+    expect(
+      f.query.mock.calls.some(([sql]) => sql.includes('INSERT INTO market.price_event_evidence')),
+    ).toBe(false);
+    expect(
+      f.query.mock.calls.filter(([sql]) => sql.includes('INSERT INTO market.erased_listing_fact')),
+    ).toHaveLength(2);
+    for (const conflict of ['identity', 'fact']) {
+      f.query.mockImplementation(async (sql) =>
+        sql.includes('AS erased')
+          ? [{ erased: true }]
+          : sql.includes('FROM market.listing_erasure_identity')
+            ? [
+                {
+                  source_id: conflict === 'identity' ? 'other' : fact.sourceId,
+                  source_listing_id: fact.sourceListingId,
+                },
+              ]
+            : sql.includes('FROM market.erased_listing_fact')
+              ? [{ identical: false }]
+              : [],
+      );
+      await expect(
+        f.transactions.runInTransaction((tx) => f.repository.project(tx, event)),
+      ).rejects.toThrow('rejected');
+    }
+    await f.connection.close();
+  });
 });

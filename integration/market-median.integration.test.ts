@@ -485,6 +485,21 @@ test('event-fed median persists real broker evidence, fences replay and follows 
           null,
           signal(),
         );
+        const changed = await vi.waitFor(
+          async () => {
+            const row = (
+              await db.query<{ business_event: unknown }>(
+                `SELECT business_event FROM market.listing_price_evidence WHERE business_event->>'type'='properties.listing.price-changed'
+         AND business_event->'payload'->'listing'->>'sourceId'='synthetic-data'
+         AND business_event->'payload'->'listing'->>'sourceListingId'='SYN-SP-0001'
+         AND business_event->'payload'->'listing'->>'askingPriceMinorUnits'='80000000'`,
+              )
+            )[0];
+            expect(row).toBeDefined();
+            return row;
+          },
+          { timeout: 30000, interval: 100 },
+        );
         await expect
           .poll(
             async () =>
@@ -493,13 +508,6 @@ test('event-fed median persists real broker evidence, fences replay and follows 
             { timeout: 30000, interval: 100 },
           )
           .not.toBe(initialMedian);
-        const changed = (
-          await db.query<{ business_event: unknown }>(
-            `SELECT business_event FROM market.listing_price_evidence WHERE business_event->>'type'='properties.listing.price-changed'
-         AND business_event->'payload'->'listing'->>'sourceId'='synthetic-data'`,
-          )
-        )[0];
-        expect(changed).toBeDefined();
         expect(typeof changed!.business_event).toBe('object');
         if (typeof changed!.business_event !== 'object' || changed!.business_event === null)
           throw new Error('Malformed Market evidence');
