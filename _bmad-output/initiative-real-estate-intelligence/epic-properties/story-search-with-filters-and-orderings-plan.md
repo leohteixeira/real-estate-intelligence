@@ -3,7 +3,7 @@ title: 'Search with filters and orderings'
 type: 'feature'
 ticket: 8
 created: '2026-10-25'
-status: 'built'
+status: done
 baseline_revision: '81387ed4299eef3802c50be1536a87b18f3e44bf'
 route: 'full'
 route_source: 'auto'
@@ -388,3 +388,17 @@ Residual limits remain the bounded synthetic dataset, retained prior evidence fo
 visual journeys, the first deadlock's unavailable server detail and the existing bundle warning.
 No known in-scope acceptance defect remains. Commits and ticket closure are recorded below when
 completed; publication and later stories continue on feat/phase-1 under the owner's authorization.
+
+### Delivery and ticket closure
+
+Reviewed implementation, tests and evidence were committed with mandatory hooks passing:
+
+- `f41550ab6b6cddb4db556b3629255d33351fa6ff`: consistent history authority lock order.
+- `8724764fa5d7f5df62b3f38696cb9a97245a2e7e`: persisted property search.
+- `bbe822c62053c9b4810f6ed1d9dca2045005fec5`: acceptance and compatibility tests.
+- `5a537699b830e517cc2c5cf83a34a6a455101727`: reviewed delivery documentation.
+
+Parent verified all 37 reviewed paths were committed after the canonical baseline and the product
+working copy was clean. `tickets.py mark 3.8 done` then closed the story. Only this closure record
+changed afterward; passing product evidence is reused. Publication remains on feat/phase-1 during
+the goal, and main integration is deferred until all stories are complete per the owner.
