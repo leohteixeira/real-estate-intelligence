@@ -159,6 +159,32 @@ describe('public place reads', () => {
       'event-fed-median-with-prepared-sections',
     );
   });
+  it('accepts the live-figures variant while keeping independent prepared counts', async () => {
+    const previous = marketFixture();
+    const source = previous.figures.medianAskingPricePerSquareMeter.sources;
+    const live = {
+      ...previous,
+      basis: 'event-fed-figures-with-prepared-counts',
+      preparedSections: ['counts'],
+      figures: Object.fromEntries(
+        Object.entries(previous.figures).map(([key, item]) => [
+          key,
+          {
+            ...item,
+            recordCount: key === 'priceReductions' ? 2 : item.state === 'available' ? 1 : 0,
+            sources: item.state === 'available' ? source : [],
+            value: key === 'listingsPerProperty' ? 2 : item.value,
+            freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+          },
+        ]),
+      ),
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(live))));
+    const result = await createPlaceClient().market(bela.id, new AbortController().signal);
+    expect(result.basis).toBe('event-fed-figures-with-prepared-counts');
+    expect(result.counts.properties).toBe(2000);
+    expect(result.figures.listingsPerProperty.value).toBe(2);
+  });
   it('rejects HTTP failures, malformed data, wrong identities and prepared medians', async () => {
     const request = vi.fn();
     vi.stubGlobal('fetch', request);

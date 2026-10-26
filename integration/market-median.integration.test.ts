@@ -243,7 +243,7 @@ test('event-fed median persists real broker evidence, fences replay and follows 
           );
         };
         const initial = await get();
-        expect(initial.basis).toBe('event-fed-median-with-prepared-sections');
+        expect(initial.basis).toBe('event-fed-figures-with-prepared-counts');
         expect(initial.figures.medianAskingPricePerSquareMeter.value).toBeNull();
         expect(initial.parentMedian?.place.id).toBe('sao-paulo-oeste');
         const a = listing(1, 101, 10000);

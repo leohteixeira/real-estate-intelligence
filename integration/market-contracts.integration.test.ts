@@ -73,7 +73,7 @@ test('market-contracts preserves its complete real-service campaign', async () =
       const value = parser(await response.json());
       expect(value.metadata).toStrictEqual(SYNTHETIC_READ_METADATA);
       expect(value.basis).toBe(
-        suffix === '' ? 'event-fed-median-with-prepared-sections' : 'prepared-market-example',
+        suffix === '' ? 'event-fed-figures-with-prepared-counts' : 'prepared-market-example',
       );
       if (suffix !== '') expect(value.evaluatedAt).toBe('2026-10-01T12:00:00.000Z');
       else expect(Date.now() - Date.parse(value.evaluatedAt)).toBeLessThan(5000);
@@ -118,13 +118,12 @@ test('market-contracts preserves its complete real-service campaign', async () =
       return {
         ...body,
         evaluatedAt: 'live',
-        figures: {
-          ...body.figures,
-          medianAskingPricePerSquareMeter: {
-            ...body.figures.medianAskingPricePerSquareMeter,
-            computedAt: 'live',
-          },
-        },
+        figures: Object.fromEntries(
+          Object.entries(body.figures).map(([key, value]) => [
+            key,
+            { ...value, computedAt: 'live' },
+          ]),
+        ),
         parentMedian: body.parentMedian
           ? { ...body.parentMedian, median: { ...body.parentMedian.median, computedAt: 'live' } }
           : null,
@@ -239,11 +238,8 @@ test('market-contracts preserves its complete real-service campaign', async () =
           expect(city.figures.medianAskingPricePerSquareMeter.value).toBeNull();
           const pinheiros = await get('sao-paulo-pinheiros', '', parsePlaceMarketResponse);
           expect(pinheiros!.parentMedian!.place.id).toBe('sao-paulo-oeste');
-          expect(pinheiros.figures.askingPriceMovement.value).toBe(0);
-          expect(pinheiros.figures.priceReductions.value).toStrictEqual({
-            count: 0,
-            percentage: 0,
-          });
+          expect(pinheiros.figures.askingPriceMovement.value).toBeNull();
+          expect(pinheiros.figures.priceReductions.value).toBeNull();
           for (const [suffix] of parsers) {
             await error('unknown-place', suffix, '', 404);
             for (const id of ['BRAZIL', 'with%20space', 'a'.repeat(201)])
@@ -265,11 +261,14 @@ test('market-contracts preserves its complete real-service campaign', async () =
               Reflect.set(body.figures.askingPriceMovement.freshness, 'ageSeconds', 1);
             },
             (body: PlaceMarketResponse) => {
-              Reflect.set(
-                body.figures.askingPriceMovement.sources[0]!,
-                'url',
-                'https://real.example.com',
-              );
+              Reflect.set(body.figures.askingPriceMovement, 'sources', [
+                {
+                  id: 'invalid',
+                  label: 'invalid',
+                  url: 'https://real.example.com',
+                  collectedAt: body.evaluatedAt,
+                },
+              ]);
             },
             (body: PlaceMarketResponse) => {
               Reflect.set(body.figures.medianAskingPricePerSquareMeter, 'value', {
@@ -288,22 +287,21 @@ test('market-contracts preserves its complete real-service campaign', async () =
           const chart = await get('brazil', '/monthly-series', parsePlaceMarketSeriesResponse);
           Reflect.set(chart!.points[1]!, 'month', chart!.points[0]!.month);
           expect(() => parsePlaceMarketSeriesResponse(chart)).toThrow(TypeError);
-          const stale = await get('brazil', '', parsePlaceMarketResponse);
-          Reflect.set(stale, 'preparedEvaluatedAt', '2026-10-01T12:00:02.000Z');
-          for (const [key, figure] of Object.entries(stale.figures))
-            if (key !== 'medianAskingPricePerSquareMeter') figure.freshness.ageSeconds = 2;
-          Reflect.set(
-            stale!.figures.askingPriceMovement.sources[0]!,
-            'collectedAt',
-            '2026-10-01T12:00:01.000Z',
-          );
-          Reflect.set(
-            stale.figures.askingPriceMovement.freshness,
-            'latestCollectionCompletedAt',
-            '2026-10-01T12:00:01.000Z',
-          );
-          Reflect.set(stale.figures.askingPriceMovement.freshness, 'status', 'stale');
-          expect(parsePlaceMarketResponse(stale).figures.askingPriceMovement.freshness.status).toBe(
+          // Prepared series retain their independent completion semantics.
+          const stale = await get('brazil', '/monthly-series', parsePlaceMarketSeriesResponse);
+          Reflect.set(stale, 'evaluatedAt', '2026-10-01T12:00:02.000Z');
+          for (const point of stale.points) {
+            Reflect.set(
+              point.median.freshness,
+              'ageSeconds',
+              (Date.parse(stale.evaluatedAt) - Date.parse(point.median.computedAt)) / 1000,
+            );
+          }
+          const last = stale.points.at(-1)!.median;
+          Reflect.set(last.sources[0]!, 'collectedAt', '2026-10-01T12:00:01.000Z');
+          Reflect.set(last.freshness, 'latestCollectionCompletedAt', '2026-10-01T12:00:01.000Z');
+          Reflect.set(last.freshness, 'status', 'stale');
+          expect(parsePlaceMarketSeriesResponse(stale).points.at(-1)!.median.freshness.status).toBe(
             'stale',
           );
           expect(await state(), 'GETs changed persisted state').toStrictEqual(before);

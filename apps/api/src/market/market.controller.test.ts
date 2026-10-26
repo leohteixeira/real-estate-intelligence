@@ -29,7 +29,20 @@ describe('actual MarketModule HTTP contracts', () => {
   let storedFacts: Array<{ property_id: string; selected_listing: unknown }> = [];
   const query = vi.fn(async (sql: string, parameters: readonly unknown[] = []) => {
     if (unavailable) throw new Error('password=private database unavailable');
-    if (sql.includes('market.property_price_current')) return storedFacts;
+    if (sql.includes('market.property_price_current'))
+      return sql.includes(' AS representatives')
+        ? [
+            {
+              representatives: storedFacts,
+              current: storedFacts.map((fact) => fact.selected_listing),
+              history: storedFacts.map((fact) => ({
+                revision: '1',
+                listing: fact.selected_listing,
+              })),
+              events: [],
+            },
+          ]
+        : storedFacts;
     if (sql.includes('locations.reference_metadata')) return [SYNTHETIC_READ_METADATA];
     if (sql.includes('SELECT public_id AS id FROM scope'))
       return places
@@ -93,6 +106,8 @@ describe('actual MarketModule HTTP contracts', () => {
       const overview = parsePlaceMarketResponse(
         await success(place.id, '', parsePlaceMarketResponse),
       );
+      expect(overview.basis).toBe('event-fed-figures-with-prepared-counts');
+      expect(overview).toHaveProperty('preparedSections', ['counts']);
       expect(overview.place.id).toBe(place.id);
       expect(overview.counts.properties).toBe(place.propertyCount);
       expect(overview.parentMedian?.place.id ?? null).toBe(place.parentId);
@@ -208,29 +223,35 @@ describe('actual MarketModule HTTP contracts', () => {
       spy.mockRestore();
     }
   });
-  it('allows truthful stale examples and isolates caller changes', async () => {
-    const original = (await market.getPlaceMarket('brazil'))!;
+  it('allows truthful stale prepared series and isolates caller changes', async () => {
+    const original = (await market.monthlySeries('brazil'))!;
     const stale = structuredClone(original);
-    Reflect.set(stale, 'preparedEvaluatedAt', '2026-10-01T12:00:02.000Z');
-    for (const [key, item] of Object.entries(stale.figures))
-      if (key !== 'medianAskingPricePerSquareMeter') Reflect.set(item.freshness, 'ageSeconds', 2);
-    const figure = stale.figures.askingPriceMovement;
+    Reflect.set(stale, 'evaluatedAt', '2026-10-01T12:00:02.000Z');
+    for (const point of stale.points)
+      Reflect.set(
+        point.median.freshness,
+        'ageSeconds',
+        (Date.parse(stale.evaluatedAt) - Date.parse(point.median.computedAt)) / 1000,
+      );
+    const figure = stale.points.at(-1)!.median;
     Reflect.set(figure.sources[0]!, 'collectedAt', '2026-10-01T12:00:01.000Z');
     Reflect.set(figure.freshness, 'latestCollectionCompletedAt', '2026-10-01T12:00:01.000Z');
     Reflect.set(figure.freshness, 'status', 'stale');
-    const spy = vi.spyOn(market, 'getPlaceMarket').mockResolvedValueOnce(stale);
-    const parsed = parsePlaceMarketResponse(await success('brazil', '', parsePlaceMarketResponse));
-    expect(parsed.figures.askingPriceMovement.freshness.status).toBe('stale');
+    const spy = vi.spyOn(market, 'monthlySeries').mockResolvedValueOnce(stale);
+    const parsed = parsePlaceMarketSeriesResponse(
+      await success('brazil', '/monthly-series', parsePlaceMarketSeriesResponse),
+    );
+    expect(parsed.points.at(-1)!.median.freshness.status).toBe('stale');
     spy.mockRestore();
-    Reflect.set(
-      parsed.figures.askingPriceMovement.value === null ? {} : parsed.figures.askingPriceMovement,
-      'value',
-      1,
+    Reflect.set(parsed.points.at(-1)!.median, 'value', null);
+    const fresh = parsePlaceMarketSeriesResponse(
+      await success('brazil', '/monthly-series', parsePlaceMarketSeriesResponse),
     );
-    const fresh = parsePlaceMarketResponse(await success('brazil', '', parsePlaceMarketResponse));
-    expect(fresh.figures.askingPriceMovement.value).toEqual(
-      original.figures.askingPriceMovement.value,
+    expect(fresh.points.at(-1)!.median.value).toEqual(original.points.at(-1)!.median.value);
+    const overview = parsePlaceMarketResponse(
+      await success('brazil', '', parsePlaceMarketResponse),
     );
-    expect(fresh.figures.medianAskingPricePerSquareMeter.value).toBeNull();
+    expect(overview.figures.medianAskingPricePerSquareMeter.value).toBeNull();
+    expect(overview.figures.askingPriceMovement.freshness.status).toBe('untracked');
   });
 });

@@ -121,6 +121,69 @@ describe('strict prepared Market wire contracts', () => {
       },
     };
   }
+  function liveFigures() {
+    const response = live();
+    return {
+      ...response,
+      basis: 'event-fed-figures-with-prepared-counts',
+      preparedSections: ['counts'],
+      counts: { properties: 7, activeListings: 10, sources: 3 },
+      figures: Object.fromEntries(
+        Object.entries({
+          ...response.figures,
+          medianAskingPricePerSquareMeter: {
+            ...response.figures.medianAskingPricePerSquareMeter,
+            recordCount: 1,
+          },
+        }).map(([key, value]) => [
+          key,
+          {
+            ...value,
+            computedAt: response.evaluatedAt,
+            sources: value.sources.map((source) => ({ ...source, label: source.id })),
+            freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+          },
+        ]),
+      ),
+    };
+  }
+  it('accepts all live figures with independent prepared counts and zero reductions', () => {
+    expect(parsePlaceMarketResponse(liveFigures()).counts.properties).toBe(7);
+    const paired = changed(liveFigures(), 'figures.askingPriceMovement.sources', [
+      {
+        id: 'older-source',
+        label: 'older-source',
+        url: 'https://old.invalid',
+        collectedAt: evaluatedAt,
+      },
+      {
+        id: 'synthetic-source',
+        label: 'synthetic-source',
+        url: 'https://source.invalid',
+        collectedAt: evaluatedAt,
+      },
+    ]);
+    expect(parsePlaceMarketResponse(paired).figures.askingPriceMovement.recordCount).toBe(1);
+  });
+  it.each([
+    ['preparedSections', []],
+    ['preparedSections', ['counts', 'counts']],
+    ['preparedSections', MARKET_PREPARED_SECTIONS],
+    ['preparedEvaluatedAt', '2027-01-01T00:00:00.000Z'],
+    ['figures.askingPriceMovement.computedAt', evaluatedAt],
+    ['figures.askingPriceMovement.sources.0.label', 'Prepared'],
+    ['figures.askingPriceMovement.sources.0.collectedAt', '2027-01-01T00:00:00.000Z'],
+    ['figures.askingPriceMovement.sources', []],
+    ['figures.medianTimeOnMarketDays.freshness.status', 'fresh'],
+    ['figures.priceReductions.value.percentage', 50],
+    ['figures.priceReductions.value.count', 3],
+    ['figures.listingsPerProperty.value', 1],
+    ['figures.medianTimeOnMarketDays.recordCount', 2],
+    ['figures.recordedSalePricePerSquareMeter.recordCount', 1],
+    ['counts.activeListings', 1],
+  ])('rejects contradictory live-figures response %s', (path, value) => {
+    expect(() => parsePlaceMarketResponse(changed(liveFigures(), path, value))).toThrow(TypeError);
+  });
   it('separates real population/computation from independently evaluated prepared sections', () => {
     const parsed = parsePlaceMarketResponse(live());
     expect(parsed.figures.medianAskingPricePerSquareMeter.recordCount).toBe(2);

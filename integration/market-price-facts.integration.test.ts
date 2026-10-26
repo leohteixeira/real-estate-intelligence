@@ -339,7 +339,7 @@ test('complete causal facts prove upgrade, all eight families, adversarial deliv
               expect(response.figures.medianAskingPricePerSquareMeter.recordCount).toBe(count);
               expect(response.parentMedian?.median.value?.minorUnits ?? null).toBe(amount);
               expect(response.parentMedian?.median.recordCount).toBe(count);
-              expect(response.basis).toBe('event-fed-median-with-prepared-sections');
+              expect(response.basis).toBe('event-fed-figures-with-prepared-counts');
               expect(response.figures.medianAskingPricePerSquareMeter.freshness.status).toBe(
                 'untracked',
               );

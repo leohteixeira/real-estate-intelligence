@@ -118,6 +118,51 @@ it.each(['pt-BR', 'en'] as const)(
     ).toBeVisible();
   },
 );
+it.each(['pt-BR', 'en'] as const)(
+  'labels the new live figures and retained prepared sections accurately in %s',
+  async (locale) => {
+    const previous = marketFixture();
+    const live = {
+      ...previous,
+      basis: 'event-fed-figures-with-prepared-counts',
+      preparedSections: ['counts'],
+      figures: Object.fromEntries(
+        Object.entries(previous.figures).map(([key, figure]) => [
+          key,
+          {
+            ...figure,
+            recordCount: key === 'priceReductions' ? 2 : figure.state === 'available' ? 1 : 0,
+            sources:
+              figure.state === 'available'
+                ? previous.figures.medianAskingPricePerSquareMeter.sources
+                : [],
+            value: key === 'listingsPerProperty' ? 2 : figure.value,
+            freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+          },
+        ]),
+      ),
+    };
+    const { container } = mount(locale, bela.id, (path) =>
+      path === `/api/v1/places/${bela.id}/market` ? live : overviewFixture(path),
+    );
+    await screen.findByText(locale === 'en' ? 'R$ 9,515' : 'R$ 9.515');
+    const secondary = container.querySelector<HTMLElement>('.place-secondary')!;
+    expect(
+      within(secondary).getAllByText(locale === 'en' ? 'Collected events' : 'Eventos coletados'),
+    ).toHaveLength(5);
+    expect(
+      within(secondary).queryByText(locale === 'en' ? 'Prepared example' : 'Exemplo preparado'),
+    ).not.toBeInTheDocument();
+    expect(container.querySelector('.place-disclosure')).toHaveTextContent(
+      locale === 'en'
+        ? 'Counts, neighbours and monthly series remain prepared examples.'
+        : 'Contagens, vizinhos e série mensal continuam sendo exemplos preparados.',
+    );
+    expect(container.querySelector('.place-counts')).toHaveTextContent(
+      locale === 'en' ? 'Prepared counts' : 'Contagens preparadas',
+    );
+  },
+);
 it('starts compact and exposes each figure and monthly table through native evidence disclosures', async () => {
   const { container } = mount();
   await screen.findByText('R$ 9,515');

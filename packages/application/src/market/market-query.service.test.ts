@@ -67,11 +67,11 @@ describe('Market facade query orchestration', () => {
   it('translates stored-fact validation failures without changing malformed-request errors', async () => {
     const f = fixture();
     const invalidFact = new DomainValidationError('Invalid stored fact.', 'event');
-    const readCurrent = vi.fn(async (): Promise<readonly ListingFact[]> => {
+    const readFigures = vi.fn(async () => {
       throw invalidFact;
     });
     const service = new MarketQueryService({ read: f.read }, f.locations, {
-      facts: { readCurrent },
+      facts: { readCurrent: async () => [], readFigures },
       clock: { now: () => date },
     });
     await expect(service.getPlaceMarket('child')).rejects.toMatchObject({
@@ -80,7 +80,7 @@ describe('Market facade query orchestration', () => {
       cause: invalidFact,
     });
     await expect(service.getPlaceMarket('BAD')).rejects.toBeInstanceOf(DomainValidationError);
-    expect(readCurrent).toHaveBeenCalledTimes(1);
+    expect(readFigures).toHaveBeenCalledTimes(1);
   });
   it.each(['child', 'parent'])(
     'translates an unrepresentable live %s median into a server failure',
@@ -109,7 +109,15 @@ describe('Market facade query orchestration', () => {
         },
       };
       const service = new MarketQueryService({ read: f.read }, f.locations, {
-        facts: { readCurrent: async () => [fact] },
+        facts: {
+          readCurrent: async () => [fact],
+          readFigures: async () => ({
+            representatives: [fact],
+            current: [fact],
+            history: [],
+            priceChanges: [],
+          }),
+        },
         clock: { now: () => date },
       });
       await expect(service.getPlaceMarket('child')).rejects.toMatchObject({
@@ -121,15 +129,20 @@ describe('Market facade query orchestration', () => {
   );
   it('explicitly injects a live read and clock, uses actual scopes once and never falls back on failure', async () => {
     const f = fixture();
-    const readCurrent = vi.fn(async () => []);
+    const readFigures = vi.fn(async () => ({
+      representatives: [],
+      current: [],
+      history: [],
+      priceChanges: [],
+    }));
     const now = vi.fn(() => '2026-10-11T12:00:00.000Z');
     const service = new MarketQueryService({ read: f.read }, f.locations, {
-      facts: { readCurrent },
+      facts: { readCurrent: async () => [], readFigures },
       clock: { now },
     });
     const result = (await service.getPlaceMarket('child'))!;
     expect(result).toMatchObject({
-      basis: 'event-fed-median-with-prepared-sections',
+      basis: 'event-fed-figures-with-prepared-counts',
       evaluatedAt: now(),
       preparedEvaluatedAt: date,
       figures: {
@@ -141,11 +154,11 @@ describe('Market facade query orchestration', () => {
       },
       parentMedian: { place: { id: 'parent' }, median: { value: null } },
     });
-    expect(readCurrent).toHaveBeenCalledTimes(1);
+    expect(readFigures).toHaveBeenCalledTimes(1);
     expect(f.scope.mock.calls).toEqual([['child'], ['parent']]);
     expect(await service.getPlaceMarket('unknown')).toBeNull();
-    expect(readCurrent).toHaveBeenCalledTimes(1);
-    readCurrent.mockRejectedValue(new Error('Live dependency failed'));
+    expect(readFigures).toHaveBeenCalledTimes(1);
+    readFigures.mockRejectedValue(new Error('Live dependency failed'));
     await expect(service.getPlaceMarket('child')).rejects.toThrow('Live dependency failed');
     expect((await service.neighbours('child'))!.basis).toBe('prepared-market-example');
     expect((await service.monthlySeries('child'))!.basis).toBe('prepared-market-example');

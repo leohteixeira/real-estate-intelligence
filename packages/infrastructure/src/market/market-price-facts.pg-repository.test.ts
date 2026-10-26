@@ -43,7 +43,21 @@ function fixture() {
     assignments: { identical: boolean }[];
     current: { property_id: string }[];
     read: { property_id: string; selected_listing: unknown }[];
-  } = { conflicts: [], identity: [], states: [], assignments: [], current: [], read: [] };
+    figures: {
+      representatives: { property_id: string; selected_listing: unknown }[];
+      current: unknown[];
+      history: { revision: string; listing: unknown }[];
+      events: unknown[];
+    }[];
+  } = {
+    conflicts: [],
+    identity: [],
+    states: [],
+    assignments: [],
+    current: [],
+    read: [],
+    figures: [],
+  };
   const query = vi.fn(async (sql: string, parameters: readonly unknown[] = []) => {
     void parameters;
     return sql.includes('FROM market.price_event_evidence')
@@ -62,7 +76,7 @@ function fixture() {
   vi.spyOn(connection, 'leaseClient').mockResolvedValue(lease);
   vi.spyOn(connection, 'query').mockImplementation(async (sql) => {
     if (!sql.includes('market.property_price_current')) throw new Error('Unexpected read');
-    return rows.read;
+    return sql.includes(' AS representatives') ? rows.figures : rows.read;
   });
   return {
     connection,
@@ -198,6 +212,89 @@ describe('PostgresMarketPriceFacts', () => {
       await f.connection.close();
     },
   );
+  it('hydrates all figure inputs in one own-schema SQL snapshot with strict state and event parsing', async () => {
+    const f = fixture();
+    const change = new PropertiesEventV2('properties.listing.price-changed', {
+      eventId: id(99),
+      aggregateId: fact.listingId,
+      occurredAt: date,
+      payload: {
+        revision: 2,
+        assignmentRevision: 1,
+        effectiveAt: date,
+        listing: fact,
+        previousMinorUnits: 20000,
+      },
+    });
+    const business = {
+      eventId: change.eventId,
+      type: change.type,
+      version: change.version,
+      aggregateId: change.aggregateId,
+      occurredAt: change.occurredAt,
+      payload: change.payload,
+    };
+    const valid = {
+      representatives: [{ property_id: fact.propertyId, selected_listing: fact }],
+      current: [fact],
+      history: [{ revision: '2', listing: fact }],
+      events: [business],
+    };
+    f.rows.figures = [valid];
+    const query = vi.mocked(f.connection.query);
+    const result = await f.repository.readFigures();
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query.mock.calls[0]![0]).not.toMatch(/FROM (properties|locations|collection)\./);
+    expect(result).toEqual({
+      representatives: [fact],
+      current: [fact],
+      history: [{ revision: 2, listing: fact }],
+      priceChanges: [{ listing: fact, previousMinorUnits: 20000 }],
+    });
+    Reflect.set(result.current[0]!.provenance, 'sourceUrl', 'mutated');
+    expect((await f.repository.readFigures()).current[0]!.provenance.sourceUrl).toBe(
+      fact.provenance.sourceUrl,
+    );
+    for (const invalid of [
+      { ...valid, representatives: [{ property_id: id(999), selected_listing: fact }] },
+      {
+        ...valid,
+        representatives: [
+          { property_id: fact.propertyId, selected_listing: { ...fact, status: 'removed' } },
+        ],
+      },
+      { ...valid, current: [{ ...fact, private: true }] },
+      { ...valid, history: [{ revision: '9007199254740992', listing: fact }] },
+      { ...valid, events: [null] },
+      {
+        ...valid,
+        events: [{ ...business, payload: { ...change.payload, previousMinorUnits: 0 } }],
+      },
+      { ...valid, events: [{ ...event, traceContext: undefined }] },
+    ]) {
+      f.rows.figures = [invalid];
+      await expect(f.repository.readFigures()).rejects.toThrow();
+    }
+    f.rows.figures = [
+      {
+        ...valid,
+        events: [
+          {
+            eventId: id(100),
+            type: 'properties.listing.price-changed',
+            version: 1,
+            aggregateId: fact.listingId,
+            occurredAt: date,
+            payload: { revision: 2, effectiveAt: date, listing: fact, previousMinorUnits: 20000 },
+          },
+        ],
+      },
+    ];
+    expect((await f.repository.readFigures()).priceChanges).toHaveLength(1);
+    f.rows.figures = [];
+    await expect(f.repository.readFigures()).rejects.toThrow();
+    await f.connection.close();
+  });
   it('projects a declared property-price snapshot without inventing a listing event', async () => {
     const f = fixture();
     const current = {
