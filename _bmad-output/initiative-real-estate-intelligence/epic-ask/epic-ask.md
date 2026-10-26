@@ -66,6 +66,14 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Reconciliation: story 5.16 checked all sixteen completed predecessor plans: formal deferred
+  lists are empty and no follow-up review is recommended. Recorded corrections and unchanged
+  gates are retained without another audit. Story 5.15 proves public routed calculation, SSE
+  completion and AI credential isolation with heuristic-v1/degraded provenance. The opt-in Jev
+  privacy rejection and absence of successful live model-explanation evidence remain explicit
+  inputs to the planned production success walk (6.13), not an epic-wide live success claim.
+  Current manual publication from feat/phase-1 supersedes historical external/main/CI restrictions.
+
 - Implementation: story 5.9 adds the typed headless live client and bounded stream-owned session,
   reusing prepared-client transport and strict public envelopes. The native campaign drives the
   actual client through retained confirmation, ordered continuation, explicit completion and
