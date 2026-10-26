@@ -20,7 +20,7 @@ import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
 import { accessibilityEntryContract } from './support/accessibility-catalog.ts';
 import { exerciseSystemStateReads } from './support/system-state-reads.ts';
-import { exerciseOverviewReads } from './support/overview-reads.ts';
+import { exerciseHistoricalSeries, exerciseOverviewReads } from './support/overview-reads.ts';
 import { acquireOverviewReduction, retainOverviewNeighbour } from './support/overview-history.ts';
 import {
   exerciseOverviewDisclosures,
@@ -218,7 +218,9 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 expect(
                   await page.locator('.place-series .place-origin').first().textContent(),
                 ).toBe(
-                  locale === 'en' ? 'Prepared market example' : 'Exemplo de mercado preparado',
+                  locale === 'en'
+                    ? 'Figure computed from collected events'
+                    : 'Indicador calculado a partir dos eventos coletados',
                 );
                 expect(overview.parentMedian?.median.value).toEqual(
                   overview.figures.medianAskingPricePerSquareMeter.value,
@@ -361,6 +363,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   path: new URL(`place-${width}-${locale}-top.png`, captures).pathname,
                 });
                 await exerciseSystemStateReads(page, base, width, locale, captures);
+                await exerciseHistoricalSeries(page, base, locale);
                 await exerciseOverviewReads(page, base, width, locale, captures);
                 await page.goto(`${base}/places/${bela}`);
                 await expect

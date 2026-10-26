@@ -4,6 +4,7 @@ import { MARKET_LISTING_CONSUMER, type EventEnvelope } from '../packages/applica
 import {
   parsePlaceMarketResponse,
   parsePlaceMarketNeighboursResponse,
+  parsePlaceMarketSeriesResponse,
 } from '../packages/contracts/dist/index.js';
 import {
   PropertiesEventV2,
@@ -266,6 +267,21 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           expect(response.status).toBe(200);
           return parsePlaceMarketNeighboursResponse(await response.json());
         };
+        const series = async (place = 'sao-paulo-pinheiros') => {
+          const response = await requestHttp(
+            `http://127.0.0.1:${api}/api/v1/places/${place}/market/monthly-series`,
+          );
+          expect(response.status).toBe(200);
+          return parsePlaceMarketSeriesResponse(await response.json());
+        };
+        const emptySeries = await series();
+        expect(emptySeries.basis).toBe('event-fed-place-figures');
+        expect(emptySeries.comparisonPlace?.id).toBe('sao-paulo-oeste');
+        expect(
+          emptySeries.points.every(
+            (point) => point.median.value === null && point.parentMedian?.value === null,
+          ),
+        ).toBe(true);
         const empty = await get();
         expect(empty.basis).toBe('event-fed-place-figures');
         expect(empty).not.toHaveProperty('preparedSections');
@@ -441,9 +457,183 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         );
         expect(after.counts).toEqual({ properties: 4, activeListings: 6, sources: 2 });
         expect(after.figures.priceReductions.value).toEqual({ count: 3, percentage: 50 });
+        // Twelve manually derived monthly samples in an otherwise empty registered neighbourhood.
+        // The block owns one property; its actual parent also contains an independent property.
+        // Revision four removes the block listing; revision five reappears. Delivery is reversed.
+        const monthly = Array.from({ length: 12 }, (_, index) => {
+          const date = new Date(anchor);
+          date.setUTCDate(1);
+          date.setUTCHours(0, 0, 0, 0);
+          date.setUTCMonth(date.getUTCMonth() - 11 + index);
+          const at = date.toISOString();
+          const base = listing(50, 150, 10000 + index * 1000, 0, {
+            placeId: 'sao-paulo-santana-fictional-block',
+            effectiveAt: at,
+            status: index === 3 ? 'removed' : 'active',
+          });
+          const fact = { ...base, provenance: { ...base.provenance, observedAt: at } };
+          const type =
+            index === 0
+              ? 'properties.listing.created'
+              : index === 3
+                ? 'properties.listing.removed'
+                : index === 4
+                  ? 'properties.listing.reappeared'
+                  : 'properties.listing.price-changed';
+          return wire(
+            new PropertiesEventV2(type, {
+              eventId: id(500 + index),
+              aggregateId: fact.listingId,
+              occurredAt: at,
+              payload: {
+                revision: index + 1,
+                assignmentRevision: 0,
+                effectiveAt: at,
+                listing: fact,
+                ...(type === 'properties.listing.price-changed'
+                  ? { previousMinorUnits: 10000 + (index - 1) * 1000 }
+                  : {}),
+              },
+            }),
+          );
+        });
+        const first = monthly[0]!.occurredAt;
+        const sibling = listing(51, 151, 100000, 0, {
+          placeId: 'sao-paulo-santana',
+          effectiveAt: first,
+        });
+        monthly.push(
+          wire(
+            new PropertiesEventV2('properties.listing.created', {
+              eventId: id(520),
+              aggregateId: sibling.listingId,
+              occurredAt: first,
+              payload: {
+                revision: 1,
+                assignmentRevision: 0,
+                effectiveAt: first,
+                listing: { ...sibling, provenance: { ...sibling.provenance, observedAt: first } },
+              },
+            }),
+          ),
+        );
+        await transactions.runInTransaction((tx) => outbox.append(tx, monthly.toReversed()));
+        await expect
+          .poll(
+            async () =>
+              (
+                await db.query<{ count: number }>(
+                  'SELECT count(*)::integer AS count FROM market.price_event_evidence',
+                )
+              )[0]!.count,
+            { timeout: 30000, interval: 100 },
+          )
+          .toBe(delivery.length + monthly.length + 1);
+        await expect
+          .poll(
+            async () =>
+              (await series('sao-paulo-santana-fictional-block')).points[11]!.median.value
+                ?.minorUnits,
+            { timeout: 30000, interval: 100 },
+          )
+          .toBe(2100);
+        const monthlyGolden = await series('sao-paulo-santana-fictional-block');
+        expect(monthlyGolden.comparisonPlace?.id).toBe('sao-paulo-santana');
+        if (monthlyGolden.basis !== 'event-fed-place-figures')
+          throw new Error('Expected persisted series.');
+        for (const [index, point] of monthlyGolden.points.entries()) {
+          const expected = index === 3 ? null : 1000 + index * 100;
+          expect(point.month).toBe(monthly[index]!.occurredAt.slice(0, 7));
+          const next = new Date(`${point.month}-01T00:00:00.000Z`);
+          next.setUTCMonth(next.getUTCMonth() + 1);
+          expect(point.asOf).toBe(
+            index === 11 ? monthlyGolden.evaluatedAt : new Date(next.getTime() - 1).toISOString(),
+          );
+          expect(point.median).toMatchObject({
+            value: expected === null ? null : { minorUnits: expected, currency: 'BRL' },
+            recordCount: expected === null ? 0 : 1,
+            computedAt: monthlyGolden.evaluatedAt,
+            state: expected === null ? 'insufficient-data' : 'available',
+            freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+          });
+          expect(point.median.sources).toEqual(
+            expected === null
+              ? []
+              : [
+                  {
+                    id: 'synthetic-figures',
+                    label: 'synthetic-figures',
+                    url: 'https://figures.invalid/50',
+                    collectedAt: monthly[index]!.occurredAt,
+                  },
+                ],
+          );
+          expect(point.parentMedian).toMatchObject({
+            value: {
+              minorUnits: expected === null ? 10000 : (expected + 10000) / 2,
+              currency: 'BRL',
+            },
+            recordCount: expected === null ? 1 : 2,
+            computedAt: monthlyGolden.evaluatedAt,
+          });
+          expect(point.parentMedian!.sources).toEqual([
+            {
+              id: 'synthetic-figures',
+              label: 'synthetic-figures',
+              url: expected === null ? 'https://figures.invalid/51' : 'https://figures.invalid/50',
+              collectedAt: expected === null ? first : monthly[index]!.occurredAt,
+            },
+          ]);
+        }
+        const stableSeries = (response: Awaited<ReturnType<typeof series>>) => ({
+          ...response,
+          evaluatedAt: 'live',
+          points: response.points.map((point, index) => ({
+            ...point,
+            ...(index === 11 ? { asOf: 'live' } : {}),
+            median: { ...point.median, computedAt: 'live' },
+            parentMedian: point.parentMedian ? { ...point.parentMedian, computedAt: 'live' } : null,
+          })),
+        });
+        const beforeMonthlyReplay = await snapshot();
+        await db.query(
+          'DELETE FROM platform.inbox WHERE consumer_name=$1 AND event_id=ANY($2::uuid[])',
+          [MARKET_LISTING_CONSUMER, monthly.map((event) => event.eventId)],
+        );
+        for (const event of monthly) await broker.publish(event, signal());
+        await expect
+          .poll(
+            async () =>
+              (
+                await db.query<{ count: number }>(
+                  'SELECT count(*)::integer AS count FROM platform.inbox WHERE consumer_name=$1',
+                  [MARKET_LISTING_CONSUMER],
+                )
+              )[0]!.count,
+            { timeout: 30000, interval: 100 },
+          )
+          .toBe(delivery.length + monthly.length + 1);
+        expect(await snapshot()).toEqual(beforeMonthlyReplay);
+        expect(stableSeries(await series('sao-paulo-santana-fictional-block'))).toEqual(
+          stableSeries(monthlyGolden),
+        );
+        expect((await series('brazil')).points.every((point) => point.parentMedian === null)).toBe(
+          true,
+        );
         await compose('stop', 'worker');
         const beforeReads = await snapshot();
         await get();
+        const detachedSeries = await series('sao-paulo-santana-fictional-block');
+        Reflect.set(detachedSeries.points[0]!.median.sources[0]!, 'url', 'mutated');
+        expect(stableSeries(await series('sao-paulo-santana-fictional-block'))).toEqual(
+          stableSeries(monthlyGolden),
+        );
+        const emptyHistorical = await series(
+          'sao-paulo-vila-mariana-rua-cenario-um-fictional-block',
+        );
+        expect(emptyHistorical.comparisonPlace?.id).toBe('sao-paulo-vila-mariana');
+        expect(emptyHistorical.points.every((point) => point.median.value === null)).toBe(true);
+        expect(emptyHistorical.points.at(-1)!.parentMedian?.value?.minorUnits).toBe(7000);
         const detached = await neighbors();
         Reflect.set(detached.items[0]!.median.sources[0]!, 'url', 'caller-mutated');
         expect((await neighbors()).items[0]!.median.sources[0]!.url).toBe(
@@ -459,7 +649,7 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         expect((await requestHttp(`http://127.0.0.1:${api}/api/v1/places/BAD/market`)).status).toBe(
           400,
         );
-        for (const suffix of ['/neighbours']) {
+        for (const suffix of ['/neighbours', '/monthly-series']) {
           expect(
             (
               await requestHttp(
@@ -475,7 +665,7 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         await db.query('ALTER TABLE market.listing_state_evidence RENAME TO owned_unavailable');
         await preserveCleanup(
           async () => {
-            for (const suffix of ['', '/neighbours']) {
+            for (const suffix of ['', '/neighbours', '/monthly-series']) {
               const response = await requestHttp(
                 `http://127.0.0.1:${api}/api/v1/places/sao-paulo-bela-vista/market${suffix}`,
               );

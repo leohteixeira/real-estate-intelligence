@@ -56,7 +56,9 @@ export function neighboursFixture(place = bela): PlaceMarketNeighboursResponse {
         : [],
   };
 }
-export function seriesFixture(place = bela): PlaceMarketSeriesResponse {
+export function seriesFixture(
+  place = bela,
+): Extract<PlaceMarketSeriesResponse, { basis: 'prepared-market-example' }> {
   return {
     metadata: { ...metadata, asOf: '2025-11-01T00:00:00.000Z' },
     basis: 'prepared-market-example',

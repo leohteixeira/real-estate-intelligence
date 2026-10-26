@@ -72,11 +72,8 @@ test('market-contracts preserves its complete real-service campaign', async () =
       expect(response.status, `${id}${suffix}`).toBe(200);
       const value = parser(await response.json());
       expect(value.metadata).toStrictEqual(SYNTHETIC_READ_METADATA);
-      expect(value.basis).toBe(
-        suffix === '/monthly-series' ? 'prepared-market-example' : 'event-fed-place-figures',
-      );
-      if (suffix === '/monthly-series') expect(value.evaluatedAt).toBe('2026-10-01T12:00:00.000Z');
-      else expect(Date.now() - Date.parse(value.evaluatedAt)).toBeLessThan(5000);
+      expect(value.basis).toBe('event-fed-place-figures');
+      expect(Date.now() - Date.parse(value.evaluatedAt)).toBeLessThan(5000);
       return value as ReturnType<T>;
     }
     async function error(
@@ -197,7 +194,12 @@ test('market-contracts preserves its complete real-service campaign', async () =
             const series = await get(place.id, '/monthly-series', parsePlaceMarketSeriesResponse);
             expect(series.comparisonPlace?.id ?? null).toBe(place.parentId);
             expect(series.points.map((point) => point.month)).toStrictEqual(
-              SYNTHETIC_SAO_PAULO_DATASET.runs.slice(1).map((run) => run.runKey),
+              Array.from({ length: 12 }, (_, index) => {
+                const date = new Date(series.evaluatedAt);
+                date.setUTCDate(1);
+                date.setUTCMonth(date.getUTCMonth() - 11 + index);
+                return date.toISOString().slice(0, 7);
+              }),
             );
             if (place.propertyCount === 0) {
               expect(overview.counts).toStrictEqual({
@@ -210,7 +212,7 @@ test('market-contracts preserves its complete real-service campaign', async () =
               ).toBeTruthy();
               expect(
                 series.points.every(
-                  (point) => point.median.value === null && point.parentMedian!.value !== null,
+                  (point) => point.median.value === null && point.parentMedian?.value === null,
                 ),
               ).toBeTruthy();
             }
@@ -231,7 +233,7 @@ test('market-contracts preserves its complete real-service campaign', async () =
             expect(
               (await get(place.id, '/monthly-series', parsePlaceMarketSeriesResponse)).points![0]!
                 .median.state,
-            ).toBe(place.propertyCount ? 'available' : 'insufficient-data');
+            ).toBe('insufficient-data');
           }
           const city = await get('sao-paulo', '', parsePlaceMarketResponse);
           expect(city.counts).toStrictEqual({ properties: 0, activeListings: 0, sources: 0 });
@@ -287,23 +289,10 @@ test('market-contracts preserves its complete real-service campaign', async () =
           const chart = await get('brazil', '/monthly-series', parsePlaceMarketSeriesResponse);
           Reflect.set(chart!.points[1]!, 'month', chart!.points[0]!.month);
           expect(() => parsePlaceMarketSeriesResponse(chart)).toThrow(TypeError);
-          // Prepared series retain their independent completion semantics.
+          // Live series cannot claim prepared completion or stale fixture semantics.
           const stale = await get('brazil', '/monthly-series', parsePlaceMarketSeriesResponse);
-          Reflect.set(stale, 'evaluatedAt', '2026-10-01T12:00:02.000Z');
-          for (const point of stale.points) {
-            Reflect.set(
-              point.median.freshness,
-              'ageSeconds',
-              (Date.parse(stale.evaluatedAt) - Date.parse(point.median.computedAt)) / 1000,
-            );
-          }
-          const last = stale.points.at(-1)!.median;
-          Reflect.set(last.sources[0]!, 'collectedAt', '2026-10-01T12:00:01.000Z');
-          Reflect.set(last.freshness, 'latestCollectionCompletedAt', '2026-10-01T12:00:01.000Z');
-          Reflect.set(last.freshness, 'status', 'stale');
-          expect(parsePlaceMarketSeriesResponse(stale).points.at(-1)!.median.freshness.status).toBe(
-            'stale',
-          );
+          Reflect.set(stale.points.at(-1)!.median.freshness, 'status', 'stale');
+          expect(() => parsePlaceMarketSeriesResponse(stale)).toThrow(TypeError);
           expect(await state(), 'GETs changed persisted state').toStrictEqual(before);
           await connection.query('ALTER TABLE locations.place RENAME TO owned_place_unavailable');
           {

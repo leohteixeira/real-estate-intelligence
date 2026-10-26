@@ -83,9 +83,14 @@ describe('Market facade query orchestration', () => {
       message: 'Stored Market price facts could not be evaluated.',
       cause: invalidFact,
     });
+    await expect(service.monthlySeries('child')).rejects.toMatchObject({
+      message: 'Stored Market price facts could not be evaluated.',
+      cause: invalidFact,
+    });
+    await expect(service.monthlySeries('BAD')).rejects.toBeInstanceOf(DomainValidationError);
     await expect(service.getPlaceMarket('BAD')).rejects.toBeInstanceOf(DomainValidationError);
     await expect(service.neighbours('BAD')).rejects.toBeInstanceOf(DomainValidationError);
-    expect(readFigures).toHaveBeenCalledTimes(2);
+    expect(readFigures).toHaveBeenCalledTimes(3);
   });
   it.each(['child', 'parent'])(
     'translates an unrepresentable live %s median into a server failure',
@@ -170,10 +175,24 @@ describe('Market facade query orchestration', () => {
     expect(now).toHaveBeenCalledTimes(2);
     expect(result).not.toHaveProperty('preparedEvaluatedAt');
     expect(result).not.toHaveProperty('preparedSections');
+    const series = (await service.monthlySeries('child'))!;
+    expect(series.basis).toBe('event-fed-place-figures');
+    expect(series.points).toHaveLength(12);
+    expect(series.comparisonPlace?.id).toBe('parent');
+    expect(
+      series.points.every(
+        (point) => point.median.value === null && point.parentMedian?.value === null,
+      ),
+    ).toBe(true);
+    expect(readFigures).toHaveBeenCalledTimes(3);
+    expect(now).toHaveBeenCalledTimes(3);
+    Reflect.set(series.metadata, 'fixtureVersion', 'mutated');
+    expect((await service.monthlySeries('child'))!.metadata.fixtureVersion).toBe('fixture');
+    expect((await service.monthlySeries('parent'))!.comparisonPlace).toBeNull();
     readFigures.mockRejectedValue(new Error('Live dependency failed'));
     await expect(service.getPlaceMarket('child')).rejects.toThrow('Live dependency failed');
     await expect(service.neighbours('child')).rejects.toThrow('Live dependency failed');
-    expect((await service.monthlySeries('child'))!.basis).toBe('prepared-market-example');
+    await expect(service.monthlySeries('child')).rejects.toThrow('Live dependency failed');
   });
   it('counts the represented population without an area filter and evaluates only registered neighbours coherently', async () => {
     const f = fixture();
@@ -236,7 +255,7 @@ describe('Market facade query orchestration', () => {
     const readFigures = vi.fn(async () => ({
       representatives,
       current,
-      history: [],
+      history: current.map((listing) => ({ listing, revision: 1 })),
       priceChanges: [],
     }));
     const now = vi.fn(() => date);
@@ -270,6 +289,21 @@ describe('Market facade query orchestration', () => {
     Reflect.set(neighbors.items[0]!.median.sources[0]!, 'url', 'mutated');
     expect((await service.neighbours('child'))!.items[0]!.median.sources[0]!.url).toBe(
       'https://source.invalid/d',
+    );
+    const series = (await service.monthlySeries('child'))!;
+    expect(series.comparisonPlace?.id).toBe('parent');
+    expect(series.points[10]!.median.value).toBeNull();
+    expect(series.points[11]!.median).toMatchObject({
+      recordCount: 1,
+      value: { minorUnits: 1000 },
+    });
+    expect(series.points[11]!.parentMedian).toMatchObject({
+      recordCount: 3,
+      value: { minorUnits: 1000 },
+    });
+    Reflect.set(series.points[11]!.median.sources[0]!, 'url', 'mutated');
+    expect((await service.monthlySeries('child'))!.points[11]!.median.sources[0]!.url).toBe(
+      'https://source.invalid/a',
     );
     expect((await service.neighbours('parent'))!.items).toEqual([]);
     expect(f.scope.mock.calls.map(([id]) => id)).not.toContain('sibling');

@@ -555,3 +555,122 @@ describe('strict prepared Market wire contracts', () => {
     ).toThrow(TypeError);
   });
 });
+
+function liveSeries() {
+  const original = series();
+  return {
+    ...original,
+    basis: 'event-fed-place-figures',
+    points: original.points.map((point, index) => {
+      const next = new Date(`${point.month}-01T00:00:00.000Z`);
+      next.setUTCMonth(next.getUTCMonth() + 1);
+      const asOf = index === 11 ? evaluatedAt : new Date(next.getTime() - 1).toISOString();
+      return {
+        month: point.month,
+        asOf,
+        median: {
+          ...point.median,
+          computedAt: evaluatedAt,
+          sources: [
+            {
+              id: 'synthetic-source',
+              label: 'synthetic-source',
+              url: 'https://source.invalid',
+              collectedAt: asOf,
+            },
+          ],
+          freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+        },
+        parentMedian: null,
+      };
+    }),
+  };
+}
+describe('strict live monthly series wire contract', () => {
+  it('accepts independent cutoff and computation evidence', () => {
+    const input = liveSeries();
+    const output = parsePlaceMarketSeriesResponse(input);
+    expect(output).toEqual(input);
+  });
+  it('retains identified parent and empty own/parent populations', () => {
+    const input = liveSeries();
+    const empty = {
+      recordCount: 0,
+      sources: [],
+      state: 'insufficient-data',
+      value: null,
+      computedAt: evaluatedAt,
+      freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+    };
+    const child = {
+      ...input,
+      place: { ...neighborhood, id: 'child-block', kind: 'street-block' },
+      comparisonPlace: neighborhood,
+      points: input.points.map((point) => ({ ...point, median: empty, parentMedian: empty })),
+    };
+    expect(
+      parsePlaceMarketSeriesResponse(child).points.every(
+        (point) => point.median.value === null && point.parentMedian?.value === null,
+      ),
+    ).toBe(true);
+  });
+  it.each([
+    ['points.0.asOf', '2025-11-30T23:59:59.998Z'],
+    ['points.11.asOf', '2026-10-01T12:00:00.001Z'],
+    ['evaluatedAt', '2026-11-01T00:00:00.000Z'],
+    ['points.0.asOf', undefined],
+    ['points.0.median.computedAt', '2025-11-30T23:59:59.999Z'],
+    ['points.0.median.sources.0.collectedAt', '2025-12-01T00:00:00.000Z'],
+    ['points.0.median.sources.0.label', 'Prepared source'],
+    ['points.0.median.freshness.status', 'fresh'],
+    ['points.0.median.freshness.latestCollectionCompletedAt', evaluatedAt],
+    ['points.0.median.freshness.ageSeconds', 1],
+    ['points.0.median.recordCount', 0],
+    ['points.0.median.sources', []],
+    ['points.0.extra', true],
+    ['points.0.month', '2025-12'],
+    ['points.0.parentMedian', {}],
+    ['preparedSections', []],
+  ])('rejects incompatible live cutoff, evidence or shape %s', (path, value) => {
+    expect(() => parsePlaceMarketSeriesResponse(changed(liveSeries(), path, value))).toThrow(
+      TypeError,
+    );
+  });
+  it('enforces live parent evidence and source uniqueness/order/count', () => {
+    const input = liveSeries();
+    const child = {
+      ...input,
+      place: { ...neighborhood, id: 'child-block', kind: 'street-block' },
+      comparisonPlace: neighborhood,
+      points: input.points.map((point) => ({
+        ...point,
+        parentMedian: structuredClone(point.median),
+      })),
+    };
+    expect(parsePlaceMarketSeriesResponse(child)).toEqual(child);
+    for (const [path, value] of [
+      ['points.0.parentMedian.computedAt', '2025-11-30T23:59:59.999Z'],
+      ['points.0.parentMedian.sources.0.collectedAt', '2025-12-01T00:00:00.000Z'],
+      ['points.0.parentMedian', null],
+    ] as const)
+      expect(() => parsePlaceMarketSeriesResponse(changed(child, path, value))).toThrow(TypeError);
+    const source = input.points[0]!.median.sources[0]!;
+    for (const sources of [
+      [source, source],
+      [{ ...source, id: 'z-source', label: 'z-source' }, source],
+    ])
+      expect(() =>
+        parsePlaceMarketSeriesResponse(changed(input, 'points.0.median.sources', sources)),
+      ).toThrow(TypeError);
+  });
+  it('keeps prepared points closed to asOf and preserves prepared month and freshness validation', () => {
+    for (const [path, value] of [
+      ['points.0.asOf', '2025-11-30T23:59:59.999Z'],
+      ['points.0.median.computedAt', evaluatedAt],
+      ['points.0.median.freshness.status', 'untracked'],
+    ] as const)
+      expect(() => parsePlaceMarketSeriesResponse(changed(series(), path, value))).toThrow(
+        TypeError,
+      );
+  });
+});

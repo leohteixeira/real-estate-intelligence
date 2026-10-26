@@ -1,5 +1,6 @@
 import type { Page } from 'playwright';
 import { expect } from 'vitest';
+import { parsePlaceMarketSeriesResponse } from '../../packages/contracts/dist/index.js';
 import { checkAccessibility } from './accessibility.ts';
 import { toggleOverviewDisclosure } from './overview-disclosures.ts';
 
@@ -72,4 +73,96 @@ export async function exerciseOverviewReads(
   } finally {
     await page.unroute(seriesUrl);
   }
+}
+
+/** Persisted historical values and evidence agree with public HTTP at every browser viewport. */
+export async function exerciseHistoricalSeries(page: Page, base: string, locale: 'pt-BR' | 'en') {
+  const id = 'sao-paulo-vila-mariana';
+  const seriesRead = page.waitForResponse(`${base}/api/v1/places/${id}/market/monthly-series`);
+  await page.goto(`${base}/places/${id}`);
+  const panel = page.locator('.place-series');
+  await panel.locator('.place-series-disclosure > summary').waitFor({ state: 'visible' });
+  const response = await seriesRead;
+  expect(response.status()).toBe(200);
+  const series = parsePlaceMarketSeriesResponse(await response.json());
+  expect(series.basis).toBe('event-fed-place-figures');
+  if (series.basis !== 'event-fed-place-figures')
+    throw new Error('Expected persisted monthly series.');
+  expect(
+    series.points.some((point, index) => index < 11 && point.median.value?.minorUnits === 300000),
+  ).toBe(true);
+  expect(series.points.at(-1)!.median.value?.minorUnits).toBe(450000);
+  expect(await panel.locator(':scope > .place-origin').textContent()).toBe(
+    locale === 'en'
+      ? 'Figure computed from collected events'
+      : 'Indicador calculado a partir dos eventos coletados',
+  );
+  expect(await panel.locator('svg').getAttribute('aria-label')).toContain(
+    locale === 'en' ? 'Historical series' : 'Série histórica',
+  );
+  expect(await panel.locator('.place-chart__subject').count()).toBe(1);
+  expect(await panel.locator('.place-chart__endpoint--subject').count()).toBe(2);
+  await toggleOverviewDisclosure(page, panel.locator('.place-series-disclosure'), true);
+  const rows = panel.locator('tbody tr');
+  expect(await rows.count()).toBe(12);
+  const formatTime = (instant: string) =>
+    new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: 'UTC',
+      timeZoneName: 'short',
+    }).format(new Date(instant));
+  for (const [index, point] of series.points.entries()) {
+    const row = rows.nth(index);
+    expect(await row.locator('th').textContent()).toBe(point.month);
+    for (const [column, median] of [point.median, point.parentMedian].entries()) {
+      if (!median) continue;
+      const cell = row.locator('td').nth(column);
+      const expected =
+        median.value === null
+          ? locale === 'en'
+            ? 'Not available'
+            : 'Não disponível'
+          : `${new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
+              style: 'currency',
+              currency: 'BRL',
+              maximumFractionDigits: 0,
+              minimumFractionDigits: 0,
+            })
+              .format(median.value.minorUnits / 100)
+              .replace(/\u00a0/g, ' ')
+              .replace(/^R\$\s*/, 'R$ ')} /m²`;
+      expect(await cell.locator(':scope > .num').textContent()).toBe(expected);
+      const proof = cell.locator('.place-point-evidence');
+      await toggleOverviewDisclosure(page, proof, true);
+      expect(await proof.locator('.place-month-cutoff').textContent()).toBe(
+        `${locale === 'en' ? 'Population as of' : 'População até'} ${formatTime(point.asOf)}`,
+      );
+      expect(await proof.locator('.place-month-cutoff time').getAttribute('datetime')).toBe(
+        point.asOf,
+      );
+      expect(await proof.locator('.place-provenance').textContent()).toContain(
+        `${locale === 'en' ? 'Computed at' : 'Calculada em'} ${formatTime(median.computedAt)}`,
+      );
+      expect(await proof.locator('.place-provenance').textContent()).toContain(
+        locale === 'en' ? 'Freshness not tracked' : 'Atualidade não rastreada',
+      );
+      expect(
+        await proof
+          .locator('.place-provenance a')
+          .evaluateAll((links) => links.map((link) => link.getAttribute('href'))),
+      ).toEqual(median.sources.map((source) => source.url));
+      expect(await proof.locator('.place-provenance').textContent()).toContain(
+        locale === 'en'
+          ? `${median.recordCount} contributing ${median.recordCount === 1 ? 'property' : 'properties'}`
+          : `${median.recordCount} ${new Intl.PluralRules(locale).select(median.recordCount) === 'one' ? 'imóvel contribuinte' : 'imóveis contribuintes'}`,
+      );
+      await toggleOverviewDisclosure(page, proof, false);
+    }
+  }
+  await checkAccessibility(page, `place-historical-series-${page.viewportSize()!.width}-${locale}`);
 }

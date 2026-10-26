@@ -86,6 +86,14 @@ export async function exerciseOverviewDisclosures(
     await toggleOverviewDisclosure(page, point, true);
     expect(await point.locator('.place-provenance').isVisible()).toBe(true);
     expect(await point.locator('.place-provenance').textContent()).toContain('UTC');
+    expect(await point.locator('.place-month-cutoff').textContent()).toContain(
+      locale === 'en' ? 'Population as of' : 'População até',
+    );
+    expect(await point.locator('.place-origin').textContent()).toBe(
+      locale === 'en'
+        ? 'Figure computed from collected events'
+        : 'Indicador calculado a partir dos eventos coletados',
+    );
   }
   const neighbours = page.locator('.place-neighbour .place-figure-evidence');
   expect(await neighbours.count()).toBe((await page.locator('.place-neighbour').count()) * 2);

@@ -180,8 +180,8 @@ it.each(
   expect(container.querySelector('.place-disclosure')).toHaveTextContent(
     persisted
       ? locale === 'en'
-        ? 'Monthly series remains a prepared example.'
-        : 'A série mensal continua sendo um exemplo preparado.'
+        ? 'Each month uses its own historical population.'
+        : 'Cada mês usa sua própria população histórica.'
       : locale === 'en'
         ? 'Counts, neighbours and monthly series remain prepared examples.'
         : 'Contagens, vizinhos e série mensal continuam sendo exemplos preparados.',
@@ -529,3 +529,71 @@ it('aborts all delayed old-place auxiliary reads and clears draft on navigation'
   expect(screen.queryByText('R$ 9,515')).not.toBeInTheDocument();
   expect(await screen.findByText('No registered neighbouring places.')).toBeVisible();
 });
+
+it.each(['pt-BR', 'en'] as const)(
+  'shows live monthly origin, actual computation and separate cutoff in %s',
+  async (locale) => {
+    const prepared = seriesFixture();
+    const evaluatedAt = prepared.evaluatedAt;
+    const series = {
+      ...prepared,
+      basis: 'event-fed-place-figures',
+      points: prepared.points.map((point, index) => {
+        const end = new Date(`${point.month}-01T00:00:00.000Z`);
+        end.setUTCMonth(end.getUTCMonth() + 1);
+        const asOf = index === 11 ? evaluatedAt : new Date(end.getTime() - 1).toISOString();
+        const convert = (median: typeof point.median) => ({
+          ...median,
+          computedAt: evaluatedAt,
+          sources: median.sources.map((source) => ({ ...source, label: source.id })),
+          freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+        });
+        return {
+          month: point.month,
+          asOf,
+          median: convert(point.median),
+          parentMedian: point.parentMedian ? convert(point.parentMedian) : null,
+        };
+      }),
+    };
+    const { container } = mount(locale, bela.id, (path) =>
+      path.endsWith('/monthly-series') ? series : overviewFixture(path),
+    );
+    await screen.findByText(locale === 'en' ? 'R$ 9,515' : 'R$ 9.515');
+    const panel = container.querySelector<HTMLElement>('.place-series')!;
+    await within(panel).findByText(
+      locale === 'en' ? 'View all 12 months and evidence' : 'Ver os 12 meses e evidências',
+    );
+    expect(panel.querySelector(':scope > .place-origin')).toHaveTextContent(
+      locale === 'en'
+        ? 'Figure computed from collected events'
+        : 'Indicador calculado a partir dos eventos coletados',
+    );
+    expect(
+      within(panel).queryByText(
+        locale === 'en' ? 'Prepared market example' : 'Exemplo de mercado preparado',
+      ),
+    ).not.toBeInTheDocument();
+    expect(panel.querySelector('svg')).toHaveAccessibleName(
+      locale === 'en' ? /Historical series/ : /Série histórica/,
+    );
+    await userEvent.click(panel.querySelector('.place-series-disclosure > summary')!);
+    const first = panel.querySelector<HTMLElement>('.place-point-evidence')!;
+    await userEvent.click(first.querySelector('summary')!);
+    expect(first.querySelector('.place-month-cutoff')).toHaveTextContent(
+      locale === 'en'
+        ? /Population as of 30 Nov 2025, 23:59 UTC/
+        : /População até 30 de nov. de 2025, 23:59 UTC/,
+    );
+    expect(first.querySelector('.place-month-cutoff time')).toHaveAttribute(
+      'datetime',
+      '2025-11-30T23:59:59.999Z',
+    );
+    expect(first.querySelector('.place-provenance')).toHaveTextContent(
+      locale === 'en' ? /Computed at .*2026.*12:00 UTC/ : /Calculada em .*2026.*12:00 UTC/,
+    );
+    expect(first.querySelector('.place-provenance')).toHaveTextContent(
+      locale === 'en' ? 'Freshness not tracked' : 'Atualidade não rastreada',
+    );
+  },
+);

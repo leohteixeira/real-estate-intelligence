@@ -5,6 +5,7 @@ import {
   LOCATIONS_FACADE,
   MarketQueryService,
   type MarketFacade,
+  type LocationsFacade,
 } from '@rei/application';
 import {
   parsePlaceMarketResponse,
@@ -17,6 +18,7 @@ import {
   SYNTHETIC_READ_METADATA,
   syntheticPlaces,
   supplementaryPlaces,
+  SyntheticMarketAdapter,
 } from '@rei/infrastructure';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { configureApi } from '../configure-api';
@@ -55,6 +57,7 @@ describe('actual MarketModule HTTP contracts', () => {
   let app: INestApplication;
   let base: string;
   let market: MarketFacade;
+  let prepared: MarketFacade;
   beforeAll(async () => {
     const module = await Test.createTestingModule({ imports: [MarketModule] })
       .overrideProvider(DATABASE_CONNECTION)
@@ -62,6 +65,10 @@ describe('actual MarketModule HTTP contracts', () => {
       .compile();
     expect(module.get(LOCATIONS_FACADE)).toBeInstanceOf(PostgresLocationsFacade);
     market = module.get<MarketFacade>(MARKET_FACADE);
+    prepared = new MarketQueryService(
+      new SyntheticMarketAdapter(),
+      module.get<LocationsFacade>(LOCATIONS_FACADE),
+    );
     expect(market).toBeInstanceOf(MarketQueryService);
     app = module.createNestApplication();
     configureApi(app);
@@ -240,7 +247,7 @@ describe('actual MarketModule HTTP contracts', () => {
     }
   });
   it('allows truthful stale prepared series and isolates caller changes', async () => {
-    const original = (await market.monthlySeries('brazil'))!;
+    const original = (await prepared.monthlySeries('brazil'))!;
     const stale = structuredClone(original);
     Reflect.set(stale, 'evaluatedAt', '2026-10-01T12:00:02.000Z');
     for (const point of stale.points)
@@ -253,17 +260,20 @@ describe('actual MarketModule HTTP contracts', () => {
     Reflect.set(figure.sources[0]!, 'collectedAt', '2026-10-01T12:00:01.000Z');
     Reflect.set(figure.freshness, 'latestCollectionCompletedAt', '2026-10-01T12:00:01.000Z');
     Reflect.set(figure.freshness, 'status', 'stale');
-    const spy = vi.spyOn(market, 'monthlySeries').mockResolvedValueOnce(stale);
+    const spy = vi
+      .spyOn(market, 'monthlySeries')
+      .mockResolvedValueOnce(stale)
+      .mockResolvedValueOnce(original);
     const parsed = parsePlaceMarketSeriesResponse(
       await success('brazil', '/monthly-series', parsePlaceMarketSeriesResponse),
     );
     expect(parsed.points.at(-1)!.median.freshness.status).toBe('stale');
-    spy.mockRestore();
     Reflect.set(parsed.points.at(-1)!.median, 'value', null);
     const fresh = parsePlaceMarketSeriesResponse(
       await success('brazil', '/monthly-series', parsePlaceMarketSeriesResponse),
     );
     expect(fresh.points.at(-1)!.median.value).toEqual(original.points.at(-1)!.median.value);
+    spy.mockRestore();
     const overview = parsePlaceMarketResponse(
       await success('brazil', '', parsePlaceMarketResponse),
     );

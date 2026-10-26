@@ -23,6 +23,7 @@ import {
   parseReductionsResponse,
   parsePlaceMarketResponse,
   parsePlaceMarketNeighboursResponse,
+  parsePlaceMarketSeriesResponse,
 } from '../../packages/contracts/dist/index.js';
 import { cleanupAll, preserveCleanup } from './cleanup.ts';
 import { requestHttp } from './http.ts';
@@ -211,6 +212,18 @@ export async function retainOverviewNeighbour(fixture: {
           { timeout: 60_000, interval: 200 },
         )
         .toBe(50);
+      const seriesRead = await requestHttp(
+        `${fixture.base}/api/v1/places/sao-paulo-vila-mariana/market/monthly-series`,
+      );
+      expect(seriesRead.status).toBe(200);
+      const series = parsePlaceMarketSeriesResponse(await seriesRead.json());
+      expect(series.basis).toBe('event-fed-place-figures');
+      expect(
+        series.points.some(
+          (point, index) => index < 11 && point.median.value?.minorUnits === 300000,
+        ),
+      ).toBe(true);
+      expect(series.points.at(-1)!.median.value?.minorUnits).toBe(450000);
     },
     () => connection.close(),
   );
