@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import {
   ConsumeMarketListing,
+  ConsumeMarketSuppression,
+  type MarketSuppressionPort,
   ConsumeMarketCompletion,
   type MarketCompletionProjectionPort,
   INBOX,
@@ -10,8 +12,13 @@ import {
   type TransactionRunner,
   type MarketPriceFactsProjectionPort,
 } from '@rei/application';
-import { PostgresMarketPriceFacts, type DatabaseConnection } from '@rei/infrastructure';
+import {
+  PostgresListingSuppression,
+  PostgresMarketPriceFacts,
+  type DatabaseConnection,
+} from '@rei/infrastructure';
 import { DATABASE_CONNECTION } from '../persistence.module';
+import { MarketSuppressionConsumer } from './market-suppression.consumer';
 import { MarketListingConsumer } from './market-listing.consumer';
 import { MarketCompletionConsumer } from './market-completion.consumer';
 
@@ -40,9 +47,26 @@ import { MarketCompletionConsumer } from './market-completion.consumer';
         inbox: Inbox,
       ) => new ConsumeMarketCompletion(facts, transactions, inbox),
     },
+    {
+      provide: ConsumeMarketSuppression,
+      inject: [DATABASE_CONNECTION, MARKET_PRICE_FACTS, TRANSACTION_RUNNER, INBOX],
+      useFactory: (
+        connection: DatabaseConnection,
+        facts: MarketSuppressionPort,
+        transactions: TransactionRunner,
+        inbox: Inbox,
+      ) =>
+        new ConsumeMarketSuppression(
+          new PostgresListingSuppression(connection),
+          facts,
+          transactions,
+          inbox,
+        ),
+    },
+    MarketSuppressionConsumer,
     MarketListingConsumer,
     MarketCompletionConsumer,
   ],
-  exports: [MarketListingConsumer, MarketCompletionConsumer],
+  exports: [MarketListingConsumer, MarketCompletionConsumer, MarketSuppressionConsumer],
 })
 export class MarketModule {}
