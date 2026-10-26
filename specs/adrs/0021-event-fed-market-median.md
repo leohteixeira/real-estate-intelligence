@@ -73,6 +73,29 @@ published clients exist; removing prepared variants later requires an explicit c
 Real PostgreSQL, RabbitMQ, object-storage and HTTP campaigns prove rollback, replay, ordering,
 restart, propagation and isolation under ADR 0020's strict TypeScript/Vitest standard.
 
+## D-096 amendment — remaining persisted figures
+
+The live overview now uses the additive `event-fed-figures-with-prepared-counts` variant with exact
+`preparedSections: ['counts']` and independent `preparedEvaluatedAt`. Earlier prepared and staged
+variants retain their existing strict meanings. Counts, neighbours and monthly series remain
+prepared; collection completion remains untracked.
+
+One Market-only SQL snapshot supplies current causal members, retained state history and confirmed
+listing price-event evidence. Current membership applies at both movement instants. Six UTC calendar
+months are subtracted with month-end clamping; prior state is the highest retained revision whose
+effective and observed times both precede or equal the cutoff. Pair properties eligible at both
+instants after global representative selection, geography and area checks. Movement compares the
+two paired medians; this cohort can differ from the headline median. No pair yields insufficient data.
+
+Observed duration retains the earliest member observation, including removed members; reappearance
+does not reset it. Reductions count distinct currently active listings with a confirmed decrease in
+`(evaluatedAt - 30 days, evaluatedAt]`, divided by all active members of represented properties.
+Listings/property uses the same listing population. These three figures do not require area.
+Sale remains unrecorded. Each live figure reports actual contributing observations and computation
+time without claiming collection completion. No projection, migration, event contract or replay
+fence changes are required. The [API reference](../../docs/api/market.md) records units and provenance;
+the focused `test:integration:market-figures` campaign exercises the real HTTP/worker/SQL path.
+
 ## Reassessment trigger
 
 Reassess projection and response provenance when property reassignment, remaining figures,

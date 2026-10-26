@@ -20,6 +20,7 @@ For an individual campaign, build first, then select its existing focused alias:
 ```bash
 pnpm run build
 pnpm run test:integration:market
+pnpm run test:integration:market-figures
 pnpm run test:integration:market-median
 pnpm run test:integration:market-price-facts
 pnpm run test:integration:ask
@@ -43,6 +44,15 @@ resumable-collection, scheduled-collection and collection-resilience. To target 
 ```bash
 pnpm exec vitest run --config vitest.integration.config.ts integration/support
 ```
+
+The figures campaign (`integration/market-figures.integration.test.ts`) owns PostgreSQL, RabbitMQ,
+S3-compatible storage, API and worker. Synthetic outbox events arrive as a v2 merge snapshot before
+older listing states. Parsed HTTP proves paired movement (current paired median 2000 / prior 1500),
+four-property observed duration, three reduced listings out of five active listings, the 1.25 ratio,
+null sale and independent prepared counts. It checks removed-member history, reappearance,
+null-area eligibility, global geography, restart/inbox-expiry replay, empty scopes, canonical errors
+and unchanged retained SQL evidence after reads. Domain tests cover exact UTC/leap/month-end and
+thirty-day interval boundaries without depending on wall-clock timing.
 
 The price-facts campaign upgrades populated Market v1 history without rewriting evidence, then uses
 the actual outbox, RabbitMQ subscriber, PostgreSQL projection and place overview HTTP to exercise

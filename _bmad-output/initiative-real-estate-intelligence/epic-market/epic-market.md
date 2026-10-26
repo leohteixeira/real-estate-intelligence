@@ -103,3 +103,15 @@ of CAP-22, not recorded sale figures (CAP-33).
   property without reading Properties SQL. Out-of-order merge/split, replay and removed-member
   reappearance must converge through real-service HTTP journeys; the entity-resolution producer
   remains its own story (agent, on the owner's behalf, 2026-10-11).
+
+- Decision: D-096 settles the six-calendar-month movement using the same eligible-property
+  cohort at both instants under current causal membership; select each instant's global active
+  minimum before geography/area. Missing paired history is insufficient data. Time on market
+  measures earliest known observation of the active property's members, including retained
+  removed history, rather than an unprovided source publication date. Thirty-day reductions count
+  currently active listings with a confirmed decrease in `(evaluatedAt - 30 days, evaluatedAt]`,
+  once per listing, preserving the design's listing unit; their denominator is eligible active
+  listings. The ratio divides those listings by distinct represented properties. Other counts,
+  neighbours, series and collection completion retain their own stories. Figures explicitly
+  distinguish persisted evidence from remaining prepared sections (agent, on the owner's behalf,
+  2026-10-26).

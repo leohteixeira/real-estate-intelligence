@@ -11,12 +11,12 @@ repeated, nested and private keys. They require no authentication in this synthe
 
 ## Common fields
 
-| Field         | Type                                 | Meaning                                                                                           |
-| ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z`                            |
-| `basis`       | string                               | Overview: `event-fed-median-with-prepared-sections`; neighbours/series: `prepared-market-example` |
-| `evaluatedAt` | UTC ISO timestamp                    | Overview: actual computation time; prepared neighbours/series: `2026-10-01T12:00:00.000Z`         |
-| `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block                              |
+| Field         | Type                                 | Meaning                                                                                          |
+| ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z`                           |
+| `basis`       | string                               | Overview: `event-fed-figures-with-prepared-counts`; neighbours/series: `prepared-market-example` |
+| `evaluatedAt` | UTC ISO timestamp                    | Overview: actual computation time; prepared neighbours/series: `2026-10-01T12:00:00.000Z`        |
+| `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block                             |
 
 ## Overview fields
 
@@ -24,24 +24,15 @@ repeated, nested and private keys. They require no authentication in this synthe
 prepared properties, nine active listings and three sources. These counts belong to the prepared
 grouping; they do not count the nine unresolved persisted Properties identities from ingestion.
 
-The overview additionally requires `preparedEvaluatedAt`, the independent fixture evaluation
-time, and the exact ordered `preparedSections` array:
+The live overview requires `basis: 'event-fed-figures-with-prepared-counts'`,
+`preparedSections: ['counts']` and `preparedEvaluatedAt`, the independent fixture evaluation time.
+Every figure and the actual-parent median is calculated at `evaluatedAt`. Prepared counts do not
+count the live figure population; story 4.6 owns their integration.
 
-```json
-[
-  "counts",
-  "figures.askingPriceMovement",
-  "figures.medianTimeOnMarketDays",
-  "figures.priceReductions",
-  "figures.listingsPerProperty",
-  "figures.recordedSalePricePerSquareMeter"
-]
-```
-
-Those fields retain their prepared values and evidence. Their freshness is evaluated against
-`preparedEvaluatedAt`, rather than the current computation time. The live median's `recordCount`
-counts eligible persisted property identifiers and is independent of prepared `counts.properties`.
-Clients can distinguish the two populations using the explicit basis and section declaration.
+The strict parser also preserves the original `prepared-market-example` overview and the staged
+`event-fed-median-with-prepared-sections` variant. The latter still requires its exact six-section
+list: counts, movement, time on market, reductions, listings/property and sale. Those historical
+variants retain their original fixture arithmetic and independent completion semantics.
 
 `parentMedian` is null for Brazil. Otherwise it contains `place` and `median`, identifying the
 actual registered parent and its independently evidenced figure. Pinheiros compares with
@@ -59,8 +50,9 @@ identified neighbourhood parent.
 
 Each figure contains `state`, `value`, `recordCount`, `sources`, `computedAt` and `freshness`.
 An `available` figure has a nonnull value and positive record count. An `insufficient-data` figure
-has null value, zero record count and no sources. Numeric zero is available data: unchanged
-Pinheiros has zero movement, and the October thirty-day example has zero reductions.
+has null value, zero record count and no sources. Numeric zero is available data: a paired unchanged
+cohort has zero movement, and an active listing population without confirmed decreases has zero
+reductions.
 An unrecorded sale has null value, zero record count and no sources, never a monetary zero.
 
 Each source is `{ id, label, url, collectedAt }`, with a unique slug, label, credential-free
@@ -79,7 +71,7 @@ follow evaluation; source observations cannot follow that completion. An empty f
 completion and fresh status. The prepared default examples have completion equal to computation;
 they do not assert a collector actually ran. Old monthly examples can be fresh with positive age.
 
-For the event-fed own and actual-parent medians, `freshness` is exactly
+For all live figures and the actual-parent median, `freshness` is exactly
 `{ status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 }` and `computedAt` equals
 the overview's current `evaluatedAt`. A listing observation does not prove source collection
 completion. Completion tracking belongs to a later story.
@@ -136,6 +128,42 @@ null tombstone. Reads retrieve those facts in one coherent Market-only statement
 geography and area eligibility. The additive 2002 migration backfills all retained v1 state history,
 assignment zero and property minima while preserving the original 2001 evidence unchanged.
 
+## Remaining persisted figures (D-096)
+
+All inputs come from one coherent read of Market-owned current assignments, retained listing
+states and immutable price-event envelopes. No historical assignment is inferred: current causal
+membership applies to both movement samples and all retained observations.
+
+- **Movement:** subtract six UTC calendar months from `evaluatedAt`, preserving time and clamping
+  to the target month's last day. For each listing, reconstruct the highest retained revision whose
+  effective time **and** observed time are at or before that inclusive cutoff. Select global active
+  property representatives independently at both instants, then apply scope and nonnull area.
+  Pair only properties eligible in both samples. Calculate `(current paired median / prior paired
+median - 1) * 100`, using the same safe centavo rounding as the headline median. Representatives
+  may differ. `recordCount` counts paired properties once; sources cover both samples. The current
+  paired median can differ from the headline population. No baseline means insufficient data.
+- **Time on market:** for each currently represented in-scope property, find the earliest known
+  observation across all retained states of all currently assigned members, including removed
+  members. Return the median nonnegative elapsed days to evaluation, including fractional days.
+  Reappearance does not reset age. This is observed duration, never source publication age.
+  `recordCount` counts represented properties; source evidence comes from their earliest observations.
+- **Thirty-day reductions:** among all currently active member listings of those properties, count
+  each listing once if a retained `properties.listing.price-changed` event confirms
+  `previousMinorUnits > askingPriceMinorUnits` with effective time in
+  `(evaluatedAt - 30 days, evaluatedAt]`. Percentage divides by all those active listings.
+  `recordCount` is that listing denominator. Sources include current denominator observations and
+  qualifying decrease observations. Real zero reductions are available; an empty denominator is not.
+- **Listings/property:** divide that same active listing count by distinct represented properties.
+  `recordCount` counts properties; sources cover their active listings. An empty denominator is
+  insufficient data. Area is not required for duration, reductions or this ratio.
+- **Recorded sale:** remains `not-recorded`, null, zero records and no sources. Removal never
+  establishes a sale.
+
+Each live source label equals its identifier. Sources are unique and sorted; their URL/time is
+from the latest contributing observation for that source, with listing-ID ties. Evidence after
+computation cannot contribute silently; malformed persisted evidence fails with sanitized 500.
+No listing observation is represented as collection completion.
+
 ## Neighbours and monthly series
 
 The neighbours payload contains `items`, each with explicit `place`, `median` and `movement`.
@@ -169,9 +197,9 @@ import { parsePlaceMarketResponse, parsePlaceMarketSeriesResponse } from '@rei/c
 
 const root = 'http://localhost:8200/api/v1/places/sao-paulo-pinheiros/market';
 const response = parsePlaceMarketResponse(await (await fetch(root)).json());
-console.log(response.basis); // event-fed-median-with-prepared-sections
+console.log(response.basis); // event-fed-figures-with-prepared-counts
 console.log(response.parentMedian?.place.id); // sao-paulo-oeste
-console.log(response.figures.askingPriceMovement.value); // 0
+console.log(response.figures.askingPriceMovement.value); // null until a paired baseline exists
 console.log(response.figures.recordedSalePricePerSquareMeter.value); // null
 const series = parsePlaceMarketSeriesResponse(await (await fetch(`${root}/monthly-series`)).json());
 console.log(series.points.length); // 12
@@ -201,13 +229,17 @@ Build first, then run the focused campaigns:
 
 ```bash
 pnpm run build
+pnpm run test:integration:market-figures
 pnpm run test:integration:market-median
 pnpm run test:integration:market-price-facts
 pnpm run test:integration:market
 ```
 
-The median campaign uses owned PostgreSQL, RabbitMQ, S3-compatible storage, worker and API
-services to verify event publication, acquisition-driven changes, replay beyond inbox retention,
+The figures campaign verifies manually derived paired movement, observed age, listing reductions
+and ratio over reversed v2 membership/history, then replay, reappearance, empty scopes and read
+failures through actual parsed HTTP. The median campaign uses owned PostgreSQL, RabbitMQ,
+S3-compatible storage, worker and API services to verify event publication, acquisition-driven
+changes, replay beyond inbox retention,
 restart, revision ordering, lifecycle eligibility, conflicts, cancellation and read failures.
 The price-facts campaign additionally proves populated v1 upgrade, all eight causal families,
 removed-member merge/split routing, reverse-first convergence, bounded rejection and SQL rollback.
