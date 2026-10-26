@@ -3,14 +3,14 @@ title: 'Property detail'
 type: 'feature'
 ticket: 9
 created: '2026-10-25'
-status: 'in-progress'
+status: 'built'
 baseline_revision: 'ba855609bdce1a517c6dc30062d0a11b41b9e6ba'
 route: 'oneshot'
 route_source: 'auto'
 risk: 'medium'
 review: 'quick'
 review_source: 'pinned'
-lenses_ran: []
+lenses_ran: [quick]
 review_loop_iteration: 0
 followup_review_recommended: false
 context: ['/workspace/repos/real-estate-intelligence/docs/testing/integration.md']
@@ -60,9 +60,18 @@ unchanged history removal/return, permission, prepared-contract and browser evid
   `/tmp/rei-property-detail-resolution-sandbox.log`. Strict integration typecheck, targeted ESLint
   and Prettier passed. Production source/dependency paths are unchanged from the baseline.
 
+- Required all-files pre-commit gate passed all six groups (52.57s maximum job);
+  `/tmp/rei-property-detail-hooks.log`. No product files were changed by formatters.
+
 ## Plan Change Log
 
 ## Review Triage Log
+
+### 2026-10-25 — Review pass
+
+- verdicts: 0 findings — high 0, medium 0, low 0, false 0, maybe-false 0
+- findings: independent quick inspection returned no findings. No patches, deferrals, rejections
+  or further review pass are required.
 
 ## Verification
 
@@ -74,3 +83,26 @@ unchanged history removal/return, permission, prepared-contract and browser evid
   campaigns; no relevant product code, migration, fixture or dependency changes here.
 - Run required `lefthook run pre-commit --all-files`, independent quick inspection and normal
   commit hooks. Record exact results and any evidence limitation before ticket closure.
+
+## Auto Run Result
+
+- Implemented the missing combined CAP-7 proof in
+  `integration/property-resolution.integration.test.ts`: three genuine persisted members,
+  attributed active asking minimum, no recorded sale, two dated/signed reductions, exposure,
+  six scalar agreements, feature percentages and actual matching configuration/reasons.
+- This plan records acceptance, the executor failure and verified recovery, reused evidence
+  and delivery. Only these two files changed; no product behavior was changed.
+- Final campaign passed 1/1 with every original assertion retained; strict integration
+  typechecking, targeted formatting/ESLint and the six required all-files hook groups passed.
+- Reused approved lint/typecheck/unit/build/coverage for unchanged production source and
+  dependencies from story 3.8; its plan records 2,829 unit tests across 239 files and all eight
+  coverage floors. Existing story 3.6 history/provenance campaigns prove authentic removals,
+  return gaps and current rights; prepared HTTP/browser compatibility is unchanged.
+- Review: zero findings, patches, deferrals or rejections; patched high/medium/low counts 0/0/0.
+  Follow-up review is false. The first sandbox launch is not counted as product evidence.
+- Limit: synthetic isolated integration evidence only. Public deployment and HTTPS remain
+  the separate production ticket's responsibility on feat/phase-1, without an intermediate
+  main requirement. No claim of production acceptance is made here.
+- Test delivery: `0837ed9a7881c6e6e74a0c1dc8c64be3d9532531` (normal hooks passed);
+  the commit includes the initial plan already staged for the all-files gate. This documentation
+  update records its completed review and gates without rewriting history.
