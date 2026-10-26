@@ -3,7 +3,7 @@ title: 'Erasure of a suppressed listing'
 type: 'feature'
 ticket: '12'
 created: '2026-10-25'
-status: 'built'
+status: done
 baseline_revision: 'ed1332ed304d0a8a6f17e8e5298ae0f97eae3b67'
 route: 'full'
 route_source: 'auto'
