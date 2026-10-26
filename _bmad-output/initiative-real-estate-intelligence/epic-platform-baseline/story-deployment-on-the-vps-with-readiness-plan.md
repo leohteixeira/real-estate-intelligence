@@ -768,3 +768,35 @@ mechanism is justified. Resume this story when that access is available; continu
 independent eligible work meanwhile. Public application journeys, persisted synthetic
 effects and the linked Tempo trace remain explicitly unproved. Existing unchanged-code
 checks, accepted accessibility evidence and final prefix tests remain reusable.
+
+### Branch delivery checkpoint — 2026-10-26
+
+Story 5.9 is done and committed; `tickets.py next` now has no independent eligible story.
+The remaining selected stories depend directly or transitively on this deployment acceptance.
+
+The owner-authorized `feat/phase-1` push delivered exact revision
+`37edd6ce638f4f94faff21446d7c12640fc6922e`; `git ls-remote` independently observed that same
+remote branch identity. Observation time: 2026-10-26 15:56:26 UTC.
+The actual pre-push hook passed secret-history scanning of 401 commits, lint, strict workspace
+and integration typecheck, all eight workspaces' 3,282 unit tests, and build in 408.31 seconds.
+The receipt is `/tmp/rei-goal-final-branch-push-keepalive.log`. All hooks remained enabled.
+
+The preceding attempt passed the same complete hook in 417.00 seconds but exited 141 after
+GitHub closed its SSH connection during local verification. This was a transport/executor failure,
+not a product-test failure. The second attempt changed only temporary SSH transport options:
+keepalive on both existing hops. It passed the mandatory hook and completed the ordinary push;
+no test retry, timeout increase, hook bypass or product change was introduced. The first receipt
+remains at `/tmp/rei-goal-final-branch-push.log`; the successful transport closes that issue.
+
+Current standard-mechanism checks observe unauthenticated GitHub CLI access and absent host Docker
+credential configuration. No secret, `.env*` file or alternative token location was searched.
+The push can trigger the checked-in workflow, but no remote run conclusion or five published
+manifest digests have been observed. Private CI metadata access and scoped private GHCR pull access
+remain the concrete external prerequisites. Do not infer approval/publication from accepted Git
+transport, restart this story's broad review, substitute an ungated image or repeat passing product
+campaigns without changed inputs. Main integration remains after all stories, as instructed.
+
+No production service, Caddy configuration, migration, persistent data or provider call changed in
+this checkpoint. Public HTTPS application journeys, readiness, scheduled synthetic effects and
+linked production Tempo traces remain pending actual release. This documentation-only checkpoint
+reuses the delivered code's valid gates; it does not alter the remote candidate's runtime identity.
