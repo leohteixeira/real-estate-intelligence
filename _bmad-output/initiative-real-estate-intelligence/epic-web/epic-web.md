@@ -440,3 +440,11 @@ Six completed EN checkpoints survive an invocation interrupted by SIGTERM; the s
 continuation exits zero at 22:12:51Z. The existing plan preserves every attempt and software-GPU
 performance limits. Private source remains hidden. Executor-only commits require no rebuild.
 No provider calls, PR, merge or remote CI. Continue with 6.14 and the final published campaign.
+
+Story 6.14 reconciliation (2026-10-26): all 15 predecessor plans carry empty deferred lists;
+scoped review narratives leave no unresolved finding. The stream sharing postponed in 6.9 is
+already delivered by `e198fe9`/`3cefc1b`: prepared and headless clients use the same Ask transport
+and stream policy, preserving their distinct business contracts. No further product refactor or
+backlog ticket is necessary. Reuse unchanged full source/dependency gates from 6.13 and the
+independently gated 6.11 landing release; Markdown-only closure needs no build or browser rerun.
+The final published goal campaign remains the next delivery gate.
