@@ -4,6 +4,7 @@ import {
   wireArray,
   wireBoolean,
   wireDate,
+  wireDiscriminated,
   wireEnum,
   wireNullable,
   wireNull,
@@ -131,7 +132,16 @@ export const routedLiveRunWire = wireObject({
   decision: wireNullable(receiptWire),
   confirmation: wireNullable(confirmationWire),
   confirmationDeadline: wireNullable(wireDate),
-  result: wireNullable(priceResultWire),
+  result: wireNullable(
+    wireDiscriminated('kind', {
+      price_per_square_meter: priceResultWire,
+      unavailable_intent: wireObject({
+        kind: wireEnum(['unavailable_intent']),
+        intent: wireEnum(askIntents.filter((intent) => intent !== 'price_per_square_meter')),
+        reason: wireEnum(['not_available']),
+      }),
+    }),
+  ),
   terminal: wireNullable(
     wireObject({
       state: wireEnum(['completed', 'failed', 'expired', 'cancelled']),
@@ -220,8 +230,12 @@ export function parseRoutedAskLiveRun(value: unknown): RoutedAskLiveRun {
       run.confirmation.at > run.updatedAt)
   )
     invalidWire();
+  if (run.result && (!run.decision || (run.decision.probability < 0.85 && !run.confirmation)))
+    invalidWire();
+  if (run.result?.kind === 'unavailable_intent' && run.result.intent !== run.decision?.intent)
+    invalidWire();
   if (
-    run.result &&
+    run.result?.kind === 'price_per_square_meter' &&
     (!run.decision ||
       run.decision.intent !== 'price_per_square_meter' ||
       (run.decision.probability < 0.85 && !run.confirmation) ||

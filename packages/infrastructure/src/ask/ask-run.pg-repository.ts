@@ -992,8 +992,25 @@ export class PostgresAskRunRepository implements AskRunRepository {
     if (row.execution_id !== request.executionId) throw new AskLiveError('forbidden');
     const evidence = request.evidence;
     if (evidence && evidence.step !== 'routed-text-v1') throw new AskLiveError('forbidden');
+    if (evidence && evidence.decisionReceiptId !== previous.decision?.receiptId)
+      throw new AskLiveError('forbidden');
+    const unavailable =
+      evidence?.outcome === 'execution-unavailable' &&
+      previous.decision &&
+      previous.decision.intent !== 'price_per_square_meter' &&
+      (previous.decision.probability >= 0.85 || previous.confirmation);
     if (previous.terminal) {
-      if (previous.state !== (evidence?.outcome === 'price-calculated' ? 'completed' : 'failed'))
+      const completedReplay =
+        evidence?.outcome === 'price-calculated'
+          ? previous.result?.kind === 'price_per_square_meter' &&
+            previous.decision?.intent === 'price_per_square_meter'
+          : unavailable &&
+            previous.result?.kind === 'unavailable_intent' &&
+            previous.result.intent === previous.decision.intent;
+      if (
+        !(previous.state === 'completed' && completedReplay) &&
+        !(previous.state === 'failed' && evidence?.outcome !== 'price-calculated')
+      )
         throw new AskLiveError('forbidden');
       return previous;
     }
@@ -1004,8 +1021,6 @@ export class PostgresAskRunRepository implements AskRunRepository {
     )
       return previous;
     await authorizeAskExecution(client, request);
-    if (evidence && evidence.decisionReceiptId !== previous.decision?.receiptId)
-      throw new AskLiveError('forbidden');
     const at = await this.lifecycleAt(client, previous.updatedAt);
     if (evidence?.outcome === 'awaiting-confirmation') {
       if (!previous.decision || previous.decision.probability >= 0.85 || previous.confirmation)
@@ -1037,7 +1052,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       await this.append(client, run);
       return run;
     }
-    let result: PriceResult | null = null;
+    let result: RoutedAskLiveRun['result'] = null;
     if (evidence?.outcome === 'price-calculated') {
       const accepted = await client.query<{ document: unknown }>(
         'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
@@ -1061,8 +1076,17 @@ export class PostgresAskRunRepository implements AskRunRepository {
       !previous.confirmation
     )
       throw new AskLiveError('forbidden');
+    if (unavailable)
+      result = {
+        kind: 'unavailable_intent',
+        intent: previous.decision.intent,
+        reason: 'not_available',
+      };
     const state = result ? 'completed' : 'failed';
-    const finalAt = await this.lifecycleAt(client, result?.computedAt ?? at);
+    const finalAt = await this.lifecycleAt(
+      client,
+      result?.kind === 'price_per_square_meter' ? result.computedAt : at,
+    );
     const run = parseAskLiveRun({
       ...previous,
       state,

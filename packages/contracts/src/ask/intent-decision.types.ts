@@ -3,6 +3,7 @@ import type {
   AskRequestedIdentity,
   HistoricalAskLiveRun,
   PriceToolReceipt,
+  PriceResult,
 } from './ask-live.dto.js';
 
 export const askIntents = [
@@ -14,6 +15,11 @@ export const askIntents = [
   'unsupported',
 ] as const;
 export type AskIntent = (typeof askIntents)[number];
+export interface UnavailableIntentResult {
+  readonly kind: 'unavailable_intent';
+  readonly intent: Exclude<AskIntent, 'price_per_square_meter'>;
+  readonly reason: 'not_available';
+}
 export interface IntentDecision {
   readonly intent: AskIntent;
   readonly probability: number;
@@ -37,9 +43,10 @@ export type RoutedAskCreate = {
 export type ValidatedRoutedAskCreate = RoutedAskCreate & { readonly inputs: AskInputs | null };
 export type RoutedAskLiveRun = Omit<
   HistoricalAskLiveRun,
-  'basis' | 'state' | 'originalInputs' | 'decision' | 'terminal' | 'steps'
+  'basis' | 'state' | 'originalInputs' | 'decision' | 'terminal' | 'steps' | 'result'
 > & {
   readonly basis: 'routed-text-v1';
+  readonly result: PriceResult | UnavailableIntentResult | null;
   readonly state:
     | 'queued'
     | 'running'
