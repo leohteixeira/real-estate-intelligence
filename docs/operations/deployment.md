@@ -409,3 +409,44 @@ and necessary cleanup metadata remain. Real generation expiry remains fixed. His
 orphans without identifiable listing ownership retain their original expiry. Existing Properties
 and Market derived-data erasure is reserved for stories 3.12 and 4.8; do not describe Collection
 completion as erasure of those future capabilities. See [ADR 0015](../../specs/adrs/0015-handling-of-collected-data.md).
+
+## Seed the synthetic history and enable production schedules
+
+Use the verified host release and its existing protected worker configuration. Keep the three
+portal schedules disabled and idle until seeding and replay readback pass. Run one owner command
+at a time; keep the landing available and preserve unrelated projects. Enable only the owned
+portals first:
+
+```bash
+pnpm --filter @rei/worker source:enable synthetic-portal-aurora
+pnpm --filter @rei/worker source:enable synthetic-portal-brisa
+pnpm --filter @rei/worker source:enable synthetic-portal-cobalto
+pnpm --filter @rei/worker seed:synthetic
+```
+
+These pnpm commands assume the application checkout and its protected runtime configuration.
+Inside the deployed worker image, run the equivalent command from `/app` through the host's
+existing worker service: `node -r ./dist/otel.js dist/collection/seed-synthetic.js`.
+The seed accepts no arguments and refuses to start any run unless all three portals are enabled
+and collectible. It collects the immutable `synthetic-sao-paulo-v1` catalogue from October 2025
+through October 2026: 39 source runs and 115 observations before any permanent suppression.
+Each source run has the existing collection deadline; execution is sequential. Historical
+`observedAt` values come from the fixture; run timestamps and event times use the real clock.
+
+Run the same command again to verify replay. Its stable keys are
+`seed:synthetic-sao-paulo-v1:<YYYY-MM>:<source-id>`; completed runs return `replayed: true`
+without additional observations or events. Cancellation or a dependency failure preserves committed
+checkpoints; fix the reported stage and rerun with the same keys. A durable paused disposition
+stops seeding and needs the existing source review/recovery procedure. Never clear a hold, bypass
+suppression or change keys merely to make a seed pass.
+
+Before enabling schedules, record the deployed revision/images, UTC and backup receipt, then
+read back every seed run, its counts, retained raw bytes and parsed/outbox evidence. Verify replay
+leaves observations and event identities unchanged. Enable only the three portal schedule rows
+whose `in_flight_operation_key` is null; preserve existing cadence and do not reset active requests.
+Arm one portal at a time for this bounded evidence check. Observe a native due run with its three
+source listing identities, expected counts, one request/inbox effect, a cleared schedule slot and
+future `next_run_at`. Retrieve its collection trace from the existing Tempo backend and record the
+request, run, inbox and trace identities. Recheck public readiness and landing. A successful CLI
+exit alone does not establish these production acceptance checks; retain actual receipts here
+and in the scheduled collection plan when those checks have been performed.
