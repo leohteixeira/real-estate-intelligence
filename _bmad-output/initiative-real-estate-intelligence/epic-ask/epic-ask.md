@@ -73,7 +73,7 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   evidence and late-write fences. Direct changed cases (80), workspace coverage (3,097), build,
   strict typecheck, lint and the native campaign (223.46 seconds) passed. No migration, dependency,
   headless/UI, quota or production work was added. Independent quick review reported no findings;
-  final commit hooks and ticket delivery remain with the parent workflow
+  normal commit gates passed and story 5.8 is done
   (agent, on the owner's behalf, 2026-10-26).
 
 - Decision: D-101 exposes `routed-text-v1` through the existing public live-run protocol,

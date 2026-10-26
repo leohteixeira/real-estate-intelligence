@@ -3,7 +3,7 @@ title: 'Public run endpoints and resumable stream'
 type: 'feature'
 ticket: '8'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '79a791aa389abcbdf92209afe7c3c74455427e19'
 route: 'full'
 route_source: 'auto'
@@ -240,3 +240,11 @@ verification/commits/ticket closure. Implementer must not commit/push/delegate o
   product verification. No migration, dependency or production change and no remaining acceptance
   defect is known for this slice. Public production evidence and final goal campaign remain at
   their applicable later delivery steps.
+
+### Delivery closure
+
+The orchestrator marked story 5.8 done after acceptance, matrix, independent review and normal
+commit gates passed. Delivery commits are `b68eb2e` (implementation), `e16031b` (tests) and
+`8671b16` (protocol and evidence). All 15 reviewed paths are committed, and all 12 reviewed
+non-documentation files retain the verified bytes after hooks. The working copy was clean before
+this documentation-only closure; product checks are reused. No push or publication was performed.
