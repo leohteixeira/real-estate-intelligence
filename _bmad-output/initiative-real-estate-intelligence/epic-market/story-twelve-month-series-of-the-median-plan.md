@@ -3,7 +3,7 @@ title: 'Twelve-month series of the median'
 type: 'feature'
 ticket: '7'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'f2297a5daf80f26d13d51cf9d9c3a4f39340b86e'
 route: 'full'
 route_source: 'auto'
@@ -291,3 +291,11 @@ limit; all incomplete coverage gates subsequently passed under the changed execu
 Residual scope: collection-completion freshness and suppression are separate planned stories
 4.5 and 4.8. Freshness is explicitly untracked here. Production publication is not evidenced by
 these owned local-service campaigns; the existing deployment dependency remains recorded.
+
+## Delivery
+
+Delivered on `feat/phase-1` in `1c62aa6` (implementation), `5210fb2` (tests), and
+`dfde280` (verified records). Normal pre-commit and commit-message hooks passed for each commit.
+All 25 reviewed paths appear after the baseline; the product working copy was clean before the
+owner orchestration marked 4.7 done. The 978-input tested-source manifest still matches exactly.
+No product rerun was needed for review accounting or the final ticket transition.
