@@ -115,7 +115,7 @@ async function fixture(
 function decisionRows(document = run(), accepted: IntentDecisionReceipt | null = null) {
   return [[], [], [stored(document)], accepted ? [{ document: accepted }] : []];
 }
-function confirmationRows(document = awaiting()) {
+function confirmationRows(document: AskLiveRun = awaiting()) {
   return [[], [stored(document)], [], [stored(document)]];
 }
 function appended() {
@@ -688,5 +688,133 @@ describe('pause commit at the dispatch boundary', () => {
         expect(query.mock.calls.some(([sql]) => sql.includes('ask.tool_receipt'))).toBe(false);
       },
     );
+  });
+});
+
+describe('general routed cancellation', () => {
+  function routedCancelled(value: AskLiveRun): RoutedAskLiveRun {
+    if (value.basis !== 'routed-text-v1') throw new Error('Expected routed cancellation.');
+    return value;
+  }
+  const queued = () => run({ state: 'queued', decision: null, steps: [] });
+  const confirmed = () =>
+    run({
+      ...awaiting(),
+      state: 'queued',
+      confirmation: { decisionReceiptId: id, inputs, at },
+      steps: [...awaiting().steps, { sequence: 3, phase: 'confirmed', at }],
+    });
+  it.each([queued(), run({ decision: null }), run(), awaiting(), confirmed()])(
+    'cancels pending routed state retaining evidence (%j)',
+    async (previous) => {
+      await fixture(
+        [
+          ...confirmationRows(previous),
+          [],
+          [{ at: new Date(later) }],
+          [],
+          ...appended(),
+          [{ id }],
+          [],
+        ],
+        async (repository, query, outbox) => {
+          const cancelled = await repository.cancel(id, owner);
+          expect(cancelled).toMatchObject({
+            ...previous,
+            state: 'cancelled',
+            updatedAt: later,
+            terminal: { state: 'cancelled', reason: 'visitor_cancelled', at: later },
+            steps: [
+              ...previous.steps,
+              { sequence: previous.steps.length + 1, phase: 'cancelled', at: later },
+            ],
+          });
+          expect(outbox.append).toHaveBeenCalledOnce();
+          expect(
+            query.mock.calls.filter(([sql]) => sql.includes('INSERT INTO platform.inbox')),
+          ).toHaveLength(1);
+          await fixture(
+            confirmationRows(routedCancelled(cancelled)),
+            async (replay, sql, events) => {
+              expect(await replay.cancel(id, owner)).toEqual(cancelled);
+              expect(sql.mock.calls.some(([s]) => /^(INSERT|UPDATE)/.test(s))).toBe(false);
+              expect(events.append).not.toHaveBeenCalled();
+            },
+          );
+        },
+      );
+    },
+  );
+  it.each([false, true])('SQL expiry wins even at transition (%s)', async (crossing) => {
+    await fixture(
+      [
+        ...confirmationRows(queued()),
+        ...(crossing
+          ? [[], [{ at: new Date(later) }], [{ at: new Date(later) }]]
+          : [[{ at: new Date(later) }]]),
+        ...appended(),
+        [{ id }],
+        [],
+      ],
+      async (repository, query, outbox) => {
+        expect(await repository.cancel(id, owner)).toMatchObject({
+          state: 'expired',
+          terminal: { reason: 'queue_expired' },
+        });
+        expect(outbox.append).toHaveBeenCalledOnce();
+        expect(query.mock.calls.some(([sql]) => sql.includes("state='cancelled'"))).toBe(false);
+      },
+    );
+  });
+  it('rejects missing/foreign authority before locking and reauthorizes after locking', async () => {
+    for (const example of [
+      { rows: [[], []], capability: owner, locked: false },
+      { rows: confirmationRows(), capability: 'x'.repeat(43), locked: false },
+      {
+        rows: [
+          [],
+          [stored(awaiting())],
+          [],
+          [{ ...stored(awaiting()), authority_digest: askDigest('changed') }],
+        ],
+        capability: owner,
+        locked: true,
+      },
+      { rows: [[], [stored(awaiting())], [], []], capability: owner, locked: true },
+    ]) {
+      await fixture(example.rows, async (repository, query) => {
+        await expect(repository.cancel(id, example.capability)).rejects.toMatchObject({
+          kind: 'forbidden',
+        });
+        expect(query.mock.calls.some(([sql]) => sql.includes('advisory'))).toBe(example.locked);
+        expect(query.mock.calls.some(([sql]) => /^(INSERT|UPDATE)/.test(sql))).toBe(false);
+      });
+    }
+    await fixture([], async (repository) => {
+      await expect(repository.cancel('bad', owner)).rejects.toThrow();
+    });
+  });
+  it('rejects historical modes without changing their published lifecycle', async () => {
+    const historical = parseAskLiveRun({
+      basis: 'structured-price-v1',
+      id,
+      threadId: id,
+      principalId: null,
+      question: 'Calculate.',
+      locale: 'en',
+      placeId: null,
+      createdAt: at,
+      updatedAt: at,
+      state: 'queued',
+      originalInputs: inputs,
+      decision: null,
+      result: null,
+      terminal: null,
+      steps: [],
+    });
+    await fixture(confirmationRows(historical), async (repository, query) => {
+      await expect(repository.cancel(id, owner)).rejects.toMatchObject({ kind: 'conflict' });
+      expect(query.mock.calls.some(([sql]) => /^(INSERT|UPDATE)/.test(sql))).toBe(false);
+    });
   });
 });

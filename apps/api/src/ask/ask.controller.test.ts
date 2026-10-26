@@ -210,7 +210,7 @@ describe('AskModule actual HTTP and finite SSE', () => {
       spy.mockRestore();
     }
   });
-  it('requires authority for structured creation while confirmation and cancellation remain reserved', async () => {
+  it('requires authority for all live commands and keeps prepared fixtures immutable', async () => {
     const item = (await facade.catalogue()).items[0]!;
     for (const path of ['/runs', `/runs/${item.runId}/confirm`, `/runs/${item.runId}/cancel`]) {
       const response = await fetch(`${base}/api/v1${path}`, {
@@ -218,7 +218,7 @@ describe('AskModule actual HTTP and finite SSE', () => {
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': item.runId },
         body: JSON.stringify({ query: 'caller private text' }),
       });
-      expect(response.status).toBe(path === '/runs' ? 401 : 404);
+      expect(response.status).toBe(401);
       expect(await response.text()).not.toContain('caller private text');
     }
   });

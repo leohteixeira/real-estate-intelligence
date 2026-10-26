@@ -66,6 +66,7 @@ function facade() {
     createRouted: vi.fn(),
     confirm: vi.fn(),
     refuse: vi.fn(),
+    cancel: vi.fn(),
     executeDecision: vi.fn(),
     expireQueued: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(queued),
@@ -82,6 +83,75 @@ function facade() {
 }
 afterEach(() => vi.unstubAllEnvs());
 describe('scoped Ask command, dispatch and tool boundaries', () => {
+  it('routes closed public create, confirmation and cancellation with request signals', async () => {
+    vi.stubEnv('ASK_DISPATCH_SECRET', secret);
+    const live = facade(),
+      controller = new AskLiveController(live);
+    const routed = parseAskLiveRun({
+      ...queued,
+      basis: 'routed-text-v1',
+      confirmation: null,
+      confirmationDeadline: null,
+    });
+    live.createRouted.mockResolvedValue(routed);
+    live.confirm.mockResolvedValue(routed);
+    live.cancel.mockResolvedValue(routed);
+    const body = {
+      mode: 'routed-text-v1',
+      threadId: null,
+      placeId: null,
+      query: 'Calculate.',
+      locale: 'en',
+    };
+    expect(await controller.create(body, req(`Bearer ${capability}`))).toEqual({
+      mode: body.mode,
+      runId: routed.id,
+      threadId: routed.threadId,
+      state: 'queued',
+    });
+    expect(live.createRouted).toHaveBeenCalledWith(
+      body,
+      capability,
+      'request-key-123456',
+      expect.any(AbortSignal),
+    );
+    const confirmation = { runId: routed.id, decisionReceiptId: identity.eventId, inputs };
+    expect(await controller.confirm(routed.id, confirmation, req(`Bearer ${capability}`))).toEqual(
+      routed,
+    );
+    expect(live.confirm).toHaveBeenCalledWith(confirmation, capability, expect.any(AbortSignal));
+    expect(
+      await controller.cancel(
+        routed.id,
+        { reason: 'visitor_cancelled' },
+        req(`Bearer ${capability}`),
+      ),
+    ).toEqual(routed);
+    expect(live.cancel).toHaveBeenCalledWith(routed.id, capability, expect.any(AbortSignal));
+    live.confirm.mockClear();
+    live.cancel.mockClear();
+    for (const invalid of [
+      { ...confirmation, runId: identity.threadId },
+      { ...confirmation, extra: true },
+      { ...confirmation, inputs: { ...inputs, areaSquareMeters: 0 } },
+    ])
+      await expect(
+        controller.confirm(routed.id, invalid, req(`Bearer ${capability}`)),
+      ).rejects.toThrow('Bad Request');
+    for (const invalid of [{ reason: 'other' }, { reason: 'visitor_cancelled', extra: true }, {}])
+      await expect(
+        controller.cancel(routed.id, invalid, req(`Bearer ${capability}`)),
+      ).rejects.toThrow('Bad Request');
+    await expect(
+      controller.cancel(
+        routed.id,
+        { reason: 'visitor_cancelled' },
+        req(`Bearer ${capability}`, '/api/v1/runs/id/cancel?x=1'),
+      ),
+    ).rejects.toThrow('Bad Request');
+    expect(live.confirm).not.toHaveBeenCalled();
+    expect(live.cancel).not.toHaveBeenCalled();
+  });
   it('maps capacity independently of quotas for both public admission modes', async () => {
     vi.stubEnv('ASK_DISPATCH_SECRET', secret);
     const live = facade(),

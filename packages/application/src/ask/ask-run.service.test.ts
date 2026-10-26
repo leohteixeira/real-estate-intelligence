@@ -7,6 +7,7 @@ describe('Ask lifecycle facade', () => {
     const failure = new AskLiveError('forbidden');
     const repository = {
       confirm: vi.fn<AskRunRepository['confirm']>().mockRejectedValue(failure),
+      cancel: vi.fn<AskRunRepository['cancel']>().mockRejectedValue(failure),
       refuse: vi.fn<AskRunRepository['refuse']>().mockRejectedValue(failure),
       executeDecision: vi.fn<AskRunRepository['executeDecision']>().mockRejectedValue(failure),
       expireQueued: vi.fn<AskRunRepository['expireQueued']>().mockRejectedValue(failure),
@@ -61,6 +62,7 @@ describe('Ask lifecycle facade', () => {
       service.expireQueued(100, signal),
       service.confirm({ runId: 'run', decisionReceiptId: 'decision', inputs }, 'authority', signal),
       service.refuse('run', 'decision', 'authority', signal),
+      service.cancel('run', 'authority', signal),
       service.executeDecision(
         { ...identity, executionId: 'execution', operation: 'get' },
         'grant',
@@ -75,6 +77,7 @@ describe('Ask lifecycle facade', () => {
     expect(repository.claim).toHaveBeenCalledExactlyOnceWith(identity, signal);
     expect(repository.tool).toHaveBeenCalledExactlyOnceWith(tool, 'grant', calculate, signal);
     expect(repository.complete).toHaveBeenCalledExactlyOnceWith(complete, signal);
+    expect(repository.cancel).toHaveBeenCalledExactlyOnceWith('run', 'authority', signal);
     expect(repository.expireQueued).toHaveBeenCalledExactlyOnceWith(100, signal);
     expect(failure.message).toBe('Ask operation unavailable.');
     const text = {

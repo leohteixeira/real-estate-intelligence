@@ -6,6 +6,7 @@ import {
   parseIntentDecisionRequest,
   parseIntentDecisionResponse,
   parseRoutedAskCreate,
+  parseRoutedAskAccepted,
   parseRoutedAskConfirmation,
   parseRoutedAskLiveRun,
   parseRoutedExecutionEvidence,
@@ -50,6 +51,17 @@ const run: RoutedAskLiveRun = {
   ],
 };
 describe('closed routed Ask wire contracts', () => {
+  it('accepts only closed routed identity without issuing authority', () => {
+    const accepted = { mode: 'routed-text-v1', runId: id, threadId: id, state: 'queued' };
+    expect(parseRoutedAskAccepted(accepted)).toEqual(accepted);
+    for (const invalid of [
+      { ...accepted, capability: 'secret' },
+      { ...accepted, runId: 'bad' },
+      { ...accepted, state: 'running' },
+      { ...accepted, mode: 'text-price-v1' },
+    ])
+      expect(() => parseRoutedAskAccepted(invalid)).toThrow();
+  });
   it('keeps independent closed admission, confirmation and retained receipt shapes', () => {
     expect(
       parseRoutedAskCreate({
