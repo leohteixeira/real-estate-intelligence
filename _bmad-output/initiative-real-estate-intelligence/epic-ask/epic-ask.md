@@ -66,6 +66,22 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Implementation: story 5.4 adds independent routed mode/graph versions, API-owned immutable
+  decisions, deterministic degraded taxonomy fixtures and the fixed D-100 pause deadline. The
+  original delivery remains deferred while awaiting; confirmation resumes the retained proposal
+  with separately validated operands. SDK text projection and privacy verification stay inside AI;
+  generic public commands/UI and typed unavailable results remain their planned later slices.
+
+- Decision: D-100 / ADR 0008 resolves confirmation refusal as `cancelled`/`visitor_cancelled`
+  and fixes expiry at ten minutes after the first PostgreSQL-clock pause, without renewal.
+  Confirmation at the deadline is refused; it preserves the proposed decision and validates
+  editable operands through Market. Query or intent changes require another run. A separate
+  routed-text mode preserves historical tracers; durable decision receipts and the existing
+  deferred delivery recover without another decision. Story 5.4 proves the application facade;
+  generic public commands/headless integration remain 5.8 and typed unavailable results remain
+  5.5. Non-executable labels retain provenance and fail `execution_unavailable` in this slice.
+  D-012 / ADR 0020 override Nest stack examples; existing BMAD planning/handoffs supersede
+  interactive planning defaults (agent, on the owner's behalf, 2026-10-26).
 - Decision: D-050 / ADR 0027 opens an explicitly versioned text-price explanation graph while
   preserving historical tracers. A bounded PT/EN factual grammar, validated twice against the
   retained same-run Market receipt, prevents invented figures and unsupported prose. Persistent
