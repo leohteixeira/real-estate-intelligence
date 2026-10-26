@@ -66,6 +66,24 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Implementation: story 5.8 now exposes public routed creation, retained-receipt confirmation and
+  general cancellation through the existing versioned live API. Durable SSE continuation is proved
+  after an observed complete frame and across API restart. The extended native campaign preserves
+  its original matrix and proves atomic cancellation, SQL deadlines, post-lock authority, retained
+  evidence and late-write fences. Direct changed cases (80), workspace coverage (3,097), build,
+  strict typecheck, lint and the native campaign (223.46 seconds) passed. No migration, dependency,
+  headless/UI, quota or production work was added. Independent quick review reported no findings;
+  final commit hooks and ticket delivery remain with the parent workflow
+  (agent, on the owner's behalf, 2026-10-26).
+
+- Decision: D-101 exposes `routed-text-v1` through the existing public live-run protocol,
+  preserving caller-known strong capability and historical tracer/fixture contracts. Public routed
+  confirmation binds the retained receipt; cancellation covers queued, running and awaiting work
+  without a decision receipt. Existing SQL deadlines and the first terminal win; later cancellation
+  returns that retained snapshot without another effect. The existing thread/execution fences reject
+  post-cancel writes. SSE resumes strictly after the received cursor; already-consumed terminal and
+  broken transport never manufacture a new terminal (agent, on the owner's behalf, 2026-10-26).
+
 - Implementation: story 5.4 adds independent routed mode/graph versions, API-owned immutable
   decisions, deterministic degraded taxonomy fixtures and the fixed D-100 pause deadline. The
   original delivery remains deferred while awaiting; confirmation resumes the retained proposal

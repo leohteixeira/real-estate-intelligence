@@ -1,9 +1,34 @@
 # Routed Ask decisions
 
-`routed-text-v1` is an internal application capability. `AskRunService.createRouted()` admits
-text before deterministic operands are available. It preserves the three historical tracer
-modes and uses the separate `intent-routing-v1` graph. Public commands and the Ask screen
-remain a later slice.
+`routed-text-v1` is available through public versioned HTTP commands and
+`AskRunService.createRouted()`. It admits text before deterministic operands are available,
+preserves the three historical tracer modes and uses the separate `intent-routing-v1` graph.
+The Ask screen remains a later slice.
+
+Clients retain their own strong Bearer capability (43–128 ASCII letters, digits, underscores or
+hyphens). Creation never issues a capability or recovers one from a creation key. All command
+bodies are closed JSON objects and reject extra fields; query parameters are rejected.
+
+- `POST /api/v1/runs`, with `Authorization: Bearer <capability>` and a 16–128 character
+  `Idempotency-Key`, accepts
+  `{ mode: 'routed-text-v1', threadId: null, placeId: null, query: <text>, locale: 'en' }`.
+  `threadId` can instead name an owned thread; `placeId` accepts a slug and locale also accepts
+  `pt-BR`. A 202 response contains exactly
+  `{ mode: 'routed-text-v1', runId, threadId, state: 'queued' }`.
+  Repeating the same body, key and capability returns the same identity. A changed body conflicts;
+  foreign authority is forbidden. `GET /api/v1/runs/:id` returns the current typed retained run.
+- `POST /api/v1/runs/:id/confirm` accepts `{ runId, decisionReceiptId, inputs }` under the same
+  Bearer capability. The body run ID must match the path, and the receipt must be the retained
+  proposal. Inputs are validated editable price operands or explicit null. The 200 response is
+  the same retained run, queued for resumption without another routing decision. Identical
+  confirmation replay is idempotent; changed operands conflict.
+- `POST /api/v1/runs/:id/cancel` accepts exactly `{ reason: 'visitor_cancelled' }` under that
+  capability, without a decision receipt. It returns the typed run with HTTP 200. Queued, running,
+  confirmed-queued and awaiting runs can be cancelled. Existing terminals are returned unchanged.
+  Historical tracer modes reject these routed confirmation/cancellation commands.
+
+These commands retain the existing sanitized 400/401/403/409/429/503 errors. A pending-thread
+capacity rejection is distinct from visitor quotas; no quota policy is added here.
 
 The closed `ask-intents-v1` taxonomy contains price per square meter, listing search, property
 history, region statistics, comparables and unsupported. Only price per square meter currently
@@ -31,6 +56,22 @@ replay, restart and recovery never extend it. API maintenance expires awaiting r
 worker is stopped. Awaiting runs count toward the three-total-pending limit and hold their
 thread's admission frontier; other threads remain executable. Unclassified queued requests
 retain their two-minute expiry.
+
+General cancellation (D-101) authorizes both before and after the same thread lock, rereads the
+retained run and gives SQL-clock expiry precedence when a queue or confirmation deadline is due.
+The first committed terminal wins, including completion/cancellation races. One transaction retains
+the terminal snapshot, ordered SSE event, terminal outbox event and original delivery inbox marker.
+Cancellation preserves prior decisions, confirmations, tool receipts and graph checkpoints and
+releases the pending thread frontier. Existing running-lease checks fence later decision, tool,
+model and checkpoint writes; late completion cannot replace cancellation. This is a durable
+cancellation boundary; it does not add remote interruption of an in-flight model request.
+
+`GET /api/v1/runs/:id/events` uses the same Bearer capability and durable ordered SSE. Each complete
+frame carries its versioned ID `<runId>:v1:<sequence>`. On disconnect, reconnect with the last
+**complete observed** frame ID as `Last-Event-ID`. The server emits every later stored event once,
+including the explicit retained terminal. The same protocol works after an API restart. Replaying
+from an already consumed terminal returns an empty completed stream. Malformed, foreign and future
+cursors are rejected; transport failure closes transport without inventing a product terminal.
 
 Gateway Jev receives fixed closed criteria through the installed AI SDK decision capability.
 The pinned Gateway evaluation alias takes a text state while the AI SDK normalizes text parts;
