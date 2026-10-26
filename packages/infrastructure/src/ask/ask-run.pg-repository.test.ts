@@ -126,6 +126,59 @@ describe('ordered admission and atomic queued expiry', () => {
       },
     );
   });
+  it.each(['queued', 'running'] as const)(
+    'measures only this queued interval when claiming a combined %s run',
+    async (state) => {
+      const queuedAt = '2026-10-11T00:01:00.000Z';
+      const claimedAt = new Date('2026-10-11T00:01:00.125Z');
+      const combined = parseAskLiveRun({
+        ...run,
+        basis: 'routed-text-explanation-v1',
+        state,
+        updatedAt: queuedAt,
+        originalInputs: null,
+        decision: null,
+        confirmation: null,
+        confirmationDeadline: null,
+        explanation: null,
+        steps: state === 'running' ? [{ sequence: 1, phase: 'routing', at: queuedAt }] : [],
+      });
+      await fixture(
+        [
+          [],
+          [],
+          [
+            {
+              ...stored,
+              document: combined,
+              requested_event_id: identity.eventId,
+              execution_id: identity.eventId,
+            },
+          ],
+          [],
+          [{ id: run.id }],
+          [],
+          [{ id: identity.eventId }],
+          [{ at: claimedAt }],
+          [{ expires_at: new Date('2026-10-11T00:01:30.125Z') }],
+          [],
+        ],
+        async (repository, query) => {
+          const claimed = await repository.claim(identity);
+          expect(claimed.disposition).toBe('claimed');
+          if (claimed.disposition !== 'claimed') throw new Error('Expected claim.');
+          expect(claimed.input).toMatchObject({
+            admittedAt: run.createdAt,
+            queueDurationMs: state === 'queued' ? 125 : 0,
+          });
+          const update = query.mock.calls.find(([sql]) =>
+            sql.startsWith("UPDATE ask.run SET state='running'"),
+          );
+          expect(update?.[1]?.[3]).not.toHaveProperty('queueDurationMs');
+        },
+      );
+    },
+  );
   it('commits one honest expired aggregate, event, outbox and inbox using SQL time', async () => {
     const at = new Date('2026-10-11T00:02:00.000Z');
     await fixture(

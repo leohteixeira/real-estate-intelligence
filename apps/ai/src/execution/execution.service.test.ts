@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import { trace, TraceFlags } from '@opentelemetry/api';
+import type { RoutedExplainedExecutionInput } from '@rei/domain';
 import { ConsoleLogger } from '@nestjs/common';
 import { GraphCheckpointFailure } from '../graph/graph-checkpoint.port';
 import { compileNoOpGraph } from '../graph/no-op.graph';
@@ -37,6 +39,40 @@ describe('AI foundation execution', () => {
       log.mockRestore();
     }
   });
+  it.each([0, 125])(
+    'emits this attempt queue interval %s independently of admission age',
+    async (queueDurationMs) => {
+      const combined: RoutedExplainedExecutionInput = {
+        ...input,
+        step: 'routed-text-explanation-v1',
+        eventId: input.runId,
+        executionId: input.runId,
+        toolGrant: 'g'.repeat(43),
+        checkpointGrant: 'c'.repeat(43),
+        inputs: null,
+        admittedAt: '2026-01-01T00:00:00.000Z',
+        queueDurationMs,
+      };
+      const span = trace.wrapSpanContext({
+        traceId: '1'.repeat(32),
+        spanId: '2'.repeat(16),
+        traceFlags: TraceFlags.SAMPLED,
+      });
+      const setAttribute = vi.spyOn(span, 'setAttribute');
+      const active = vi.spyOn(trace, 'getActiveSpan').mockReturnValue(span);
+      const log = vi.spyOn(ConsoleLogger.prototype, 'warn').mockImplementation(() => {});
+      try {
+        await expect(
+          new ExecutionService(compileNoOpGraph()).execute(combined, new AbortController().signal),
+        ).rejects.toThrow('Execution unavailable.');
+        expect(setAttribute).toHaveBeenCalledWith('rei.ask.queue_duration_ms', queueDurationMs);
+        expect(setAttribute).toHaveBeenCalledWith('rei.ask.total_duration_ms', expect.any(Number));
+      } finally {
+        active.mockRestore();
+        log.mockRestore();
+      }
+    },
+  );
   it('collects actual compiled graph updates with correlated safe evidence', async () => {
     const result = await new ExecutionService(compileNoOpGraph()).execute(
       input,

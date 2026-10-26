@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { askIntents, type RoutedAskLiveRun } from './intent-decision.types.js';
+import {
+  askIntents,
+  type RoutedAskLiveRun,
+  type RoutedExplainedExecutionInput,
+} from './intent-decision.types.js';
 import {
   parseIntentDecision,
   parseIntentDecisionReceipt,
   parseIntentDecisionRequest,
   parseIntentDecisionResponse,
   parseRoutedAskCreate,
+  parseRoutedExplainedAskCreate,
+  parseRoutedExplainedAskAccepted,
   parseRoutedAskAccepted,
   parseRoutedAskConfirmation,
   parseRoutedAskLiveRun,
@@ -225,5 +231,121 @@ describe('closed routed Ask wire contracts', () => {
         outcome: 'price-calculated',
       }),
     ).toThrow();
+  });
+});
+
+describe('closed combined routing and explanation contracts', () => {
+  const mode = 'routed-text-explanation-v1';
+  const explanation = {
+    version: 1,
+    eventId: id,
+    runId: id,
+    threadId: id,
+    explanationId: id,
+    toolReceiptId: id,
+    reservationId: id,
+    authorship: 'model-written',
+    promptVersion: 'price-explanation-prompt-v1',
+    grammarVersion: 'price-explanation-facts-v1',
+    locale: 'en',
+    text: 'Receipt-bound facts.',
+    model: 'anthropic/claude-haiku-5.5',
+    route: 'vercel-ai-gateway',
+    privacyEvidenceId: 'p'.repeat(24),
+    outputTokens: 64,
+    acceptedAt: at,
+  };
+  it('admits only the explicit new closed mode and preserves historical admission', () => {
+    const create = { mode, threadId: null, placeId: null, query: run.question, locale: 'en' };
+    expect(parseRoutedExplainedAskCreate(create)).toEqual(create);
+    expect(() => parseRoutedAskCreate(create)).toThrow();
+    expect(() => parseRoutedExplainedAskCreate({ ...create, mode: 'routed-text-v1' })).toThrow();
+    expect(() => parseRoutedExplainedAskCreate({ ...create, inputs })).toThrow();
+    const accepted = { mode, runId: id, threadId: id, state: 'queued' };
+    expect(parseRoutedExplainedAskAccepted(accepted)).toEqual(accepted);
+    expect(() => parseRoutedAskAccepted(accepted)).toThrow();
+    expect(() => parseRoutedExplainedAskAccepted({ ...accepted, grant: 'secret' })).toThrow();
+  });
+  it('requires bounded attempt queue timing and admission time only in the combined execution partition and forbids model evidence on nonprice outcomes', () => {
+    const input = {
+      ...identity,
+      version: 1,
+      step: mode,
+      query: run.question,
+      locale: 'en',
+      toolGrant: 'g'.repeat(43),
+      checkpointGrant: 'c'.repeat(43),
+      inputs,
+      admittedAt: at,
+      queueDurationMs: 17,
+    } satisfies RoutedExplainedExecutionInput;
+    expect(parseRoutedExecutionInput(input)).toEqual(input);
+    const { admittedAt, ...missing } = input;
+    expect(admittedAt).toBe(at);
+    expect(() => parseRoutedExecutionInput(missing)).toThrow();
+    const { queueDurationMs, ...missingQueue } = input;
+    expect(queueDurationMs).toBe(17);
+    expect(() => parseRoutedExecutionInput(missingQueue)).toThrow();
+    for (const queueDurationMs of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '17'])
+      expect(() => parseRoutedExecutionInput({ ...input, queueDurationMs })).toThrow();
+    for (const queueDurationMs of [0, Number.MAX_SAFE_INTEGER])
+      expect(parseRoutedExecutionInput({ ...input, queueDurationMs })).toMatchObject({
+        queueDurationMs,
+      });
+    expect(() => parseRoutedExecutionInput({ ...input, step: 'routed-text-v1' })).toThrow();
+    for (const outcome of ['awaiting-confirmation', 'execution-unavailable']) {
+      const evidence = { ...identity, step: mode, outcome, decisionReceiptId: id };
+      expect(parseRoutedExecutionEvidence(evidence)).toEqual(evidence);
+      expect(() => parseRoutedExecutionEvidence({ ...evidence, explanation })).toThrow();
+    }
+  });
+  it('requires a model artifact only for completed combined prices, with matching identity and locale', () => {
+    const result = {
+      kind: 'price_per_square_meter',
+      minorUnits: 1154412,
+      currency: 'BRL',
+      areaUnit: 'm2',
+      inputs,
+      computedAt: at,
+    };
+    const completed = {
+      ...run,
+      basis: mode,
+      decision: {
+        ...retained,
+        probability: 0.85,
+        probabilities: Object.fromEntries(
+          askIntents.map((label) => [label, label === 'price_per_square_meter' ? 0.85 : 0.03]),
+        ),
+      },
+      state: 'completed',
+      confirmationDeadline: null,
+      result,
+      explanation,
+      terminal: { state: 'completed', reason: null, at },
+      steps: [
+        { sequence: 1, phase: 'routing', at },
+        { sequence: 2, phase: 'completed', at },
+      ],
+    };
+    expect(parseRoutedAskLiveRun({ ...run, basis: mode, explanation: null })).toMatchObject({
+      explanation: null,
+    });
+    // Price shape is validated by the same historical parser before explanation validation.
+    const historical = { ...completed, basis: 'routed-text-v1' };
+    const { explanation: historicalExplanation, ...historicalRun } = historical;
+    expect(historicalExplanation).toBe(explanation);
+    const historicalResult = parseRoutedAskLiveRun(historicalRun);
+    expect(parseRoutedAskLiveRun(completed)).toMatchObject({
+      result: historicalResult.result,
+      explanation,
+    });
+    for (const changed of [
+      null,
+      { ...explanation, runId: '0199c8f2-2394-7ba0-8f9e-286378779211' },
+      { ...explanation, locale: 'pt-BR' },
+    ])
+      expect(() => parseRoutedAskLiveRun({ ...completed, explanation: changed })).toThrow();
+    expect(() => parseRoutedAskLiveRun({ ...run, basis: mode, explanation })).toThrow();
   });
 });

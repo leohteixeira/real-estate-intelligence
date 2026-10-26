@@ -7,6 +7,10 @@ import {
   type RoutedAskLiveRun,
   type PriceToolRequest,
 } from '@rei/contracts';
+import { ReceiptModelExplainer } from '../models/receipt-model-explainer';
+import { acknowledged, modelTransportFixture } from '../models/model-test.fixture';
+import type { LanguageModelRequest } from '../models/language-model.port';
+import type { ModelExplainer } from '../models/model-explanation.port';
 import { checkpointFixture } from './checkpoint-test.fixture';
 import { PriceGraphFactory } from './price-graph.factory';
 import { ExecutionService } from '../execution/execution.service';
@@ -26,7 +30,7 @@ const input = parseRoutedExecutionInput({
   checkpointGrant: 'c'.repeat(43),
   inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
 });
-function fixture(probability: number) {
+function fixture(probability: number, model?: ModelExplainer) {
   const checkpoints = checkpointFixture();
   let decision: IntentDecisionReceipt | null = null;
   let confirmation: RoutedAskLiveRun['confirmation'] = null;
@@ -78,7 +82,7 @@ function fixture(probability: number) {
   const service = () =>
     new ExecutionService(
       compileNoOpGraph(),
-      new PriceGraphFactory({ calculate }, checkpoints, undefined, decider, transport),
+      new PriceGraphFactory({ calculate }, checkpoints, model, decider, transport),
     );
   return {
     service,
@@ -176,5 +180,90 @@ describe('routed graph receipt and confidence boundaries', () => {
     ).toMatchObject({ outcome: 'execution-unavailable', decisionReceiptId: input.runId });
     expect(f.calculate).not.toHaveBeenCalled();
     expect(f.decider.decide).toHaveBeenCalledOnce();
+  });
+});
+
+describe('combined routing and explanation', () => {
+  it.each([0.85, 0.84])(
+    'explains only after the authorized confidence gate at %s and reuses accepted work',
+    async (probability) => {
+      const transport = modelTransportFixture();
+      const generate = vi.fn(async (request: LanguageModelRequest) =>
+        acknowledged(
+          request.model,
+          request.prompt === 'Return the single public word: ready.'
+            ? 'ready'
+            : request.prompt.split('\n').slice(-3).reverse().join(' '),
+          request.prompt === 'Return the single public word: ready.' ? 1 : 32,
+        ),
+      );
+      const model = new ReceiptModelExplainer({ generate }, transport);
+      const f = fixture(probability, model);
+      const combined = parseRoutedExecutionInput({
+        ...input,
+        step: 'routed-text-explanation-v1',
+        admittedAt: '2026-10-26T00:00:00.000Z',
+        queueDurationMs: 17,
+      });
+      if (combined.step !== 'routed-text-explanation-v1')
+        throw new Error('Expected combined execution.');
+      const result = await f.service().execute(combined, new AbortController().signal);
+      if (probability < 0.85) {
+        expect(result).toMatchObject({ outcome: 'awaiting-confirmation' });
+        expect(generate).not.toHaveBeenCalled();
+        f.confirm();
+      }
+      const completed =
+        probability >= 0.85
+          ? result
+          : await f
+              .service()
+              .execute(
+                { ...combined, executionId: '0199c8f2-2394-7ba0-8f9e-286378779215' },
+                new AbortController().signal,
+              );
+      expect(completed).toMatchObject({
+        step: 'routed-text-explanation-v1',
+        outcome: 'price-calculated',
+        explanation: { authorship: 'model-written' },
+      });
+      expect(generate).toHaveBeenCalledTimes(2);
+      const budget = transport.reserved;
+      const recovered = await f
+        .service()
+        .execute(
+          { ...combined, queueDurationMs: 0, executionId: '0199c8f2-2394-7ba0-8f9e-286378779216' },
+          new AbortController().signal,
+        );
+      expect(recovered).toMatchObject({
+        outcome: 'price-calculated',
+        explanation: transport.accepted,
+      });
+      expect(transport.reserved).toBe(budget);
+      for (const record of f.checkpoints.records.values())
+        expect(Buffer.from(record.checkpoint.base64, 'base64').toString()).not.toContain(
+          'queueDurationMs',
+        );
+      expect(generate).toHaveBeenCalledTimes(2);
+      expect(f.decider.decide).toHaveBeenCalledOnce();
+    },
+  );
+  it('does not generate for a recognized unavailable intent', async () => {
+    const explain = vi.fn();
+    const f = fixture(0.85, { explain });
+    f.decider.decide.mockResolvedValue(heuristicDecision('Find property listings'));
+    expect(
+      await f.service().execute(
+        parseRoutedExecutionInput({
+          ...input,
+          step: 'routed-text-explanation-v1',
+          admittedAt: '2026-10-26T00:00:00.000Z',
+          queueDurationMs: 17,
+        }),
+        new AbortController().signal,
+      ),
+    ).toMatchObject({ outcome: 'execution-unavailable' });
+    expect(f.calculate).not.toHaveBeenCalled();
+    expect(explain).not.toHaveBeenCalled();
   });
 });

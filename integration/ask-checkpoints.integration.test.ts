@@ -854,7 +854,11 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     expect(replacement.toolGrant).not.toBe(input.toolGrant);
     expect((await rpc(get)).status).toBe(403);
     const firstEvidence = parseRunExecutionEvidence(await probe(context, replacement, 'resume'));
-    if (firstEvidence.step === 'routed-text-v1') throw new Error('Historical evidence required.');
+    if (
+      firstEvidence.step === 'routed-text-v1' ||
+      firstEvidence.step === 'routed-text-explanation-v1'
+    )
+      throw new Error('Historical evidence required.');
     expect(firstEvidence.visitedNodes).toEqual(['fixedDecision', 'priceTool']);
     await expire(context, input.runId);
     const finalClaim = await claim(context, input.runId);
@@ -862,7 +866,8 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     if (
       firstEvidence.step === 'foundation' ||
       evidence.step === 'foundation' ||
-      evidence.step === 'routed-text-v1'
+      evidence.step === 'routed-text-v1' ||
+      evidence.step === 'routed-text-explanation-v1'
     )
       throw new Error('Price evidence required.');
     expect(evidence.receipt.receiptId).toBe(firstEvidence.receipt.receiptId);
@@ -903,7 +908,8 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     await expire(context, gap.runId);
     const gapReplacement = await claim(context, gap.runId);
     const gapEvidence = parseRunExecutionEvidence(await probe(context, gapReplacement, 'resume'));
-    if (gapEvidence.step === 'routed-text-v1') throw new Error('Historical evidence required.');
+    if (gapEvidence.step === 'routed-text-v1' || gapEvidence.step === 'routed-text-explanation-v1')
+      throw new Error('Historical evidence required.');
     expect(gapEvidence.visitedNodes).toEqual(['fixedDecision', 'priceTool']);
     await complete(context, gapEvidence);
     expect(

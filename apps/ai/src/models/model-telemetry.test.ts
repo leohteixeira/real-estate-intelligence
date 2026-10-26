@@ -94,6 +94,9 @@ describe('payload-free bounded model observability', () => {
       attributes: {
         'rei.ai.model': settings.primary,
         'rei.ai.route': settings.route,
+        'rei.ai.provider': settings.route,
+        'rei.ai.usage': 'unavailable',
+        'rei.ai.cost': 'unavailable',
         'rei.ai.attempt.purpose': 'explanation',
         'rei.ai.privacy.evidence_age_ms': 12,
       },
@@ -111,12 +114,35 @@ describe('payload-free bounded model observability', () => {
       }),
     ).rejects.toMatchObject({ kind: 'authentication' });
     expect(setAttribute).toHaveBeenCalledWith('rei.ai.failure.kind', 'authentication');
+    expect(start.mock.calls[1]?.[1]).toMatchObject({
+      attributes: { 'rei.ai.usage': 'unavailable', 'rei.ai.cost': 'unavailable' },
+    });
     expect(end).toHaveBeenCalledTimes(2);
     expect(
       JSON.stringify([start.mock.calls, add.mock.calls, setAttribute.mock.calls]),
     ).not.toContain('private');
     for (const [, attributes] of add.mock.calls)
       expect(attributes).not.toHaveProperty('rei.ai.privacy.evidence_age_ms');
+  });
+  it('exports supplied finite Gateway cost only, including zero, without exposing raw metadata', async () => {
+    vi.clearAllMocks();
+    start.mockImplementation(async (_name, _options, work) =>
+      work({ setAttribute, setStatus, end }),
+    );
+    for (const cost of [0, 0.001]) {
+      await modelAttemptSpan(settings.primary, 'explanation', 1, async () => ({
+        ...acknowledged(settings.primary),
+        metadata: { gateway: { cost }, secret: 'private metadata' },
+      }));
+      expect(setAttribute).toHaveBeenCalledWith('rei.ai.cost_usd', cost);
+    }
+    vi.clearAllMocks();
+    for (const cost of ['0.1', -1, NaN, Infinity, undefined])
+      await modelAttemptSpan(settings.primary, 'explanation', 1, async () => ({
+        ...acknowledged(settings.primary),
+        metadata: { gateway: { cost } },
+      }));
+    expect(setAttribute.mock.calls.some(([key]) => key === 'rei.ai.cost_usd')).toBe(false);
   });
   it('does not invent usage for malformed output and bounds unknown model/evidence values', async () => {
     vi.clearAllMocks();
@@ -129,7 +155,8 @@ describe('payload-free bounded model observability', () => {
         outputTokens,
       }));
     }
-    expect(setAttribute).not.toHaveBeenCalled();
+    expect(setAttribute.mock.calls.some(([key]) => key === 'rei.ai.output_tokens')).toBe(false);
+    expect(setAttribute).toHaveBeenCalledWith('rei.ai.usage', 'unavailable');
     expect(start.mock.calls[0]?.[1]).toMatchObject({
       attributes: { 'rei.ai.model': 'unapproved', 'rei.ai.privacy.evidence_age_ms': 0 },
     });
