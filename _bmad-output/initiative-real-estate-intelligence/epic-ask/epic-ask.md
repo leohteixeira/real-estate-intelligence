@@ -66,6 +66,24 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Decision: D-103 sets configurable defaults of 20 accepted runs per anonymous visitor and
+  100 globally per America/Sao_Paulo calendar day. A server-issued, purpose-signed opaque
+  30-day cookie identifies a browser, independently of the strong thread capability. Use
+  HttpOnly, SameSite=Strict, Secure in production and the application's public prefix; no
+  IP fingerprint or new credential. Only digests enter quota persistence. Authorized replay,
+  reads and existing-run commands do not recharge; rejected/rolled-back admissions do not
+  count, while accepted failures/cancellations do. Rejection reports the next local midnight.
+  Clearing cookies can create another identity; the global cap remains the aggregate bound
+  (agent, on the owner's behalf, 2026-10-26).
+
+- Implementation: story 5.12 adds purpose-separated visitor cookies and required digest admission
+  metadata for every live mode, additive migration 6009, advisory-locked SQL calendar accounting,
+  and the existing strict quota refusal through the API sanitizer. Browser identity is reviewed
+  as a bounded anonymous-cookie mechanism: no IP/person inference, no thread authority, and a
+  global cap that remains effective when cookies are cleared. The story plan records exact local
+  verification and the independent quick review with zero findings; delivery closure records
+  the resulting commits.
+
 - Decision: D-102 adds explicit `routed-text-explanation-v1` admission and the independent
   `intent-price-explanation-v1` graph partition to compose retained decision, confirmation,
   deterministic tool and existing receipt-bound explanation in one run. Historical versions
@@ -81,7 +99,7 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   exported ancestry, confirmation/restart, accepted-artifact recovery with unchanged budget,
   unavailable/stale/cancelled/wrong-partition paths and populated historical bytes. A whole-export
   scan passed after an actual SQL fault. Affected coverage, build, strict typecheck and lint passed;
-  independent quick review and ticket closure remain pending. Providers are synthetic, with no
+  independent quick review and ticket closure passed. Providers are synthetic, with no
   live quality, billing or production rollout claim (agent, on the owner's behalf, 2026-10-26).
 
 - Implementation: story 5.13 ships the versioned offline decision/explanation evaluation pack
@@ -166,7 +184,6 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   and ADR 0020 override Nest stack examples; BMAD planning/handoff overrides interactive planning
   defaults (agent, on the owner's behalf, 2026-10-11).
 - Decision: this tracer runs in parallel with the data tracer (owner, 2026-10-10).
-- Unknown: the global daily cap of runs; the quota entry asks the owner for its value.
 - Waits on epic-platform-baseline because: it needs NestJS 12 without Mastra, the outbox and relay,
   the resilience composition and the Zero Data Retention ADR.
 - Tracer bullet: entry 2; entries 1 and 17 precede it so epic-web opens on the contracts and the

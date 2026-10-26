@@ -449,3 +449,20 @@ Run the affected snapshot lifecycle, snapshot reparse, resumable collection, ima
 synthetic collection campaigns after this campaign, preserving fixed expiry, accepted fixture
 hashes, independent source permissions and existing coverage gates. Exact results and tested tree
 identity belong in the [existing story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-removal-request-and-suppression-list-plan.md).
+
+## Verify public Ask demo quotas
+
+Build first, then run `pnpm run test:integration:ask-quotas`. Preparation builds only API and
+migration images serially with 1536 MiB memory and one-CPU build-container limits. The native
+Vitest campaign owns PostgreSQL, migrations and the API (plus its readiness broker); it starts
+no consumer, AI runtime or provider. All five creation modes share one cookie. It checks default
+20/100 admission, concurrent visitor/global boundaries, authorized replay at exhaustion,
+no-effect refusals, strong authority on history/confirm/cancel/SSE, tampered/expired identities,
+real outbox rollback and historical document bytes through migration 6009.
+
+Only the owned fixture role resolves `clock_timestamp` through an SQL fixture function/table,
+allowing an observed admission-lock wait to cross local midnight and a historical 23-hour day
+in Sao Paulo to be asserted without waiting for a date or introducing a product test switch. The real
+admission query, locks, counts and transactions remain unchanged. Owned teardown and unchanged
+foreign container/volume inventory are asserted. Existing native Ask campaigns remain the
+regression evidence for graph execution, checkpoints, deadlines and first-terminal behavior.

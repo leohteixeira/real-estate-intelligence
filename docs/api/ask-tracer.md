@@ -3,7 +3,7 @@
 The `structured-price-v1` mode is a real persisted Ask run, separate from the
 [prepared fixture API](ask.md). It calculates BRL centavos per square metre from explicit inputs.
 The separate `text-price-v1` mode extracts and validates explicit price/area mentions deterministically.
-Neither mode invokes a model, confirms edits or enforces visitor quota. Both persist
+Neither mode invokes a model or confirms edits. Both enforce the shared demo quotas and persist
 [run-scoped graph checkpoints](ask-checkpoints.md). See
 [ADR 0023](../../specs/adrs/0023-structured-ask-tracer-and-scoped-authority.md).
 
@@ -26,6 +26,45 @@ All public queries are rejected. IDs are canonical lowercase UUIDv7 strings.
 Availability returns `{ "mode": "structured-price-v1", "available": true,
 "intent": "price_per_square_meter" }` when dispatch is configured. It describes admission
 configuration, not dependency readiness. Disabled admission returns 503 after authorization.
+
+## Anonymous demo admission
+
+All five live modes share a default allowance of **20 accepted runs per browser visitor** and
+**100 globally** per `America/Sao_Paulo` calendar day. `ASK_VISITOR_DAILY_LIMIT` and
+`ASK_GLOBAL_DAILY_LIMIT` accept positive safe integers; invalid settings fail configuration.
+The same identity applies across fresh threads, shared capabilities and creation modes.
+
+The API issues a random, purpose-signed opaque cookie using the existing protected
+`ASK_DISPATCH_SECRET`. Production uses `__Secure-rei_ask_visitor`, `Path=/real-estate-intelligence/`,
+`Secure`, `HttpOnly`, `SameSite=Strict` and a 30-day lifetime. Explicit local fixtures use
+`rei_ask_visitor` at `/` without `Secure`; proxy headers do not select the cookie policy.
+Invalid, duplicate, tampered or expired cookies receive fresh identities. No IP fingerprint is
+collected. Only a SHA-256 visitor digest reaches the application/persistence admission metadata;
+identity never enters request JSON, public documents, events or exported safe telemetry.
+The digest stays with the admitted run; cookie expiry does not remove durable run history.
+
+This is a browser identity, not proof of a person. Clearing cookies can obtain a fresh visitor
+allowance. The independent global cap bounds aggregate public use. A visitor cookie grants no
+thread access: history, confirmation, cancellation and SSE still require the strong owning Bearer.
+
+A matching authorized idempotent replay returns its original run before quota charging, including
+when either limit is full. Changed bodies and foreign capabilities remain refused. New acceptance,
+its digest, initial event and requested outbox message commit atomically under the shared admission
+lock. Refusal or rollback charges nothing; accepted failures and cancellations still count.
+Reads, confirmation, cancellation and SSE do not charge again. Historical runs without a visitor
+digest remain readable and count globally by their original admission instant.
+
+A daily refusal is HTTP 429 with the exact closed `parseAskQuotaRejection` shape:
+
+```json
+{ "code": "quota_exceeded", "scope": "visitor", "reopensAt": "2026-10-27T03:00:00.000Z" }
+```
+
+`scope` is `visitor` or `global`; if both are full, global scope takes precedence. `reopensAt` is
+the next local midnight represented as UTC. PostgreSQL observes its clock after acquiring the
+admission locks and derives both local calendar boundaries using the named timezone, including
+historical daylight-saving changes. The separate thread-pending-limit refusal retains precedence
+for a full thread and its existing `{ "code": "thread_pending_limit", "limit": 3 }` response.
 
 ## Creation and idempotency
 
@@ -119,7 +158,7 @@ decision `source: "validated-text-v1"`. The validation node is not a model decis
 claim. A thread containing both kinds reports `basis: "mixed-price-v1"`; each run keeps its own
 basis. Both branches share the same fixed Market tool, fenced grants, receipt, durable SSE and
 authorization. Prepared examples stay separate and non-live. Jev, confidence gates, explanations,
-editable confirmations, quotas and UI are not part of text admission.
+editable confirmations and UI are not part of text admission. Demo quotas apply to text admission.
 
 ### Durable execution
 

@@ -40,6 +40,17 @@ evidence remains delivery work. Local readiness and browser checks do not establ
   using 32–128 URL-safe characters. Supply the approved `AI_GATEWAY_API_KEY` only to AI at runtime
   from the secret store. Preserve the existing fail-closed ZDR route evidence and budget gates;
   configuring a key does not prove a model call or ZDR. Keep real-source registers disabled.
+- Public Ask admission defaults to `ASK_VISITOR_DAILY_LIMIT=20` and
+  `ASK_GLOBAL_DAILY_LIMIT=100`, both positive safe integers. These apply in every environment;
+  there is no trusted-caller or production bypass. Migration 6009 adds nullable visitor digests
+  and an admission index without rewriting historical documents. Deploy it before the new API.
+  The API purpose-separates visitor-cookie signing from dispatch using the same protected secret.
+  Rotating that secret invalidates visitor cookies as well as existing dispatch proofs; the global
+  daily ledger remains effective. Production cookies use Secure/HttpOnly/SameSite=Strict at
+  `/real-estate-intelligence/`, regardless of the upstream `/api/v1` path or forwarded headers.
+  Cookie expiry is 30 days; clearing cookies can reset a browser allowance, so retain the global cap.
+  Identity is excluded from public payloads and exported safe telemetry. See
+  [the admission contract](../api/ask-tracer.md#anonymous-demo-admission).
   No command here enables collection or requests model execution.
 
 The production file requires all five image digests and every dependency credential before Compose

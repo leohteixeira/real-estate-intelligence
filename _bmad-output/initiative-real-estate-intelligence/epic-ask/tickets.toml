@@ -132,7 +132,6 @@ covers = ["CAP-16"]
 after = [8]
 hitl = false
 risk = "medium"
-unknown = "The value of the global daily cap of runs. How an anonymous visitor is identified."
 
 [[entry]]
 id = 9

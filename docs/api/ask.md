@@ -144,10 +144,10 @@ curl -N http://localhost:8200/api/v1/runs/0199c8f2-2394-7000-8000-000000000003/e
 
 ## Reserved commands: shapes only
 
-These parsers freeze future text/confirmation command shapes. POST `/api/v1/runs/:id/confirm` and
-`/api/v1/runs/:id/cancel` remain absent and return 404. POST `/api/v1/runs` accepts only the separate
-configured structured tracer contract, never a prepared fixture grant. The fixture API does not accept
-caller text, issue accepted responses, retain submitted queries or enforce quota.
+These parsers freeze the prepared examples' command shapes. Prepared grants cannot create or
+mutate live runs. The separate configured [live Ask API](ask-tracer.md) handles creation and its
+routed modes handle confirmation/cancellation under strong thread authority. The fixture API
+does not accept caller text, issue accepted responses, retain submitted queries or enforce quota.
 
 | Parser                   | Closed shape                                                                                               |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
@@ -159,8 +159,8 @@ caller text, issue accepted responses, retain submitted queries or enforce quota
 | `parseAskQuotaRejection` | `{ code: "quota_exceeded", scope: "visitor" or "global", reopensAt }`: UTC reopening instant               |
 
 The header parser accepts a normalized header contract object; it is not an HTTP middleware or a
-runtime idempotency implementation. Quota scope and reopening time are representable examples, not a
-chosen quota policy or global-cap implementation.
+runtime idempotency implementation. The separate live API implements the shared browser/global
+calendar-day quota policy; prepared reads and scripted SSE never consume its allowance.
 
 ## Verification
 
