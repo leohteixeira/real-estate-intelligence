@@ -340,3 +340,36 @@
     border-radius: var(--r-md);
   }
 }
+.ask-composer > .btn {
+  margin-top: var(--s-3);
+  height: auto;
+  min-height: var(--target);
+  white-space: normal;
+}
+.ask-live {
+  padding: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+.ask-live > h2 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--s-2);
+}
+.ask-live > .small {
+  max-width: 75ch;
+  margin-bottom: var(--s-4);
+}
+.ask-live-actions {
+  margin-block: var(--s-6);
+}
+.ask-live-actions .btn {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.ask-live .ask-explanation .kv {
+  margin-top: var(--s-4);
+}
+@media (min-width: 960px) {
+  .ask-live {
+    padding-inline: 0;
+  }
+}

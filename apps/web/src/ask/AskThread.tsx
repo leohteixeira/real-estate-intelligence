@@ -1,4 +1,4 @@
-import type { AskRun } from '@rei/contracts';
+import type { AskPresentedRun } from './ask-view';
 import { useTranslation } from 'react-i18next';
 import { formatComputedAt } from '../places/formatters';
 import type { Locale } from '../places/locale';
@@ -8,14 +8,16 @@ export function AskThread({
   selected,
   onSelect,
 }: {
-  readonly runs: readonly AskRun[];
+  readonly runs: readonly AskPresentedRun[];
   readonly selected: string;
   readonly onSelect: (id: string) => void;
 }) {
   const { t, i18n } = useTranslation('ask');
   return (
     <section className="ask-thread panel" aria-labelledby="ask-thread-title">
-      <h2 id="ask-thread-title">{t('thread')}</h2>
+      <h2 id="ask-thread-title">
+        {t(runs[0]?.basis === 'prepared-ask-example' ? 'thread' : 'liveThread')}
+      </h2>
       <ul className="rows">
         {runs.toReversed().map((run) => (
           <li key={run.id}>

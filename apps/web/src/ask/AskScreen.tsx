@@ -16,6 +16,8 @@ import { placeQuery, placesQuery, readPolicy } from '../places/place-queries';
 import { LoadErrorState, LoadingState } from '../shared/SystemStates';
 import { createAskClient, followAsk } from './ask-client';
 import { AskSession } from './ask-session';
+import { useLiveAsk } from './use-live-ask';
+import { LiveAskPanel } from './LiveAskPanel';
 import { sameAskRun } from './ask-equality';
 import { AskRunRecord } from './AskRunRecord';
 import { AskThread } from './AskThread';
@@ -41,10 +43,12 @@ interface Authority {
 }
 const client = createAskClient();
 function ValidAskScreen({ id }: { readonly id: string }) {
-  const { t } = useTranslation('ask');
+  const { t, i18n } = useTranslation('ask');
   const { t: placeText } = useTranslation('place');
   const state: unknown = useLocation().state;
   const [draft, setDraft] = useState(() => incomingDraft(state, id));
+  const live = useLiveAsk(id);
+  const [mode, setMode] = useState<'live' | 'prepared'>('live');
   const [run, setRun] = useState<AskRun>();
   const [thread, setThread] = useState<Thread>();
   const [availability, setAvailability] = useState<AskAvailability>();
@@ -87,6 +91,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
     [cache],
   );
   async function readExample(state: AskState, preview: boolean, resume = false) {
+    setMode('prepared');
     recovery.current = { state, preview };
     let current = resume ? authority.current : undefined;
     if (resume && current?.session.terminal) {
@@ -177,7 +182,13 @@ function ValidAskScreen({ id }: { readonly id: string }) {
     <main id="ask-entry" className="ask-screen">
       {knownPlace && !missing ? (
         <PlacePlate place={knownPlace} destination="ask">
-          <div className="place-question ask-composer">
+          <form
+            className="place-question ask-composer"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (live.submit(draft, i18n.language === 'en' ? 'en' : 'pt-BR')) setMode('live');
+            }}
+          >
             <label htmlFor="ask-draft">{t('draftTitle')}</label>
             <textarea
               id="ask-draft"
@@ -186,11 +197,20 @@ function ValidAskScreen({ id }: { readonly id: string }) {
               onChange={(event) => setDraft(event.target.value)}
               placeholder={t('draftPlaceholder')}
               aria-describedby="ask-draft-hint"
+              maxLength={16000}
+              required
             />
             <p id="ask-draft-hint" className="small">
-              {t('notExecuted')}
+              {t(live.submitted === undefined ? 'notExecuted' : 'submitHint')}
             </p>
-          </div>
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={live.blocked || !draft.trim()}
+            >
+              {t('submitLive')}
+            </button>
+          </form>
         </PlacePlate>
       ) : null}
       {place.isPending ? (
@@ -215,6 +235,14 @@ function ValidAskScreen({ id }: { readonly id: string }) {
       ) : null}
       {knownPlace && !missing ? (
         <div className="place-body ask-body">
+          {live.submitted && mode === 'prepared' ? (
+            <button className="btn" type="button" onClick={() => setMode('live')}>
+              {t('returnLive')}
+            </button>
+          ) : null}
+          {mode === 'live' ? (
+            <LiveAskPanel live={live} placeId={id} onRephrase={() => draftInput.current?.focus()} />
+          ) : null}
           <section className="ask-follow" aria-labelledby="ask-follow-title">
             <div>
               <h2 id="ask-follow-title">{t('title')}</h2>
@@ -224,7 +252,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
             </div>
             <button
               type="button"
-              className="btn btn--primary"
+              className="btn"
               disabled={busy}
               onClick={() => {
                 setInspection('queued');
@@ -270,91 +298,97 @@ function ValidAskScreen({ id }: { readonly id: string }) {
             </div>
             <p className="ask-origin">{t('runtimeUnknown')}</p>
           </section>
-          {busy ? (
-            <p className="ask-session-status" role="status">
-              {run ? t('following') : t('loading')}
-            </p>
-          ) : run ? (
-            <p className="ask-session-status" role="status">
-              {t(run.state)}
-              {run.terminal ? ` · ${t('terminal')}` : ''}
-            </p>
-          ) : null}
-          {failure ? (
-            <LoadErrorState
-              description={run ? t('interrupted') : t('failedRead')}
-              context={t('recovery')}
-              retry={() => {
-                void readExample(
-                  recovery.current.state,
-                  recovery.current.preview,
-                  Boolean(authority.current),
-                );
-              }}
-              {...(failure.requestId ? { requestId: failure.requestId } : {})}
-            />
-          ) : null}
-          {selectedRun && thread && run ? (
-            <div className="ask-layout">
-              <AskThread
-                runs={thread.runs.map((item) => (item.id === run.id ? run : item))}
-                selected={selectedRun.id}
-                onSelect={setSelected}
-              />
-              <div className="ask-main-record">
-                {selectedRun.decision?.requiresConfirmation && selectedRun.originalInputs ? (
-                  <AskConfirmation
-                    run={selectedRun}
-                    draft={operandDrafts[selectedRun.id]}
-                    onChange={(value) =>
-                      setOperandDrafts((previous) => ({ ...previous, [selectedRun.id]: value }))
-                    }
-                    onRephrase={() => draftInput.current?.focus()}
+          {mode === 'prepared' ? (
+            <>
+              {busy ? (
+                <p className="ask-session-status" role="status">
+                  {run ? t('following') : t('loading')}
+                </p>
+              ) : run ? (
+                <p className="ask-session-status" role="status">
+                  {t(run.state)}
+                  {run.terminal ? ` · ${t('terminal')}` : ''}
+                </p>
+              ) : null}
+              {failure ? (
+                <LoadErrorState
+                  description={run ? t('interrupted') : t('failedRead')}
+                  context={t('recovery')}
+                  retry={() => {
+                    void readExample(
+                      recovery.current.state,
+                      recovery.current.preview,
+                      Boolean(authority.current),
+                    );
+                  }}
+                  {...(failure.requestId ? { requestId: failure.requestId } : {})}
+                />
+              ) : null}
+              {selectedRun && thread && run ? (
+                <div className="ask-layout">
+                  <AskThread
+                    runs={thread.runs.map((item) => (item.id === run.id ? run : item))}
+                    selected={selectedRun.id}
+                    onSelect={setSelected}
                   />
-                ) : null}
-                {selectedRun.id === run.id && !run.terminal ? (
-                  <section className="ask-preview band">
-                    <p>{t('previewHint')}</p>
-                    <button
-                      type="button"
-                      className="btn"
-                      disabled={busy}
-                      onClick={() => {
-                        void readExample(inspection, true, true);
-                      }}
-                    >
-                      {t('readPreview')}
-                    </button>
-                  </section>
-                ) : null}
-                <AskRunRecord run={selectedRun} placeId={id} />
-                {availability ? (
-                  <section
-                    className="panel ask-availability"
-                    aria-labelledby="ask-availability-title"
-                  >
-                    <h2 id="ask-availability-title">{t('availability')}</h2>
-                    <ul className="rows">
-                      {availability.intents.map((item) => (
-                        <li className="spread" key={item.intent}>
-                          <span>
-                            {t(item.intent === 'unavailable' ? 'unavailableIntent' : item.intent)}
-                          </span>
-                          <span className={`st ${item.available ? 'st--ok' : 'st--off'}`}>
-                            {t(item.available ? 'available' : 'unavailable')}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-              </div>
-            </div>
-          ) : !busy && !failure ? (
-            <section className="band ask-idle">
-              <h2>{t('idleTitle')}</h2>
-              <p>{t('idleCopy')}</p>
-            </section>
+                  <div className="ask-main-record">
+                    {selectedRun.decision?.requiresConfirmation && selectedRun.originalInputs ? (
+                      <AskConfirmation
+                        run={selectedRun}
+                        draft={operandDrafts[selectedRun.id]}
+                        onChange={(value) =>
+                          setOperandDrafts((previous) => ({ ...previous, [selectedRun.id]: value }))
+                        }
+                        onRephrase={() => draftInput.current?.focus()}
+                      />
+                    ) : null}
+                    {selectedRun.id === run.id && !run.terminal ? (
+                      <section className="ask-preview band">
+                        <p>{t('previewHint')}</p>
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={busy}
+                          onClick={() => {
+                            void readExample(inspection, true, true);
+                          }}
+                        >
+                          {t('readPreview')}
+                        </button>
+                      </section>
+                    ) : null}
+                    <AskRunRecord run={selectedRun} placeId={id} />
+                    {availability ? (
+                      <section
+                        className="panel ask-availability"
+                        aria-labelledby="ask-availability-title"
+                      >
+                        <h2 id="ask-availability-title">{t('availability')}</h2>
+                        <ul className="rows">
+                          {availability.intents.map((item) => (
+                            <li className="spread" key={item.intent}>
+                              <span>
+                                {t(
+                                  item.intent === 'unavailable' ? 'unavailableIntent' : item.intent,
+                                )}
+                              </span>
+                              <span className={`st ${item.available ? 'st--ok' : 'st--off'}`}>
+                                {t(item.available ? 'available' : 'unavailable')}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
+                  </div>
+                </div>
+              ) : !busy && !failure ? (
+                <section className="band ask-idle">
+                  <h2>{t('idleTitle')}</h2>
+                  <p>{t('idleCopy')}</p>
+                </section>
+              ) : null}
+            </>
           ) : null}
         </div>
       ) : null}

@@ -1,3 +1,4 @@
+import { parseAskQuotaRejection } from '@rei/contracts';
 import { ApiReadError, publicRequestId } from '../api/read-error.js';
 import {
   EventStreamDecoder,
@@ -97,7 +98,7 @@ export function createAskTransport(baseUrl: string) {
       signal,
     );
     const requestId = publicRequestId(response.headers.get('x-request-id'));
-    if (!response.ok) {
+    if (!response.ok && !(response.status === 429 && !stream)) {
       void response.body?.cancel().catch(() => undefined);
       throw new ApiReadError(response.status, undefined, requestId);
     }
@@ -130,6 +131,15 @@ export function createAskTransport(baseUrl: string) {
         body += decoder.decode(chunk.value, { stream: true });
       }
       body += decoder.decode();
+      if (response.status === 429) {
+        let quota;
+        try {
+          quota = parseAskQuotaRejection(JSON.parse(body));
+        } catch {
+          /* Never retain an unvalidated rejection body. */
+        }
+        throw new ApiReadError(429, undefined, requestId, quota);
+      }
       try {
         const value: unknown = JSON.parse(body);
         return parse(value);

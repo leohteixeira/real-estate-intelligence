@@ -1,4 +1,4 @@
-import type { AskRun } from '@rei/contracts';
+import type { AskPresentedRun } from './ask-view';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { formatComputedAt, formatExactMoney } from '../places/formatters';
@@ -12,10 +12,23 @@ function formatArea(value: number, locale: Locale): string {
   }).format(value);
 }
 
-export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly placeId: string }) {
+export function AskRunRecord({
+  run,
+  placeId,
+}: {
+  readonly run: AskPresentedRun;
+  readonly placeId: string;
+}) {
   const { t, i18n } = useTranslation('ask');
   const locale = i18n.language as Locale;
   const result = run.result;
+  const live = run.basis !== 'prepared-ask-example';
+  const explanation = run.basis === 'routed-text-explanation-v1' ? run.explanation : null;
+  const confirmedAt = run.confirmation
+    ? 'at' in run.confirmation
+      ? run.confirmation.at
+      : run.confirmation.confirmedAt
+    : null;
   return (
     <article className="ask-record panel" aria-labelledby="ask-record-question">
       <div className="ask-record__head">
@@ -30,20 +43,26 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
           </time>
         </div>
         <h2 id="ask-record-question">{run.question}</h2>
-        <p className="ask-origin">{t('origin')}</p>
+        <p className="ask-origin">{t(live ? 'liveOrigin' : 'origin')}</p>
         <p className="ask-origin">
-          {run.placeId === null ? t('unscoped') : t('fixturePlace', { id: run.placeId })}
+          {run.placeId === null
+            ? t(live ? 'liveUnscoped' : 'unscoped')
+            : t(live ? 'livePlace' : 'fixturePlace', { id: run.placeId })}
         </p>
       </div>
       {run.terminal ? (
         <p className="ask-terminal-reason">
-          {run.terminal.reason === null ? t('reasonCompleted') : t(run.terminal.reason)}
+          {live
+            ? t(run.terminal.reason === null ? 'liveCompleted' : `live_${run.terminal.reason}`)
+            : run.terminal.reason === null
+              ? t('reasonCompleted')
+              : t(run.terminal.reason)}
         </p>
       ) : null}
       {run.confirmation ? (
         <section className="ask-recorded-confirmation" aria-labelledby="ask-recorded-title">
-          <h3 id="ask-recorded-title">{t('recordedInputs')}</h3>
-          <p className="small">{t('recordedBoundary')}</p>
+          <h3 id="ask-recorded-title">{t(live ? 'liveConfirmedInputs' : 'recordedInputs')}</h3>
+          <p className="small">{t(live ? 'liveConfirmedBoundary' : 'recordedBoundary')}</p>
           <dl className="kv">
             {run.originalInputs ? (
               <>
@@ -54,16 +73,20 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
                 </dd>
               </>
             ) : null}
-            <dt>{t('recordedInputs')}</dt>
+            <dt>{t(live ? 'liveConfirmedInputs' : 'recordedInputs')}</dt>
             <dd>
-              {formatExactMoney(run.confirmation.inputs.priceMinorUnits, locale)} ·{' '}
-              {formatArea(run.confirmation.inputs.areaSquareMeters, locale)} m²
+              {run.confirmation.inputs ? (
+                <>
+                  {formatExactMoney(run.confirmation.inputs.priceMinorUnits, locale)} ·{' '}
+                  {formatArea(run.confirmation.inputs.areaSquareMeters, locale)} m²
+                </>
+              ) : (
+                t('missingOperands')
+              )}
             </dd>
             <dt>{t('confirmed')}</dt>
             <dd>
-              <time dateTime={run.confirmation.confirmedAt}>
-                {formatComputedAt(run.confirmation.confirmedAt, locale)}
-              </time>
+              <time dateTime={confirmedAt!}>{formatComputedAt(confirmedAt!, locale)}</time>
             </dd>
           </dl>
         </section>
@@ -94,7 +117,7 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
             </>
           ) : result?.kind === 'unavailable_intent' ? (
             <>
-              <p className="ask-unavailable">{t('unavailableResult')}</p>
+              <p className="ask-unavailable">{t(live ? 'liveUnavailable' : 'unavailableResult')}</p>
               <p className="small">{t('recognizedUnavailable')}</p>
               <Link className="btn" to={destinationPath('search', placeId)}>
                 {t('search')}
@@ -108,8 +131,32 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
         <div className="ask-explanation">
           <div className="note">
             <div>
-              <strong>{t('explanation')}</strong>
-              <p>{t('explanationAbsence')}</p>
+              <strong>{t(explanation ? 'modelWritten' : 'explanation')}</strong>
+              <p>
+                {explanation
+                  ? explanation.text
+                  : t(live ? 'liveExplanationAbsent' : 'explanationAbsence')}
+              </p>
+              {explanation ? (
+                <dl className="kv small">
+                  <dt>{t('model')}</dt>
+                  <dd>{explanation.model}</dd>
+                  <dt>{t('route')}</dt>
+                  <dd>{explanation.route}</dd>
+                  <dt>{t('accepted')}</dt>
+                  <dd>
+                    <time dateTime={explanation.acceptedAt}>
+                      {formatComputedAt(explanation.acceptedAt, locale)}
+                    </time>
+                  </dd>
+                  <dt>{t('toolReceipt')}</dt>
+                  <dd>{explanation.toolReceiptId}</dd>
+                  <dt>{t('explanationId')}</dt>
+                  <dd>{explanation.explanationId}</dd>
+                  <dt>{t('privacyEvidence')}</dt>
+                  <dd>{explanation.privacyEvidenceId}</dd>
+                </dl>
+              ) : null}
             </div>
           </div>
         </div>
@@ -147,10 +194,23 @@ export function AskRunRecord({ run, placeId }: { readonly run: AskRun; readonly 
           <dd>
             <time dateTime={run.createdAt}>{formatComputedAt(run.createdAt, locale)}</time>
           </dd>
-          <dt>{t('asOf')}</dt>
-          <dd>
-            <time dateTime={run.metadata.asOf}>{formatComputedAt(run.metadata.asOf, locale)}</time>
-          </dd>
+          {'metadata' in run ? (
+            <>
+              <dt>{t('asOf')}</dt>
+              <dd>
+                <time dateTime={run.metadata.asOf}>
+                  {formatComputedAt(run.metadata.asOf, locale)}
+                </time>
+              </dd>
+            </>
+          ) : run.decision ? (
+            <>
+              <dt>{t('decisionReceipt')}</dt>
+              <dd>{run.decision.receiptId}</dd>
+              <dt>{t('decisionSource')}</dt>
+              <dd>{run.decision.source}</dd>
+            </>
+          ) : null}
         </dl>
       </details>
     </article>

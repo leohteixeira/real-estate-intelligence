@@ -1,38 +1,37 @@
-import type { AskRun } from '@rei/contracts';
+import { operandDraft, type AskPresentedRun, type OperandDraft } from './ask-view';
+export type { OperandDraft } from './ask-view';
 import { useTranslation } from 'react-i18next';
 import { formatExactMoney } from '../places/formatters';
 import type { Locale } from '../places/locale';
-
-export interface OperandDraft {
-  readonly price: string;
-  readonly area: string;
-}
 
 export function AskConfirmation({
   run,
   draft,
   onChange,
   onRephrase,
+  onConfirm,
+  busy = false,
+  invalid = false,
 }: {
-  readonly run: AskRun;
+  readonly run: AskPresentedRun;
   readonly draft: OperandDraft | undefined;
   readonly onChange: (value: OperandDraft) => void;
   readonly onRephrase: () => void;
+  readonly onConfirm?: (draft: OperandDraft) => void;
+  readonly busy?: boolean;
+  readonly invalid?: boolean;
 }) {
   const { t, i18n } = useTranslation('ask');
   const original = run.originalInputs;
   const decision = run.decision;
-  if (!original || !decision) return null;
+  const live = run.basis !== 'prepared-ask-example';
+  if (!decision || (!live && !original)) return null;
+  const confidence = 'probability' in decision ? decision.probability : decision.confidence;
   const locale = i18n.language as Locale;
   const number = new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale, {
     maximumSignificantDigits: 21,
   });
-  const minorUnits = BigInt(original.priceMinorUnits);
-  const cents = String(minorUnits % 100n).padStart(2, '0');
-  const initial = {
-    price: `${minorUnits / 100n}${cents === '00' ? '' : `.${cents}`}`,
-    area: String(original.areaSquareMeters),
-  };
+  const initial = operandDraft(original);
   const values = draft ?? initial;
   const awaitingConfirmation = run.state === 'awaiting_confirmation';
   return (
@@ -48,18 +47,18 @@ export function AskConfirmation({
       </p>
       <div className="ask-confidence">
         <p>
-          {t('confidence')}: <strong>{number.format(decision.confidence)}</strong> ·{' '}
-          {t('threshold')}: <strong>{number.format(0.85)}</strong>
+          {t('confidence')}: <strong>{number.format(confidence)}</strong> · {t('threshold')}:{' '}
+          <strong>{number.format(0.85)}</strong>
         </p>
         <div
           className="gate"
           role="img"
           aria-label={t('gateLabel', {
-            confidence: number.format(decision.confidence),
+            confidence: number.format(confidence),
             threshold: number.format(0.85),
           })}
         >
-          <i className="gate__mark" style={{ left: `${decision.confidence * 100}%` }} />
+          <i className="gate__mark" style={{ left: `${confidence * 100}%` }} />
           <i className="gate__thr" />
         </div>
       </div>
@@ -67,13 +66,20 @@ export function AskConfirmation({
         <p className="small">{t(awaitingConfirmation ? 'degraded' : 'historicalDegraded')}</p>
       ) : null}
       <p className="small">
-        {t('originalInputs')}: {formatExactMoney(original.priceMinorUnits, locale)} ·{' '}
-        {number.format(original.areaSquareMeters)} m²
+        {t('originalInputs')}:{' '}
+        {original ? (
+          <>
+            {formatExactMoney(original.priceMinorUnits, locale)} ·{' '}
+            {number.format(original.areaSquareMeters)} m²
+          </>
+        ) : (
+          t('missingOperands')
+        )}
       </p>
-      <fieldset className="ask-operand-draft">
-        <legend>{t('operandDraft')}</legend>
+      <fieldset className="ask-operand-draft" disabled={busy || (live && !onConfirm)}>
+        <legend>{t(live ? 'liveOperands' : 'operandDraft')}</legend>
         <p id="ask-operands-hint" className="small">
-          {t('operandDraftHint')}
+          {t(live ? 'liveOperandHint' : 'operandDraftHint')}
         </p>
         <div className="ask-operand-draft__fields">
           <label htmlFor="ask-price">
@@ -84,6 +90,7 @@ export function AskConfirmation({
               type="text"
               value={values.price}
               aria-describedby="ask-operands-hint"
+              aria-invalid={invalid}
               onChange={(event) => onChange({ ...values, price: event.target.value })}
             />
           </label>
@@ -95,11 +102,23 @@ export function AskConfirmation({
               type="text"
               value={values.area}
               aria-describedby="ask-operands-hint"
+              aria-invalid={invalid}
               onChange={(event) => onChange({ ...values, area: event.target.value })}
             />
           </label>
         </div>
+        {invalid ? <p role="alert">{t('invalidOperands')}</p> : null}
         <div className="ask-confirmation__actions">
+          {onConfirm ? (
+            <button
+              type="button"
+              className="btn btn--primary"
+              disabled={busy}
+              onClick={() => onConfirm(values)}
+            >
+              {t('confirmLive')}
+            </button>
+          ) : null}
           <button type="button" className="btn" onClick={() => onChange(initial)}>
             {t('restoreOperands')}
           </button>
@@ -108,6 +127,12 @@ export function AskConfirmation({
           </button>
         </div>
       </fieldset>
+      {live && run.confirmationDeadline ? (
+        <p className="small">
+          {t('deadline')}:{' '}
+          <time dateTime={run.confirmationDeadline}>{run.confirmationDeadline}</time>
+        </p>
+      ) : null}
     </section>
   );
 }
