@@ -108,6 +108,25 @@ neighbour's descendant scope. One retained snapshot and evaluation instant suppl
 empty neighbours remain insufficient-data rows with live, untracked evidence. Reads remain
 read-only and fail closed. Monthly series alone remains prepared on its separate endpoint.
 
+## D-097 amendment — twelve-month persisted series
+
+The monthly endpoint now adds the closed `event-fed-place-figures` series variant. It recomputes
+exactly twelve ascending UTC months ending in the evaluation month from one Market history snapshot
+and one clock value. Each point adds `asOf`: the final millisecond of a closed month, or `evaluatedAt`
+for the current partial month. Computation remains actual `evaluatedAt`, independent of that cutoff.
+
+At each cutoff select the highest listing revision with both effective and observed times at or
+before it. Current causal membership applies to retained states. Reuse the global active minimum,
+then geography/area, centavo rounding and selected-source evidence rule independently for own and
+actual-parent descendant scopes. Every month has its own population; movement's paired cohort does
+not constrain it. Sources cannot follow `asOf`; collection freshness remains untracked. Missing
+history is insufficient data, with no interpolation or prepared fallback.
+
+The original prepared series remains closed and unchanged, without `asOf`, with its own monthly
+computation and strict completion/freshness rules. No storage, migrations, projection, jobs or
+cross-context reads are added. Place exposes the live origin, monthly population cutoff and actual
+computation evidence in both languages through its existing native disclosures.
+
 ## Reassessment trigger
 
 Reassess projection and response provenance when property reassignment, remaining figures,

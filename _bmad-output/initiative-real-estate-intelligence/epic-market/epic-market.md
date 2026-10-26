@@ -65,8 +65,13 @@ of CAP-22, not recorded sale figures (CAP-33).
 - Decision: the MVP Place overview shows everything its artboard draws, the twelve-month series
   included (owner, 2026-10-10). The spec places movement over windows in CAP-22; the series is
   brought forward and the rest of CAP-22 stays in V2.
-- Unknown: whether the series is recomputed from price facts or stored as monthly snapshots; the
-  series entry settles it.
+- Decision: D-097 recomputes twelve UTC monthly populations from retained Market history; no
+  monthly snapshots are stored. Closed months use their final millisecond and the current month
+  uses evaluation time. Both effective and observed times bound eligible revisions. Own and actual
+  parent medians are independent, use current causal membership and preserve global representative
+  selection before geography/area. Live points expose `asOf` separately from actual computation;
+  gaps are insufficient data and freshness remains untracked. The strict prepared series remains
+  available unchanged (agent, on the owner's behalf, 2026-10-26).
 - Waits on epic-platform-baseline because: it needs the outbox, the kernel and the contract
   conventions.
 - Waits on epic-properties because: it needs the `properties.listing.*` and `properties.property.*`

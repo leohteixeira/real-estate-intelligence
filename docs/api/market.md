@@ -11,12 +11,12 @@ repeated, nested and private keys. They require no authentication in this synthe
 
 ## Common fields
 
-| Field         | Type                                 | Meaning                                                                           |
-| ------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
-| `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z`            |
-| `basis`       | string                               | Overview/neighbours: `event-fed-place-figures`; series: `prepared-market-example` |
-| `evaluatedAt` | UTC ISO timestamp                    | Overview/neighbours: actual computation time; series: `2026-10-01T12:00:00.000Z`  |
-| `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block              |
+| Field         | Type                                 | Meaning                                                                |
+| ------------- | ------------------------------------ | ---------------------------------------------------------------------- |
+| `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z` |
+| `basis`       | string                               | Live overview, neighbours and series: `event-fed-place-figures`        |
+| `evaluatedAt` | UTC ISO timestamp                    | Actual computation time for every live response                        |
+| `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block   |
 
 ## Overview fields
 
@@ -176,12 +176,28 @@ D-096's matched cohort. Known empty neighbours remain as insufficient-data rows,
 `untracked` evidence; non-neighbourhood places retain registered empty adjacency. Prepared-only
 composition still returns the original strictly validated `prepared-market-example` neighbours.
 
-The series payload contains nullable `comparisonPlace` and `points`. Every point has `month`
-(`YYYY-MM`), independently evidenced `median` and nullable `parentMedian`. Exactly twelve
-consecutive ordered months are returned: November 2025 through October 2026. Brazil has null
-comparison and parent medians throughout; other places identify their actual parent.
-Empty supplementary blocks return twelve unavailable own medians and available parent medians.
-Each point's computation/source dates describe its own prepared monthly sample.
+The series payload contains nullable `comparisonPlace` and exactly twelve consecutive ascending
+`points`, ending in the UTC month of `evaluatedAt`. Brazil has null comparison and parent medians
+throughout; other places identify their actual registered parent, including empty scopes.
+
+The live `event-fed-place-figures` branch gives each point `month` (`YYYY-MM`), `asOf`, `median`
+and nullable `parentMedian`. `asOf` is the last millisecond of a closed UTC month, including leap
+February, or the response's `evaluatedAt` for the current partial month. Both medians' `computedAt`
+equal actual `evaluatedAt`; their source observations must be at or before `asOf`. Freshness is
+exactly untracked, null completion and age zero.
+
+D-097 reconstructs each listing's highest retained revision whose effective **and** observed times
+are at or before the cutoff. Current causal membership applies. The global active-property minimum,
+then geography/area and safe centavo median rule is evaluated independently for the place's and its
+actual parent's descendant scopes. Every month uses its own population, not movement's paired
+cohort. Removed states are ineligible; later reappearance can contribute again. Late observations
+cannot leak into earlier months. Missing history gives null insufficient data, never prepared
+fallback or interpolation. Reads use one Market snapshot and one clock value without monthly storage.
+
+The original `prepared-market-example` branch remains valid: November 2025–October 2026 points,
+without `asOf`, each with independently prepared monthly computation/source evidence and strict
+completion/freshness semantics. Its known empty blocks can retain available prepared parent values;
+live parent values require their own retained eligible history.
 
 ## Prepared arithmetic and examples
 
@@ -242,7 +258,8 @@ pnpm run test:integration:market
 ```
 
 The figures campaign verifies manually derived live counts, independent actual-parent medians,
-registered neighbour median/movement, paired movement, observed age, listing reductions and ratio
+registered neighbour median/movement, twelve monthly own/parent medians and cutoffs, paired movement,
+observed age, listing reductions and ratio
 over reversed v2 membership/history, then replay, reappearance, empty scopes and read failures
 through actual parsed HTTP. The median campaign uses owned PostgreSQL, RabbitMQ,
 S3-compatible storage, worker and API services to verify event publication, acquisition-driven

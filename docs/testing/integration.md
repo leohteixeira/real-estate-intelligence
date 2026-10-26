@@ -54,13 +54,17 @@ It also proves actual-parent scopes, registered neighbour median 7000 centavos/m
 matched-cohort movement, known empty rows, registered empty adjacency and country null parent.
 It checks removed-member history, reappearance, null-area eligibility, global geography,
 restart/inbox-expiry replay, empty scopes, canonical errors
-and unchanged retained SQL evidence after reads. Domain tests cover exact UTC/leap/month-end and
-thirty-day interval boundaries without depending on wall-clock timing.
+and unchanged retained SQL evidence after reads. A reversed twelve-month event fixture independently
+checks every block/parent median in centavos, contributor count, source URL/time and inclusive cutoff,
+including removal/reappearance, gaps, replay and actual computation time. Domain tests cover exact
+UTC/leap/month-end and thirty-day interval boundaries without depending on wall-clock timing.
 
 The Place browser campaign retains an owned synthetic neighbour through the real outbox and
 worker, compares its 450000 centavos/m² median and 50% movement with parsed HTTP, and checks live
-counts and origins in PT/EN at 390, 960 and 1440px. Its independent prepared monthly-series,
-loading/error/recovery, native evidence, accessibility and navigation assertions remain in place.
+counts and origins in PT/EN at 390, 960 and 1440px. Its live monthly series is compared with parsed
+HTTP, including nonempty retained neighbour history, monthly cutoffs, actual computation evidence,
+source links and contributor counts. Loading/error/recovery, native evidence, accessibility and
+navigation assertions remain in place.
 Captures under `apps/web/.impeccable/review/` support comparison with the Place artboards; they do
 not replace manual visual or accessibility assessment.
 
