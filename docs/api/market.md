@@ -15,7 +15,7 @@ repeated, nested and private keys. They require no authentication in this synthe
 | ------------- | ------------------------------------ | ---------------------------------------------------------------------- |
 | `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z` |
 | `basis`       | string                               | Live overview, neighbours and series: `event-fed-place-figures`        |
-| `evaluatedAt` | UTC ISO timestamp                    | Actual computation time for every live response                        |
+| `evaluatedAt` | UTC ISO timestamp                    | Freshness and population assessment instant for a live response        |
 | `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block   |
 
 ## Overview fields
@@ -64,17 +64,33 @@ The event-fed median lists only selected representatives' sources, sorted by ide
 label is its source identifier. Its URL and `collectedAt` come from that source's latest contributing
 observation; equal observation times select the lower listing identifier.
 
-`freshness` contains `status: 'fresh' | 'stale'`, nullable `latestCollectionCompletedAt` and
+Prepared `freshness` contains `status: 'fresh' | 'stale'`, nullable `latestCollectionCompletedAt` and
 nonnegative `ageSeconds`. Age is `(evaluatedAt - computedAt) / 1000`, not wall-clock age. A figure
 is stale exactly when its computation precedes the latest source completion. Completion cannot
 follow evaluation; source observations cannot follow that completion. An empty figure has null
 completion and fresh status. The prepared default examples have completion equal to computation;
 they do not assert a collector actually ran. Old monthly examples can be fresh with positive age.
 
-For all live figures and the actual-parent median, `freshness` is exactly
-`{ status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 }` and `computedAt` equals
-the response's current `evaluatedAt`. A listing observation does not prove source collection
-completion. Completion tracking belongs to a later story.
+For every live figure, `computedAt` records the actual calculation start after reading one coherent
+facts snapshot. Market then reads source completion watermarks and records `evaluatedAt` for the
+assessment. `ageSeconds` is exactly `(evaluatedAt - computedAt) / 1000` in every state. Source
+observations and completions cannot follow evaluation. Observations may follow the last completed
+collection because a newer collection can still be running.
+
+D-098 evaluates each figure's own contributing sources independently, including parent medians,
+neighbours and monthly own/parent points. If there are no sources or any contributor lacks a known
+completion, status is `untracked` and `latestCollectionCompletedAt` is null. Otherwise that field is
+the maximum completion of those sources; status is `stale` exactly when `computedAt` precedes it,
+and `fresh` otherwise (including equality). Unrelated sources never affect a figure. Empty and
+unrecorded figures remain untracked. The PT/EN evidence disclosure includes explicit localized
+calculation age for stale figures alongside count, sources and computation.
+
+The worker consumes the existing strict `collection.run.completed` event. The Market-only
+`source_completion` table retains only source identity and the monotonic maximum event `occurredAt`.
+Upsert and inbox effects commit together; older/replayed delivery cannot regress the watermark,
+including after inbox expiry. No figures, completion payload inventories or monthly snapshots are
+stored, and reads never query Collection SQL. This measures known collection completion versus
+calculation, rather than listing projection lag.
 
 ## Event-fed asking price rule
 
@@ -161,7 +177,7 @@ median - 1) * 100`, using the same safe centavo rounding as the headline median.
 
 Each live source label equals its identifier. Sources are unique and sorted; their URL/time is
 from the latest contributing observation for that source, with listing-ID ties. Evidence after
-computation cannot contribute silently; malformed persisted evidence fails with sanitized 500.
+evaluation cannot contribute silently; malformed persisted evidence fails with sanitized 500.
 No listing observation is represented as collection completion.
 
 ## Neighbours and monthly series
@@ -182,9 +198,10 @@ throughout; other places identify their actual registered parent, including empt
 
 The live `event-fed-place-figures` branch gives each point `month` (`YYYY-MM`), `asOf`, `median`
 and nullable `parentMedian`. `asOf` is the last millisecond of a closed UTC month, including leap
-February, or the response's `evaluatedAt` for the current partial month. Both medians' `computedAt`
-equal actual `evaluatedAt`; their source observations must be at or before `asOf`. Freshness is
-exactly untracked, null completion and age zero.
+February, or the response's `evaluatedAt` for the current partial month. Both medians retain the
+actual calculation-start `computedAt`; their source observations must be at or before `asOf`.
+D-098 freshness uses each point's independent contributor set. `asOf` is a population cutoff, never
+a computation timestamp; a calculation crossing UTC month rollover still ends in evaluation's month.
 
 D-097 reconstructs each listing's highest retained revision whose effective **and** observed times
 are at or before the cutoff. Current causal membership applies. The global active-property minimum,
@@ -192,7 +209,8 @@ then geography/area and safe centavo median rule is evaluated independently for 
 actual parent's descendant scopes. Every month uses its own population, not movement's paired
 cohort. Removed states are ineligible; later reappearance can contribute again. Late observations
 cannot leak into earlier months. Missing history gives null insufficient data, never prepared
-fallback or interpolation. Reads use one Market snapshot and one clock value without monthly storage.
+fallback or interpolation. Reads use one Market snapshot, a calculation-start stamp and a later
+evaluation instant without monthly storage.
 
 The original `prepared-market-example` branch remains valid: November 2025–October 2026 points,
 without `asOf`, each with independently prepared monthly computation/source evidence and strict

@@ -127,6 +127,26 @@ computation and strict completion/freshness rules. No storage, migrations, proje
 cross-context reads are added. Place exposes the live origin, monthly population cutoff and actual
 computation evidence in both languages through its existing native disclosures.
 
+## D-098 amendment — per-source completion and actual calculation age
+
+Market consumes strict `collection.run.completed` envelopes through its existing broker, transaction
+and inbox ports. Migration 2003 adds a Market-owned source ID / maximum `occurredAt` watermark.
+Parameterized `GREATEST` upsert preserves monotonicity under reordered delivery and replay after
+inbox retention. No Collection SQL, completion inventory or cached figure is required.
+
+A read uses one facts snapshot, records calculation start, reads relevant source watermarks once,
+then records evaluation. Each figure independently uses only its actual contributing sources. No
+sources or any missing watermark means untracked/null completion; otherwise use their maximum,
+stale iff calculation precedes it. Age is evaluation minus calculation in seconds for every state.
+Future observations/completions fail closed. A running collection's observations may follow the
+last completed run. Monthly calendars and `asOf` stay anchored to evaluation even across UTC month
+rollover, with the calculation-start stamp supplied independently. Prepared contracts stay unchanged.
+
+The native HTTP integration boundary deliberately observes a real worker-delivered completion
+between calculation and evaluation; it does not establish stale frequency in production. The
+browser's bounded stale response is an explicit UI boundary fixture, with strict parsing and recovery
+to the real API. Existing native disclosures show localized age without a new UI layer.
+
 ## Reassessment trigger
 
 Reassess projection and response provenance when property reassignment, remaining figures,

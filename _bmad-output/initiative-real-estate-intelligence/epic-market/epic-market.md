@@ -127,3 +127,11 @@ of CAP-22, not recorded sale figures (CAP-33).
   area eligibility. Actual-parent and neighbour scopes come only from Locations; every neighbour
   row shares one retained snapshot and evaluation instant. Prior variants stay strict and unchanged;
   monthly series remains prepared, collection completion untracked and suppression deferred.
+
+- D-098 / Story 4.5: Market owns monotonic per-source completion watermarks consumed from strict
+  `collection.run.completed` events using event `occurredAt`. Each live figure independently reports
+  its contributor coverage, maximum known completion, actual calculation start and exact evaluation
+  age; missing coverage and empty/unrecorded figures stay untracked. Monthly population cutoffs stay
+  anchored to evaluation across UTC rollover. Prepared variants retain their strict guarantees.
+  No cached figures, Collection SQL or completion payload inventory is introduced. Native HTTP
+  completion-barrier and controlled stale UI evidence distinguish their boundaries explicitly.

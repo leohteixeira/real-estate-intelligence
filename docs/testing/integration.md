@@ -68,6 +68,16 @@ navigation assertions remain in place.
 Captures under `apps/web/.impeccable/review/` support comparison with the Place artboards; they do
 not replace manual visual or accessibility assessment.
 
+D-098 extends the figures campaign with real outbox/worker source completion delivery, monotonic
+ordering and inbox-expiry replay, exact per-contributor coverage, and real SQL rollback/cancellation.
+Its native HTTP fixture composes the production Market service and PostgreSQL ports with an actual
+clock and a broker completion barrier; it proves a reachable stale interval without caching or a
+production test-mode switch. All three public HTTP surfaces retain strict evidence, and future
+stored completions must return sanitized failures. The Place campaign additionally intercepts one
+strictly valid stale overview at the UI boundary in all six language/viewport cases, checks localized
+age, count/source/computation and native keyboard/accessibility behavior, then recovers to real API
+responses. This interception proves presentation, rather than production stale frequency.
+
 The price-facts campaign upgrades populated Market v1 history without rewriting evidence, then uses
 the actual outbox, RabbitMQ subscriber, PostgreSQL projection and place overview HTTP to exercise
 all eight causal event families. It checks merge/split destinations for removed members, independent
