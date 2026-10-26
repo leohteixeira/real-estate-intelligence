@@ -437,3 +437,29 @@ describe('listing provenance and current text permissions', () => {
     expect(JSON.stringify(unchanged.state.history)).toBe(unchangedHistory);
   });
 });
+
+it('consults permanent Collection authority before returning any prepared fallback member', async () => {
+  const prepared = new SyntheticPropertiesAdapter();
+  const id = '0199a3e0-0000-7000-8000-000000000001';
+  const detail = await prepared.getProperty(id);
+  expect(detail).not.toBeNull();
+  const member = detail!.property.listings[0]!;
+  const isSuppressed = vi.fn(async () => true);
+  const facade = new PersistedPropertiesFacade(
+    { getProperty: async () => null, getListing: async () => null },
+    { getSourcePermissions: async () => null, getSnapshotMetadata: async () => null },
+    prepared,
+    undefined,
+    undefined,
+    undefined,
+    { isSuppressed, lockAndCheck: async () => true },
+  );
+  expect(await facade.getProperty(id)).toBeNull();
+  expect(await facade.getListing(member.id)).toBeNull();
+  expect(isSuppressed).toHaveBeenCalledWith(
+    { sourceId: member.provenance.sourceId, sourceListingId: member.provenance.sourceListingId },
+    expect.any(AbortSignal),
+  );
+  isSuppressed.mockRejectedValue(new Error('authority unavailable'));
+  await expect(facade.getListing(member.id)).rejects.toThrow('authority unavailable');
+});

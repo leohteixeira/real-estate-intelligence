@@ -1,9 +1,18 @@
-import { randomBytes } from 'node:crypto';
-import { readFile, readdir } from 'node:fs/promises';
+import { createHash, randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { expect, test, vi } from 'vitest';
+import {
+  ParsedListingConsumer,
+  ListingCompletionConsumer,
+  ListingSuppressionConsumer,
+} from '../apps/worker/dist/properties/index.js';
 import { CollectionAuditConsumer } from '../apps/worker/dist/collection/collection-audit.consumer.js';
 import {
+  ConsumeParsedListing,
+  ConsumeListingCompletion,
+  ConsumeListingSuppression,
+  ReconcileListingHistory,
+  ReconcilePropertyResolution,
   CollectSourceOnce,
   CollectSourceRun,
   RemoveListing,
@@ -16,10 +25,19 @@ import {
 } from '../packages/application/dist/index.js';
 import {
   parseCollectionEvent,
+  parseUuidV7,
+  parsePropertiesListingSuppressed,
   parseCollectedListing,
   hashCollectionManifest,
+  type TraceContext,
+  type ListingChronologyState,
 } from '../packages/domain/dist/index.js';
 import {
+  PostgresPropertyRepository,
+  PostgresPropertySuppressionRepository,
+  PostgresListingHistoryRepository,
+  PostgresPropertyResolutionRepository,
+  SyntheticLocationsAdapter,
   DatabaseConnection,
   PostgresListingSuppression,
   PostgresCollectionRunRepository,
@@ -38,6 +56,13 @@ import {
   SyntheticSaoPauloListingSource,
   SYNTHETIC_LISTING_BYTES,
 } from '../packages/infrastructure/dist/index.js';
+import {
+  parsePropertyResponse,
+  parseListingResponse,
+  parseSearchResponse,
+  parseReductionsResponse,
+} from '../packages/contracts/dist/index.js';
+import { requestHttp } from './support/http.ts';
 import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './support/fixture.ts';
 
 test('listing suppression erases owned copies, survives failures and prevents prepared work and late writes restoring them', async () => {
@@ -56,7 +81,7 @@ test('listing suppression erases owned copies, survives failures and prevents pr
       keyBase64: randomBytes(32).toString('base64'),
     };
     const ports = allocatePorts;
-    const [postgres, minio, consolePort, rabbit, management] = await ports(5);
+    const [postgres, minio, consolePort, rabbit, management, api] = await ports(6);
     const environment = {
       ...process.env,
       COMPOSE_FILE: 'compose.yaml',
@@ -65,6 +90,8 @@ test('listing suppression erases owned copies, survives failures and prevents pr
       COMPOSE_ENV_FILES: '',
       COMPOSE_PROFILES: '',
       NODE_ENV: 'test',
+      API_PORT: String(api),
+      OTEL_EXPORTER_OTLP_ENDPOINT: '',
       POSTGRES_USER: fixture.user,
       POSTGRES_PASSWORD: fixture.password,
       POSTGRES_DB: fixture.database,
@@ -135,14 +162,18 @@ test('listing suppression erases owned copies, survives failures and prevents pr
     const stores: S3RawSnapshotStore[] = [];
     await preserveCleanup(
       async () => {
-        await compose('up', '--detach', '--wait', 'postgres', 'minio', 'rabbitmq');
+        await compose(
+          'up',
+          '--build',
+          '--detach',
+          '--wait',
+          'postgres',
+          'minio',
+          'rabbitmq',
+          'migrations',
+        );
         const db = new DatabaseConnection(databaseUrl);
         connection = db;
-        const directory = new URL('../migrations/', import.meta.url);
-        for (const name of (await readdir(directory))
-          .filter((name) => name.endsWith('.sql'))
-          .sort())
-          await db.query(await readFile(new URL(name, directory), 'utf8'));
         const transactions = new PostgresTransactionRunner(db);
         const identifiers = new PostgresUuidV7Generator(db);
         const outbox = new PostgresOutbox(db);
@@ -234,13 +265,163 @@ test('listing suppression erases owned copies, survives failures and prevents pr
           audit,
           authority,
         ).start();
-        const delivery = broker;
+        const properties = new PostgresPropertyRepository(db);
+        const history = new PostgresListingHistoryRepository(db);
+        const collection = new PostgresCollectionFacade(db, sources);
+        const locations = new SyntheticLocationsAdapter();
+        const inbox = new PostgresInbox(db);
+        const parsed = () =>
+          new ConsumeParsedListing(
+            collection,
+            locations,
+            properties,
+            transactions,
+            inbox,
+            history,
+            authority,
+          );
+        const suppress = (publication = outbox) =>
+          new ConsumeListingSuppression(
+            authority,
+            new PostgresPropertySuppressionRepository(db, outbox),
+            transactions,
+            inbox,
+            publication,
+            identifiers,
+          );
+        const chronology = new ReconcileListingHistory(
+          collection,
+          locations,
+          properties,
+          history,
+          transactions,
+          outbox,
+          identifiers,
+          (value) => `sha256:${createHash('sha256').update(value).digest('hex')}`,
+          outbox,
+          authority,
+        );
+        const resolution = new ReconcilePropertyResolution(
+          new PostgresPropertyResolutionRepository(db, outbox, identifiers),
+          transactions,
+        );
+        await new ParsedListingConsumer(broker, parsed()).start();
+        await new ListingCompletionConsumer(
+          broker,
+          new ConsumeListingCompletion(collection, history, transactions, inbox),
+        ).start();
+        await new ListingSuppressionConsumer(broker, suppress()).start();
+        const materialize = async (expected: number) => {
+          await vi.waitFor(
+            async () => {
+              await chronology.execute(100, signal());
+              expect(await count('SELECT count(*)::integer AS count FROM properties.listing')).toBe(
+                expected,
+              );
+            },
+            { timeout: 15000, interval: 100 },
+          );
+          for (let cycle = 0; cycle < 12; cycle++) await chronology.execute(100, signal());
+          await resolution.execute(signal());
+        };
+        const http = (path: string) =>
+          requestHttp(`http://127.0.0.1:${api}/api/v1/${path}`, { signal: signal() });
+        const property = async (id: string) => {
+          const response = await http(`properties/${id}`);
+          expect(response.status).toBe(200);
+          return parsePropertyResponse(await response.json()).property;
+        };
+        const identityRows = () =>
+          db.query<{ listing_id: string; property_id: string; source_listing_id: string }>(
+            'SELECT listing_id::text,property_id::text,source_listing_id FROM properties.listing ORDER BY property_id',
+          );
+        const waitErased = async (identity: string) =>
+          vi.waitFor(
+            async () => {
+              expect(
+                await count(
+                  'SELECT count(*)::integer AS count FROM properties.listing_suppression_receipt WHERE source_listing_id=$1',
+                  [identity],
+                ),
+              ).toBe(1);
+              for (const table of ['listing', 'incoming_fact', 'listing_run_effect'])
+                expect(
+                  await count(
+                    `SELECT count(*)::integer AS count FROM properties.${table} WHERE source_listing_id=$1`,
+                    [identity],
+                  ),
+                ).toBe(0);
+            },
+            { timeout: 10000, interval: 50 },
+          );
+        const raceErasure = async (
+          identity: string,
+          admittedWork: () => Promise<unknown>,
+          eraseWork: () => Promise<unknown>,
+        ) => {
+          let entered!: () => void;
+          let release!: () => void;
+          const enteredLock = new Promise<void>((resolve) => {
+            entered = resolve;
+          });
+          const barrier = new Promise<void>((resolve) => {
+            release = resolve;
+          });
+          const lease = db.leaseClient.bind(db);
+          const paused = vi.spyOn(db, 'leaseClient').mockImplementation(async () => {
+            const client = await lease();
+            return {
+              ...client,
+              query: async <TRow extends object>(
+                sql: string,
+                parameters: readonly unknown[] = [],
+              ) => {
+                if (
+                  sql.startsWith('SELECT pg_advisory_xact_lock') &&
+                  parameters[0] === JSON.stringify(['properties', 'synthetic-data', identity])
+                ) {
+                  entered();
+                  await barrier;
+                }
+                return client.query<TRow>(sql, parameters);
+              },
+            };
+          });
+          const admitted = admittedWork();
+          const admittedOutcome = admitted.then(
+            () => null,
+            (error: unknown) => error,
+          );
+          try {
+            await enteredLock;
+            const erasing = eraseWork().then(
+              () => null,
+              (error: unknown) => error,
+            );
+            await vi.waitFor(
+              async () =>
+                expect(
+                  await count(
+                    "SELECT count(*)::integer AS count FROM pg_stat_activity WHERE datname=current_database() AND wait_event='advisory'",
+                  ),
+                ).toBeGreaterThan(0),
+              { timeout: 2000, interval: 50 },
+            );
+            release();
+            expect(await admittedOutcome).toBeNull();
+            expect(await erasing).toBeNull();
+          } finally {
+            release();
+            paused.mockRestore();
+          }
+        };
+        let delivery = broker;
         const relay = async () => {
           for (;;) {
             const rows = await outbox.claimPending(25, 10000);
             if (!rows.length) return;
             for (const row of rows) {
-              const event = parseCollectionEvent({
+              const event = {
                 eventId: row.eventId,
                 type: row.type,
                 version: row.version,
@@ -248,7 +429,7 @@ test('listing suppression erases owned copies, survives failures and prevents pr
                 occurredAt: row.occurredAt,
                 traceContext: row.traceContext,
                 payload: row.payload,
-              });
+              };
               await delivery.publish(event, signal());
               await outbox.markPublished(row.eventId, row.claimId);
             }
@@ -264,6 +445,83 @@ test('listing suppression erases owned copies, survives failures and prevents pr
             ).toBe(2),
           { timeout: 10000, interval: 50 },
         );
+        await materialize(2);
+        await compose('up', '--build', '--detach', '--wait', 'api');
+        const initialRows = await identityRows();
+        const erased = initialRows.find((row) => row.source_listing_id === 'SYN-SP-0001')!;
+        const surviving = initialRows.find((row) => row.source_listing_id === 'shared-owner')!;
+        expect(
+          (await property(erased.property_id)).listings.map((listing) => listing.id).sort(),
+        ).toEqual(initialRows.map((row) => row.listing_id).sort());
+        // Add and erase a non-anchor through the same real broker entry.
+        const unrelatedBytes = (
+          await new SyntheticSaoPauloListingSource().fetchPage(
+            'synthetic-portal-aurora',
+            null,
+            signal(),
+          )
+        ).documents[0]!.bytes;
+        const renamed = (sourceListingId: string): ListingSource => ({
+          fetchPage: async (_id, _cursor, scoped) => {
+            const page = await source.fetchPage('synthetic-data', null, scoped);
+            return {
+              ...page,
+              documents: page.documents.flatMap((document) =>
+                (sourceListingId === 'non-anchor'
+                  ? ['SYN-SP-0001', 'shared-owner', sourceListingId, 'unrelated']
+                  : [sourceListingId]
+                ).map((identity) => ({
+                  ...document,
+                  sourceListingId: identity,
+                  sourceUrl: `https://synthetic.invalid/${identity}`,
+                  bytes: identity === 'unrelated' ? unrelatedBytes : document.bytes,
+                })),
+              ),
+            };
+          },
+          parse: source.parse.bind(source),
+        });
+        await new CollectSourceRun(
+          renamed('non-anchor'),
+          store,
+          sources,
+          runs,
+          transactions,
+          identifiers,
+          clock,
+          outbox,
+          undefined,
+          authority,
+        ).execute('synthetic-data', 'non-anchor-run', null, signal());
+        await relay();
+        await materialize(4);
+        const unrelated = (await identityRows()).find(
+          (row) => row.source_listing_id === 'unrelated',
+        )!;
+        expect((await property(erased.property_id)).listings).toHaveLength(3);
+        const nonAnchorEvent = (
+          await db.query<{ event: unknown }>(
+            "SELECT event FROM collection.parsed_event_evidence WHERE event->'payload'->'source'->>'sourceListingId'='non-anchor'",
+          )
+        )[0]!.event;
+        const canonicalNonAnchor = parseCollectionEvent(nonAnchorEvent);
+        await db.query(
+          "DELETE FROM platform.inbox WHERE consumer_name='properties.parsed-listing' AND event_id=$1",
+          [canonicalNonAnchor.eventId],
+        );
+        await raceErasure(
+          'non-anchor',
+          () => parsed().execute(nonAnchorEvent, signal()),
+          () => remove().execute('synthetic-data', 'non-anchor', null, signal()),
+        );
+        await relay();
+        await waitErased('non-anchor');
+        expect(
+          (await property(erased.property_id)).listings.map((listing) => listing.id).sort(),
+        ).toEqual(initialRows.map((row) => row.listing_id).sort());
+        await resolution.execute(signal());
+        expect((await property(erased.property_id)).listings).toHaveLength(2);
+        const beforeAnchorErasure = await identityRows();
         // The privacy capability does not authorize arbitrary audit deletion or mutation.
         await expect(
           db.query("DELETE FROM audit.event_log WHERE event_type='collection.snapshot.parsed'"),
@@ -310,8 +568,86 @@ test('listing suppression erases owned copies, survives failures and prevents pr
           () => ({ succeeded: false }),
         );
         await parsing;
-        await cli('remove-listing', 'synthetic-data', 'SYN-SP-0001');
+        await cli(
+          'reparse-snapshot',
+          originalEvent.aggregateId,
+          'properties-history-overlap',
+          'properties-history-overlap',
+        );
+        await relay();
+        await vi.waitFor(
+          async () =>
+            expect(
+              await count(
+                "SELECT count(*)::integer AS count FROM properties.incoming_fact WHERE source_listing_id='SYN-SP-0001' AND event_version IN (2,4)",
+              ),
+            ).toBe(1),
+          { timeout: 10000, interval: 50 },
+        );
+        await raceErasure(
+          'SYN-SP-0001',
+          () => chronology.execute(100, signal()),
+          () => remove().execute('synthetic-data', 'SYN-SP-0001', null, signal()),
+        );
         release();
+        // The same real SQL deletion must roll back together with inbox/receipt/outbox.
+        const suppressionWire = (
+          await db.query<{
+            event_id: string;
+            aggregate_id: string;
+            occurred_at: Date;
+            trace_context: TraceContext | null;
+            payload: { sourceId: string; sourceListingId: string };
+          }>(
+            "SELECT event_id::text,aggregate_id::text,occurred_at,trace_context,payload FROM platform.outbox WHERE event_type='collection.listing.suppressed' AND payload->>'sourceListingId'='SYN-SP-0001'",
+          )
+        )[0]!;
+        const suppressionEvent = {
+          eventId: parseUuidV7(suppressionWire.event_id),
+          aggregateId: parseUuidV7(suppressionWire.aggregate_id),
+          occurredAt: suppressionWire.occurred_at.toISOString(),
+          traceContext: suppressionWire.trace_context,
+          type: 'collection.listing.suppressed',
+          version: 1,
+          payload: suppressionWire.payload,
+        };
+        const failPublication = {
+          append: async () => {
+            throw new Error('controlled Properties publication failure');
+          },
+        };
+        await expect(
+          new ConsumeListingSuppression(
+            authority,
+            new PostgresPropertySuppressionRepository(db, outbox),
+            transactions,
+            inbox,
+            failPublication,
+            identifiers,
+          ).execute(suppressionEvent, signal()),
+        ).rejects.toThrow('controlled Properties publication failure');
+        expect(await identityRows()).toEqual(beforeAnchorErasure);
+        expect(
+          await count(
+            "SELECT count(*)::integer AS count FROM properties.listing_suppression_receipt WHERE source_listing_id='SYN-SP-0001'",
+          ),
+        ).toBe(0);
+        const suppressionCancelled = new AbortController();
+        await expect(
+          new ConsumeListingSuppression(
+            authority,
+            new PostgresPropertySuppressionRepository(db, outbox),
+            transactions,
+            inbox,
+            {
+              append: async () => {
+                suppressionCancelled.abort(new Error('controlled Properties cancellation'));
+              },
+            },
+            identifiers,
+          ).execute(suppressionEvent, suppressionCancelled.signal),
+        ).rejects.toThrow('controlled Properties cancellation');
+        expect(await identityRows()).toEqual(beforeAnchorErasure);
         expect(await preparedOutcome).toEqual({ succeeded: false });
         const first = (
           await db.query<{ suppression_id: string; event_id: string; completed_at: Date }>(
@@ -363,6 +699,126 @@ test('listing suppression erases owned copies, survives failures and prevents pr
           ),
         ).toBe(1);
         await relay();
+        await waitErased('SYN-SP-0001');
+        expect((await http(`listings/${erased.listing_id}`)).status).toBe(404);
+        expect((await http(`properties/${erased.property_id}`)).status).toBe(404);
+        expect(
+          (await property(unrelated.property_id)).listings[0]!.provenance.sourceListingId,
+        ).toBe('unrelated');
+        const afterAnchor = await property(surviving.property_id);
+        expect(afterAnchor.listings.map((listing) => listing.id)).toEqual([surviving.listing_id]);
+        expect(afterAnchor.summary.askingPrice?.provenance.sourceListingId).toBe('shared-owner');
+        const listingResponse = await http(`listings/${surviving.listing_id}`);
+        expect(parseListingResponse(await listingResponse.json()).listing.propertyId).toBe(
+          surviving.property_id,
+        );
+        const searchResponse = await http('properties');
+        expect(
+          parseSearchResponse(await searchResponse.json()).items.map((item) => item.id),
+        ).toEqual(expect.arrayContaining([surviving.property_id, unrelated.property_id]));
+        const reductionsResponse = await http(
+          `places/${afterAnchor.summary.place.id}/largest-reductions`,
+        );
+        expect(reductionsResponse.status).toBe(200);
+        expect(
+          JSON.stringify(parseReductionsResponse(await reductionsResponse.json())),
+        ).not.toContain(erased.listing_id);
+        const privacyRows = await db.query<{ payload: unknown }>(
+          "SELECT payload FROM platform.outbox WHERE event_type='properties.listing.suppressed' AND payload->>'sourceListingId'='SYN-SP-0001'",
+        );
+        expect(privacyRows).toHaveLength(1);
+        const privacy = parsePropertiesListingSuppressed({
+          eventId: await transactions.runInTransaction((tx) => identifiers.generate(tx)),
+          aggregateId: erased.listing_id,
+          occurredAt: suppressionEvent.occurredAt,
+          type: 'properties.listing.suppressed',
+          version: 1,
+          traceContext: null,
+          payload: privacyRows[0]!.payload,
+        });
+        expect(privacy.payload.changes[0]).toMatchObject({
+          previousPropertyId: erased.property_id,
+          propertyId: surviving.property_id,
+        });
+        expect(JSON.stringify(privacy)).not.toContain(originalEvent.payload.source.sourceUrl);
+        expect(
+          await count(
+            'SELECT count(*)::integer AS count FROM properties.match_comparison WHERE left_listing_id=$1 OR right_listing_id=$1',
+            [erased.listing_id],
+          ),
+        ).toBe(0);
+        expect(
+          await count(
+            'SELECT count(*)::integer AS count FROM properties.property_minimum_effect WHERE minimum_effect::text LIKE $1',
+            [`%${erased.listing_id}%`],
+          ),
+        ).toBe(0);
+        await resolution.execute(signal());
+        expect((await property(surviving.property_id)).listings).toHaveLength(1);
+        // Fresh services and pruned transport records still use the minimal permanent receipt.
+        await db.query(
+          "DELETE FROM platform.inbox WHERE consumer_name IN ('properties.listing-suppression','properties.parsed-listing')",
+        );
+        await broker.close();
+        broker = new RabbitMqEventBroker({
+          url: `amqp://${fixture.user}:${fixture.password}@127.0.0.1:${rabbit}/rei-suppression-fixture`,
+          operationTimeoutMs: 5000,
+          handlerTimeoutMs: 5000,
+          drainTimeoutMs: 5000,
+        });
+        await broker.start(signal());
+        await new CollectionAuditConsumer(broker, transactions, inbox, audit, authority).start();
+        await new ParsedListingConsumer(broker, parsed()).start();
+        await new ListingCompletionConsumer(
+          broker,
+          new ConsumeListingCompletion(collection, history, transactions, inbox),
+        ).start();
+        await new ListingSuppressionConsumer(broker, suppress()).start();
+        delivery = broker;
+        await delivery.publish({ ...suppressionEvent, traceContext: null }, signal());
+        const delayedNew = {
+          ...originalEvent,
+          eventId: await transactions.runInTransaction((tx) => identifiers.generate(tx)),
+        };
+        await delivery.publish(delayedNew, signal());
+        await vi.waitFor(
+          async () =>
+            expect(
+              await count(
+                "SELECT count(*)::integer AS count FROM platform.inbox WHERE consumer_name='properties.parsed-listing' AND event_id=$1",
+                [delayedNew.eventId],
+              ),
+            ).toBe(1),
+          { timeout: 10000, interval: 50 },
+        );
+        await suppress().execute(suppressionEvent, signal());
+        await parsed().execute({ ...originalEvent }, signal());
+        await parsed().execute(
+          {
+            ...originalEvent,
+            eventId: await transactions.runInTransaction((tx) => identifiers.generate(tx)),
+          },
+          signal(),
+        );
+        expect(
+          await count(
+            "SELECT count(*)::integer AS count FROM platform.outbox WHERE event_type='properties.listing.suppressed' AND payload->>'sourceListingId'='SYN-SP-0001'",
+          ),
+        ).toBe(1);
+        await waitErased('SYN-SP-0001');
+        await expect(
+          parsed().execute(
+            {
+              ...originalEvent,
+              eventId: await transactions.runInTransaction((tx) => identifiers.generate(tx)),
+              payload: {
+                ...originalEvent.payload,
+                source: { ...originalEvent.payload.source, sourceListingId: 'unconfirmed-forged' },
+              },
+            },
+            signal(),
+          ),
+        ).rejects.toMatchObject({ kind: 'rejected' });
         await db.query(
           "DELETE FROM platform.inbox WHERE consumer_name='audit.collection-events' AND event_id=$1",
           [originalEvent.eventId],
@@ -382,7 +838,7 @@ test('listing suppression erases owned copies, survives failures and prevents pr
           async () =>
             expect(
               await count(
-                "SELECT count(*)::integer AS count FROM audit.event_log WHERE event_type='collection.listing.suppressed'",
+                "SELECT count(*)::integer AS count FROM audit.event_log WHERE event_type='collection.listing.suppressed' AND payload->>'sourceListingId'='SYN-SP-0001'",
               ),
             ).toBe(1),
           { timeout: 10000, interval: 50 },
@@ -425,7 +881,236 @@ test('listing suppression erases owned copies, survives failures and prevents pr
           ),
         ).toBe(1);
         await cli('remove-listing', 'synthetic-data', 'shared-owner');
+        await relay();
+        await waitErased('shared-owner');
+        expect((await http(`properties/${surviving.property_id}`)).status).toBe(404);
+        expect((await http(`listings/${surviving.listing_id}`)).status).toBe(404);
+        expect(
+          parseSearchResponse(await (await http('properties')).json()).items.map((item) => item.id),
+        ).toEqual([unrelated.property_id]);
+        expect(
+          (await property(unrelated.property_id)).listings[0]!.provenance.sourceListingId,
+        ).toBe('unrelated');
+        await cli('remove-listing', 'synthetic-data', 'unrelated');
+        await relay();
+        await waitErased('unrelated');
         expect(await objects()).toEqual([]);
+        // Pending facts are removed before history materializes them.
+        await collect(renamed('pending-only')).execute(
+          'synthetic-data',
+          'pending-only-run',
+          null,
+          signal(),
+        );
+        await relay();
+        await vi.waitFor(
+          async () =>
+            expect(
+              await count(
+                "SELECT count(*)::integer AS count FROM properties.incoming_fact WHERE source_listing_id='pending-only'",
+              ),
+            ).toBe(1),
+          { timeout: 10000, interval: 50 },
+        );
+        await cli('remove-listing', 'synthetic-data', 'pending-only');
+        await relay();
+        await waitErased('pending-only');
+        await materialize(0);
+        // Chronology can advance before resolution; the privacy event reports only identities.
+        const minimalIdentities = ['minimal-first', 'minimal-second', 'minimal-survivor'];
+        const minimalSource: ListingSource = {
+          fetchPage: async (_id, _cursor, scoped) => {
+            const page = await source.fetchPage('synthetic-data', null, scoped);
+            return {
+              ...page,
+              documents: page.documents.flatMap((document) =>
+                minimalIdentities.map((identity) => ({
+                  ...document,
+                  sourceListingId: identity,
+                  sourceUrl: `https://synthetic.invalid/${identity}`,
+                })),
+              ),
+            };
+          },
+          parse: source.parse.bind(source),
+        };
+        await new CollectSourceRun(
+          minimalSource,
+          store,
+          sources,
+          runs,
+          transactions,
+          identifiers,
+          clock,
+          outbox,
+          undefined,
+          authority,
+        ).execute('synthetic-data', 'minimal-notifications-run', null, signal());
+        await relay();
+        await materialize(3);
+        const [minimalFirst, minimalSecond, minimalSurvivor] = await identityRows();
+        const survivorSnapshot = (
+          await db.query<{ snapshot_id: string }>(
+            'SELECT snapshot_id::text FROM collection.snapshot_observation WHERE source_listing_id=$1',
+            [minimalSurvivor!.source_listing_id],
+          )
+        )[0]!;
+        const correctedPrice = 78_400_000;
+        await new ReparseSnapshot(
+          {
+            parse: async (document) =>
+              parseCollectedListing(
+                {
+                  ...(await source.parse(document, signal())),
+                  askingPriceMinorUnits: correctedPrice,
+                },
+                true,
+              ),
+          },
+          store,
+          new PostgresSnapshotReparseRepository(db),
+          transactions,
+          identifiers,
+          clock,
+          outbox,
+        ).execute(
+          survivorSnapshot.snapshot_id,
+          'minimal-price-correction',
+          'minimal-price-correction',
+          null,
+          signal(),
+        );
+        await relay();
+        await vi.waitFor(
+          async () => {
+            await chronology.execute(100, signal());
+            expect(
+              (await property(minimalFirst!.property_id)).summary.askingPrice?.minorUnits,
+            ).toBe(correctedPrice);
+          },
+          { timeout: 15000, interval: 100 },
+        );
+        const ahead = (
+          await db.query<{
+            market_fact: { askingPriceMinorUnits: number };
+            input_event_id: string;
+            state: ListingChronologyState;
+          }>(
+            'SELECT assigned.market_fact,assigned.input_event_id::text,current.state FROM properties.listing_assignment assigned JOIN properties.listing_current current USING(listing_id) WHERE assigned.listing_id=$1',
+            [minimalSurvivor!.listing_id],
+          )
+        )[0]!;
+        // Corrections replace dated values without advancing the original-acquisition revision.
+        const currentAcquisition = ahead.state.acquisitions.at(-1)!;
+        expect(ahead.market_fact.askingPriceMinorUnits).toBe(78_500_000);
+        expect(currentAcquisition.original.payload.listing.askingPriceMinorUnits).toBe(78_500_000);
+        expect(currentAcquisition.original.eventId).toBe(ahead.input_event_id);
+        expect(currentAcquisition.corrected?.payload.listing.askingPriceMinorUnits).toBe(
+          correctedPrice,
+        );
+        expect(currentAcquisition.corrected?.eventId).not.toBe(ahead.input_event_id);
+        const removeWithoutRelay = async (identity: string) => {
+          await remove().execute('synthetic-data', identity, null, signal());
+          const row = (
+            await db.query<{
+              event_id: string;
+              aggregate_id: string;
+              occurred_at: Date;
+              trace_context: TraceContext | null;
+              payload: { sourceId: string; sourceListingId: string };
+            }>(
+              "SELECT event_id::text,aggregate_id::text,occurred_at,trace_context,payload FROM platform.outbox WHERE event_type='collection.listing.suppressed' AND payload->>'sourceListingId'=$1",
+              [identity],
+            )
+          )[0]!;
+          const event = {
+            eventId: row.event_id,
+            aggregateId: row.aggregate_id,
+            occurredAt: row.occurred_at.toISOString(),
+            traceContext: row.trace_context,
+            type: 'collection.listing.suppressed',
+            version: 1,
+            payload: row.payload,
+          };
+          await suppress().execute(event, signal());
+          return event;
+        };
+        const firstMinimalCause = await removeWithoutRelay(minimalFirst!.source_listing_id);
+        const minimumAhead = (await property(minimalSecond!.property_id)).summary.askingPrice;
+        expect(minimumAhead?.minorUnits).toBe(correctedPrice);
+        expect(minimumAhead?.provenance.sourceListingId).toBe(minimalSurvivor!.source_listing_id);
+        const pendingMinimal = async () => {
+          const rows = await db.query<{ event: unknown; published_at: Date | null }>(
+            `SELECT jsonb_build_object('eventId',event_id,'aggregateId',aggregate_id,
+              'occurredAt',occurred_at,'traceContext',trace_context,'type',event_type,
+              'version',event_version,'payload',payload) AS event,published_at
+              FROM platform.outbox WHERE event_type='properties.listing.suppressed'
+              AND payload->>'sourceListingId'=ANY($1::text[]) ORDER BY event_id`,
+            [minimalIdentities],
+          );
+          return rows.map((row) => ({
+            event: parsePropertiesListingSuppressed(row.event),
+            publishedAt: row.published_at,
+          }));
+        };
+        const firstNotification = await pendingMinimal();
+        expect(firstNotification).toHaveLength(1);
+        expect(firstNotification[0]!.publishedAt).toBeNull();
+        expect(firstNotification[0]!.event.payload.changes).toEqual([
+          {
+            previousPropertyId: minimalFirst!.property_id,
+            propertyId: minimalSecond!.property_id,
+            previousRevision: expect.any(Number),
+            revision: expect.any(Number),
+          },
+        ]);
+        const secondMinimalCause = await removeWithoutRelay(minimalSecond!.source_listing_id);
+        const bothNotifications = await pendingMinimal();
+        expect(bothNotifications).toHaveLength(2);
+        expect(bothNotifications.map((row) => row.publishedAt)).toEqual([null, null]);
+        expect(bothNotifications[0]!.event).toEqual(firstNotification[0]!.event);
+        for (const { event } of bothNotifications) {
+          for (const change of event.payload.changes) {
+            expect(Object.keys(change).sort()).toEqual([
+              'previousPropertyId',
+              'previousRevision',
+              'propertyId',
+              'revision',
+            ]);
+            expect(change.revision).toBeGreaterThan(change.previousRevision);
+          }
+          expect(JSON.stringify(event)).not.toContain('askingPriceMinorUnits');
+          expect(JSON.stringify(event)).not.toContain('provenance');
+          expect(JSON.stringify(event)).not.toContain(minimalSurvivor!.listing_id);
+          expect(JSON.stringify(event)).not.toContain(minimalSurvivor!.source_listing_id);
+        }
+        await db.query(
+          "DELETE FROM platform.inbox WHERE consumer_name='properties.listing-suppression'",
+        );
+        await suppress().execute(firstMinimalCause, signal());
+        await suppress().execute(secondMinimalCause, signal());
+        expect(await pendingMinimal()).toEqual(bothNotifications);
+        await relay();
+        await vi.waitFor(
+          async () => {
+            expect((await pendingMinimal()).every((row) => row.publishedAt !== null)).toBe(true);
+          },
+          { timeout: 10000, interval: 50 },
+        );
+        await db.query(
+          "DELETE FROM platform.inbox WHERE consumer_name='properties.listing-suppression'",
+        );
+        await suppress().execute(firstMinimalCause, signal());
+        await suppress().execute(secondMinimalCause, signal());
+        expect((await pendingMinimal()).map((row) => row.event)).toEqual(
+          bothNotifications.map((row) => row.event),
+        );
+        expect((await property(minimalSurvivor!.property_id)).summary.askingPrice?.minorUnits).toBe(
+          correctedPrice,
+        );
+        await cli('remove-listing', 'synthetic-data', minimalSurvivor!.source_listing_id);
+        await relay();
+        await waitErased(minimalSurvivor!.source_listing_id);
         // B owns and has validated shared metadata, but has not inserted its observation yet.
         // A must preserve that metadata while erasing its own last committed observation.
         const ownerRaceBytes = Buffer.concat([

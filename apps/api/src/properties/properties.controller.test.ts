@@ -37,7 +37,11 @@ describe('explicit prepared search and production detail/locations HTTP contract
           new SyntheticPropertiesAdapter().search(query),
       })
       .overrideProvider(DATABASE_CONNECTION)
-      .useValue({ query: async () => [], close: async () => undefined })
+      .useValue({
+        query: async () => [],
+        queryAbortable: async () => [],
+        close: async () => undefined,
+      })
       .overrideProvider(LOCATIONS_FACADE)
       .useValue(new SyntheticLocationsAdapter())
       .compile();

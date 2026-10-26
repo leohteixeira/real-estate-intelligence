@@ -76,7 +76,13 @@ class Scope extends Transaction {
 }
 
 function fixture(
-  options: { failure?: string; cancel?: string; unknownAddress?: boolean; refuse?: boolean } = {},
+  options: {
+    failure?: string;
+    cancel?: string;
+    unknownAddress?: boolean;
+    refuse?: boolean;
+    suppressed?: boolean;
+  } = {},
 ) {
   let state: State = { inbox: [], facts: [], properties: [], outbox: [] };
   let serial = Promise.resolve();
@@ -161,6 +167,10 @@ function fixture(
       },
     },
     { enqueue: async () => checkpoint('enqueue') },
+    {
+      isSuppressed: async () => !!options.suppressed,
+      lockAndCheck: async () => !!options.suppressed,
+    },
   );
   return {
     service,
@@ -174,6 +184,15 @@ function fixture(
 }
 
 describe('ConsumeParsedListing atomic durable receipt', () => {
+  it('acknowledges confirmed suppressed old and new parsed identities without staging evidence after pruning', async () => {
+    const f = fixture({ refuse: true, suppressed: true });
+    await f.service.execute({ ...event }, f.controller.signal);
+    f.state().inbox.length = 0;
+    await f.service.execute({ ...event, eventId: id(8) }, f.controller.signal);
+    expect(f.state().facts).toEqual([]);
+    expect(f.state().inbox).toEqual([id(8)]);
+    expect(f.geographyCalls).toEqual([]);
+  });
   it('verifies and stores original feature bytes before composing normalized values', async () => {
     const f = fixture();
     const original = new CollectionSnapshotParsed({
@@ -403,6 +422,8 @@ describe('ConsumeParsedListing atomic durable receipt', () => {
       await expect(f.service.execute(wire, f.controller.signal)).rejects.toThrow();
     expect(f.state()).toEqual({ inbox: [], facts: [], properties: [], outbox: [] });
     f.controller.abort(new Error('Already aborted.'));
-    await expect(f.service.execute(event, f.controller.signal)).rejects.toThrow('Already aborted.');
+    await expect(f.service.execute({ ...event }, f.controller.signal)).rejects.toThrow(
+      'Already aborted.',
+    );
   });
 });

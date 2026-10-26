@@ -181,6 +181,16 @@ describe('D-092 deterministic identity', () => {
     expect(groups[0]?.propertyId).toBe(a.originalPropertyId);
     expect(resolvePropertyGroups([a, b, c], comparisons)).toEqual(groups);
   });
+  it('preserves an erased group survivor set without allowing unrelated members to join without complete-link evidence', () => {
+    const a = { ...input(2), continuityGroupId: id(100) };
+    const b = { ...input(3), continuityGroupId: id(100) };
+    const c = input(1);
+    expect(resolvePropertyGroups([c, b, a], [])).toEqual([
+      { propertyId: a.originalPropertyId, listingIds: [a.listingId, b.listingId] },
+      { propertyId: c.originalPropertyId, listingIds: [c.listingId] },
+    ]);
+    expect(() => resolvePropertyGroups([{ ...a, continuityGroupId: 'bad' }], [])).toThrow();
+  });
   it('refuses nonfinite probabilities and invalid or unidentified configuration before use', () => {
     for (const score of [NaN, Infinity, -1, 1.1]) expect(() => resolutionBand(score)).toThrow();
     for (const config of [

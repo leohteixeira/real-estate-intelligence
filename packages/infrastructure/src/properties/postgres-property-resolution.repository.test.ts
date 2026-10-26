@@ -19,7 +19,10 @@ import {
 import type { DatabaseConnection } from '../shared/persistence/database-connection.js';
 import { PostgresTransactionRunner } from '../shared/persistence/postgres-transaction.js';
 import { fixtureId, initialEvent, initialProperty } from './property.test-fixture.js';
-import { PostgresPropertyResolutionRepository } from './postgres-property-resolution.repository.js';
+import {
+  matchingHash,
+  PostgresPropertyResolutionRepository,
+} from './postgres-property-resolution.repository.js';
 
 const configuration = INITIAL_RESOLUTION_CONFIGURATION;
 type Creation = PropertiesEvent<'properties.listing.created'>;
@@ -146,6 +149,39 @@ function database() {
 }
 
 describe('Postgres entity-resolution decisions', () => {
+  it('retains the erasure-time survivor set through price changes and releases it for later substantive evidence', async () => {
+    const first = await member(0),
+      second = await member(100);
+    const db = database();
+    const row = (
+      item: typeof first,
+      askingPriceMinorUnits = 78500000,
+      areaSquareMeters = 82.5,
+    ) => ({
+      listing_id: item.property.listingId,
+      property_id: item.property.propertyId,
+      event: {
+        ...item.event,
+        payload: {
+          ...item.event.payload,
+          listing: { ...item.event.payload.listing, askingPriceMinorUnits, areaSquareMeters },
+        },
+      },
+      state: null,
+      continuity_group_id: first.property.propertyId,
+      stored_input_hash: matchingHash(item.input.listing),
+    });
+    db.loaded.push(row(first), row(second));
+    const load = () => db.transactions.runInTransaction((tx) => db.repository.load(tx, 2));
+    expect((await load()).map((input) => input.continuityGroupId)).toEqual([
+      first.property.propertyId,
+      first.property.propertyId,
+    ]);
+    db.loaded[0] = row(first, 70000000);
+    expect((await load()).every((input) => input.continuityGroupId)).toBe(true);
+    db.loaded[0] = row(first, 70000000, 90);
+    expect((await load()).map((input) => input.continuityGroupId)).toEqual([undefined, undefined]);
+  });
   it('loads corrected matching inputs, keeps original identity and normalizes hash-equivalent evidence', async () => {
     const first = await member(0);
     const chronology = new ListingChronology(first.property, null, (text) => text);

@@ -49,6 +49,41 @@ describe('PostgreSQL persistence adapters', () => {
     expect(query.mock.calls[1]?.[0]).toContain('ORDER BY event_id LIMIT 1');
     expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
   });
+  it('erases value-bearing Properties copies without selecting minimal suppression notifications', async () => {
+    const query = vi.fn<
+      (sql: string, parameters?: readonly unknown[]) => Promise<readonly object[]>
+    >(async () => []);
+    const connection = connectionDouble({ query, release: vi.fn() } as unknown as DatabaseClient);
+    const identity = {
+      sourceId: 'synthetic-data',
+      sourceListingId: 'later-suppressed',
+      listingId: '0199c8f2-2394-7000-8000-000000000002',
+    };
+    await new PostgresTransactionRunner(connection).runInTransaction((tx) =>
+      new PostgresOutbox(connection).erasePropertiesListingCopies(tx, identity),
+    );
+    const deletion = query.mock.calls.find(([sql]) =>
+      sql.startsWith('DELETE FROM platform.outbox'),
+    )!;
+    expect(deletion[0]).toContain('event_type=ANY($1::text[])');
+    expect(deletion[1]).toEqual([
+      [
+        'properties.listing.created',
+        'properties.listing.price-changed',
+        'properties.listing.description-changed',
+        'properties.listing.removed',
+        'properties.listing.reappeared',
+        'properties.property.asking-price-changed',
+        'properties.property.merged',
+        'properties.property.split',
+        'properties.match.queued-for-review',
+      ],
+      JSON.stringify(identity),
+      identity.listingId,
+    ]);
+    expect(deletion[1]?.[0]).not.toContain('properties.listing.suppressed');
+  });
+
   it('does not query PostgreSQL when the availability check is already aborted', async () => {
     const query = vi.fn();
     const controller = new AbortController();

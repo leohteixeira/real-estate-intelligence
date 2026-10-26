@@ -199,6 +199,7 @@ test('properties-history-upgrade preserves its complete real-service campaign', 
           const upgrades = [
             '1002_properties_create_listing_history.sql',
             '1004_properties_create_entity_resolution.sql',
+            '1005_properties_erase_suppressed_listings.sql',
             '4009_collection_create_completed_event_evidence.sql',
             '4010_collection_add_failed_one_shot_runs.sql',
           ];
