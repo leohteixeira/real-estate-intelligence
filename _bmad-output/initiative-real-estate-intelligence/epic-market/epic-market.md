@@ -144,3 +144,9 @@ of CAP-22, not recorded sale figures (CAP-33).
   Every live figure and twelve-month own/parent point recomputes without the erased listing;
   ordinary reversible removal and D-098 completion watermarks retain their original semantics.
   Exact verification and operational limits are recorded in the existing story plan.
+
+- Story 4.10 reconciliation: all nine predecessor plans are done with empty formal deferred
+  lists and no recommended follow-up review. Staged arithmetic, causal facts, counts/neighbours,
+  series, completion and suppression boundaries are delivered by 4.2–4.8; 4.9 supplies public
+  synthetic production proof. Recorded sales and broader CAP-22 analytics retain their accepted
+  future scope. No supported finding remains to ticket; unchanged runtime gates are reused.
