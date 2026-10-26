@@ -284,3 +284,11 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   upgrading compatible source locks. Prove held registration/commit and pre-capture waits through
   both actual collection entries, PostgreSQL, worker/HTTP, replay and restart
   (agent, on the owner's behalf, 2026-10-11).
+
+- Decision: D-094 replaces production prepared search with a Properties-owned coherent persisted
+  read and the unchanged filter/order/pagination contract. Reuse current detail summaries and
+  full filtered statistics; Locations owns registered descendant scopes. Existing prepared
+  campaigns select an explicit test-only Nest search-provider override, retaining their original
+  catalog and assertions while genuine detail/reductions and normal startup remain persisted.
+  No runtime fake selector, new public route, migration or dependency is introduced
+  (agent, on the owner's behalf, 2026-10-25).

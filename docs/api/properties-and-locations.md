@@ -3,12 +3,12 @@
 The seven read endpoints below are a versioned, synthetic contract surface. Property and listing
 detail query persisted owned-synthetic listing history and current identity groups first, then use
 prepared fallback for existing fixture IDs. Place navigation reads a persisted synthetic reference;
-property search and counts remain prepared; largest reductions query persisted property-minimum
-effects. No read starts collection, publishes events, resolves entities or calculates market figures.
-The prepared fixture
-is the unchanged collection replay: five prepared properties, nine listing identities and thirteen
-monthly observations from October 2025 through October 2026. Supplementary permission, expiry and missing-value
-examples are separate from that population.
+property search reads current persisted groups and full filtered statistics; largest reductions query
+persisted property-minimum effects. No read starts collection, publishes events, resolves entities
+or calculates market figures. The prepared fixture is the unchanged collection replay: five
+prepared properties, nine listing identities and thirteen
+monthly observations from October 2025 through October 2026. Supplementary permission, expiry and
+missing-value examples are separate from that population.
 
 Prepared property reads and persisted place navigation have this `metadata` object:
 
@@ -172,7 +172,8 @@ Reference geography is fixture-only and persisted in the owned `locations` schem
 `SYN-SP-0001` observations on Avenida Exemplo resolve to
 `sao-paulo-bela-vista-avenida-exemplo-fictional-block`, with six crumbs. Existing five-crumb initial
 property snapshots remain immutable and readable after replay or restart. Persisted property
-records do not enter prepared search or place counts. They alone supply production reductions.
+records enter production search with their current grouped identities and supply production reductions.
+Static picker `propertyCount` remains the registered reference fixture count.
 
 The worker job uses `LISTING_HISTORY_BATCH_SIZE` (1–100, default 25),
 `LISTING_HISTORY_INTERVAL_MS` (at least 100, default 250), and `LISTING_HISTORY_TIMEOUT_MS`
@@ -266,9 +267,10 @@ persisted, logged or added to canonical events. Collection still supplies no num
 
 All place reads use PostgreSQL and fail closed with the standard sanitized error response if
 persistence is unavailable; there is no prepared-memory fallback. Supplementary IDs are valid
-prepared search scopes with empty results and persisted reduction scopes, but the five-property
-projection and its original eighteen-place counts are unchanged. No public place writes, new
-business events, geometry/PostGIS activation or real-source processing are introduced.
+persisted search and reduction scopes. Their results reflect current persisted representative
+geography; the separate prepared compatibility catalog retains its original eighteen-place counts.
+No public place writes, new business events, geometry/PostGIS activation or real-source processing
+are introduced.
 
 ## Endpoints
 
@@ -292,6 +294,21 @@ matches no properties. Unprefixed business paths return `404`.
 ## Search and paging
 
 Search defaults to `placeId=sao-paulo`, `sort=furthest-below-median`, `pageSize=20`.
+
+Normal API startup uses `persisted-synthetic-search-v1` metadata. One Properties-owned SQL statement
+reads immutable original lineage, current assignments, corrected chronology and genuine minimum
+effects. Every current group contributes one row; identities without an assignment retain their
+original Property ID once each. Summary selection, representative geography, common numeric
+attributes, active minimum ties, union exposure and history flags share detail's calculation.
+Removed-only groups keep history and null asking values. `asOf` is the maximum retained member
+date, or the injected current time for an empty read. No read writes, caches results, invents a
+neighborhood/market median, or switches to prepared data after failure.
+
+Locations supplies registered descendant IDs through its public boundary. Unknown valid scopes
+yield empty results; corrected representative geography retains source address disagreements.
+Full filtered count, median, signed deviations and registered place counts are calculated before
+pagination. A separate unfiltered search supplies the UI's current place total. Pages are stable
+for unchanged persisted state; a cursor is not a frozen database snapshot.
 All supplied filters combine with AND, including the three history flags. Bounds are inclusive.
 Missing attributes cannot satisfy a supplied numeric bound. No zero is fabricated for a missing
 attribute or absent active asking price.
@@ -324,7 +341,8 @@ empty values, invalid enums, reversed ranges and out-of-bounds values return `40
 | `most-recent`                   | First collection timestamp descending                 |
 
 All ties use property ID ascending. The prepared properties share a first collection timestamp,
-so `most-recent` deliberately demonstrates the ID tie-break. Missing prices sort last.
+so `most-recent` demonstrates the ID tie-break when their original observations tie. Missing
+prices sort last.
 The median uses the entire matching set, never only the current page; an even-sized median is
 rounded to the nearest centavo. `belowMedianPercent` is
 `(matchingMedian - propertyPricePerSquareMeter) / matchingMedian * 100`; negative means above median.
@@ -565,9 +583,20 @@ sanitized, never echoing input, internal exceptions or credentials.
 
 After `pnpm run build`, run `pnpm run test:integration:properties` for the API-only journey. It creates
 a unique Compose project with dynamic ports and synthetic credentials, explicitly disables env-file
-loading, starts only PostgreSQL, existing migrations and the compiled API, validates serialized
+loading, explicitly mounts the prepared-search Nest testing bootstrap, starts PostgreSQL, RabbitMQ,
+existing migrations and compiled API modules, and validates serialized
 responses and errors, verifies collection/raw-object/outbox counts do not change, and removes its
-own containers and volumes in scoped cleanup. Unit and real-HTTP tests also cover contract/event
+own containers and volumes in scoped cleanup. This explicit test bootstrap overrides only the
+`PROPERTY_SEARCH` capability; genuine detail and reductions remain persisted. It uses the existing
+API build stage so Nest testing dependencies and native packages are built for the container.
+The production entry command has no fixture selector. Earlier prepared browser campaigns opt into
+the same owned fixture; their original assertions and synthetic catalog are unchanged.
+
+`integration/property-resolution.integration.test.ts` exercises actual search through normal startup
+and the real collection/storage/broker/worker/API flow. It verifies literal catalog prices, counts,
+medians, deviations, every filter/sort, registered scopes, pages, original unassigned IDs, corrected
+splits, committed status/minimum changes, immutable SQL digests, API restart, and failed/recovered
+database reads. Empty databases remain empty. Unit and real-HTTP tests also cover contract/event
 mutations, filters, paging, history, rights and expiry. No frontend or external source is involved.
 
 `pnpm run test:integration:locations` independently traverses all twenty persisted places, resolves
