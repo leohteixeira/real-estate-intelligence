@@ -3,7 +3,7 @@ title: 'One trace per run'
 type: 'feature'
 ticket: '14'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '1ec5594111778014472b0cf7d4560dbc97ef7019'
 route: 'full'
 route_source: 'auto'
@@ -444,3 +444,15 @@ code or running a campaign. Image preparation log: `/tmp/rei-one-trace-final-mod
 - Both commits passed normal secrets/format/lint/commit-message hooks. Reviewed non-Markdown
   bytes were checked after hooks and remained identical. Documentation-only updates reuse
   these product proofs.
+
+## Story Closure
+
+- The goal orchestrator marked ticket 5.14 done on 2026-10-26 after all six acceptance rows,
+  the required independent review and applicable gates were verified.
+- Delivered runtime: `29641dfc6b7583fa4c758105d6d1fa505e7f8057`.
+- Delivered tests: `82f824282c78063685bd48ed107632df507b9675`.
+- Delivery documentation: `54ee94b88fcddda5217eee3f1927489a98d5af88`.
+- All 56 reviewed files are committed. All 51 reviewed non-Markdown file hashes remained
+  identical after normal hooks; the final native campaign passed 1/1 in 125.57 seconds.
+- This closure changes only story metadata. Existing product evidence is reused; the later
+  published goal campaign remains required and is not claimed here.
