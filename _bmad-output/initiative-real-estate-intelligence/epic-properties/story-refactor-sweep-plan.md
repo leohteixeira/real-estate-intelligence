@@ -3,7 +3,7 @@ title: 'Properties deferred-finding reconciliation'
 type: 'chore'
 ticket: '14'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'b07538eddadbd95a7cbb7d153e5b5c94b95271d4'
 route: 'oneshot'
 route_source: 'auto'
