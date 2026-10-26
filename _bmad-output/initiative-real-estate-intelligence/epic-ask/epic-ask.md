@@ -66,6 +66,12 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Implementation: story 5.9 adds the typed headless live client and bounded stream-owned session,
+  reusing prepared-client transport and strict public envelopes. The native campaign drives the
+  actual client through retained confirmation, ordered continuation, explicit completion and
+  cancellation with authority checks and persisted-effect assertions. The story plan preserves
+  exact verification, the independent quick review and both corrected abort boundaries.
+
 - Decision: D-103 sets configurable defaults of 20 accepted runs per anonymous visitor and
   100 globally per America/Sao_Paulo calendar day. A server-issued, purpose-signed opaque
   30-day cookie identifies a browser, independently of the strong thread capability. Use

@@ -177,3 +177,58 @@ inputs, authority/refusals, replay and absent POST handlers. A distinct API E2E 
 catalogue grant and reaches the edited-confirmation terminal. Both use owned production Compose
 PostgreSQL/migrations/API images, compare all owned table counts and content digests, and preserve
 unrelated Docker resources. See [integration testing](../testing/integration.md).
+
+## Headless live client
+
+`apps/web/src/headless/ask-client.ts` exports `createHeadlessAskClient` and `followLiveAsk`;
+`ask-session.ts` exports `LiveAskSession`. This client admits `routed-text-v1` and
+`routed-text-explanation-v1` through the strict live contracts. The prepared UI client above keeps
+its existing behavior. The caller supplies the public base URL (including any deployment prefix),
+a strong capability, an explicit creation key and each operation's `AbortSignal`. The client does
+not generate or persist credentials. Browser callers own capability and key retention and should
+keep them out of URLs and logs.
+
+```ts
+import { createHeadlessAskClient, followLiveAsk } from './headless/ask-client.js';
+import { LiveAskSession } from './headless/ask-session.js';
+
+const client = createHeadlessAskClient('/real-estate-intelligence');
+const accepted = await client.create(
+  {
+    mode: 'routed-text-v1',
+    threadId: null,
+    placeId: null,
+    query: 'What is the price per square meter for BRL 785,000 and 68 square meters?',
+    locale: 'en',
+  },
+  capability,
+  creationKey,
+  signal,
+);
+const session = new LiveAskSession(accepted);
+await followLiveAsk(client, session, capability, signal, (run) => renderSnapshot(run));
+```
+
+`run` and `thread` inspect live history; their returned values do not advance the session. For a
+paused run, `confirm({ runId, decisionReceiptId, inputs }, capability, signal)` accepts the retained
+decision with validated edited inputs; `cancel(runId, capability, signal)` sends
+`visitor_cancelled`. Command responses do not manufacture stream completion. Disconnect by
+aborting the subscription signal; reconnect with a new signal and the same session. Its cursor
+advances only after a complete valid ordered envelope, and `followLiveAsk` sends it as
+`Last-Event-ID`. An aborted subscription preserves evidence without cancelling the server run.
+
+The session retains its latest snapshot, cursor and serialized frame. An exact latest-frame replay
+is suppressed; changed duplicates, older events, gaps and changed identity/evidence fail closed.
+The server's continuation contract is strictly after the cursor. Snapshot values are copies, and
+confirmation may legitimately transition back to queued. Only explicit completed, failed,
+cancelled or expired SSE envelopes make the session terminal. Premature EOF allows at most one
+automatic continuation; malformed envelopes are not retried. Reads and next-frame waits use the
+shared ten-second deadlines and bounded UTF-8/SSE framing. Refusals preserve their HTTP status in
+`ApiReadError` with a fixed safe message and validated request ID; response bodies are not exposed.
+
+The focused native command is `pnpm run test:integration:ask-headless` after workspace build and
+image preparation. It proves the imported client against owned synthetic services, including edited
+confirmation, retained decisions and cancellation. Unit tests additionally cover public prefixes,
+all terminal variants, malformed/stalled transport, replay and abort. This does not establish a
+visual experience, durable browser credential ownership, live-provider behavior or production
+availability.

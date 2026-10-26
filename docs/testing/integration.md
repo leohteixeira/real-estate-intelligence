@@ -29,6 +29,7 @@ pnpm run test:integration:ask-text-price
 pnpm run test:integration:ask-model-explanation
 pnpm run test:integration:ask-checkpoints
 pnpm run test:integration:ask-delivery
+pnpm run test:integration:ask-headless
 pnpm run test:integration:run-executor
 pnpm run test:integration:properties-history
 pnpm run test:integration:source-register
@@ -112,6 +113,16 @@ terminal. Both use the production PostgreSQL/migrations/API images and compare e
 count/content digest before and after: migrated Ask tables stay empty; no retained caller text,
 outbox write or live AI execution is added. See the [Ask API reference](../api/ask.md) for the
 prepared-only contract and replay limitations.
+
+The headless campaign (`integration/ask-headless.integration.test.ts`) imports the actual config-free
+web client. Its owned current-migration PostgreSQL/API/RabbitMQ/worker stack and scripted AI decider
+prove creation replay, retained low-confidence confirmation, complete-frame disconnect, edited-input
+continuation on the same session, ordered SSE and explicit completion. Persisted receipt and decider
+counts prove no second classification; a separate paused run reaches explicit cancellation with no
+tool effect, and foreign capabilities remain refused. It reuses prepared `rei-intent-images-*`
+images after building the workspaces; prepare them with `test:integration:prepare-ask-intent` when
+backend sources change. It has no live provider, visual or browser-storage evidence. Root and
+prefixed URL construction and broken/failed/expired transports are covered by web unit tests.
 
 The structured price campaign (`integration/ask-price-run.integration.test.ts`) runs PostgreSQL,
 migrations, API, RabbitMQ, production worker and isolated AI graph with ephemeral scoped authority.
