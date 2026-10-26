@@ -3,7 +3,7 @@ title: 'Provider failures bounded and private'
 type: 'feature'
 ticket: '11'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'c98808698606de813a039b8d2e86104e6eca01e2'
 route: 'full'
 route_source: 'auto'
@@ -326,3 +326,12 @@ hooks; outer ticket closure records their observed result.
 Residual limit: this ticket proves offline behavior with fakes and native SDK HTTP interception.
 It does not claim a real provider outage, live ZDR observation or production publication. Those
 remain their explicitly authorized live/deployment stories; no production action was required here.
+
+## Ticket Closure
+
+Story 5.11 is done. Implementation `42d3ac6`, tests `840efe7` and evidence `f7c7ec2` passed
+normal pre-commit and commit-message hooks. All 26 reviewed paths are present after the recorded
+baseline; hooks preserved verified product bytes and the built working copy was clean. Final
+format/Markdown/whitespace checks passed (`/tmp/rei-provider-format-reviewed.log`,
+`/tmp/rei-provider-markdown-reviewed.log`). No supported defect or required offline evidence remains.
+The normal closure commit carries only this status/evidence and the epic implementation note.

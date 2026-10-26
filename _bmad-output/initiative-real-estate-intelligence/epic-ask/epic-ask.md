@@ -66,6 +66,15 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Implementation: story 5.11 completes the offline provider/dependency failure matrix with
+  production Jev policy wiring, bounded per-physical retries, original deadlines, transient-only
+  breakers, conservative fresh generative reservations and categorical telemetry. Native SDK
+  transport/nonconforming error-envelope regressions close the single independent review finding.
+  Final AI coverage passed 309 tests; unchanged receiver/worker/workspace proofs are reused by
+  identity. Build, strict typecheck, lint and normal commit gates passed. No dependency, SQL,
+  production or live provider change was required; story 5.11 is done
+  (agent, on the owner's behalf, 2026-10-26).
+
 - Implementation: story 5.8 now exposes public routed creation, retained-receipt confirmation and
   general cancellation through the existing versioned live API. Durable SSE continuation is proved
   after an observed complete frame and across API restart. The extended native campaign preserves
