@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { parseAskLiveRun, parseIntentDecision, parseIntentDecisionReceipt } from '@rei/contracts';
+import {
+  askIntents,
+  parseAskLiveRun,
+  parseIntentDecision,
+  parseIntentDecisionReceipt,
+} from '@rei/contracts';
 import type { AskLiveRun, IntentDecisionReceipt, RoutedAskLiveRun } from '@rei/domain';
 import {
   DatabaseConnection,
@@ -500,6 +505,161 @@ describe('pause commit at the dispatch boundary', () => {
         }),
       ).rejects.toMatchObject({ kind: 'forbidden' });
     });
+  });
+  it.each(askIntents.filter((intent) => intent !== 'price_per_square_meter'))(
+    'completes %s only from matching evidence, preserving one terminal on replay',
+    async (intent) => {
+      const document = run({
+        originalInputs: null,
+        decision: parseIntentDecisionReceipt({
+          ...receipt(0.85),
+          intent,
+          probabilities: Object.fromEntries(
+            askIntents.map((label) => [label, label === intent ? 0.85 : 0.03]),
+          ),
+        }),
+      });
+      const evidence = { ...pause, outcome: 'execution-unavailable' as const };
+      let terminal: RoutedAskLiveRun | undefined;
+      await fixture(
+        [
+          ...rows(document),
+          [stored(document)],
+          [{ at: new Date(at) }],
+          [{ at: new Date(at) }],
+          ...appended(),
+          [{ id }],
+          [],
+        ],
+        async (repository, query, outbox) => {
+          const completed = await repository.complete({ ...completion, evidence });
+          if (completed.basis !== 'routed-text-v1') throw new Error('Expected routed result.');
+          terminal = completed;
+          expect(terminal).toMatchObject({
+            state: 'completed',
+            result: { kind: 'unavailable_intent', intent, reason: 'not_available' },
+            terminal: { state: 'completed', reason: null },
+          });
+          expect(outbox.append).toHaveBeenCalledOnce();
+          expect(
+            query.mock.calls.filter(([sql]) => sql.includes('INSERT INTO platform.inbox')),
+          ).toHaveLength(1);
+          expect(
+            query.mock.calls.some(([sql]) => /ask\.(tool_receipt|model_explanation)/.test(sql)),
+          ).toBe(false);
+        },
+      );
+      await fixture(rows(terminal!), async (repository, query, outbox) => {
+        expect(await repository.complete({ ...completion, evidence })).toEqual(terminal);
+        expect(query.mock.calls.some(([sql]) => /^(INSERT|UPDATE)/.test(sql))).toBe(false);
+        expect(outbox.append).not.toHaveBeenCalled();
+      });
+      await fixture(rows(terminal!), async (repository, query, outbox) => {
+        await expect(
+          repository.complete({
+            ...completion,
+            evidence: { ...evidence, decisionReceiptId: other },
+          }),
+        ).rejects.toMatchObject({ kind: 'forbidden' });
+        expect(query.mock.calls.some(([sql]) => /^(INSERT|UPDATE)/.test(sql))).toBe(false);
+        expect(outbox.append).not.toHaveBeenCalled();
+      });
+      await fixture(rows(terminal!), async (repository, query, outbox) => {
+        await expect(
+          repository.complete({
+            ...completion,
+            evidence: {
+              ...evidence,
+              outcome: 'price-calculated',
+              receipt: {
+                ...identity,
+                operation: 'price-per-square-meter',
+                inputs,
+                receiptId: id,
+                provenance: 'market-domain-v1',
+                result: {
+                  kind: 'price_per_square_meter',
+                  minorUnits: 50,
+                  currency: 'BRL',
+                  areaUnit: 'm2',
+                  inputs,
+                  computedAt: at,
+                },
+              },
+            },
+          }),
+        ).rejects.toMatchObject({ kind: 'forbidden' });
+        expect(query.mock.calls.some(([sql]) => /^(INSERT|UPDATE)/.test(sql))).toBe(false);
+        expect(outbox.append).not.toHaveBeenCalled();
+      });
+    },
+  );
+  it('replays a pre-upgrade failed non-price terminal without manufacturing a result', async () => {
+    const terminal = run({
+      state: 'failed',
+      decision: parseIntentDecisionReceipt({
+        ...receipt(0.85),
+        intent: 'listing_search',
+        probabilities: {
+          ...decision(0.85).probabilities,
+          price_per_square_meter: 0.15,
+          listing_search: 0.85,
+        },
+      }),
+      terminal: { state: 'failed', reason: 'execution_unavailable', at },
+      steps: [
+        { sequence: 1, phase: 'routing', at },
+        { sequence: 2, phase: 'failed', at },
+      ],
+    });
+    await fixture(rows(terminal), async (repository, query, outbox) => {
+      expect(
+        await repository.complete({
+          ...completion,
+          evidence: { ...pause, outcome: 'execution-unavailable' },
+        }),
+      ).toEqual(terminal);
+      expect(query.mock.calls.some(([sql]) => /^(INSERT|UPDATE)/.test(sql))).toBe(false);
+      expect(outbox.append).not.toHaveBeenCalled();
+    });
+  });
+  it('completes a confirmed retained non-price decision without operands', async () => {
+    const document = run({
+      ...awaiting(),
+      state: 'running',
+      decision: parseIntentDecisionReceipt({
+        ...receipt(),
+        intent: 'listing_search',
+        probabilities: {
+          ...decision().probabilities,
+          price_per_square_meter: 0.16,
+          listing_search: 0.84,
+        },
+      }),
+      confirmation: { decisionReceiptId: id, inputs: null, at },
+    });
+    await fixture(
+      [
+        ...rows(document),
+        [stored(document)],
+        [{ at: new Date(at) }],
+        [{ at: new Date(at) }],
+        ...appended(),
+        [{ id }],
+        [],
+      ],
+      async (repository) => {
+        expect(
+          await repository.complete({
+            ...completion,
+            evidence: { ...pause, outcome: 'execution-unavailable' },
+          }),
+        ).toMatchObject({
+          state: 'completed',
+          result: { kind: 'unavailable_intent', intent: 'listing_search' },
+        });
+      },
+    );
   });
   it('retains unavailable gated work as one terminal, without inventing a price receipt', async () => {
     const document = run({ decision: receipt(0.85) });

@@ -472,7 +472,10 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
       }
       const committed = await complete(evidence);
       expect(committed.status).toBe(200);
-      expect(parseAskLiveRun(await committed.json()).result?.minorUnits).toBe(1_154_412);
+      const committedResult = parseAskLiveRun(await committed.json()).result;
+      if (committedResult?.kind !== 'price_per_square_meter')
+        throw new Error('Expected price result.');
+      expect(committedResult.minorUnits).toBe(1_154_412);
       expect(await counts(recovered.runId)).toStrictEqual([
         { events: 3, receipts: 1, inbox: 1, terminal_outbox: 1 },
       ]);
@@ -524,6 +527,8 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
       expect(events.filter((event) => event.terminal)).toHaveLength(1);
       const terminal = events.at(-1)!;
       expect(terminal.event).toBe('ask.completed');
+      if (terminal.run.result?.kind !== 'price_per_square_meter')
+        throw new Error('Expected price result.');
       expect(terminal.run.result?.minorUnits).toBe(1_154_412);
       expect(terminal.run.result?.inputs).toStrictEqual(requestBody.inputs);
       expect(
@@ -546,6 +551,8 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
         { timeout: 40_000, interval: 100 },
       );
       const existingThreadTerminal = await snapshot(existingThreadRun.runId);
+      if (existingThreadTerminal.result?.kind !== 'price_per_square_meter')
+        throw new Error('Expected price result.');
       expect(existingThreadTerminal.result?.minorUnits).toBe(1_154_412);
       expect(existingThreadTerminal.originalInputs).toStrictEqual(requestBody.inputs);
       expect(existingThreadTerminal.result?.inputs).toStrictEqual(requestBody.inputs);
@@ -612,6 +619,8 @@ test('Ask structured tracer E2E: real graph/tool, atomic SQL, fenced claims, dur
       expect(largeTerminal.question).toBe(largeBody.query);
       expect(largeTerminal.placeId).toBe(largeBody.placeId);
       expect(Buffer.byteLength(JSON.stringify(largeTerminal))).toBeGreaterThan(100000);
+      if (largeTerminal.result?.kind !== 'price_per_square_meter')
+        throw new Error('Expected price result.');
       expect(largeTerminal.result?.minorUnits).toBe(1_154_412);
       expect(await counts(large.runId)).toStrictEqual([
         { events: 3, receipts: 1, inbox: 1, terminal_outbox: 1 },

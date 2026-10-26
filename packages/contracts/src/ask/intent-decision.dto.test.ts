@@ -98,6 +98,81 @@ describe('closed routed Ask wire contracts', () => {
     ])
       expect(() => parseRoutedAskLiveRun(invalid)).toThrow();
   });
+  it.each(askIntents.filter((intent) => intent !== 'price_per_square_meter'))(
+    'accepts only the retained, gate-authorized unavailable result for %s',
+    (intent) => {
+      const receipt = (probability: number) =>
+        parseIntentDecisionReceipt({
+          ...decision,
+          intent,
+          probability,
+          probabilities: Object.fromEntries(
+            askIntents.map((label) => [
+              label,
+              label === intent ? probability : (1 - probability) / 5,
+            ]),
+          ),
+          receiptId: id,
+          acceptedAt: at,
+        });
+      const result = { kind: 'unavailable_intent', intent, reason: 'not_available' };
+      const completed = {
+        ...run,
+        state: 'completed',
+        originalInputs: null,
+        decision: receipt(0.85),
+        confirmationDeadline: null,
+        result,
+        terminal: { state: 'completed', reason: null, at },
+        steps: [
+          { sequence: 1, phase: 'routing', at },
+          { sequence: 2, phase: 'completed', at },
+        ],
+      };
+      expect(parseRoutedAskLiveRun(completed)).toEqual(completed);
+      const confirmed = {
+        ...completed,
+        decision: receipt(0.84),
+        confirmationDeadline: run.confirmationDeadline,
+        confirmation: { decisionReceiptId: id, inputs: null, at },
+        steps: [
+          ...run.steps,
+          { sequence: 3, phase: 'confirmed', at },
+          { sequence: 4, phase: 'completed', at },
+        ],
+      };
+      expect(parseRoutedAskLiveRun(confirmed)).toEqual(confirmed);
+      for (const invalid of [
+        { ...completed, decision: null },
+        { ...completed, decision: receipt(0.84) },
+        { ...completed, decision: retained },
+        {
+          ...confirmed,
+          confirmation: {
+            decisionReceiptId: '0199c8f2-2394-7ba0-8f9e-286378779211',
+            inputs: null,
+            at,
+          },
+        },
+        { ...completed, result: { ...result, intent: 'price_per_square_meter' } },
+        { ...completed, result: { ...result, intent: 'invented' } },
+        {
+          ...completed,
+          result: { ...result, intent: intent === 'unsupported' ? 'comparables' : 'unsupported' },
+        },
+        { ...completed, result: { ...result, reason: 'execution_unavailable' } },
+        { ...completed, result: { ...result, explanation: 'generated text' } },
+        { ...completed, result: { kind: 'unavailable_intent', intent } },
+        { ...completed, terminal: { state: 'completed', reason: 'execution_unavailable', at } },
+        {
+          ...completed,
+          state: 'failed',
+          terminal: { state: 'failed', reason: 'execution_unavailable', at },
+        },
+      ])
+        expect(() => parseRoutedAskLiveRun(invalid)).toThrow();
+    },
+  );
   it('retains exact receipt identity across get, reserve and accept', () => {
     for (const request of [
       { ...identity, operation: 'get' },

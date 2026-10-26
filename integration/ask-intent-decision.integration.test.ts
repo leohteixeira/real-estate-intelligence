@@ -1,3 +1,4 @@
+import { readFile, readdir } from 'node:fs/promises';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { expect, test, vi } from 'vitest';
@@ -11,8 +12,11 @@ import {
   askDispatchProof,
 } from '../packages/infrastructure/dist/index.js';
 import {
+  askIntents,
   parseAskLiveRun,
   parseAskClaim,
+  parseAskCompletion,
+  parseIntentDecision,
   parseAskLiveEvent,
   type AskLiveRun,
   type RoutedAskLiveRun,
@@ -71,9 +75,176 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
   let scripted = false;
   await preserveCleanup(
     async () => {
-      await fixture.up(['--build', 'postgres', 'migrations', 'api', 'rabbitmq', 'minio']);
-      await command(['build', 'ai']);
-      await command(['build', 'worker']);
+      for (const service of ['migrations', 'api', 'ai', 'worker'])
+        await fixture.execute('docker', [
+          'image',
+          'tag',
+          `rei-intent-images-${service}`,
+          `${fixture.project}-${service}`,
+        ]);
+      await fixture.up(['postgres']);
+      const url = new URL(`postgres://127.0.0.1:${postgres}/rei_intent`);
+      url.username = fixture.environment.POSTGRES_USER!;
+      url.password = fixture.environment.POSTGRES_PASSWORD!;
+      database = new DatabaseConnection(url.toString());
+      const db = database;
+      await db.query(
+        'CREATE TABLE schema_migrations(version text PRIMARY KEY,applied_at timestamptz NOT NULL DEFAULT now())',
+      );
+      const files = (await readdir(new URL('../migrations/', import.meta.url)))
+        .filter((file) => /^\d{4}_[a-z0-9_]+\.sql$/.test(file))
+        .sort();
+      for (const file of files.filter((file) => file < '6007')) {
+        await db.query(await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'));
+        await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [file.slice(0, -4)]);
+      }
+      const repository = new PostgresAskRunRepository(
+        db,
+        new PostgresTransactionRunner(db),
+        new PostgresOutbox(db),
+      );
+      const facade = new AskRunService(repository, new PricePerSquareMeterService());
+      const prior = await facade.create(
+        {
+          mode: 'structured-price-v1',
+          threadId: null,
+          placeId: null,
+          query: 'Historical upgrade input',
+          locale: 'en',
+          inputs,
+        },
+        capability,
+        secret(),
+      );
+      const priorEvent = (
+        await db.query<{ event_id: string }>(
+          'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
+          [prior.id],
+        )
+      )[0]!;
+      const priorIdentity = {
+        version: 1 as const,
+        eventId: priorEvent.event_id,
+        runId: prior.id,
+        threadId: prior.threadId,
+      };
+      const priorClaim = await facade.claim(priorIdentity);
+      if (priorClaim.disposition !== 'claimed' || priorClaim.input.step !== 'structured-price-v1')
+        throw new Error('Expected historical claim.');
+      const priceReceipt = await facade.tool(
+        {
+          ...priorIdentity,
+          executionId: priorClaim.input.executionId,
+          operation: 'price-per-square-meter',
+          inputs,
+        },
+        priorClaim.input.toolGrant,
+        (at) => new PricePerSquareMeterService().pricePerSquareMeter(inputs, at),
+      );
+      await facade.complete({
+        ...priorIdentity,
+        executionId: priorClaim.input.executionId,
+        evidence: {
+          ...priorIdentity,
+          executionId: priorClaim.input.executionId,
+          step: 'structured-price-v1',
+          outcome: 'price-calculated',
+          visitedNodes: ['fixedDecision', 'priceTool'],
+          receipt: priceReceipt,
+        },
+        failure: null,
+      });
+      const priorRouted = await facade.createRouted(
+        {
+          mode: 'routed-text-v1',
+          threadId: null,
+          placeId: null,
+          query: 'listing search',
+          locale: 'en',
+        },
+        capability,
+        secret(),
+      );
+      const priorRoutedEvent = (
+        await db.query<{ event_id: string }>(
+          'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
+          [priorRouted.id],
+        )
+      )[0]!;
+      const priorRoutedIdentity = {
+        version: 1 as const,
+        eventId: priorRoutedEvent.event_id,
+        runId: priorRouted.id,
+        threadId: priorRouted.threadId,
+      };
+      const priorRoutedClaim = await facade.claim(priorRoutedIdentity);
+      if (priorRoutedClaim.disposition !== 'claimed') throw new Error('Expected routed claim.');
+      const reservation = await facade.executeDecision(
+        {
+          ...priorRoutedIdentity,
+          executionId: priorRoutedClaim.input.executionId,
+          operation: 'reserve',
+          attemptKey: secret(),
+        },
+        priorRoutedClaim.input.checkpointGrant,
+        new AbortController().signal,
+      );
+      if (reservation.operation !== 'reserve') throw new Error('Expected decision reservation.');
+      const priorDecision = await facade.executeDecision(
+        {
+          ...priorRoutedIdentity,
+          executionId: priorRoutedClaim.input.executionId,
+          operation: 'accept',
+          reservationId: reservation.reservationId,
+          decision: parseIntentDecision({
+            intent: 'listing_search',
+            probability: 0.85,
+            probabilities: Object.fromEntries(
+              askIntents.map((label) => [label, label === 'listing_search' ? 0.85 : 0.03]),
+            ),
+            source: 'heuristic-v1',
+            degraded: true,
+            taxonomyVersion: 'ask-intents-v1',
+            privacyEvidenceId: null,
+          }),
+        },
+        priorRoutedClaim.input.checkpointGrant,
+        new AbortController().signal,
+      );
+      if (priorDecision.operation !== 'accept') throw new Error('Expected decision receipt.');
+      const priorFailure = await facade.complete({
+        ...priorRoutedIdentity,
+        executionId: priorRoutedClaim.input.executionId,
+        evidence: null,
+        failure: 'execution_unavailable',
+      });
+      const retained = () =>
+        db.query<{ id: string; document: unknown; events: unknown; receipt: unknown }>(
+          'SELECT id::text,document,(SELECT jsonb_agg(e.document ORDER BY e.sequence) FROM ask.run_event e WHERE e.run_id=r.id) AS events,(SELECT t.document FROM ask.tool_receipt t WHERE t.run_id=r.id) AS receipt FROM ask.run r WHERE id=ANY($1::uuid[]) ORDER BY id',
+          [[prior.id, priorRouted.id]],
+        );
+      const beforeUpgrade = await retained();
+      const upgrade = '6007_ask_unavailable_intents.sql';
+      await db.query(await readFile(new URL(`../migrations/${upgrade}`, import.meta.url), 'utf8'));
+      await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [upgrade.slice(0, -4)]);
+      expect(await retained()).toEqual(beforeUpgrade);
+      expect(
+        await facade.complete({
+          ...priorRoutedIdentity,
+          executionId: priorRoutedClaim.input.executionId,
+          evidence: {
+            ...priorRoutedIdentity,
+            executionId: priorRoutedClaim.input.executionId,
+            step: 'routed-text-v1',
+            decisionReceiptId: priorDecision.decision.receiptId,
+            outcome: 'execution-unavailable',
+          },
+          failure: null,
+        }),
+      ).toEqual(priorFailure);
+      expect(await retained()).toEqual(beforeUpgrade);
+      await fixture.up(['migrations', 'api', 'rabbitmq', 'minio']);
+      expect(await retained()).toEqual(beforeUpgrade);
       await command([
         'run',
         '--detach',
@@ -95,17 +266,6 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         timeout: 30000,
         interval: 100,
       });
-      const url = new URL(`postgres://127.0.0.1:${postgres}/rei_intent`);
-      url.username = fixture.environment.POSTGRES_USER!;
-      url.password = fixture.environment.POSTGRES_PASSWORD!;
-      database = new DatabaseConnection(url.toString());
-      const db = database;
-      const repository = new PostgresAskRunRepository(
-        db,
-        new PostgresTransactionRunner(db),
-        new PostgresOutbox(db),
-      );
-      const facade = new AskRunService(repository, new PricePerSquareMeterService());
       const create = (query = golden, threadId: string | null = null) =>
         facade.createRouted(
           { mode: 'routed-text-v1', threadId, placeId: null, query, locale: 'en' },
@@ -146,7 +306,10 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
       await fixture.up(['worker']);
       const boundary = await create();
       const completed = await wait(boundary.id, 'completed');
-      expect(completed.result?.minorUnits).toBe(1154412);
+      expect(completed.result?.kind).toBe('price_per_square_meter');
+      if (completed.result?.kind !== 'price_per_square_meter')
+        throw new Error('Expected price result.');
+      expect(completed.result.minorUnits).toBe(1154412);
       expect(completed.decision?.probability).toBe(0.85);
       expect(await count(boundary.id)).toEqual([{ tools: 1, models: 0, decisions: 1 }]);
       const low = await create(`${golden} uncertain`);
@@ -199,7 +362,10 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
       ).rejects.toThrow();
       await fixture.up(['worker']);
       const resumed = await wait(low.id, 'completed');
-      expect(resumed.result?.minorUnits).toBe(785000);
+      expect(resumed.result?.kind).toBe('price_per_square_meter');
+      if (resumed.result?.kind !== 'price_per_square_meter')
+        throw new Error('Expected price result.');
+      expect(resumed.result.minorUnits).toBe(785000);
       expect(resumed.decision).toEqual(decision);
       await wait(successor.id, 'completed');
       await wait(third.id, 'completed');
@@ -207,11 +373,133 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
       expect(await counters.json()).toEqual({ decisions: 2 });
       expect(await count(low.id)).toEqual([{ tools: 1, models: 0, decisions: 1 }]);
       const missing = await create('Calculate price per square meter');
-      expect((await wait(missing.id, 'failed')).decision?.intent).toBe('price_per_square_meter');
+      const missingResult = await wait(missing.id, 'failed');
+      expect(missingResult.decision?.intent).toBe('price_per_square_meter');
+      expect(missingResult.result).toBeNull();
       expect(await count(missing.id)).toEqual([{ tools: 0, models: 0, decisions: 1 }]);
-      const other = await create('listing search');
-      expect((await wait(other.id, 'failed')).decision?.intent).toBe('listing_search');
-      expect(await count(other.id)).toEqual([{ tools: 0, models: 0, decisions: 1 }]);
+      for (const intent of askIntents.filter((label) => label !== 'price_per_square_meter')) {
+        const other = await create(intent.replaceAll('_', ' '));
+        const unavailable = await wait(other.id, 'completed');
+        expect(unavailable.decision?.intent).toBe(intent);
+        expect(unavailable.result).toEqual({
+          kind: 'unavailable_intent',
+          intent,
+          reason: 'not_available',
+        });
+        expect(unavailable.terminal).toMatchObject({ state: 'completed', reason: null });
+        expect(await count(other.id)).toEqual([{ tools: 0, models: 0, decisions: 1 }]);
+        const events = await repository.events(other.id, capability, 0);
+        events.forEach(parseAskLiveEvent);
+        expect(events.filter((event) => event.terminal)).toHaveLength(1);
+        expect(events.at(-1)?.run).toEqual(unavailable);
+        const stream = await requestHttp(`${api}/api/v1/runs/${other.id}/events`, {
+          headers: { Authorization: `Bearer ${capability}` },
+        });
+        expect(stream.status).toBe(200);
+        expect(stream.headers.get('content-type')).toContain('text/event-stream');
+        const streamed = (await stream.text())
+          .split(/\r?\n\r?\n/)
+          .filter((block) => block.trim() && !block.startsWith(':'))
+          .map((block) =>
+            parseAskLiveEvent(
+              JSON.parse(
+                block
+                  .split(/\r?\n/)
+                  .filter((line) => line.startsWith('data:'))
+                  .map((line) => line.slice(5).trimStart())
+                  .join('\n'),
+              ),
+            ),
+          );
+        expect(streamed).toEqual(events);
+
+        const request = await identity(unavailable);
+        const execution = (
+          await db.query<{ execution_id: string }>(
+            'SELECT execution_id::text FROM ask.run WHERE id=$1',
+            [other.id],
+          )
+        )[0]!;
+        const evidence = {
+          ...request,
+          step: 'routed-text-v1' as const,
+          executionId: execution.execution_id,
+          decisionReceiptId: unavailable.decision!.receiptId,
+          outcome: 'execution-unavailable' as const,
+        };
+        for (const decisionReceiptId of [other.id, undefined]) {
+          await expect(async () =>
+            repository.complete(
+              parseAskCompletion({
+                ...request,
+                executionId: execution.execution_id,
+                evidence: { ...evidence, decisionReceiptId },
+                failure: null,
+              }),
+            ),
+          ).rejects.toThrow();
+        }
+        expect(
+          await repository.complete({
+            ...request,
+            executionId: execution.execution_id,
+            evidence,
+            failure: null,
+          }),
+        ).toEqual(unavailable);
+        expect(await repository.events(other.id, capability, 0)).toEqual(events);
+        expect(
+          await db.query<{ terminals: number; outbox: number; inbox: number }>(
+            "SELECT (SELECT count(*)::integer FROM ask.run_event WHERE run_id=$1 AND document->'terminal'='true'::jsonb) AS terminals,(SELECT count(*)::integer FROM platform.outbox WHERE event_type='ask.run.completed' AND payload->>'runId'=$1::text) AS outbox,(SELECT count(*)::integer FROM platform.inbox WHERE event_id=$2) AS inbox",
+            [other.id, request.eventId],
+          ),
+        ).toEqual([{ terminals: 1, outbox: 1, inbox: 1 }]);
+        for (const result of [
+          { ...unavailable.result, reason: 'execution_unavailable' },
+          {
+            ...unavailable.result,
+            intent: intent === 'unsupported' ? 'comparables' : 'unsupported',
+          },
+          { ...unavailable.result, intent: 'price_per_square_meter' },
+          { ...unavailable.result, explanation: 'generated text' },
+        ]) {
+          await expect(
+            db.query(
+              "UPDATE ask.run SET document=jsonb_set(document,'{result}',$2::jsonb) WHERE id=$1",
+              [other.id, result],
+            ),
+          ).rejects.toThrow();
+          await expect(
+            db.query(
+              "UPDATE ask.run_event SET document=jsonb_set(document,'{run,result}',$2::jsonb) WHERE run_id=$1 AND document->'terminal'='true'::jsonb",
+              [other.id, result],
+            ),
+          ).rejects.toThrow();
+        }
+        await command(['restart', 'api']);
+        await vi.waitFor(async () => expect(await read(other.id)).toEqual(unavailable), {
+          timeout: 30000,
+        });
+        expect(await repository.events(other.id, capability, 0)).toEqual(events);
+      }
+      const nonPrice = await create('property history uncertain');
+      const nonPricePause = await wait(nonPrice.id, 'awaiting_confirmation');
+      expect(nonPricePause.result).toBeNull();
+      expect(await count(nonPrice.id)).toEqual([{ tools: 0, models: 0, decisions: 1 }]);
+      const beforeConfirm = await (await requestHttp(`${ai}/fixture/decisions`)).json();
+      await facade.confirm(
+        { runId: nonPrice.id, decisionReceiptId: nonPricePause.decision!.receiptId, inputs: null },
+        capability,
+      );
+      const confirmedUnavailable = await wait(nonPrice.id, 'completed');
+      expect(confirmedUnavailable.decision).toEqual(nonPricePause.decision);
+      expect(confirmedUnavailable.result).toEqual({
+        kind: 'unavailable_intent',
+        intent: 'property_history',
+        reason: 'not_available',
+      });
+      expect(await (await requestHttp(`${ai}/fixture/decisions`)).json()).toEqual(beforeConfirm);
+      expect(await count(nonPrice.id)).toEqual([{ tools: 0, models: 0, decisions: 1 }]);
       const degraded = await create(`${golden} degraded`);
       expect((await wait(degraded.id, 'completed')).decision).toMatchObject({
         source: 'heuristic-v1',

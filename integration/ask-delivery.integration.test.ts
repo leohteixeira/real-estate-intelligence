@@ -528,10 +528,11 @@ test('ordered Ask delivery: public capacity/replay, SQL expiry, independent defa
         expect(executions.map((row) => row.at)).toEqual(
           [...executions.map((row) => row.at)].sort(),
         );
-        for (const run of [a1, a2, a3, b1])
-          expect((await terminalFrames(context, run.runId)).at(-1)?.run.result?.minorUnits).toBe(
-            1154412,
-          );
+        for (const run of [a1, a2, a3, b1]) {
+          const result = (await terminalFrames(context, run.runId)).at(-1)?.run.result;
+          if (result?.kind !== 'price_per_square_meter') throw new Error('Expected price result.');
+          expect(result.minorUnits).toBe(1154412);
+        }
       },
       () =>
         cleanupAll(

@@ -429,7 +429,9 @@ test.each(['api', 'worker', 'ai'] as const)(
           );
           const run = await snapshot(context, accepted.runId);
           expect(run.threadId).toBe(accepted.threadId);
-          expect(run.result?.minorUnits).toBe(1154412);
+          if (run.result?.kind !== 'price_per_square_meter')
+            throw new Error('Expected price result.');
+          expect(run.result.minorUnits).toBe(1154412);
           const identityAfter = await context.database.query<{
             requested_event_id: string;
             request_fingerprint: string;

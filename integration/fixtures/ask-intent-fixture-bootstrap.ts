@@ -22,7 +22,10 @@ const scripted: IntentDecider = {
         decide: () => Promise.reject(new ModelExplanationFailure('policy')),
       }).decide(query, locale, signal, deadlineAt);
     if (query.includes('malformed')) return { ...heuristicDecision(query), probability: NaN };
-    const intent = query.includes('listing search') ? 'listing_search' : 'price_per_square_meter';
+    const intent =
+      askIntents.find(
+        (label) => label !== 'price_per_square_meter' && query.includes(label.replaceAll('_', ' ')),
+      ) ?? 'price_per_square_meter';
     const probability = query.includes('uncertain') ? 0.84 : 0.85;
     return parseIntentDecision({
       ...heuristicDecision(query),

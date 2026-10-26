@@ -337,7 +337,9 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         expect(events[0]?.run.state).toBe('queued');
         expect(events.at(-1)?.run.id).toBe([pt, en][index]!.runId);
         expect(events.at(-1)?.run.state).toBe('completed');
-        expect(events.at(-1)?.run.result?.minorUnits).toBe(1154412);
+        const result = events.at(-1)?.run.result;
+        if (result?.kind !== 'price_per_square_meter') throw new Error('Expected price result.');
+        expect(result.minorUnits).toBe(1154412);
         expect(events.at(-1)?.run.decision?.source).toBe('validated-text-v1');
         expect(events.filter((event) => event.terminal)).toHaveLength(1);
         const runId = [pt, en][index]!.runId;
@@ -398,7 +400,9 @@ test('text PT/EN public admission traverses real worker, validated graph, Market
         const contextualTerminal = frames(await contextualStream.text()).at(-1);
         expect(contextualTerminal?.run.id).toBe(contextual.runId);
         expect(contextualTerminal?.run.state).toBe('completed');
-        expect(contextualTerminal?.run.result?.minorUnits).toBe(1154412);
+        if (contextualTerminal?.run.result?.kind !== 'price_per_square_meter')
+          throw new Error('Expected price result.');
+        expect(contextualTerminal.run.result.minorUnits).toBe(1154412);
       }
       const structured = await post({
         mode: 'structured-price-v1',
@@ -799,7 +803,9 @@ test('6002 upgrades populated structured history without rewriting evidence and 
         const response = await requestHttp(`${api}/api/v1/runs/${accepted.runId}`, {
           headers: { Authorization: `Bearer ${capability}` },
         });
-        expect(parseAskLiveRun(await response.json()).result?.minorUnits).toBe(1154412);
+        const result = parseAskLiveRun(await response.json()).result;
+        if (result?.kind !== 'price_per_square_meter') throw new Error('Expected price result.');
+        expect(result.minorUnits).toBe(1154412);
       },
       { timeout: 30000, interval: 200 },
     );
