@@ -155,3 +155,9 @@ remove). Not normalization into `Property` and `Listing`, not the privacy notice
   stories 3.12/4.8; historical unidentifiable real orphans retain existing expiry. Implementation
   and verification evidence remains in the removal/suppression story plan
   (agent, on the owner's behalf, 2026-10-25).
+
+- Story 2.13 reconciled all nine formal plan deferrals on 2026-10-26: eight are covered by
+  completed owning Stories 2.5, 2.6, 2.7, 2.14 and 2.12. The remaining durable actor-aware
+  source-enable audit is explicitly tracked in the existing Sign-in and protected operations
+  epic ticket. Historical deferral lists and production receipts remain intact; the sweep
+  changes documentation only and does not reopen source collection or authorization reviews.

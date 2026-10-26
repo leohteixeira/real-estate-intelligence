@@ -267,3 +267,12 @@ All Compose resources were removed afterward.
 snapshot sanitization/encryption/expiry remains deferred to Story 2.7; production activation, VPS
 access, and remote telemetry proof remain deferred to Story 2.12 until the operator returns. The
 frontend build retains its existing informational warning for a generated chunk over 500 kB.
+
+## Deferred reconciliation — Story 2.13 (2026-10-26)
+
+- Source retry, rate, backoff, block, circuit and automatic disablement: closed by completed
+  Story 2.6.
+- Snapshot sanitization, encryption and expiry: closed by completed Story 2.7.
+- Production activation, deployment, VPS access and remote telemetry are no longer blocked by
+  operator authorization. Completed Story 2.12 records actual native scheduled-run persistence
+  and its retrieved Tempo span on the manually published current-branch application.

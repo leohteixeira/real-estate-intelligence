@@ -479,3 +479,14 @@ Do not use ignored environment files, external network access, a deployed servic
 - **Residual risks:** Rate enforcement, retry/backoff/circuit behavior, scheduling, checkpoints,
   production deployment, and durable operator identity/audit remain deliberately deferred to
   their owning stories. No real-source operation or VPS dependency was introduced.
+
+## Deferred reconciliation — Story 2.13 (2026-10-26)
+
+- Source rate, retry, backoff, block and circuit behavior: closed by completed Story 2.6.
+- Checkpoints/resumption, scheduling and production execution: closed by completed Stories 2.5,
+  2.14 and 2.12 respectively. Production authorization was subsequently granted; Story 2.12
+  retains the actual seed, replay, scheduled-run and Tempo evidence.
+- Durable operator audit with authenticated actor identity remains owned by the existing
+  [Sign-in and protected operations epic ticket](../epic-authentication-and-operations/epic-authentication-and-operations.md).
+  Its explicit tracked collection deferral preserves this work outside the Phase 1 goal;
+  `enabled_at` and the current owner-only CLI do not claim to implement actor-aware audit.

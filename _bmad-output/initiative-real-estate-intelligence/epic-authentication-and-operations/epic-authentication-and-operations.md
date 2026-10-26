@@ -59,3 +59,9 @@ The `identity` context, the protected screens and the completion of `audit`. Not
 - Waits on epic-properties because: it needs matches awaiting review.
 - Waits on epic-ask because: it needs run and provider figures.
 - Waits on epic-web because: it needs the shell.
+
+- Tracked collection deferral (Story 2.4, reconciled by 2.13): complete the durable operator
+  audit trail for source enablement when authenticated identity and protected operations exist.
+  Record the authenticated actor and source-enable action durably through the owning audit
+  boundary. The current source `enabled_at` timestamp and owner-only CLI are not evidence of
+  authenticated actor audit. This remains future epic work, outside the Phase 1 epics 1–6.

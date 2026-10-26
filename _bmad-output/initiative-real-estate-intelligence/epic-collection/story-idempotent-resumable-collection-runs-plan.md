@@ -473,3 +473,12 @@ PostgreSQL campaign, and the narrowed in-memory projection.
    running-run constructor instead of spreading the wider legacy persistence input. The
    legacy-to-resumable projection test now uses exact structural equality for the complete run,
    proving that observation, storage, event, and manifest-input fields cannot leak into run state.
+
+## Deferred reconciliation — Story 2.13 (2026-10-26)
+
+- Retry, backoff, rate, circuit and source degradation: closed by completed Story 2.6.
+- Scheduling, broker commands, concurrency, graceful draining and run telemetry: closed by
+  completed Story 2.14.
+- The historical production authorization blocker is superseded by the owner's VPS authorization
+  and completed Story 2.12. Its retained receipts prove the deployed seed, idempotent replay,
+  native scheduled runs and retrieved Tempo trace; no repeat deployment is needed here.
