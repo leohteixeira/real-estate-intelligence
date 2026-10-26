@@ -1,14 +1,23 @@
 import { parseAskProgressEvent, type AskProgressEvent } from '@rei/contracts';
-import { ApiReadError } from '../api/client';
+import { ApiReadError } from '../api/read-error.js';
 
 export const askStreamPolicy = { maxFrameBytes: 64 * 1024, maxBufferedBytes: 128 * 1024 } as const;
-export interface AdmittedFrame {
-  readonly frame: AskProgressEvent;
+export interface StreamEnvelope {
+  readonly id: string;
+  readonly event: string;
+  readonly terminal: boolean;
+}
+export interface AdmittedFrame<T extends StreamEnvelope = AskProgressEvent> {
+  readonly frame: T;
   readonly serialized: string;
 }
 
 /** Incremental SSE framing. A cursor exists only after a complete public envelope. */
-export class AskStreamDecoder {
+export class EventStreamDecoder<T extends StreamEnvelope> {
+  private readonly parse: (value: unknown) => T;
+  constructor(parse: (value: unknown) => T) {
+    this.parse = parse;
+  }
   private readonly decoder = new TextDecoder('utf-8', { fatal: true });
   private line: string[] = [];
   private bytes = 0;
@@ -17,10 +26,10 @@ export class AskStreamDecoder {
   private event: string | undefined;
   private data: string[] = [];
 
-  push(chunk: Uint8Array, onFrame?: (frame: AdmittedFrame) => void): AdmittedFrame[] {
+  push(chunk: Uint8Array, onFrame?: (frame: AdmittedFrame<T>) => void): AdmittedFrame<T>[] {
     try {
       if (chunk.byteLength > askStreamPolicy.maxBufferedBytes) throw new ApiReadError(502);
-      const frames: AdmittedFrame[] = [];
+      const frames: AdmittedFrame<T>[] = [];
       let start = 0;
       for (let index = 0; index < chunk.length; index++) {
         const byte = chunk[index];
@@ -51,7 +60,7 @@ export class AskStreamDecoder {
     }
   }
 
-  finish(): AdmittedFrame[] {
+  finish(): AdmittedFrame<T>[] {
     try {
       const tail = this.decoder.decode();
       if (
@@ -81,14 +90,14 @@ export class AskStreamDecoder {
 
   private acceptLine(
     line: string,
-    frames: AdmittedFrame[],
-    onFrame?: (frame: AdmittedFrame) => void,
+    frames: AdmittedFrame<T>[],
+    onFrame?: (frame: AdmittedFrame<T>) => void,
   ): void {
     if (!line) {
       if (this.data.length) {
         const serialized = this.data.join('\n');
         const value: unknown = JSON.parse(serialized);
-        const frame = parseAskProgressEvent(value);
+        const frame = this.parse(value);
         if (frame.id !== this.id || frame.event !== this.event) throw new ApiReadError(502);
         const admitted = { frame, serialized };
         frames.push(admitted);
@@ -109,5 +118,11 @@ export class AskStreamDecoder {
         this[field] = value;
       }
     }
+  }
+}
+
+export class AskStreamDecoder extends EventStreamDecoder<AskProgressEvent> {
+  constructor() {
+    super(parseAskProgressEvent);
   }
 }
