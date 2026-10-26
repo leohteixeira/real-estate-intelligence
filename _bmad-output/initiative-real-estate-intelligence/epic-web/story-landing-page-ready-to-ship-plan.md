@@ -3,7 +3,7 @@ title: 'Landing page ready to ship'
 type: 'bugfix'
 ticket: '11'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '3c70d8712e39cd0d6c232d2a5d32cd4991649215'
 route: 'full'
 route_source: 'auto'
