@@ -3,7 +3,7 @@ title: 'Evaluation pack and live probe'
 type: 'feature'
 ticket: '13'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '70c1ab6ac331f40f8956e90d43baebccaa31ff40'
 route: 'full'
 route_source: 'auto'
@@ -191,3 +191,8 @@ read `.env*`; run live generative calls or a new persistence campaign.
   or billed spend is claimed. This is an observed provider/privacy evidence limit, not a
   reason to loosen the product privacy contract or repeat the probe.
 - No optional improvement or material architecture decision was introduced.
+
+- Delivery revision: `e4721f3d1e0459fd4b82a614a351b15026d0704a`. All 13 reviewed
+  paths are committed after the baseline, non-Markdown identities remain unchanged through
+  normal hooks, and the working copy was clean before ticket closure. Story 5.13 is done;
+  no push or deployment was performed for this evaluation-only slice.

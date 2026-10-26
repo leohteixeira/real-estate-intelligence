@@ -70,7 +70,8 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
   and a strictly checked opt-in synthetic Jev probe. All 3,198 offline tests, affected coverage,
   build, strict typecheck, lint and independent quick review passed. The single live attempt
   failed policy in privacy: two public probes, no classifications or retries; live accuracy and
-  spend remain unavailable. Production mechanisms and prior persistence evidence are unchanged
+  spend remain unavailable. Production mechanisms and prior persistence evidence are unchanged;
+  normal commit gates passed and story 5.13 is done
   (agent, on the owner's behalf, 2026-10-26).
 
 - Implementation: story 5.11 completes the offline provider/dependency failure matrix with
