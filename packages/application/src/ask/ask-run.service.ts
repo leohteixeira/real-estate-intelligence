@@ -54,6 +54,7 @@ export class AskRunService implements AskLiveFacade {
     }
     return this.repository.confirm(request, capability, signal);
   }
+  public readonly cancel: AskRunRepository['cancel'] = (...args) => this.repository.cancel(...args);
   public readonly refuse: AskRunRepository['refuse'] = (...args) => this.repository.refuse(...args);
   public readonly executeDecision: AskRunRepository['executeDecision'] = (...args) =>
     this.repository.executeDecision(...args);

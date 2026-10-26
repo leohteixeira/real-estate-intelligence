@@ -895,6 +895,46 @@ export class PostgresAskRunRepository implements AskRunRepository {
       signal,
     );
   }
+  public async cancel(id: string, capability: string, signal?: AbortSignal): Promise<AskLiveRun> {
+    parseUuidV7(id);
+    return this.transaction(async (tx, client) => {
+      const initial = await this.stored(client, id);
+      if (!initial) throw new AskLiveError('forbidden');
+      this.authorize(initial, capability);
+      await this.lock(client, parseAskLiveRun(initial.document).threadId);
+      const row = await this.stored(client, id);
+      if (!row) throw new AskLiveError('forbidden');
+      this.authorize(row, capability);
+      const previous = parseAskLiveRun(row.document);
+      if (previous.basis !== 'routed-text-v1') throw new AskLiveError('conflict');
+      if (previous.terminal) return previous;
+      const identity = {
+        version: 1 as const,
+        eventId: row.requested_event_id,
+        runId: id,
+        threadId: previous.threadId,
+      };
+      const expired = await this.expireRouted(tx, client, previous, identity);
+      if (expired) return expired;
+      const at = await this.lifecycleAt(client, previous.updatedAt);
+      // Check the SQL clock again at the transition, including queued work whose
+      // deadline lives in SQL rather than the public document.
+      const expiredAtTransition = await this.expireRouted(tx, client, previous, identity);
+      if (expiredAtTransition) return expiredAtTransition;
+      const run = parseAskLiveRun({
+        ...previous,
+        state: 'cancelled',
+        updatedAt: at,
+        terminal: { state: 'cancelled', reason: 'visitor_cancelled', at },
+        steps: [...previous.steps, { sequence: previous.steps.length + 1, phase: 'cancelled', at }],
+      });
+      await client.query("UPDATE ask.run SET state='cancelled',document=$2 WHERE id=$1", [id, run]);
+      await this.append(client, run);
+      await this.outbox.append(tx, [new AskTerminalEvent(await this.uuid(client), run)]);
+      await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
+      return run;
+    }, signal);
+  }
   public async refuse(
     runId: string,
     decisionReceiptId: string,

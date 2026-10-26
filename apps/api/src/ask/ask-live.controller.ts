@@ -7,6 +7,7 @@ import {
   HttpCode,
   Inject,
   Post,
+  Param,
   Req,
   Res,
   ServiceUnavailableException,
@@ -16,6 +17,11 @@ import {
 import { ASK_LIVE_FACADE, AskLiveError, type AskLiveFacade } from '@rei/application';
 import {
   parseAskCommandHeaders,
+  parseRoutedAskCreate,
+  parseRoutedAskAccepted,
+  parseRoutedAskConfirmation,
+  parseAskCancelRequest,
+  parseAskLiveRun,
   parseStructuredAskCreate,
   parseTextAskCreate,
   parseTextAskRefused,
@@ -79,6 +85,31 @@ export class AskLiveController {
       intent: 'price_per_square_meter',
     };
   }
+  @Post('runs/:id/confirm')
+  @HttpCode(200)
+  public async confirm(@Param('id') id: string, @Body() body: unknown, @Req() request: Request) {
+    readQuery(request, 'none');
+    const capability = strongAskBearer(request.headers.authorization);
+    return askRequestWork(request, (signal) =>
+      liveAuthorized(async () => {
+        const input = parseRoutedAskConfirmation(body);
+        if (input.runId !== id) throw new BadRequestException();
+        return parseAskLiveRun(await this.live.confirm(input, capability, signal));
+      }),
+    );
+  }
+  @Post('runs/:id/cancel')
+  @HttpCode(200)
+  public async cancel(@Param('id') id: string, @Body() body: unknown, @Req() request: Request) {
+    readQuery(request, 'none');
+    const capability = strongAskBearer(request.headers.authorization);
+    return askRequestWork(request, (signal) =>
+      liveAuthorized(async () => {
+        parseAskCancelRequest(body);
+        return parseAskLiveRun(await this.live.cancel(id, capability, signal));
+      }),
+    );
+  }
   @Post('runs')
   @HttpCode(202)
   public async create(
@@ -92,23 +123,31 @@ export class AskLiveController {
     let input;
     let key;
     try {
+      const mode = typeof body === 'object' && body !== null && 'mode' in body ? body.mode : null;
       input =
-        typeof body === 'object' &&
-        body !== null &&
-        'mode' in body &&
-        body.mode === 'text-price-explanation-v1'
-          ? parseExplainedAskCreate(body)
-          : typeof body === 'object' &&
-              body !== null &&
-              'mode' in body &&
-              body.mode === 'text-price-v1'
-            ? parseTextAskCreate(body)
-            : parseStructuredAskCreate(body);
+        mode === 'routed-text-v1'
+          ? parseRoutedAskCreate(body)
+          : mode === 'text-price-explanation-v1'
+            ? parseExplainedAskCreate(body)
+            : mode === 'text-price-v1'
+              ? parseTextAskCreate(body)
+              : parseStructuredAskCreate(body);
       key = parseAskCommandHeaders({
         idempotencyKey: request.headers['idempotency-key'],
       }).idempotencyKey;
     } catch {
       throw new BadRequestException();
+    }
+    if (input.mode === 'routed-text-v1') {
+      const run = await askRequestWork(request, (signal) =>
+        liveAuthorized(() => this.live.createRouted(input, capability, key, signal)),
+      );
+      return parseRoutedAskAccepted({
+        mode: input.mode,
+        runId: run.id,
+        threadId: run.threadId,
+        state: 'queued',
+      });
     }
     if (input.mode !== 'structured-price-v1') {
       const result = await askRequestWork(request, (signal) =>

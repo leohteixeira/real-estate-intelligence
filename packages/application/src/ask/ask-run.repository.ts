@@ -25,6 +25,7 @@ export class AskLiveError extends Error {
   }
 }
 export interface AskRunRepository {
+  cancel(runId: string, capability: string, signal?: AbortSignal): Promise<AskLiveRun>;
   confirm(
     request: import('@rei/domain').RoutedAskConfirmation,
     capability: string,

@@ -125,3 +125,11 @@ export interface RoutedAskConfirmation {
   readonly decisionReceiptId: string;
   readonly inputs: AskInputs | null;
 }
+
+/** Public acceptance contains identity only; callers retain their own authority. */
+export interface RoutedAskAccepted {
+  readonly mode: 'routed-text-v1';
+  readonly runId: string;
+  readonly threadId: string;
+  readonly state: 'queued';
+}

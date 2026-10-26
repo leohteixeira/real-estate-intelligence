@@ -30,6 +30,7 @@ import {
   type IntentDecisionRequest,
   type IntentDecisionResponse,
   type RoutedAskCreate,
+  type RoutedAskAccepted,
   type RoutedAskLiveRun,
   type RoutedExecutionEvidence,
   type RoutedExecutionInput,
@@ -96,6 +97,17 @@ export function parseRoutedAskCreate(value: unknown): RoutedAskCreate {
       placeId: wireNullable(wireSlug),
       query: queryWire,
       locale: wireEnum(['en', 'pt-BR']),
+    }),
+  );
+}
+export function parseRoutedAskAccepted(value: unknown): RoutedAskAccepted {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['routed-text-v1']),
+      runId: wireUuid,
+      threadId: wireUuid,
+      state: wireEnum(['queued']),
     }),
   );
 }
