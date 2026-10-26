@@ -66,6 +66,42 @@ function harness() {
 }
 afterEach(() => vi.useRealTimers());
 describe('Ask requested delivery orchestration', () => {
+  it('commits explicit routed pause evidence before deferring the original delivery', async () => {
+    const h = harness();
+    const routed = { ...input, step: 'routed-text-v1' as const };
+    const paused = {
+      ...identity,
+      executionId: input.executionId,
+      step: 'routed-text-v1',
+      decisionReceiptId: input.runId,
+      outcome: 'awaiting-confirmation',
+    };
+    h.claim.mockResolvedValue({
+      disposition: 'claimed',
+      identity,
+      input: routed,
+      expiresAt: '2026-10-11T00:00:30.000Z',
+    });
+    h.execute.mockResolvedValue(paused);
+    let release!: () => void;
+    h.complete.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const work = h.service.execute(event, new AbortController().signal, Date.now() + 60000);
+    await vi.waitFor(() => expect(h.complete).toHaveBeenCalledOnce());
+    let returned = false;
+    void work.then(() => {
+      returned = true;
+    });
+    await Promise.resolve();
+    expect(returned).toBe(false);
+    release();
+    expect(await work).toEqual({ disposition: 'deferred' });
+    expect(h.complete.mock.calls[0]![0]).toMatchObject({ evidence: paused, failure: null });
+  });
   it('accepts matching text execution and refuses substituted structured evidence', async () => {
     const h = harness();
     const textInput = { ...input, step: 'text-price-v1' as const };

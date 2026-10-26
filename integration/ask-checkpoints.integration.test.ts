@@ -1,5 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { execa } from 'execa';
+import amqp from 'amqplib';
 import { readFile, readdir } from 'node:fs/promises';
 import { expect, test, vi } from 'vitest';
 import { getContainerRuntimeClient, getReaper } from 'testcontainers';
@@ -26,7 +27,11 @@ import {
   askDispatchProof,
 } from '../packages/infrastructure/dist/index.js';
 import { PricePerSquareMeterService } from '../packages/application/dist/index.js';
-import { AskRunRequested } from '../packages/domain/dist/index.js';
+import {
+  AskRunRequested,
+  ASK_STRUCTURED_CONSUMER,
+  ASK_RUN_REQUESTED_TYPE,
+} from '../packages/domain/dist/index.js';
 import { allocatePorts, ComposeFixture, preserveCleanup, cleanupAll } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 import { captureAskDiagnostics } from './support/ask-diagnostics.ts';
@@ -326,32 +331,97 @@ test.each(['api', 'worker', 'ai'] as const)(
           await context.fixture.execute('docker', ['kill', '--signal', 'KILL', target.stdout], {
             timeout: 10000,
           });
-          await Promise.all([
-            context.fixture.execute('docker', ['start', target.stdout], { timeout: 10000 }),
-            expire(context, accepted.runId),
-          ]);
-          await recoveryFence;
-          if (service === 'api') await barrier.query('SELECT pg_advisory_unlock(6003001)');
-          await vi.waitFor(
-            async () => {
-              expect((await requestHttp(`${context.api}/ready`)).status).toBe(200);
-              expect((await requestHttp(`${context.ai}/health`)).status).toBe(200);
-            },
-            { timeout: 30000, interval: 100 },
-          );
-          process.stderr.write(
-            `${JSON.stringify({
-              checkpointRestart: {
-                service,
-                killToReadyMs: Date.now() - restartStartedAt,
-              },
-            })}\n`,
-          );
-          if (service !== 'api') {
-            await barrier.query('SELECT pg_advisory_unlock(6003001)');
-            await barrier.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [
-              `ask:${accepted.threadId}`,
+          const restart = async () => {
+            await Promise.all([
+              context.fixture.execute('docker', ['start', target.stdout], { timeout: 10000 }),
+              expire(context, accepted.runId),
             ]);
+            await recoveryFence;
+            if (service === 'api') await barrier.query('SELECT pg_advisory_unlock(6003001)');
+            await vi.waitFor(
+              async () => {
+                expect((await requestHttp(`${context.api}/ready`)).status).toBe(200);
+                expect((await requestHttp(`${context.ai}/health`)).status).toBe(200);
+              },
+              { timeout: 30000, interval: 100 },
+            );
+            process.stderr.write(
+              `${JSON.stringify({
+                checkpointRestart: {
+                  service,
+                  killToReadyMs: Date.now() - restartStartedAt,
+                },
+              })}\n`,
+            );
+            if (service !== 'api') {
+              await barrier.query('SELECT pg_advisory_unlock(6003001)');
+              await barrier.query('SELECT pg_advisory_unlock(hashtextextended($1,0))', [
+                `ask:${accepted.threadId}`,
+              ]);
+            }
+          };
+          if (service === 'api') {
+            // ADR 0025/0026 bounds genuine outage retries. Observe exhaustion, then explicitly
+            // recover the same retained message; do not assume API boot fits that finite budget.
+            const url = new URL('amqp://127.0.0.1/real-estate-intelligence');
+            url.port = context.fixture.environment.RABBITMQ_PORT!;
+            url.username = context.fixture.environment.RABBITMQ_USER!;
+            url.password = context.fixture.environment.RABBITMQ_PASSWORD!;
+            const connection = await amqp.connect(url.toString());
+            await preserveCleanup(
+              async () => {
+                const channel = await connection.createConfirmChannel();
+                await preserveCleanup(
+                  async () => {
+                    const deadLetter = `${ASK_STRUCTURED_CONSUMER}.dead-letter`;
+                    await vi.waitFor(
+                      async () =>
+                        expect((await channel.checkQueue(deadLetter)).messageCount).toBe(1),
+                      { timeout: 30000, interval: 100 },
+                    );
+                    const message = await channel.get(deadLetter, { noAck: false });
+                    if (!message) throw new Error('Expected original bounded-outage message.');
+                    expect(JSON.parse(message.content.toString())).toMatchObject({
+                      eventId: identityBefore[0]!.requested_event_id,
+                      aggregateId: accepted.runId,
+                      type: ASK_RUN_REQUESTED_TYPE,
+                      payload: { runId: accepted.runId, threadId: accepted.threadId },
+                    });
+                    expect(message.properties.headers).toMatchObject({
+                      'x-rei-delivery-attempt': 5,
+                      'x-rei-dead-letter-reason': 'delivery-limit',
+                    });
+                    expect(
+                      await context.database.query<{ state: string; receipts: number }>(
+                        'SELECT state,(SELECT count(*)::integer FROM ask.tool_receipt WHERE run_id=$1) AS receipts FROM ask.run WHERE id=$1',
+                        [accepted.runId],
+                      ),
+                    ).toEqual([{ state: 'running', receipts: 0 }]);
+                    await restart();
+                    let returned = false;
+                    channel.on('return', () => {
+                      returned = true;
+                    });
+                    channel.publish('', ASK_STRUCTURED_CONSUMER, message.content, {
+                      ...message.properties,
+                      mandatory: true,
+                      persistent: true,
+                    });
+                    await channel.waitForConfirms();
+                    expect(returned).toBe(false);
+                    channel.ack(message);
+                    expect((await channel.checkQueue(deadLetter)).messageCount).toBe(0);
+                    process.stderr.write(
+                      `${JSON.stringify({ checkpointOperatorRecovery: { service, attempt: 5 } })}\n`,
+                    );
+                  },
+                  () => channel.close(),
+                );
+              },
+              () => connection.close(),
+            );
+          } else {
+            await restart();
           }
           await vi.waitFor(
             async () => expect((await snapshot(context, accepted.runId)).state).toBe('completed'),
@@ -782,11 +852,16 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     expect(replacement.toolGrant).not.toBe(input.toolGrant);
     expect((await rpc(get)).status).toBe(403);
     const firstEvidence = parseRunExecutionEvidence(await probe(context, replacement, 'resume'));
+    if (firstEvidence.step === 'routed-text-v1') throw new Error('Historical evidence required.');
     expect(firstEvidence.visitedNodes).toEqual(['fixedDecision', 'priceTool']);
     await expire(context, input.runId);
     const finalClaim = await claim(context, input.runId);
     const evidence = parseRunExecutionEvidence(await probe(context, finalClaim, 'resume'));
-    if (firstEvidence.step === 'foundation' || evidence.step === 'foundation')
+    if (
+      firstEvidence.step === 'foundation' ||
+      evidence.step === 'foundation' ||
+      evidence.step === 'routed-text-v1'
+    )
       throw new Error('Price evidence required.');
     expect(evidence.receipt.receiptId).toBe(firstEvidence.receipt.receiptId);
     expect(evidence.receipt.result).toEqual(firstEvidence.receipt.result);
@@ -826,6 +901,7 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     await expire(context, gap.runId);
     const gapReplacement = await claim(context, gap.runId);
     const gapEvidence = parseRunExecutionEvidence(await probe(context, gapReplacement, 'resume'));
+    if (gapEvidence.step === 'routed-text-v1') throw new Error('Historical evidence required.');
     expect(gapEvidence.visitedNodes).toEqual(['fixedDecision', 'priceTool']);
     await complete(context, gapEvidence);
     expect(
@@ -994,6 +1070,194 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     expect(prunedRead.status).toBe(403);
     expect((await snapshot(context, active.runId)).result).toBeNull();
   }));
+
+test('cancelled checkpoint turns retain only the latest eight and age older completed turns', async () =>
+  owned(async (context) => {
+    const files = (await readdir(new URL('../migrations/', import.meta.url)))
+      .filter((file) => /^\d{4}_[a-z0-9_]+\.sql$/.test(file))
+      .sort();
+    for (const file of files)
+      await context.database.query(
+        await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'),
+      );
+    const transactions = new PostgresTransactionRunner(context.database);
+    const runs = new PostgresAskRunRepository(
+      context.database,
+      transactions,
+      new PostgresOutbox(context.database),
+    );
+    const checkpoints = new PostgresGraphCheckpointRepository(context.database, transactions);
+    const signal = AbortSignal.timeout(30000);
+    const claimRun = async (run: ReturnType<typeof parseAskLiveRun>) => {
+      const rows = await context.database.query<{ event_id: string }>(
+        'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
+        [run.id],
+      );
+      const claim = await runs.claim({
+        version: 1,
+        eventId: rows[0]!.event_id,
+        runId: run.id,
+        threadId: run.threadId,
+      });
+      if (claim.disposition !== 'claimed') throw new Error('Expected executable retained turn.');
+      return claim.input;
+    };
+    const saveCheckpoint = async (
+      input: Awaited<ReturnType<typeof claimRun>>,
+      graphVersion: 'price-v1' | 'intent-routing-v1',
+    ) => {
+      const rows = await context.database.query<{ id: string }>('SELECT uuidv7()::text AS id');
+      await checkpoints.execute(
+        {
+          version: 1,
+          eventId: input.eventId,
+          runId: input.runId,
+          threadId: input.threadId,
+          executionId: input.executionId,
+          graphVersion,
+          namespace: '',
+          operation: 'put',
+          checkpointId: rows[0]!.id,
+          parentId: null,
+          checkpoint: { type: 'json', base64: 'e30=' },
+          metadata: { type: 'json', base64: 'e30=' },
+        },
+        input.checkpointGrant,
+        signal,
+      );
+    };
+    const completed = await runs.create(body, context.capability, secret());
+    const first = await claimRun(completed);
+    if (first.step !== 'structured-price-v1') throw new Error('Expected historical price turn.');
+    await saveCheckpoint(first, 'price-v1');
+    const market = new PricePerSquareMeterService();
+    const receipt = await runs.tool(
+      {
+        version: 1,
+        eventId: first.eventId,
+        runId: first.runId,
+        threadId: first.threadId,
+        executionId: first.executionId,
+        inputs: first.inputs,
+        operation: 'price-per-square-meter',
+      },
+      first.toolGrant,
+      (at) => market.pricePerSquareMeter(first.inputs, at),
+    );
+    await runs.complete({
+      version: 1,
+      eventId: first.eventId,
+      runId: first.runId,
+      threadId: first.threadId,
+      executionId: first.executionId,
+      evidence: {
+        version: 1,
+        eventId: first.eventId,
+        runId: first.runId,
+        threadId: first.threadId,
+        executionId: first.executionId,
+        step: 'structured-price-v1',
+        outcome: 'price-calculated',
+        visitedNodes: ['fixedDecision', 'priceTool'],
+        receipt,
+      },
+      failure: null,
+    });
+    const cancelled: string[] = [];
+    const history = () =>
+      context.database.query<{
+        id: string;
+        document: string;
+        events: string;
+        decisions: string | null;
+        tools: string | null;
+      }>(
+        "SELECT r.id::text,md5(r.document::text) AS document,(SELECT md5(string_agg(document::text,',' ORDER BY sequence)) FROM ask.run_event WHERE run_id=r.id) AS events,(SELECT md5(document::text) FROM ask.decision_receipt WHERE run_id=r.id) AS decisions,(SELECT md5(document::text) FROM ask.tool_receipt WHERE run_id=r.id) AS tools FROM ask.run r WHERE r.thread_id=$1 ORDER BY r.id",
+        [completed.threadId],
+      );
+    for (let turn = 0; turn < 9; turn++) {
+      const proposed = await runs.create(
+        { ...body, mode: 'routed-text-v1', threadId: completed.threadId },
+        context.capability,
+        secret(),
+      );
+      const input = await claimRun(proposed);
+      const address = {
+        version: 1 as const,
+        eventId: input.eventId,
+        runId: input.runId,
+        threadId: input.threadId,
+        executionId: input.executionId,
+      };
+      const reservation = await runs.executeDecision(
+        { ...address, operation: 'reserve', attemptKey: secret() },
+        input.checkpointGrant,
+        signal,
+      );
+      if (reservation.operation !== 'reserve') throw new Error('Expected decision reservation.');
+      const accepted = await runs.executeDecision(
+        {
+          ...address,
+          operation: 'accept',
+          reservationId: reservation.reservationId,
+          decision: {
+            intent: 'price_per_square_meter',
+            probability: 0.84,
+            probabilities: {
+              price_per_square_meter: 0.84,
+              listing_search: 0.16,
+              property_history: 0,
+              region_statistics: 0,
+              comparables: 0,
+              unsupported: 0,
+            },
+            source: 'heuristic-v1',
+            degraded: true,
+            taxonomyVersion: 'ask-intents-v1',
+            privacyEvidenceId: null,
+          },
+        },
+        input.checkpointGrant,
+        signal,
+      );
+      if (accepted.operation !== 'accept') throw new Error('Expected retained decision.');
+      await saveCheckpoint(input, 'intent-routing-v1');
+      await runs.complete({
+        ...address,
+        evidence: {
+          ...address,
+          step: 'routed-text-v1',
+          outcome: 'awaiting-confirmation',
+          decisionReceiptId: accepted.decision.receiptId,
+        },
+        failure: null,
+      });
+      expect(
+        (await runs.refuse(input.runId, accepted.decision.receiptId, context.capability)).state,
+      ).toBe('cancelled');
+      cancelled.push(input.runId);
+      const before = await history();
+      expect(await checkpoints.prune(50, signal)).toBe(turn < 7 ? 0 : 1);
+      expect(await history()).toEqual(before);
+      expect(
+        await context.database.query<{ id: string }>(
+          'SELECT run_id::text AS id FROM ask.graph_checkpoint WHERE run_id=ANY($1::uuid[]) ORDER BY run_id',
+          [[completed.id, ...cancelled]],
+        ),
+      ).toEqual(
+        (turn < 7 ? [completed.id, ...cancelled] : cancelled.slice(-8))
+          .sort()
+          .map((id) => ({ id })),
+      );
+    }
+    expect(
+      await context.database.query<{ id: string }>(
+        'SELECT id::text FROM ask.run WHERE thread_id=$1 AND graph_pruned_at IS NOT NULL ORDER BY id',
+        [completed.threadId],
+      ),
+    ).toEqual([completed.id, cancelled[0]!].sort().map((id) => ({ id })));
+    expect(await checkpoints.prune(50, signal)).toBe(0);
+  }, true));
 
 test('6003 upgrades a genuine populated 6002 structured/text baseline without rewriting history', async () =>
   owned(async (context) => {

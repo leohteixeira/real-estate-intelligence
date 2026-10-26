@@ -63,6 +63,10 @@ function req(authorization?: string, originalUrl = '/api/v1/runs') {
 }
 function facade() {
   return {
+    createRouted: vi.fn(),
+    confirm: vi.fn(),
+    refuse: vi.fn(),
+    executeDecision: vi.fn(),
     expireQueued: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(queued),
     createText: vi

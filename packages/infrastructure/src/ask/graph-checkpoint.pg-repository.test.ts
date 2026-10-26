@@ -6,7 +6,7 @@ import {
 import { PostgresTransactionRunner } from '../shared/persistence/postgres-transaction.js';
 import { PostgresGraphCheckpointRepository } from './graph-checkpoint.pg-repository.js';
 
-it('includes expired terminals in both eight-turn SQL predicates and deletes only checkpoint lineage', async () => {
+it('includes expired and cancelled terminals in both eight-turn SQL predicates and deletes only checkpoint lineage', async () => {
   const connection = new DatabaseConnection('postgres://synthetic.invalid/ask');
   const candidate = {
     id: '0199c8f2-2394-7ba0-8f9e-286378779210',
@@ -31,8 +31,8 @@ it('includes expired terminals in both eight-turn SQL predicates and deletes onl
     const checks = query.mock.calls.filter(([sql]) => sql.includes('newer.state'));
     expect(checks).toHaveLength(2);
     for (const [sql] of checks) {
-      expect(sql).toContain("state IN ('completed','failed','expired')");
-      expect(sql).toContain("newer.state IN ('completed','failed','expired')");
+      expect(sql).toContain("state IN ('completed','failed','expired','cancelled')");
+      expect(sql).toContain("newer.state IN ('completed','failed','expired','cancelled')");
       expect(sql).toContain('>=8');
       expect(sql).toContain('graph_expires_at<=clock_timestamp()');
     }

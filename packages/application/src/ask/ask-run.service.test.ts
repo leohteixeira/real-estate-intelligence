@@ -6,6 +6,9 @@ describe('Ask lifecycle facade', () => {
   it('forwards every operation, cancellation and authority without replacing repository failures', async () => {
     const failure = new AskLiveError('forbidden');
     const repository = {
+      confirm: vi.fn<AskRunRepository['confirm']>().mockRejectedValue(failure),
+      refuse: vi.fn<AskRunRepository['refuse']>().mockRejectedValue(failure),
+      executeDecision: vi.fn<AskRunRepository['executeDecision']>().mockRejectedValue(failure),
       expireQueued: vi.fn<AskRunRepository['expireQueued']>().mockRejectedValue(failure),
       create: vi.fn<AskRunRepository['create']>().mockRejectedValue(failure),
       run: vi.fn<AskRunRepository['run']>().mockRejectedValue(failure),
@@ -56,6 +59,13 @@ describe('Ask lifecycle facade', () => {
       service.tool(tool, 'grant', calculate, signal),
       service.complete(complete, signal),
       service.expireQueued(100, signal),
+      service.confirm({ runId: 'run', decisionReceiptId: 'decision', inputs }, 'authority', signal),
+      service.refuse('run', 'decision', 'authority', signal),
+      service.executeDecision(
+        { ...identity, executionId: 'execution', operation: 'get' },
+        'grant',
+        signal,
+      ),
     ])
       await expect(work).rejects.toBe(failure);
     expect(repository.create).toHaveBeenCalledExactlyOnceWith(create, 'authority', 'key', signal);
@@ -93,6 +103,43 @@ describe('Ask lifecycle facade', () => {
       'key',
       signal,
     );
+    await expect(
+      service.createRouted({ ...text, mode: 'routed-text-v1' }, 'authority', 'key', signal),
+    ).rejects.toBe(failure);
+    expect(repository.create).toHaveBeenLastCalledWith(
+      { ...text, mode: 'routed-text-v1', inputs: null },
+      'authority',
+      'key',
+      signal,
+    );
+    await expect(
+      service.createRouted(
+        { ...text, mode: 'routed-text-v1', query: 'Price 10, area 2 m2' },
+        'authority',
+        'key',
+        signal,
+      ),
+    ).rejects.toBe(failure);
+    expect(repository.create).toHaveBeenLastCalledWith(
+      {
+        ...text,
+        mode: 'routed-text-v1',
+        query: 'Price 10, area 2 m2',
+        inputs: { priceMinorUnits: 1000, currency: 'BRL', areaSquareMeters: 2 },
+      },
+      'authority',
+      'key',
+      signal,
+    );
+    repository.confirm.mockClear();
+    await expect(
+      service.confirm(
+        { runId: 'run', decisionReceiptId: 'decision', inputs: { ...inputs, areaSquareMeters: 0 } },
+        'authority',
+        signal,
+      ),
+    ).rejects.toThrow();
+    expect(repository.confirm).not.toHaveBeenCalled();
     const queued = {
       basis: 'text-price-v1' as const,
       id: '0199c8f2-2394-7ba0-8f9e-286378779210',

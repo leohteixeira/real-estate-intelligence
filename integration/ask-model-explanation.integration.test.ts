@@ -21,12 +21,13 @@ import {
 import {
   DatabaseConnection,
   askDispatchProof,
+  askDigest,
   PostgresAskRunRepository,
   PostgresTransactionRunner,
   PostgresOutbox,
   PostgresGraphCheckpointRepository,
 } from '../packages/infrastructure/dist/index.js';
-import { explanationFacts } from '../packages/domain/dist/index.js';
+import { explanationFacts, AskRunRequested } from '../packages/domain/dist/index.js';
 import { PricePerSquareMeterService } from '../packages/application/dist/index.js';
 import { compilePriceGraph } from '../apps/ai/dist/graph/price-per-square-meter.graph.js';
 import {
@@ -965,31 +966,147 @@ test('genuine populated pre-6005 graph bytes survive upgrade, old recovery and a
         new PostgresTransactionRunner(database),
         new PostgresOutbox(database),
       );
-      const run = await repository.create(
-        {
-          mode: 'structured-price-v1',
-          threadId: null,
-          placeId: null,
-          locale: 'en',
-          query: 'Historical native graph',
-          inputs: { priceMinorUnits: 78500000, currency: 'BRL', areaSquareMeters: 68 },
-        },
-        capability,
-        secret(),
-      );
-      const rows = await database.query<{ event_id: string }>(
-        'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
-        [run.id],
-      );
-      const claimed = await repository.claim({
-        version: 1,
-        eventId: rows[0]!.event_id,
-        runId: run.id,
-        threadId: run.threadId,
+      // Seed only genuine pre-6005 columns; current admission requires migration 6006.
+      const allocation = (
+        await database.query<{
+          id: string;
+          thread_id: string;
+          event_id: string;
+          execution_id: string;
+          at: Date;
+        }>(
+          'SELECT uuidv7()::text AS id,uuidv7()::text AS thread_id,uuidv7()::text AS event_id,uuidv7()::text AS execution_id,clock_timestamp() AS at',
+        )
+      )[0]!;
+      const at = allocation.at.toISOString();
+      const inputs = { priceMinorUnits: 78500000, currency: 'BRL' as const, areaSquareMeters: 68 };
+      const queued = parseAskLiveRun({
+        basis: 'structured-price-v1',
+        id: allocation.id,
+        threadId: allocation.thread_id,
+        principalId: null,
+        question: 'Historical native graph',
+        locale: 'en',
+        placeId: null,
+        createdAt: at,
+        updatedAt: at,
+        state: 'queued',
+        originalInputs: inputs,
+        decision: null,
+        result: null,
+        terminal: null,
+        steps: [],
       });
-      if (claimed.disposition !== 'claimed' || claimed.input.step !== 'structured-price-v1')
-        throw new Error('Historical claim required.');
-      historical = claimed.input;
+      const running = parseAskLiveRun({
+        ...queued,
+        state: 'running',
+        decision: {
+          source: 'fixed-structured-v1',
+          intent: 'price_per_square_meter',
+          decidedAt: at,
+        },
+        steps: [{ sequence: 1, phase: 'calculating', at }],
+      });
+      const creationKey = askDigest(secret());
+      const fingerprint = askDigest(
+        JSON.stringify([
+          queued.basis,
+          null,
+          null,
+          queued.question,
+          queued.locale,
+          inputs.priceMinorUnits,
+          inputs.currency,
+          inputs.areaSquareMeters,
+        ]),
+      );
+      const toolGrant = secret(),
+        checkpointGrant = secret();
+      historical = {
+        version: 1,
+        eventId: allocation.event_id,
+        runId: queued.id,
+        threadId: queued.threadId,
+        executionId: allocation.execution_id,
+        step: 'structured-price-v1',
+        query: queued.question,
+        locale: queued.locale,
+        inputs,
+        toolGrant,
+        checkpointGrant,
+      };
+      const requested = new AskRunRequested(
+        {
+          version: 1,
+          eventId: allocation.event_id,
+          runId: queued.id,
+          threadId: queued.threadId,
+        },
+        at,
+      );
+      const seed = await database.leaseClient();
+      try {
+        await seed.query('BEGIN');
+        await seed.query(
+          'INSERT INTO ask.thread(id,authority_digest,preparation_key) VALUES($1,$2,$3)',
+          [queued.threadId, askDigest(capability), creationKey],
+        );
+        await seed.query(
+          "INSERT INTO ask.run(id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document,admitted_at,queue_expires_at,execution_id,claim_expires_at,grant_digest,checkpoint_grant_digest) VALUES($1,$2,$3,$4,$5,'running',$6,$7,$8,$9::timestamptz,$9::timestamptz+interval '120 seconds',$10,clock_timestamp()+interval '30 seconds',$11,$12)",
+          [
+            queued.id,
+            queued.threadId,
+            creationKey,
+            fingerprint,
+            allocation.event_id,
+            inputs.priceMinorUnits,
+            inputs.areaSquareMeters,
+            running,
+            at,
+            allocation.execution_id,
+            askDigest(toolGrant),
+            askDigest(checkpointGrant),
+          ],
+        );
+        for (const [index, run] of [queued, running].entries()) {
+          const sequence = index + 1;
+          await seed.query('INSERT INTO ask.run_event(run_id,sequence,document) VALUES($1,$2,$3)', [
+            run.id,
+            sequence,
+            parseAskLiveEvent({
+              version: 1,
+              id: `${run.id}:v1:${sequence}`,
+              runId: run.id,
+              sequence,
+              event: 'ask.progress',
+              terminal: false,
+              run,
+            }),
+          ]);
+        }
+        await seed.query(
+          "INSERT INTO platform.idempotency_key(scope,idempotency_key,request_fingerprint,result_reference,expires_at) VALUES('ask.structured-create',$1,$2,$3,clock_timestamp()+interval '24 hours')",
+          [creationKey, fingerprint, queued.id],
+        );
+        await seed.query(
+          'INSERT INTO platform.outbox(event_id,event_type,event_version,aggregate_id,occurred_at,trace_context,payload) VALUES($1,$2,$3,$4,$5,$6,$7)',
+          [
+            requested.eventId,
+            requested.type,
+            requested.version,
+            requested.aggregateId,
+            requested.occurredAt,
+            requested.traceContext,
+            requested.payload,
+          ],
+        );
+        await seed.query('COMMIT');
+      } catch (error) {
+        await seed.query('ROLLBACK');
+        throw error;
+      } finally {
+        seed.release();
+      }
       const market = new PricePerSquareMeterService(),
         checkpoints = new PostgresGraphCheckpointRepository(
           database,
