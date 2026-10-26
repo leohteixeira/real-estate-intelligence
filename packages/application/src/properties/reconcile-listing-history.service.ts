@@ -154,12 +154,12 @@ export class ReconcileListingHistory {
       for (const correction of corrections) {
         if (applied >= limit) break;
         await this.transactions.runInTransaction(async (transaction) => {
+          if (!(await this.collection.verifyParsedEvent(transaction, correction))) return;
           await this.properties.lockSourceIdentity(
             transaction,
             work.sourceId,
             correction.payload.source.sourceListingId,
           );
-          if (!(await this.collection.verifyParsedEvent(transaction, correction))) return;
           const loaded = await this.history.load(
             transaction,
             work.sourceId,
@@ -239,11 +239,15 @@ export class ReconcileListingHistory {
     signal: AbortSignal,
   ): Promise<number> {
     return this.transactions.runInTransaction(async (transaction) => {
+      const initial = await this.history.load(transaction, sourceId, identity);
+      if (!initial) return 0; // Only authenticated initial identities can upgrade without completion.
+      if (!(await this.collection.verifyParsedEvent(transaction, initial.property.initial)))
+        return 0;
+      // Collection authority locks precede Properties identity/global locks, as in ingestion.
+      // Reload under the identity lock: another history transaction may have advanced chronology.
       await this.properties.lockSourceIdentity(transaction, sourceId, identity);
       const loaded = await this.history.load(transaction, sourceId, identity);
-      if (!loaded) return 0; // Only authenticated initial identities can upgrade without completion.
-      if (!(await this.collection.verifyParsedEvent(transaction, loaded.property.initial)))
-        return 0;
+      if (!loaded) return 0;
       if (loaded.state === null) await this.retainCreation(transaction, loaded.property);
       const chronology = new ListingChronology(loaded.property, loaded.state, this.hash);
       const excluded = [
@@ -345,9 +349,9 @@ export class ReconcileListingHistory {
     await this.transactions.runInTransaction(async (transaction) => {
       if (!(await this.collection.verifyCompletedEvent(transaction, run.event)))
         throw new ExternalFailure({ kind: 'rejected', operation: 'properties.listing-history' });
+      const facts = await this.collection.getRunListingFacts(transaction, run.runId, identity);
       await this.properties.lockSourceIdentity(transaction, run.sourceId, identity);
       if (await this.history.appliedRun(transaction, run.sourceId, identity, run.runId)) return;
-      const facts = await this.collection.getRunListingFacts(transaction, run.runId, identity);
       let loaded = await this.history.load(transaction, run.sourceId, identity);
       if (loaded?.state === null) await this.retainCreation(transaction, loaded.property);
       const events: PropertiesEvent[] = [];
