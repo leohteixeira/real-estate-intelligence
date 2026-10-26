@@ -1,4 +1,4 @@
-import type { RoutedExecutionInput } from '@rei/contracts';
+import type { RoutedPriceExecutionInput } from '@rei/contracts';
 import { compileIntentRoutingGraph, decisionRequest } from './intent-routing.graph';
 import type { IntentDecider } from '../models/intent-decider';
 import type { IntentDecisionTransport } from '../models/intent-decision.transport';
@@ -19,7 +19,7 @@ export class PriceGraphFactory {
     private readonly decisions?: IntentDecisionTransport,
   ) {}
   public create(
-    input: Exclude<PriceExecutionRequest, RoutedExecutionInput>,
+    input: Exclude<PriceExecutionRequest, RoutedPriceExecutionInput>,
     signal: AbortSignal,
     deadlineAt: number,
   ) {
@@ -49,7 +49,7 @@ export class PriceGraphFactory {
       rebind: () => invokePriceTool(this.tool, durable, authority),
     };
   }
-  public createRouted(input: RoutedExecutionInput, signal: AbortSignal, deadlineAt: number) {
+  public createRouted(input: RoutedPriceExecutionInput, signal: AbortSignal, deadlineAt: number) {
     if (!this.decider || !this.decisions) throw new ModelExplanationFailure('policy');
     const authority = {
       executionId: input.executionId,
@@ -64,7 +64,15 @@ export class PriceGraphFactory {
     return {
       saver,
       input: durable,
-      graph: compileIntentRoutingGraph(this.tool, this.decider, decisions, authority, saver),
+      graph: compileIntentRoutingGraph(
+        this.tool,
+        this.decider,
+        decisions,
+        authority,
+        saver,
+        this.model,
+        input.step === 'routed-text-explanation-v1',
+      ),
       canResume: async () => {
         const found = await decisions.execute(
           { ...decisionRequest(durable, input.executionId), operation: 'get' },

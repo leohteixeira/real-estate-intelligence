@@ -83,11 +83,13 @@ export class PostgresGraphCheckpointRepository implements GraphCheckpointPort {
       });
       if (
         request.graphVersion !==
-        (authorized.basis === 'routed-text-v1'
-          ? 'intent-routing-v1'
-          : authorized.basis === 'text-price-explanation-v1'
-            ? 'price-explanation-v1'
-            : 'price-v1')
+        (authorized.basis === 'routed-text-explanation-v1'
+          ? 'intent-price-explanation-v1'
+          : authorized.basis === 'routed-text-v1'
+            ? 'intent-routing-v1'
+            : authorized.basis === 'text-price-explanation-v1'
+              ? 'price-explanation-v1'
+              : 'price-v1')
       )
         throw new AskLiveError('forbidden');
       const horizon = await client.query<{ expired: boolean }>(

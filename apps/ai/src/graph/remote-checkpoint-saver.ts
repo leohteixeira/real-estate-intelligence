@@ -25,8 +25,8 @@ import { GraphCheckpointFailure, type GraphCheckpointTransport } from './graph-c
 
 export type DurablePriceInput = Omit<
   PriceExecutionRequest,
-  'executionId' | 'toolGrant' | 'checkpointGrant'
->;
+  'executionId' | 'toolGrant' | 'checkpointGrant' | 'queueDurationMs'
+> & { readonly admittedAt?: string };
 export function durablePriceInput(input: PriceExecutionRequest): DurablePriceInput {
   return {
     version: input.version,
@@ -34,6 +34,7 @@ export function durablePriceInput(input: PriceExecutionRequest): DurablePriceInp
     runId: input.runId,
     threadId: input.threadId,
     step: input.step,
+    ...(input.step === 'routed-text-explanation-v1' ? { admittedAt: input.admittedAt } : {}),
     query: input.query,
     locale: input.locale,
     inputs: structuredClone(input.inputs),
@@ -96,11 +97,13 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       (values.executionId !== undefined && values.executionId !== this.#input.executionId) ||
       (values.graphVersion !== undefined &&
         values.graphVersion !==
-          (this.#input.step === 'routed-text-v1'
-            ? 'intent-routing-v1'
-            : this.#input.step === 'text-price-explanation-v1'
-              ? 'price-explanation-v1'
-              : 'price-v1'))
+          (this.#input.step === 'routed-text-explanation-v1'
+            ? 'intent-price-explanation-v1'
+            : this.#input.step === 'routed-text-v1'
+              ? 'intent-routing-v1'
+              : this.#input.step === 'text-price-explanation-v1'
+                ? 'price-explanation-v1'
+                : 'price-v1'))
     )
       throw new GraphCheckpointFailure('rejected');
     const namespace: unknown = values.checkpoint_ns ?? '';
@@ -114,11 +117,13 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       threadId: this.#input.threadId,
       executionId: this.#input.executionId,
       graphVersion:
-        this.#input.step === 'routed-text-v1'
-          ? ('intent-routing-v1' as const)
-          : this.#input.step === 'text-price-explanation-v1'
-            ? ('price-explanation-v1' as const)
-            : ('price-v1' as const),
+        this.#input.step === 'routed-text-explanation-v1'
+          ? 'intent-price-explanation-v1'
+          : this.#input.step === 'routed-text-v1'
+            ? ('intent-routing-v1' as const)
+            : this.#input.step === 'text-price-explanation-v1'
+              ? ('price-explanation-v1' as const)
+              : ('price-v1' as const),
       namespace,
     };
     try {
@@ -151,12 +156,20 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
   public assertCanonical(value: unknown): void {
     if (!value || typeof value !== 'object' || Array.isArray(value))
       throw new GraphCheckpointFailure('rejected', 'canonical-schema');
-    if ('executionId' in value || 'toolGrant' in value || 'checkpointGrant' in value)
+    if (
+      'executionId' in value ||
+      'toolGrant' in value ||
+      'checkpointGrant' in value ||
+      'queueDurationMs' in value
+    )
       throw new GraphCheckpointFailure('rejected', 'canonical-schema');
     let input;
     try {
       input = parseRunExecutionRequest({
         ...value,
+        ...(this.#input.step === 'routed-text-explanation-v1'
+          ? { queueDurationMs: this.#input.queueDurationMs }
+          : {}),
         executionId: this.#input.executionId,
         toolGrant: this.#input.toolGrant,
         checkpointGrant: this.#input.checkpointGrant,
@@ -171,6 +184,9 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       input.runId !== this.#input.runId ||
       input.threadId !== this.#input.threadId ||
       input.step !== this.#input.step ||
+      (input.step === 'routed-text-explanation-v1' &&
+        this.#input.step === 'routed-text-explanation-v1' &&
+        input.admittedAt !== this.#input.admittedAt) ||
       input.query !== this.#input.query ||
       input.locale !== this.#input.locale ||
       (input.inputs === null || this.#input.inputs === null

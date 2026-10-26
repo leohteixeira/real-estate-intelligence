@@ -1,3 +1,4 @@
+import { gatewayCostUsd } from './gateway-privacy.verifier';
 import { channel, type Channel } from 'node:diagnostics_channel';
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { ResilienceEvent } from '@nestjs/resilience';
@@ -99,6 +100,9 @@ export async function modelAttemptSpan(
     'rei.ai.model':
       model === settings.primary || model === settings.secondary ? model : 'unapproved',
     'rei.ai.route': settings.route,
+    'rei.ai.provider': settings.route,
+    'rei.ai.usage': 'unavailable',
+    'rei.ai.cost': 'unavailable',
     'rei.ai.attempt.purpose': purpose,
     'rei.ai.privacy.evidence_age_ms': Number.isFinite(evidenceAgeMs)
       ? Math.max(0, Math.min(settings.evidenceTtlMs, Math.floor(evidenceAgeMs)))
@@ -113,8 +117,22 @@ export async function modelAttemptSpan(
   return trace
     .getTracer('rei.ai.model-explanation')
     .startActiveSpan('ask.model.attempt', { attributes }, async (span) => {
+      const started = performance.now();
       try {
         const result = await work();
+        const cost = gatewayCostUsd(result.metadata);
+        if (cost !== null) {
+          span.setAttribute('rei.ai.cost', 'available');
+          span.setAttribute('rei.ai.cost_usd', cost);
+        }
+        span.setAttribute(
+          'rei.ai.usage',
+          Number.isSafeInteger(result.outputTokens) &&
+            (result.outputTokens ?? 0) > 0 &&
+            (result.outputTokens ?? 0) <= settings.explanationTokens
+            ? 'available'
+            : 'unavailable',
+        );
         if (
           Number.isSafeInteger(result.outputTokens) &&
           result.outputTokens !== undefined &&
@@ -140,6 +158,7 @@ export async function modelAttemptSpan(
         span.setStatus({ code: SpanStatusCode.ERROR });
         throw error;
       } finally {
+        span.setAttribute('rei.ai.duration_ms', Math.max(0, performance.now() - started));
         span.end();
       }
     });

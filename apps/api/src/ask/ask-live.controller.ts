@@ -18,6 +18,8 @@ import { ASK_LIVE_FACADE, AskLiveError, type AskLiveFacade } from '@rei/applicat
 import {
   parseAskCommandHeaders,
   parseRoutedAskCreate,
+  parseRoutedExplainedAskCreate,
+  parseRoutedExplainedAskAccepted,
   parseRoutedAskAccepted,
   parseRoutedAskConfirmation,
   parseAskCancelRequest,
@@ -125,24 +127,30 @@ export class AskLiveController {
     try {
       const mode = typeof body === 'object' && body !== null && 'mode' in body ? body.mode : null;
       input =
-        mode === 'routed-text-v1'
-          ? parseRoutedAskCreate(body)
-          : mode === 'text-price-explanation-v1'
-            ? parseExplainedAskCreate(body)
-            : mode === 'text-price-v1'
-              ? parseTextAskCreate(body)
-              : parseStructuredAskCreate(body);
+        mode === 'routed-text-explanation-v1'
+          ? parseRoutedExplainedAskCreate(body)
+          : mode === 'routed-text-v1'
+            ? parseRoutedAskCreate(body)
+            : mode === 'text-price-explanation-v1'
+              ? parseExplainedAskCreate(body)
+              : mode === 'text-price-v1'
+                ? parseTextAskCreate(body)
+                : parseStructuredAskCreate(body);
       key = parseAskCommandHeaders({
         idempotencyKey: request.headers['idempotency-key'],
       }).idempotencyKey;
     } catch {
       throw new BadRequestException();
     }
-    if (input.mode === 'routed-text-v1') {
+    if (input.mode === 'routed-text-v1' || input.mode === 'routed-text-explanation-v1') {
       const run = await askRequestWork(request, (signal) =>
         liveAuthorized(() => this.live.createRouted(input, capability, key, signal)),
       );
-      return parseRoutedAskAccepted({
+      return (
+        input.mode === 'routed-text-explanation-v1'
+          ? parseRoutedExplainedAskAccepted
+          : parseRoutedAskAccepted
+      )({
         mode: input.mode,
         runId: run.id,
         threadId: run.threadId,

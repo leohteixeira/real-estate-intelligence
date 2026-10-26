@@ -9,7 +9,11 @@ export interface CheckpointAddress {
   readonly runId: string;
   readonly threadId: string;
   readonly executionId: string;
-  readonly graphVersion: 'price-v1' | 'price-explanation-v1' | 'intent-routing-v1';
+  readonly graphVersion:
+    | 'price-v1'
+    | 'price-explanation-v1'
+    | 'intent-routing-v1'
+    | 'intent-price-explanation-v1';
   readonly namespace: string;
 }
 export interface CheckpointWrite {

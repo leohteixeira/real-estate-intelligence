@@ -1,6 +1,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import {
   parseRoutedAskCreate,
+  parseRoutedExplainedAskCreate,
   parseRoutedAskConfirmation,
   parseIntentDecisionRequest,
   parseIntentDecisionReceipt,
@@ -10,7 +11,7 @@ import type {
   RoutedAskConfirmation,
   IntentDecisionRequest,
   IntentDecisionResponse,
-  RoutedAskLiveRun,
+  RoutedLiveRun,
 } from '@rei/domain';
 import { randomBytes } from 'node:crypto';
 import {
@@ -198,9 +199,11 @@ export class PostgresAskRunRepository implements AskRunRepository {
     signal?: AbortSignal,
   ): Promise<AskLiveRun> {
     const request: ValidatedAskCreate = structuredClone(
-      untrusted.mode === 'routed-text-v1'
+      untrusted.mode === 'routed-text-v1' || untrusted.mode === 'routed-text-explanation-v1'
         ? {
-            ...parseRoutedAskCreate({
+            ...(untrusted.mode === 'routed-text-explanation-v1'
+              ? parseRoutedExplainedAskCreate
+              : parseRoutedAskCreate)({
               mode: untrusted.mode,
               threadId: untrusted.threadId,
               placeId: untrusted.placeId,
@@ -327,8 +330,11 @@ export class PostgresAskRunRepository implements AskRunRepository {
         result: null,
         terminal: null,
         steps: [],
-        ...(request.mode === 'text-price-explanation-v1' ? { explanation: null } : {}),
-        ...(request.mode === 'routed-text-v1'
+        ...(request.mode === 'text-price-explanation-v1' ||
+        request.mode === 'routed-text-explanation-v1'
+          ? { explanation: null }
+          : {}),
+        ...(request.mode === 'routed-text-v1' || request.mode === 'routed-text-explanation-v1'
           ? { confirmation: null, confirmationDeadline: null }
           : {}),
       });
@@ -474,12 +480,19 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const grant = randomBytes(32).toString('base64url');
       const checkpointGrant = randomBytes(32).toString('base64url');
       const at = await this.lifecycleAt(client, run.updatedAt);
+      const queueDurationMs =
+        run.state === 'queued'
+          ? Math.min(
+              Number.MAX_SAFE_INTEGER,
+              Math.max(0, Date.parse(at) - Date.parse(run.updatedAt)),
+            )
+          : 0;
       if (run.state === 'queued')
         run = parseAskLiveRun({
           ...run,
           state: 'running',
           updatedAt: at,
-          ...(run.basis === 'routed-text-v1'
+          ...(run.basis === 'routed-text-v1' || run.basis === 'routed-text-explanation-v1'
             ? {
                 decision: run.decision,
                 steps: run.steps.length
@@ -506,6 +519,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const input = parseRunExecutionRequest({
         ...identity,
         step: run.basis,
+        ...(run.basis === 'routed-text-explanation-v1'
+          ? { admittedAt: run.createdAt, queueDurationMs }
+          : {}),
         query: run.question,
         locale: run.locale,
         executionId,
@@ -530,7 +546,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
     identity: AskRequestedIdentity,
   ): Promise<AskLiveRun | null> {
     const previous = this.identity(row, identity);
-    if (previous.basis === 'routed-text-v1')
+    if (previous.basis === 'routed-text-v1' || previous.basis === 'routed-text-explanation-v1')
       return this.expireRouted(tx, client, previous, identity);
     if (previous.state !== 'queued') return null;
     const eligible = await client.query<{ at: Date }>(
@@ -639,12 +655,12 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const run = this.identity(row, request);
       await authorizeAskExecution(client, request, { scope: 'tool', grant });
       const executableInputs =
-        run.basis === 'routed-text-v1'
+        run.basis === 'routed-text-v1' || run.basis === 'routed-text-explanation-v1'
           ? run.confirmation
             ? run.confirmation.inputs
             : run.originalInputs
           : run.originalInputs;
-      if (run.basis === 'routed-text-v1') {
+      if (run.basis === 'routed-text-v1' || run.basis === 'routed-text-explanation-v1') {
         const accepted = await client.query<{ document: unknown }>(
           'SELECT document FROM ask.decision_receipt WHERE run_id=$1',
           [run.id],
@@ -702,7 +718,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const row = await this.stored(client, request.runId);
       if (!row) throw new AskLiveError('forbidden');
       const previous = this.identity(row, request);
-      if (previous.basis === 'routed-text-v1')
+      if (previous.basis === 'routed-text-v1' || previous.basis === 'routed-text-explanation-v1')
         return this.completeRouted(tx, client, row, previous, request);
       if (
         row.execution_id !== request.executionId ||
@@ -713,7 +729,11 @@ export class PostgresAskRunRepository implements AskRunRepository {
       let result: PriceResult | null = null;
       let explanation = null;
       if (request.evidence) {
-        if (request.evidence.step === 'routed-text-v1') throw new AskLiveError('forbidden');
+        if (
+          request.evidence.step === 'routed-text-v1' ||
+          request.evidence.step === 'routed-text-explanation-v1'
+        )
+          throw new AskLiveError('forbidden');
         if (request.evidence.step !== previous.basis) throw new AskLiveError('forbidden');
         const rows = await client.query<{ document: unknown }>(
           'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
@@ -790,7 +810,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
     return this.transaction(async (_tx, client) => {
       await this.lock(client, request.threadId);
       const run = await authorizeAskExecution(client, request, { scope: 'checkpoint', grant });
-      if (run.basis !== 'routed-text-v1') throw new AskLiveError('forbidden');
+      if (run.basis !== 'routed-text-v1' && run.basis !== 'routed-text-explanation-v1')
+        throw new AskLiveError('forbidden');
       const rows = await client.query<{ document: unknown }>(
         'SELECT document FROM ask.decision_receipt WHERE run_id=$1',
         [run.id],
@@ -846,7 +867,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
   private async expireRouted(
     tx: Transaction,
     client: DatabaseClient,
-    previous: RoutedAskLiveRun,
+    previous: RoutedLiveRun,
     identity: AskRequestedIdentity,
   ): Promise<AskLiveRun | null> {
     const eligible = await client.query<{ at: Date }>(
@@ -906,7 +927,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!row) throw new AskLiveError('forbidden');
       this.authorize(row, capability);
       const previous = parseAskLiveRun(row.document);
-      if (previous.basis !== 'routed-text-v1') throw new AskLiveError('conflict');
+      if (previous.basis !== 'routed-text-v1' && previous.basis !== 'routed-text-explanation-v1')
+        throw new AskLiveError('conflict');
       if (previous.terminal) return previous;
       const identity = {
         version: 1 as const,
@@ -960,7 +982,10 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const row = (await this.stored(client, id))!;
       this.authorize(row, capability);
       const previous = parseAskLiveRun(row.document);
-      if (previous.basis !== 'routed-text-v1' || previous.decision?.receiptId !== decisionReceiptId)
+      if (
+        (previous.basis !== 'routed-text-v1' && previous.basis !== 'routed-text-explanation-v1') ||
+        previous.decision?.receiptId !== decisionReceiptId
+      )
         throw new AskLiveError('conflict');
       if (confirmation && previous.confirmation) {
         if (
@@ -1026,12 +1051,12 @@ export class PostgresAskRunRepository implements AskRunRepository {
     tx: Transaction,
     client: DatabaseClient,
     row: StoredRun,
-    previous: RoutedAskLiveRun,
+    previous: RoutedLiveRun,
     request: AskCompletion,
   ): Promise<AskLiveRun> {
     if (row.execution_id !== request.executionId) throw new AskLiveError('forbidden');
     const evidence = request.evidence;
-    if (evidence && evidence.step !== 'routed-text-v1') throw new AskLiveError('forbidden');
+    if (evidence && evidence.step !== previous.basis) throw new AskLiveError('forbidden');
     if (evidence && evidence.decisionReceiptId !== previous.decision?.receiptId)
       throw new AskLiveError('forbidden');
     const unavailable =
@@ -1039,6 +1064,35 @@ export class PostgresAskRunRepository implements AskRunRepository {
       previous.decision &&
       previous.decision.intent !== 'price_per_square_meter' &&
       (previous.decision.probability >= 0.85 || previous.confirmation);
+    if (
+      previous.basis === 'routed-text-explanation-v1' &&
+      evidence?.outcome === 'price-calculated'
+    ) {
+      if (evidence.step !== 'routed-text-explanation-v1') throw new AskLiveError('forbidden');
+      const retained = await client.query<{ document: unknown }>(
+        'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
+        [previous.id],
+      );
+      if (
+        !retained[0] ||
+        !isDeepStrictEqual(parsePriceToolReceipt(retained[0].document), evidence.receipt)
+      )
+        throw new AskLiveError('forbidden');
+      const accepted = await client.query<{ document: unknown }>(
+        'SELECT document FROM ask.model_explanation WHERE run_id=$1',
+        [previous.id],
+      );
+      if (
+        !accepted[0] ||
+        !validModelExplanation(
+          parseModelExplanation(accepted[0].document),
+          evidence.receipt,
+          previous.locale,
+        ) ||
+        !sameModelExplanation(parseModelExplanation(accepted[0].document), evidence.explanation)
+      )
+        throw new AskLiveError('forbidden');
+    }
     if (previous.terminal) {
       const completedReplay =
         evidence?.outcome === 'price-calculated'
@@ -1066,8 +1120,13 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!previous.decision || previous.decision.probability >= 0.85 || previous.confirmation)
         throw new AskLiveError('forbidden');
       const checkpoints = await client.query<{ present: boolean }>(
-        "SELECT EXISTS(SELECT 1 FROM ask.graph_checkpoint WHERE run_id=$1 AND graph_version='intent-routing-v1') AS present",
-        [previous.id],
+        'SELECT EXISTS(SELECT 1 FROM ask.graph_checkpoint WHERE run_id=$1 AND graph_version=$2) AS present',
+        [
+          previous.id,
+          previous.basis === 'routed-text-explanation-v1'
+            ? 'intent-price-explanation-v1'
+            : 'intent-routing-v1',
+        ],
       );
       if (!checkpoints[0]?.present) throw new AskLiveError('forbidden');
       const deadlines = await client.query<{ deadline: Date }>(
@@ -1092,7 +1151,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       await this.append(client, run);
       return run;
     }
-    let result: RoutedAskLiveRun['result'] = null;
+    let result: RoutedLiveRun['result'] = null;
     if (evidence?.outcome === 'price-calculated') {
       const accepted = await client.query<{ document: unknown }>(
         'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
@@ -1132,6 +1191,15 @@ export class PostgresAskRunRepository implements AskRunRepository {
       state,
       updatedAt: finalAt,
       result,
+      ...(previous.basis === 'routed-text-explanation-v1'
+        ? {
+            explanation:
+              evidence?.step === 'routed-text-explanation-v1' &&
+              evidence.outcome === 'price-calculated'
+                ? evidence.explanation
+                : null,
+          }
+        : {}),
       terminal: { state, reason: result ? null : 'execution_unavailable', at: finalAt },
       steps: [
         ...previous.steps,

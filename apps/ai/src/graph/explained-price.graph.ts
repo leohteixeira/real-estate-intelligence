@@ -51,32 +51,12 @@ export function compileExplainedPriceGraph(
       priceNodeSpan('modelExplanation', state.input, async () => {
         if (state.input.step !== 'text-price-explanation-v1' || !state.receipt)
           throw new ModelExplanationFailure('rejected');
-        let receipt = state.receipt;
-        if (receipt.executionId !== authority.executionId) {
-          const rebound = await invokePriceTool(tool, state.input, authority);
-          if (
-            !sameAskIdentity(receipt, rebound) ||
-            receipt.receiptId !== rebound.receiptId ||
-            !sameAskInputs(receipt.inputs, rebound.inputs) ||
-            receipt.result.minorUnits !== rebound.result.minorUnits ||
-            receipt.result.computedAt !== rebound.result.computedAt
-          )
-            throw new ModelExplanationFailure('rejected');
-          receipt = rebound;
-        }
-        const explanation = await model.explain(
-          receipt,
-          {
-            version: state.input.version,
-            eventId: state.input.eventId,
-            runId: state.input.runId,
-            threadId: state.input.threadId,
-            executionId: authority.executionId,
-            checkpointGrant: authority.checkpointGrant,
-            locale: state.input.locale,
-          },
-          authority.signal,
-          authority.deadlineAt,
+        const { receipt, explanation } = await explainPriceReceipt(
+          tool,
+          model,
+          state.input,
+          state.receipt,
+          authority,
         );
         return {
           receipt,
@@ -90,4 +70,41 @@ export function compileExplainedPriceGraph(
     .addEdge('priceTool', 'modelExplanation')
     .addEdge('modelExplanation', END)
     .compile({ checkpointer: saver, ...(interruptBefore ? { interruptBefore } : {}) });
+}
+
+export async function explainPriceReceipt(
+  tool: PricePerSquareMeterTool,
+  model: ModelExplainer,
+  input: DurablePriceInput,
+  retained: PriceToolReceipt,
+  authority: PriceAuthority & { readonly checkpointGrant: string },
+) {
+  let receipt = retained;
+  if (receipt.executionId !== authority.executionId) {
+    const rebound = await invokePriceTool(tool, input, authority);
+    if (
+      !sameAskIdentity(receipt, rebound) ||
+      receipt.receiptId !== rebound.receiptId ||
+      !sameAskInputs(receipt.inputs, rebound.inputs) ||
+      receipt.result.minorUnits !== rebound.result.minorUnits ||
+      receipt.result.computedAt !== rebound.result.computedAt
+    )
+      throw new ModelExplanationFailure('rejected');
+    receipt = rebound;
+  }
+  const explanation = await model.explain(
+    receipt,
+    {
+      version: input.version,
+      eventId: input.eventId,
+      runId: input.runId,
+      threadId: input.threadId,
+      executionId: authority.executionId,
+      checkpointGrant: authority.checkpointGrant,
+      locale: input.locale,
+    },
+    authority.signal,
+    authority.deadlineAt,
+  );
+  return { receipt, explanation };
 }

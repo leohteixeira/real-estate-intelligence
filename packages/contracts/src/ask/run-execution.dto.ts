@@ -1,5 +1,9 @@
 import { parseRoutedExecutionInput, parseRoutedExecutionEvidence } from './intent-decision.dto.js';
-import type { RoutedExecutionInput, RoutedExecutionEvidence } from './intent-decision.types.js';
+import type {
+  RoutedPriceExecutionInput,
+  RoutedExecutionEvidence,
+  RoutedExplainedExecutionEvidence,
+} from './intent-decision.types.js';
 import { invalidWire, parseWire, wireEnum, wireObject, wireUuid } from '../shared/wire.js';
 import { askQueryWire } from './ask.read.dto.js';
 import {
@@ -39,13 +43,14 @@ export type RunExecutionRequest =
   | StructuredExecutionRequest
   | TextExecutionRequest
   | ExplainedExecutionRequest
-  | RoutedExecutionInput;
+  | RoutedPriceExecutionInput;
 export type RunExecutionResponse =
   | FoundationExecutionResponse
   | StructuredExecutionResponse
   | TextExecutionResponse
   | ExplainedExecutionResponse
-  | RoutedExecutionEvidence;
+  | RoutedExecutionEvidence
+  | RoutedExplainedExecutionEvidence;
 const identityFields = {
   version: wireEnum([1]),
   runId: wireUuid,
@@ -58,7 +63,7 @@ export function parseRunExecutionRequest(value: unknown): RunExecutionRequest {
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
-    value.step === 'routed-text-v1'
+    (value.step === 'routed-text-v1' || value.step === 'routed-text-explanation-v1')
   )
     return parseRoutedExecutionInput(value);
   if (
@@ -92,7 +97,7 @@ export function parseRunExecutionEvidence(value: unknown): RunExecutionResponse 
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
-    value.step === 'routed-text-v1'
+    (value.step === 'routed-text-v1' || value.step === 'routed-text-explanation-v1')
   )
     return parseRoutedExecutionEvidence(value);
   if (

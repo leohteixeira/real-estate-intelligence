@@ -26,7 +26,14 @@ const PriceState = z.object({
   visitedNodes: z.array(z.string()).optional(),
   receipt: z.custom<PriceToolReceipt>().optional(),
 });
-export async function invokePriceTool(
+export function invokePriceTool(
+  tool: PricePerSquareMeterTool,
+  input: DurablePriceInput,
+  authority: PriceAuthority,
+): Promise<PriceToolReceipt> {
+  return priceNodeSpan('tool', input, () => invokePriceToolAttempt(tool, input, authority));
+}
+async function invokePriceToolAttempt(
   tool: PricePerSquareMeterTool,
   input: DurablePriceInput,
   authority: PriceAuthority,

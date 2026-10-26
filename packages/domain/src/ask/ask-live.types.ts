@@ -64,13 +64,14 @@ export type ExplainedAskLiveRun = Omit<HistoricalAskLiveRun, 'basis'> & {
 export type AskLiveRun =
   | HistoricalAskLiveRun
   | ExplainedAskLiveRun
-  | import('./intent-decision.types.js').RoutedAskLiveRun;
+  | import('./intent-decision.types.js').RoutedLiveRun;
 export interface AskLiveThread {
   readonly basis:
     | 'structured-price-v1'
     | 'text-price-v1'
     | 'text-price-explanation-v1'
     | 'routed-text-v1'
+    | 'routed-text-explanation-v1'
     | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
@@ -133,12 +134,13 @@ export type PriceExecutionInput =
   | StructuredExecutionInput
   | TextExecutionInput
   | ExplainedExecutionInput
-  | import('./intent-decision.types.js').RoutedExecutionInput;
+  | import('./intent-decision.types.js').RoutedPriceExecutionInput;
 export type PriceExecutionEvidence =
   | StructuredExecutionEvidence
   | TextExecutionEvidence
   | ExplainedExecutionEvidence
-  | import('./intent-decision.types.js').RoutedExecutionEvidence;
+  | import('./intent-decision.types.js').RoutedExecutionEvidence
+  | import('./intent-decision.types.js').RoutedExplainedExecutionEvidence;
 export type AskClaim =
   | {
       readonly disposition: 'busy';

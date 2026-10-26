@@ -156,7 +156,9 @@ export class HttpRunExecutor implements RunExecutor {
           !sameAskIdentity(input, result) ||
           input.executionId !== result.executionId ||
           (input.step !== 'routed-text-v1' &&
+            input.step !== 'routed-text-explanation-v1' &&
             (result.step === 'routed-text-v1' ||
+              result.step === 'routed-text-explanation-v1' ||
               !sameAskInputs(input.inputs, result.receipt.inputs))))
       )
         throw new Error();

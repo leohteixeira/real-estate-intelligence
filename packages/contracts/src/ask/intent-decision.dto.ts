@@ -15,6 +15,7 @@ import {
   wireUuid,
   type WireValidator,
 } from '../shared/wire.js';
+import { modelExplanationWire } from './model-explanation.dto.js';
 import { askInputsWire, askQueryWire } from './ask.read.dto.js';
 import {
   parsePriceToolReceipt,
@@ -25,13 +26,17 @@ import {
 import {
   askIntents,
   type RoutedAskConfirmation,
+  type RoutedExplainedAskCreate,
+  type RoutedExplainedAskAccepted,
+  type RoutedLiveRun,
+  type RoutedExplainedExecutionInput,
+  type RoutedExplainedExecutionEvidence,
   type IntentDecision,
   type IntentDecisionReceipt,
   type IntentDecisionRequest,
   type IntentDecisionResponse,
   type RoutedAskCreate,
   type RoutedAskAccepted,
-  type RoutedAskLiveRun,
   type RoutedExecutionEvidence,
   type RoutedExecutionInput,
 } from './intent-decision.types.js';
@@ -111,6 +116,29 @@ export function parseRoutedAskAccepted(value: unknown): RoutedAskAccepted {
     }),
   );
 }
+export function parseRoutedExplainedAskCreate(value: unknown): RoutedExplainedAskCreate {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['routed-text-explanation-v1']),
+      threadId: wireNullable(wireUuid),
+      placeId: wireNullable(wireSlug),
+      query: queryWire,
+      locale: wireEnum(['en', 'pt-BR']),
+    }),
+  );
+}
+export function parseRoutedExplainedAskAccepted(value: unknown): RoutedExplainedAskAccepted {
+  return parseWire(
+    value,
+    wireObject({
+      mode: wireEnum(['routed-text-explanation-v1']),
+      runId: wireUuid,
+      threadId: wireUuid,
+      state: wireEnum(['queued']),
+    }),
+  );
+}
 export function parseRoutedAskConfirmation(value: unknown): RoutedAskConfirmation {
   return parseWire(
     value,
@@ -121,7 +149,7 @@ export function parseRoutedAskConfirmation(value: unknown): RoutedAskConfirmatio
     }),
   );
 }
-export const routedLiveRunWire = wireObject({
+const routedLiveRunFields = {
   basis: wireEnum(['routed-text-v1']),
   id: wireUuid,
   threadId: wireUuid,
@@ -183,9 +211,35 @@ export const routedLiveRunWire = wireObject({
       at: wireDate,
     }),
   ),
+};
+const historicalRoutedLiveRunWire = wireObject(routedLiveRunFields);
+const combinedLiveRunWire = wireObject({
+  ...routedLiveRunFields,
+  basis: wireEnum(['routed-text-explanation-v1']),
+  explanation: wireNullable(modelExplanationWire),
 });
-export function parseRoutedAskLiveRun(value: unknown): RoutedAskLiveRun {
-  const run = parseWire<RoutedAskLiveRun>(value, routedLiveRunWire);
+export const routedLiveRunWire: WireValidator = (value) => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'basis' in value &&
+    value.basis === 'routed-text-explanation-v1'
+  )
+    combinedLiveRunWire(value);
+  else historicalRoutedLiveRunWire(value);
+};
+export function parseRoutedAskLiveRun(value: unknown): RoutedLiveRun {
+  const run = parseWire<RoutedLiveRun>(value, routedLiveRunWire);
+  if (
+    run.basis === 'routed-text-explanation-v1' &&
+    ((run.state === 'completed' && run.result?.kind === 'price_per_square_meter') !==
+      (run.explanation !== null) ||
+      (run.explanation !== null &&
+        (run.explanation.runId !== run.id ||
+          run.explanation.threadId !== run.threadId ||
+          run.explanation.locale !== run.locale)))
+  )
+    invalidWire();
   const terminal = ['completed', 'failed', 'expired', 'cancelled'].includes(run.state);
   if (
     run.createdAt > run.updatedAt ||
@@ -269,13 +323,28 @@ export function parseRoutedAskLiveRun(value: unknown): RoutedAskLiveRun {
     invalidWire();
   return run;
 }
-export function parseRoutedExecutionInput(value: unknown): RoutedExecutionInput {
+export function parseRoutedExecutionInput(
+  value: unknown,
+): RoutedExecutionInput | RoutedExplainedExecutionInput {
   return parseWire(
     value,
     wireObject({
       ...identity,
-      step: wireEnum(['routed-text-v1']),
+      step: wireEnum([
+        typeof value === 'object' &&
+        value !== null &&
+        'step' in value &&
+        value.step === 'routed-text-explanation-v1'
+          ? 'routed-text-explanation-v1'
+          : 'routed-text-v1',
+      ]),
       query: queryWire,
+      ...(typeof value === 'object' &&
+      value !== null &&
+      'step' in value &&
+      value.step === 'routed-text-explanation-v1'
+        ? { admittedAt: wireDate, queueDurationMs: wireNumber(0, Number.MAX_SAFE_INTEGER, true) }
+        : {}),
       locale: wireEnum(['en', 'pt-BR']),
       executionId: wireUuid,
       toolGrant: wirePattern(/^[A-Za-z0-9_-]{43,128}$/),
@@ -287,17 +356,31 @@ export function parseRoutedExecutionInput(value: unknown): RoutedExecutionInput 
 export const routedExecutionWire: WireValidator = (value) => {
   parseRoutedExecutionInput(value);
 };
-export function parseRoutedExecutionEvidence(value: unknown): RoutedExecutionEvidence {
+export function parseRoutedExecutionEvidence(
+  value: unknown,
+): RoutedExecutionEvidence | RoutedExplainedExecutionEvidence {
   const isPrice =
     typeof value === 'object' &&
     value !== null &&
     'outcome' in value &&
     value.outcome === 'price-calculated';
-  const result = parseWire<RoutedExecutionEvidence>(
+  const combined =
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'routed-text-explanation-v1';
+  const result = parseWire<RoutedExecutionEvidence | RoutedExplainedExecutionEvidence>(
     value,
     wireObject({
       ...identity,
-      step: wireEnum(['routed-text-v1']),
+      step: wireEnum([
+        typeof value === 'object' &&
+        value !== null &&
+        'step' in value &&
+        value.step === 'routed-text-explanation-v1'
+          ? 'routed-text-explanation-v1'
+          : 'routed-text-v1',
+      ]),
       executionId: wireUuid,
       decisionReceiptId: wireUuid,
       outcome: wireEnum(
@@ -305,6 +388,7 @@ export function parseRoutedExecutionEvidence(value: unknown): RoutedExecutionEvi
       ),
       ...(isPrice
         ? {
+            ...(combined ? { explanation: modelExplanationWire } : {}),
             receipt: (v: unknown) => {
               parsePriceToolReceipt(v);
             },

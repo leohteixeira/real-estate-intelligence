@@ -23,14 +23,7 @@ export interface EvaluationRow {
   latencyMs: number;
   calls: readonly PhysicalMeasurement[];
 }
-/** Only the documented numeric Gateway scalar is retained; metadata is never returned. */
-export function gatewayCostUsd(metadata: unknown): number | null {
-  if (!metadata || typeof metadata !== 'object' || !('gateway' in metadata)) return null;
-  const gateway = metadata.gateway;
-  if (!gateway || typeof gateway !== 'object' || !('cost' in gateway)) return null;
-  const cost = gateway.cost;
-  return typeof cost === 'number' && Number.isFinite(cost) && cost >= 0 ? cost : null;
-}
+export { gatewayCostUsd } from './gateway-privacy.verifier';
 function costCoverage(calls: readonly PhysicalMeasurement[]) {
   const observed = calls.filter((call) => call.costUsd !== null);
   const sum = observed.reduce((total, call) => total + call.costUsd!, 0);

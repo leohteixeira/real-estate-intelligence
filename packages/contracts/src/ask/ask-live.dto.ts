@@ -223,13 +223,14 @@ export type ExplainedAskLiveRun = Omit<HistoricalAskLiveRun, 'basis'> & {
 export type AskLiveRun =
   | HistoricalAskLiveRun
   | ExplainedAskLiveRun
-  | import('./intent-decision.types.js').RoutedAskLiveRun;
+  | import('./intent-decision.types.js').RoutedLiveRun;
 export interface AskLiveThread {
   readonly basis:
     | 'structured-price-v1'
     | 'text-price-v1'
     | 'text-price-explanation-v1'
     | 'routed-text-v1'
+    | 'routed-text-explanation-v1'
     | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
@@ -295,12 +296,13 @@ export type PriceExecutionRequest =
   | StructuredExecutionRequest
   | TextExecutionRequest
   | ExplainedExecutionRequest
-  | import('./intent-decision.types.js').RoutedExecutionInput;
+  | import('./intent-decision.types.js').RoutedPriceExecutionInput;
 export type PriceExecutionResponse =
   | StructuredExecutionResponse
   | TextExecutionResponse
   | ExplainedExecutionResponse
-  | import('./intent-decision.types.js').RoutedExecutionEvidence;
+  | import('./intent-decision.types.js').RoutedExecutionEvidence
+  | import('./intent-decision.types.js').RoutedExplainedExecutionEvidence;
 export type AskClaim =
   | {
       readonly disposition: 'busy';
@@ -429,7 +431,7 @@ const priceExecutionWire = (value: unknown) => {
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
-    value.step === 'routed-text-v1'
+    (value.step === 'routed-text-v1' || value.step === 'routed-text-explanation-v1')
   )
     return routedExecutionWire(value);
   if (
@@ -453,7 +455,7 @@ const priceEvidenceWire = (value: unknown) => {
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
-    value.step === 'routed-text-v1'
+    (value.step === 'routed-text-v1' || value.step === 'routed-text-explanation-v1')
   )
     return routedEvidenceWire(value);
   if (
@@ -518,7 +520,7 @@ const liveRunWire = (value: unknown) => {
     typeof value === 'object' &&
     value !== null &&
     'basis' in value &&
-    value.basis === 'routed-text-v1'
+    (value.basis === 'routed-text-v1' || value.basis === 'routed-text-explanation-v1')
   )
     return routedLiveRunWire(value);
   if (
@@ -647,7 +649,8 @@ export function parseStructuredExecutionEvidence(value: unknown): StructuredExec
 }
 export function parseAskLiveRun(value: unknown): AskLiveRun {
   const run = parseWire<AskLiveRun>(value, liveRunWire);
-  if (run.basis === 'routed-text-v1') return parseRoutedAskLiveRun(run);
+  if (run.basis === 'routed-text-v1' || run.basis === 'routed-text-explanation-v1')
+    return parseRoutedAskLiveRun(run);
   if (run.basis !== 'structured-price-v1') textQueryWire(run.question);
   if (
     run.basis === 'text-price-explanation-v1' &&
@@ -732,6 +735,7 @@ export function parseAskLiveThread(value: unknown): AskLiveThread {
         'text-price-v1',
         'text-price-explanation-v1',
         'routed-text-v1',
+        'routed-text-explanation-v1',
         'mixed-price-v1',
       ]),
       id: wireUuid,
@@ -836,7 +840,11 @@ export function parseAskCompletion(value: unknown): AskCompletion {
   );
   if ((result.evidence === null) === (result.failure === null)) invalidWire();
   if (result.evidence) {
-    if (result.evidence.step === 'routed-text-v1') parseRoutedExecutionEvidence(result.evidence);
+    if (
+      result.evidence.step === 'routed-text-v1' ||
+      result.evidence.step === 'routed-text-explanation-v1'
+    )
+      parseRoutedExecutionEvidence(result.evidence);
     else if (result.evidence.step === 'text-price-explanation-v1')
       parseExplainedExecutionEvidence(result.evidence);
     else if (result.evidence.step === 'text-price-v1') parseTextExecutionEvidence(result.evidence);

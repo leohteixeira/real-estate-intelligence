@@ -6,7 +6,8 @@ import {
   type CheckpointResponse,
 } from '@rei/contracts';
 import { GraphCheckpointFailure, type GraphCheckpointTransport } from './graph-checkpoint.port';
-import { priceTraceHeaders } from './price-telemetry';
+import { trace } from '@opentelemetry/api';
+import { priceNodeSpan, priceTraceHeaders } from './price-telemetry';
 export class HttpGraphCheckpointAdapter implements GraphCheckpointTransport {
   readonly #origin: string;
   public constructor(
@@ -29,7 +30,18 @@ export class HttpGraphCheckpointAdapter implements GraphCheckpointTransport {
       throw new GraphCheckpointFailure('rejected');
     }
   }
-  public async execute(
+  public execute(
+    request: CheckpointRequest,
+    grant: string,
+    signal: AbortSignal,
+    deadlineAt: number,
+  ): Promise<CheckpointResponse> {
+    return priceNodeSpan('checkpoint', request, () => {
+      trace.getActiveSpan()?.setAttribute('rei.ask.checkpoint_operation', request.operation);
+      return this.attempt(request, grant, signal, deadlineAt);
+    });
+  }
+  private async attempt(
     untrusted: CheckpointRequest,
     grant: string,
     signal: AbortSignal,

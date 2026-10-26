@@ -26,7 +26,7 @@ export class AskRunService implements AskLiveFacade {
     return { kind: 'accepted', run };
   }
   public async createRouted(
-    request: import('@rei/domain').RoutedAskCreate,
+    request: import('@rei/domain').RoutedAskCreateInput,
     capability: string,
     key: string,
     signal?: AbortSignal,

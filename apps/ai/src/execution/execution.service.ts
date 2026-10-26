@@ -1,5 +1,7 @@
+import { trace } from '@opentelemetry/api';
+import { priceNodeSpan } from '../graph/price-telemetry';
 import { Command } from '@langchain/langgraph';
-import type { RoutedExecutionInput } from '@rei/domain';
+import type { RoutedPriceExecutionInput } from '@rei/domain';
 import {
   BadRequestException,
   Inject,
@@ -31,9 +33,11 @@ export class ExecutionService {
     @Optional() @Inject(PRICE_GRAPH) private readonly priceFactory?: PriceGraphFactory,
   ) {}
   public execute(
-    input: Exclude<RunExecutionInput, { step: 'routed-text-v1' }>,
+    input: Exclude<RunExecutionInput, { step: 'routed-text-v1' | 'routed-text-explanation-v1' }>,
     signal: AbortSignal,
-  ): Promise<Exclude<RunExecutionEvidence, { step: 'routed-text-v1' }>>;
+  ): Promise<
+    Exclude<RunExecutionEvidence, { step: 'routed-text-v1' | 'routed-text-explanation-v1' }>
+  >;
   public execute(input: RunExecutionInput, signal: AbortSignal): Promise<RunExecutionEvidence>;
   public async execute(
     input: RunExecutionInput,
@@ -46,7 +50,24 @@ export class ExecutionService {
         abort = () => reject(new Error());
         signal.addEventListener('abort', abort, { once: true });
       });
-      return await Promise.race([this.traverse(input, signal), stopped]);
+      return await (input.step === 'foundation'
+        ? Promise.race([this.traverse(input, signal), stopped])
+        : priceNodeSpan('run', input, async () => {
+            const span = trace.getActiveSpan();
+            if (input.step === 'routed-text-explanation-v1')
+              span?.setAttribute('rei.ask.queue_duration_ms', input.queueDurationMs);
+            try {
+              const result = await Promise.race([this.traverse(input, signal), stopped]);
+              if ('outcome' in result) span?.setAttribute('rei.ask.outcome', result.outcome);
+              return result;
+            } finally {
+              if (input.step === 'routed-text-explanation-v1')
+                span?.setAttribute(
+                  'rei.ask.total_duration_ms',
+                  Math.max(0, Date.now() - Date.parse(input.admittedAt)),
+                );
+            }
+          }));
     } catch (error) {
       this.logger.warn(
         JSON.stringify({
@@ -88,7 +109,8 @@ export class ExecutionService {
     input: RunExecutionInput,
     signal: AbortSignal,
   ): Promise<RunExecutionEvidence> {
-    if (input.step === 'routed-text-v1') return this.traverseRouted(input, signal);
+    if (input.step === 'routed-text-v1' || input.step === 'routed-text-explanation-v1')
+      return this.traverseRouted(input, signal);
     if (input.step !== 'foundation') {
       if (!this.priceFactory) throw new GraphCheckpointFailure('rejected');
       const invocation = this.priceFactory.create(
@@ -182,7 +204,7 @@ export class ExecutionService {
     });
   }
   private async traverseRouted(
-    input: RoutedExecutionInput,
+    input: RoutedPriceExecutionInput,
     signal: AbortSignal,
   ): Promise<RunExecutionEvidence> {
     if (!this.priceFactory) throw new GraphCheckpointFailure('rejected');
@@ -209,7 +231,7 @@ export class ExecutionService {
         const updates = await invocation.graph.stream(
           saved
             ? interrupted
-              ? new Command({ resume: true })
+              ? new Command<boolean, never, never>({ resume: true })
               : null
             : { input: invocation.input },
           config,
@@ -250,6 +272,13 @@ export class ExecutionService {
         throw new PriceToolFailure('rejected');
       receipt = rebound;
     }
-    return parseRunExecutionEvidence({ ...identity, outcome: 'price-calculated', receipt });
+    return parseRunExecutionEvidence({
+      ...identity,
+      outcome: 'price-calculated',
+      receipt,
+      ...(input.step === 'routed-text-explanation-v1'
+        ? { explanation: final.values.explanation }
+        : {}),
+    });
   }
 }

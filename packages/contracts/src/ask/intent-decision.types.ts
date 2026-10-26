@@ -40,7 +40,11 @@ export type RoutedAskCreate = {
   readonly query: string;
   readonly locale: 'en' | 'pt-BR';
 };
-export type ValidatedRoutedAskCreate = RoutedAskCreate & { readonly inputs: AskInputs | null };
+export type RoutedExplainedAskCreate = Omit<RoutedAskCreate, 'mode'> & {
+  readonly mode: 'routed-text-explanation-v1';
+};
+export type RoutedAskCreateInput = RoutedAskCreate | RoutedExplainedAskCreate;
+export type ValidatedRoutedAskCreate = RoutedAskCreateInput & { readonly inputs: AskInputs | null };
 export type RoutedAskLiveRun = Omit<
   HistoricalAskLiveRun,
   'basis' | 'state' | 'originalInputs' | 'decision' | 'terminal' | 'steps' | 'result'
@@ -86,6 +90,11 @@ export type RoutedAskLiveRun = Omit<
     readonly at: string;
   }[];
 };
+export type RoutedExplainedAskLiveRun = Omit<RoutedAskLiveRun, 'basis'> & {
+  readonly basis: 'routed-text-explanation-v1';
+  readonly explanation: import('./model-explanation.dto.js').ModelExplanation | null;
+};
+export type RoutedLiveRun = RoutedAskLiveRun | RoutedExplainedAskLiveRun;
 export interface RoutedExecutionInput extends AskRequestedIdentity {
   readonly step: 'routed-text-v1';
   readonly query: string;
@@ -102,6 +111,24 @@ export type RoutedExecutionEvidence = AskRequestedIdentity & {
 } & (
     | { readonly outcome: 'awaiting-confirmation' | 'execution-unavailable' }
     | { readonly outcome: 'price-calculated'; readonly receipt: PriceToolReceipt }
+  );
+export type RoutedExplainedExecutionInput = Omit<RoutedExecutionInput, 'step'> & {
+  readonly step: 'routed-text-explanation-v1';
+  readonly admittedAt: string;
+  readonly queueDurationMs: number;
+};
+export type RoutedPriceExecutionInput = RoutedExecutionInput | RoutedExplainedExecutionInput;
+export type RoutedExplainedExecutionEvidence = AskRequestedIdentity & {
+  readonly step: 'routed-text-explanation-v1';
+  readonly executionId: string;
+  readonly decisionReceiptId: string;
+} & (
+    | { readonly outcome: 'awaiting-confirmation' | 'execution-unavailable' }
+    | {
+        readonly outcome: 'price-calculated';
+        readonly receipt: PriceToolReceipt;
+        readonly explanation: import('./model-explanation.dto.js').ModelExplanation;
+      }
   );
 export type IntentDecisionRequest = AskRequestedIdentity & { readonly executionId: string } & (
     | { readonly operation: 'get' }
@@ -126,6 +153,9 @@ export interface RoutedAskConfirmation {
   readonly inputs: AskInputs | null;
 }
 
+export type RoutedExplainedAskAccepted = Omit<RoutedAskAccepted, 'mode'> & {
+  readonly mode: 'routed-text-explanation-v1';
+};
 /** Public acceptance contains identity only; callers retain their own authority. */
 export interface RoutedAskAccepted {
   readonly mode: 'routed-text-v1';

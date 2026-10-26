@@ -1,3 +1,4 @@
+import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { randomBytes } from 'node:crypto';
 import { experimental_decide as decide } from 'ai';
 import { createGateway } from '@ai-sdk/gateway';
@@ -10,6 +11,7 @@ import {
 } from '@rei/contracts';
 import {
   verifyGatewayAcknowledgement,
+  gatewayCostUsd,
   assertGatewayPrivacy,
   type GatewayPrivacyEvidence,
 } from './gateway-privacy.verifier';
@@ -158,7 +160,36 @@ export class GatewayIntentDecider implements IntentDecider {
         if (bounded.aborted || Date.now() >= deadlineAt)
           throw new ModelExplanationFailure('cancelled');
         try {
-          return await call(state, attemptSignal);
+          return await trace.getTracer('rei.ai.intent-decision').startActiveSpan(
+            'ask.decision.attempt',
+            {
+              attributes: {
+                'rei.ai.model': model,
+                'rei.ai.provider': 'vercel-ai-gateway',
+                'rei.ai.route': 'vercel-ai-gateway',
+                'rei.ai.attempt.purpose': privacy ? 'decision' : 'privacy-probe',
+                'rei.ai.usage': 'unavailable',
+                'rei.ai.cost': 'unavailable',
+              },
+            },
+            async (span) => {
+              const started = performance.now();
+              try {
+                const result = await call(state, attemptSignal);
+                const cost = gatewayCostUsd(result.providerMetadata);
+                if (cost !== null)
+                  span.setAttributes({ 'rei.ai.cost': 'available', 'rei.ai.cost_usd': cost });
+                span.setStatus({ code: SpanStatusCode.OK });
+                return result;
+              } catch (error) {
+                span.setStatus({ code: SpanStatusCode.ERROR });
+                throw error;
+              } finally {
+                span.setAttribute('rei.ai.duration_ms', Math.max(0, performance.now() - started));
+                span.end();
+              }
+            },
+          );
         } catch (error) {
           throw gatewayFailure(error, attemptSignal);
         }

@@ -1,4 +1,5 @@
 /** Preloaded before HTTP/Nest; installs causal context even when exporting is disabled. */
+import { PrivateTraceExporter } from './private-trace-exporter';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { resourceFromAttributes } from '@opentelemetry/resources';
@@ -11,7 +12,7 @@ const sdk = new NodeSDK({
   }),
   instrumentations: [new HttpInstrumentation()],
   ...(process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim()
-    ? { traceExporter: new OTLPTraceExporter() }
+    ? { traceExporter: new PrivateTraceExporter(new OTLPTraceExporter()) }
     : { spanProcessors: [new NoopSpanProcessor()] }),
   logRecordProcessors: [],
   metricReaders: [],

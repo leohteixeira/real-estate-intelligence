@@ -11,6 +11,7 @@
  * still gets a working process.
  */
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-http';
+import { PrivateTraceExporter } from './private-trace-exporter';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
@@ -27,7 +28,7 @@ const exportEnabled = Boolean(process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.trim());
 export function telemetryExporterConfiguration(enabled: boolean) {
   return enabled
     ? {
-        traceExporter: new OTLPTraceExporter(),
+        traceExporter: new PrivateTraceExporter(new OTLPTraceExporter()),
         metricReader: new PeriodicExportingMetricReader({
           exporter: new OTLPMetricExporter(),
         }),

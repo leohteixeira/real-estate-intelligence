@@ -38,7 +38,8 @@ export class PostgresModelExplanationRepository implements ModelExplanationRepos
         const client = postgresClientFor(tx, this.connection);
         await lockAskThread(client, request.threadId);
         const run = await authorizeAskExecution(client, request, { scope: 'checkpoint', grant });
-        if (run.basis !== 'text-price-explanation-v1') throw new AskLiveError('forbidden');
+        if (run.basis !== 'text-price-explanation-v1' && run.basis !== 'routed-text-explanation-v1')
+          throw new AskLiveError('forbidden');
         const accepted = await client.query<{ document: unknown }>(
           'SELECT document FROM ask.model_explanation WHERE run_id=$1',
           [request.runId],

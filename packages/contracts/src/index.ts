@@ -8,3 +8,4 @@ export * from './locations/index.js';
 export * from './market/index.js';
 export * from './properties/index.js';
 export * from './shared/index.js';
+export * from './shared/trace-export.js';
