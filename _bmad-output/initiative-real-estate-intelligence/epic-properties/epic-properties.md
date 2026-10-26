@@ -304,3 +304,11 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
   catalog and assertions while genuine detail/reductions and normal startup remain persisted.
   No runtime fake selector, new public route, migration or dependency is introduced
   (agent, on the owner's behalf, 2026-10-25).
+
+- Story 3.14 reconciliation (2026-10-26): all thirteen predecessor plans have empty formal
+  deferred lists and completed final review outcomes. Initial tracer/stub boundaries are delivered
+  by the later history, resolution/calibration, search/detail/rights and suppression stories;
+  3.13 proves the published grouped property and original history. No supported deferred
+  Properties defect remains. Preserve synthetic calibration and real-clock chronology limits.
+  Uncertain-match operations remain epic 7; Market-derived erasure is completed 4.8. Reuse valid
+  unchanged-code checks; this closure changes documentation only and opens no general audit.
