@@ -9,8 +9,8 @@ import { isOwnedSyntheticSourceId, type CollectedListing } from '@rei/domain';
 import { SYNTHETIC_SAO_PAULO_DATASET } from './synthetic-sao-paulo.dataset.js';
 import { SyntheticListingSource } from './synthetic-listing-source.js';
 
-const CYCLE = '2026-10';
-const CURSOR = /^fixture:2026-10:(\d+)$/;
+const DEFAULT_CYCLE = '2026-10';
+const CURSOR = /^fixture:(\d{4}-\d{2}):(\d+)$/;
 
 function cancelled(): ExternalFailure {
   return new ExternalFailure({ kind: 'cancelled', operation: 'collection.source.fetch-page' });
@@ -36,13 +36,19 @@ function canonicalBytes(listing: CollectedListing): Uint8Array {
   return Uint8Array.from(Buffer.from(JSON.stringify(listing), 'utf8'));
 }
 
-/** Latest-cycle, one-observation-per-page fixture adapter. It performs no network I/O. */
+/** One-observation-per-page fixture adapter. It performs no network I/O. */
 export class SyntheticSaoPauloListingSource implements ListingSource {
   readonly #parser = new SyntheticListingSource();
 
-  public constructor(private readonly delayMs = 0) {
+  public constructor(
+    private readonly delayMs = 0,
+    private readonly cycle = DEFAULT_CYCLE,
+  ) {
     if (!Number.isSafeInteger(delayMs) || delayMs < 0 || delayMs > 30_000) {
       throw new RangeError('Synthetic page delay must be an integer between 0 and 30000ms.');
+    }
+    if (!SYNTHETIC_SAO_PAULO_DATASET.runs.some(({ runKey }) => runKey === cycle)) {
+      throw new RangeError('Unknown synthetic dataset cycle.');
     }
   }
 
@@ -58,12 +64,12 @@ export class SyntheticSaoPauloListingSource implements ListingSource {
       throw new ExternalFailure({ kind: 'forbidden', operation: 'collection.source.fetch-page' });
     }
     const match = cursor === null ? null : CURSOR.exec(cursor);
-    if (cursor !== null && match === null) {
+    if (cursor !== null && (match === null || match[1] !== this.cycle)) {
       throw new ExternalFailure({ kind: 'rejected', operation: 'collection.source.fetch-page' });
     }
-    const index = match === null ? 0 : Number(match[1]);
-    const run = SYNTHETIC_SAO_PAULO_DATASET.runs.find(({ runKey }) => runKey === CYCLE);
-    if (!run) throw new Error('The latest synthetic dataset cycle is missing.');
+    const index = match === null ? 0 : Number(match[2]);
+    const run = SYNTHETIC_SAO_PAULO_DATASET.runs.find(({ runKey }) => runKey === this.cycle);
+    if (!run) throw new Error('The selected synthetic dataset cycle is missing.');
     const observations = run.observations
       .filter((observation) => observation.sourceId === sourceId)
       .sort((left, right) => left.sourceListingId.localeCompare(right.sourceListingId));
@@ -80,7 +86,7 @@ export class SyntheticSaoPauloListingSource implements ListingSource {
       return {
         documents: [],
         suppressedListingIds: [observation.sourceListingId],
-        nextCursor: `fixture:${CYCLE}:${index + 1}`,
+        nextCursor: `fixture:${this.cycle}:${index + 1}`,
         exhausted,
       };
     const document: RawListingDocument = Object.freeze({
@@ -93,7 +99,7 @@ export class SyntheticSaoPauloListingSource implements ListingSource {
     });
     return Object.freeze({
       documents: Object.freeze([document]),
-      nextCursor: `fixture:${CYCLE}:${index + 1}`,
+      nextCursor: `fixture:${this.cycle}:${index + 1}`,
       exhausted,
     });
   }

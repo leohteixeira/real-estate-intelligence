@@ -8,6 +8,7 @@
     "start": "node -r ./dist/otel.js dist/main.js",
     "collect:synthetic": "node -r ./dist/otel.js dist/collection/collect-synthetic.js",
     "collect:resumable": "node -r ./dist/otel.js dist/collection/collect-resumable.js",
+    "seed:synthetic": "node -r ./dist/otel.js dist/collection/seed-synthetic.js",
     "snapshot:reparse": "node -r ./dist/otel.js dist/collection/reparse-snapshot.js",
     "source:enable": "node -r ./dist/otel.js dist/collection/enable-source.js",
     "run:foundation": "node -r ./dist/otel.js dist/ask/execute-foundation.js",
