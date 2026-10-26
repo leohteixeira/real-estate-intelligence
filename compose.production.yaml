@@ -32,6 +32,7 @@ services:
 
   api:
     <<: *runtime
+    cpus: 0.5
     image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/api@sha256:${REI_API_DIGEST:?Set the API image digest}'
     environment:
       <<: *telemetry
@@ -97,6 +98,7 @@ services:
 
   ai:
     <<: *runtime
+    cpus: 0.5
     image: '${REI_IMAGE_REPOSITORY:?Set the immutable image repository}/ai@sha256:${REI_AI_DIGEST:?Set the AI image digest}'
     mem_limit: 384m
     environment:
