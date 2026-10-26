@@ -8,7 +8,8 @@
     "start": "node -r ./dist/otel.js dist/main.js",
     "check:keys": "node --env-file=../../.env scripts/check-provider-keys.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --dir src --passWithNoTests"
+    "test": "vitest run --dir src --passWithNoTests",
+    "probe:intent": "node scripts/probe-intent-decision.ts"
   },
   "dependencies": {
     "@ai-sdk/gateway": "4.0.94",

@@ -13,5 +13,10 @@
     "erasableSyntaxOnly": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["integration/**/*.ts", "integration/**/*.cts", "vitest.integration.config.ts"]
+  "include": [
+    "integration/**/*.ts",
+    "integration/**/*.cts",
+    "vitest.integration.config.ts",
+    "apps/ai/scripts/probe-*.ts"
+  ]
 }
