@@ -514,3 +514,37 @@ The completed response receipt and source are preserved as `market-public.json` 
 prevented its host copy; no deploy or public proof was repeated for that transport limitation.
 Runtime source remains `b570a09427bea39ea03d4dda93c7dc0e0c502899`. See the story plan for the
 bounded compilation correction and unchanged-code gate reuse.
+
+The forwarded SSH agent was restored later that day. The exact Market receipt and source above
+were copied to the existing protected host collection directory, preserving their SHA-256
+identities and original timestamps. No public request or product check was repeated for the copy.
+
+### Published Ask acceptance — 2026-10-26 (Story 5.15)
+
+One public routed synthetic English question for BRL 785000.00 / 68 m² completed through the
+actual API, worker, isolated AI graph and typed Market tool with 1154412 centavos/m². The accepted
+run is `01a179ec-3534-7cd7-9ec7-aeac58305fea`; four ordered version-1 SSE frames culminated in
+`ask.completed`, and the authenticated snapshot matched the terminal. The full public check took
+20:34:45.579Z–20:34:48.184Z. Decision is explicitly `heuristic-v1`, degraded, probability 0.9;
+this proves the accepted fallback and rule, not successful Jev classification or model explanation.
+
+Only AI has `AI_GATEWAY_API_KEY`. Its actual container has no mounts, database/broker/storage
+credential environment names or data/edge network membership; only application and telemetry
+networks. All four delivered images remain healthy and identify source
+`b570a09427bea39ea03d4dda93c7dc0e0c502899`. Receipts are in the existing protected host directory:
+`ask-production-isolation-complete.json`, `ask-public-cpu-adjusted.json`, `ask-public-probe.ts`.
+The temporary source resolver `ask-ts-source-loader.mjs` permits this standalone Node probe to
+reuse the frontend decoder's build-time `.js` imports without changing product source.
+
+The initial public run `01a179e9-a6cf-7e42-9607-b89738630b27` completed after 32 seconds, beyond
+the probe's unchanged 30-second HTTP deadline. Its failed client attempt is retained separately.
+Tempo trace `3a233a4b5cbb548eddb6fe617469cebf` shows interruption during checkpoint persistence
+and native same-run recovery using the retained decision/tool receipt. AI and API at 0.25 CPU
+showed substantial cgroup throttling; increasing only those two limits to 0.5 CPU produced the
+2.6-second accepted execution without changing memory, timeouts, retries or graph behavior.
+`compose.production.yaml` preserves those bounded limits. Live `docker update` applies them
+without a restart; recovery to the previous resource setting is `docker update --cpus 0.25`
+for only the two container IDs recorded in `ask-cpu-before.json`. Landing and dependencies were
+untouched. Original timeout, admission, persisted evidence and trace remain preserved, rather
+than replaced by the successful attempt. The additional CPU allowance addresses measured
+throttling; this single synthetic execution is not a load-capacity claim.
