@@ -3,7 +3,7 @@ title: 'Typed decision with the confidence gate'
 type: 'feature'
 ticket: '4'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '2c5ebe51a9ee0a77e1b1cb0fc5fba4f7d0bb8a39'
 route: 'full'
 route_source: 'auto'
