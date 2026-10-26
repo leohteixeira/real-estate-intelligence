@@ -2,8 +2,8 @@ import type {
   CollectionFacade,
   PropertiesFacade,
   LargestReductionsService,
+  SearchPropertiesService,
 } from '@rei/application';
-import { unionListingLifelines } from '@rei/domain';
 import type {
   ListingResponse,
   ListingDetail,
@@ -14,11 +14,14 @@ import type {
   SearchQuery,
   SearchResponse,
 } from '@rei/domain';
-import { projectInitialProperty } from './persisted-property.projection.js';
+import {
+  projectInitialProperty,
+  projectCurrentPropertySummary,
+} from './persisted-property.projection.js';
 import type { PostgresPropertyRepository } from './postgres-property.repository.js';
 import type { PostgresListingHistoryRepository } from './postgres-listing-history.repository.js';
 
-/** Detail is persisted-first; reductions are persisted-only; search/counts remain prepared. */
+/** Detail is persisted-first; search and reductions are persisted-only. */
 export class PersistedPropertiesFacade implements PropertiesFacade {
   public constructor(
     private readonly repository: Pick<PostgresPropertyRepository, 'getProperty' | 'getListing'> &
@@ -30,9 +33,11 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
     private readonly prepared: PropertiesFacade,
     private readonly history?: Pick<PostgresListingHistoryRepository, 'getState'>,
     private readonly reductions?: Pick<LargestReductionsService, 'execute'>,
+    private readonly searchService?: Pick<SearchPropertiesService, 'execute'>,
   ) {}
   public search(query: SearchQuery): Promise<SearchResponse> {
-    return this.prepared.search(query);
+    if (!this.searchService) throw new Error('Persisted search query is unavailable.');
+    return this.searchService.execute(query);
   }
   public largestReductions(placeId: string, query: PageQuery): Promise<ReductionsResponse | null> {
     if (!this.reductions) throw new Error('Persisted reductions query is unavailable.');
@@ -86,28 +91,11 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
           position: index + 1,
           fixtureLabel: 'Persisted synthetic listing; deterministic identity rules',
         }));
-      const active = listings
-        .filter((listing) => listing.status === 'active')
-        .sort(
-          (a, b) => a.askingPriceMinorUnits - b.askingPriceMinorUnits || (a.id < b.id ? -1 : 1),
-        );
-      const selected = active[0];
-      const firstCollectedAt = listings.map((listing) => listing.firstCollectedAt).sort()[0]!;
-      const lastCollectedAt = listings
-        .map((listing) => listing.lastCollectedAt)
-        .sort()
-        .at(-1)!;
-      const asOf = members
-        .map((member) => member.metadata.asOf)
-        .sort()
-        .at(-1)!;
-      const lifeline = unionListingLifelines(listings.flatMap((listing) => listing.lifeline));
-      const sharedValue = (
-        field: 'propertyType' | 'areaSquareMeters' | 'bedrooms' | 'bathrooms' | 'parkingSpaces',
-      ) =>
-        listings.every((listing) => listing[field] === listings[0]![field])
-          ? listings[0]![field]
-          : null;
+      const { summary, asOf } = projectCurrentPropertySummary(
+        group.propertyId,
+        members,
+        group.priceChanges,
+      );
       const fields = [
         'propertyType',
         'areaSquareMeters',
@@ -120,40 +108,7 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
         metadata: { ...first.metadata, fixtureVersion: 'persisted-synthetic-resolution-v1', asOf },
         property: {
           ...first.property,
-          summary: {
-            ...first.property.summary,
-            id: group.propertyId,
-            fixtureLabel: 'Persisted synthetic property; deterministic identity rules',
-            areaSquareMeters: sharedValue('areaSquareMeters') as number | null,
-            bedrooms: sharedValue('bedrooms') as number | null,
-            bathrooms: sharedValue('bathrooms') as number | null,
-            parkingSpaces: sharedValue('parkingSpaces') as number | null,
-            askingPrice: selected
-              ? {
-                  minorUnits: selected.askingPriceMinorUnits,
-                  currency: 'BRL',
-                  listingId: selected.id,
-                  provenance: selected.provenance,
-                }
-              : null,
-            pricePerSquareMeter: selected?.pricePerSquareMeter ?? null,
-            firstCollectedAt,
-            lastCollectedAt,
-            activeListingCount: active.length,
-            timeOnMarketDays: Math.floor(
-              lifeline.reduce(
-                (total, interval) =>
-                  total + Math.max(0, Date.parse(interval.to ?? asOf) - Date.parse(interval.from)),
-                0,
-              ) / 86400000,
-            ),
-            priceReduced: group.priceChanges.some(
-              (change) => change.currentMinorUnits < change.previousMinorUnits,
-            ),
-            returnedToMarket: listings.some((listing) =>
-              listing.history.some((entry) => entry.type === 'reappeared'),
-            ),
-          },
+          summary,
           listings,
           priceChanges: group.priceChanges,
           sourceAgreement: fields.map((field) => {

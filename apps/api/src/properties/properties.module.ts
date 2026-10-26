@@ -5,12 +5,15 @@ import {
   PROPERTIES_FACADE,
   LOCATIONS_FACADE,
   LargestReductionsService,
+  SearchPropertiesService,
+  PROPERTY_SEARCH,
   type LocationsFacade,
   type CollectionFacade,
 } from '@rei/application';
 import {
   PersistedPropertiesFacade,
   PostgresPropertyRepository,
+  PostgresPropertySearchRepository,
   PostgresListingHistoryRepository,
   PostgresPropertyReductionsRepository,
   SyntheticPropertiesAdapter,
@@ -27,12 +30,21 @@ import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
   controllers: [PropertiesController, ListingsController],
   providers: [
     {
+      provide: PROPERTY_SEARCH,
+      inject: [DATABASE_CONNECTION, LOCATIONS_FACADE],
+      useFactory: (connection: DatabaseConnection, locations: LocationsFacade) =>
+        new SearchPropertiesService(new PostgresPropertySearchRepository(connection), locations, {
+          now: () => new Date().toISOString(),
+        }),
+    },
+    {
       provide: PROPERTIES_FACADE,
-      inject: [DATABASE_CONNECTION, COLLECTION_FACADE, LOCATIONS_FACADE],
+      inject: [DATABASE_CONNECTION, COLLECTION_FACADE, LOCATIONS_FACADE, PROPERTY_SEARCH],
       useFactory: (
         connection: DatabaseConnection,
         collection: CollectionFacade,
         locations: LocationsFacade,
+        search: Pick<SearchPropertiesService, 'execute'>,
       ) =>
         new PersistedPropertiesFacade(
           new PostgresPropertyRepository(connection),
@@ -44,6 +56,7 @@ import { rejectUnprefixedReadPaths } from '../http/unprefixed-read-paths';
             locations,
             { now: () => new Date().toISOString() },
           ),
+          search,
         ),
     },
   ],

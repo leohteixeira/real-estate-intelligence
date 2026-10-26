@@ -8,3 +8,6 @@ export * from './listing-history.repository.js';
 export * from './reconcile-listing-history.service.js';
 export * from './property-resolution.repository.js';
 export * from './reconcile-property-resolution.service.js';
+export * from './property-search.js';
+export * from './property-search.repository.js';
+export * from './search-properties.service.js';

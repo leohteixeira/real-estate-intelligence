@@ -7,6 +7,8 @@ import {
   type ListingDetail,
   type Property,
   type PropertyResponse,
+  type PropertySummary,
+  type PriceChange,
 } from '@rei/domain';
 
 /** The metadata clock and all effective dates refer to the original observation. */
@@ -221,4 +223,71 @@ export function projectInitialProperty(
       },
     },
   });
+}
+
+/** Shared current grouped summary for detail and snapshot search. Members retain stable source order. */
+export function projectCurrentPropertySummary(
+  propertyId: string,
+  members: readonly PropertyResponse[],
+  priceChanges: readonly PriceChange[],
+): { summary: PropertySummary; asOf: string } {
+  const first = members[0]!;
+  const listings = members.flatMap((member) => member.property.listings);
+  const active = listings
+    .filter((listing) => listing.status === 'active')
+    .sort((a, b) => a.askingPriceMinorUnits - b.askingPriceMinorUnits || (a.id < b.id ? -1 : 1));
+  const selected = active[0];
+  const firstCollectedAt = listings.map((listing) => listing.firstCollectedAt).sort()[0]!;
+  const lastCollectedAt = listings
+    .map((listing) => listing.lastCollectedAt)
+    .sort()
+    .at(-1)!;
+  const asOf = members
+    .map((member) => member.metadata.asOf)
+    .sort()
+    .at(-1)!;
+  const lifeline = unionListingLifelines(listings.flatMap((listing) => listing.lifeline));
+  const sharedValue = (
+    field: 'propertyType' | 'areaSquareMeters' | 'bedrooms' | 'bathrooms' | 'parkingSpaces',
+  ) =>
+    listings.every((listing) => listing[field] === listings[0]![field])
+      ? listings[0]![field]
+      : null;
+  return {
+    summary: {
+      ...first.property.summary,
+      id: propertyId,
+      fixtureLabel: 'Persisted synthetic property; deterministic identity rules',
+      areaSquareMeters: sharedValue('areaSquareMeters') as number | null,
+      bedrooms: sharedValue('bedrooms') as number | null,
+      bathrooms: sharedValue('bathrooms') as number | null,
+      parkingSpaces: sharedValue('parkingSpaces') as number | null,
+      askingPrice: selected
+        ? {
+            minorUnits: selected.askingPriceMinorUnits,
+            currency: 'BRL',
+            listingId: selected.id,
+            provenance: selected.provenance,
+          }
+        : null,
+      pricePerSquareMeter: selected?.pricePerSquareMeter ?? null,
+      firstCollectedAt,
+      lastCollectedAt,
+      activeListingCount: active.length,
+      timeOnMarketDays: Math.floor(
+        lifeline.reduce(
+          (total, interval) =>
+            total + Math.max(0, Date.parse(interval.to ?? asOf) - Date.parse(interval.from)),
+          0,
+        ) / 86400000,
+      ),
+      priceReduced: priceChanges.some(
+        (change) => change.currentMinorUnits < change.previousMinorUnits,
+      ),
+      returnedToMarket: listings.some((listing) =>
+        listing.history.some((entry) => entry.type === 'reappeared'),
+      ),
+    },
+    asOf,
+  };
 }
