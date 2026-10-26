@@ -495,3 +495,22 @@ field-effective date and exact history count. It requires the expected text perm
 wrongly denied description or a duplicate scheduled no-op change cannot pass. Expanded receipt:
 `properties-public-reviewed.json`; exact source: `properties-public-reviewed-probe.ts`, beside
 the original narrower receipt. Original evidence remains intact.
+
+### Published Market acceptance — 2026-10-26 (Story 4.9)
+
+Three actual trusted HTTPS reads of Bela Vista's Market overview, registered neighbours and
+monthly series passed the explicit catalog oracle. Live counts are one property, three listings
+and three sources; median is 951220 centavos/m², six-month movement uses the paired 975610
+baseline, observed duration starts October 2025, current 30-day reductions are zero, ratio is
+three and sale remains unrecorded. The actual Centro parent is independently returned.
+Vila Mariana is its sole registered neighbour, with 918519 centavos/m² and zero paired movement.
+November/December monthly medians are 1000000, January–June 975610 and July–October 951220,
+with twelve exact monthly cutoffs, contributor counts/sources and actual computation stamps.
+All three responses identify the live event-fed variant rather than prepared figures.
+
+The completed response receipt and source are preserved as `market-public.json` and
+`market-public-probe.ts` in the protected ignored workspace directory
+`/workspace/.ignore/rei-production-evidence/20261026T195350Z/`. The forwarded SSH-agent failure
+prevented its host copy; no deploy or public proof was repeated for that transport limitation.
+Runtime source remains `b570a09427bea39ea03d4dda93c7dc0e0c502899`. See the story plan for the
+bounded compilation correction and unchanged-code gate reuse.
