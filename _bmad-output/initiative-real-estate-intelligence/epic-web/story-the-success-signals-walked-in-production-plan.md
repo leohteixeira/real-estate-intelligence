@@ -1,9 +1,9 @@
 ---
 title: 'The success signals walked in production'
 type: 'feature'
-ticket: '6.13'
+ticket: '13'
 created: '2026-10-26'
-status: 'in-review'
+status: 'built'
 baseline_revision: 'c721e45c2cb49f8f9a83eb77223d415c1a5533aa'
 route: 'full'
 route_source: 'auto'
@@ -118,7 +118,7 @@ authorized.
       preserved prepared inspection. Do not weaken old tests.
 - [x] `apps/web/.impeccable/surfaces/src-ask-askscreen-tsx.md`, this plan and `epic-web.md`: concise
       material boundary/evidence updates, preserving historical claims and their limits.
-- [ ] Parent delivery: inspect full diff, run applicable gates sequentially, independent targeted
+- [x] Parent delivery: inspect full diff, run applicable gates sequentially, independent targeted
       Quick review, separate authorized implementation/test/docs commits. Record prepublication
       identity/recovery; manually publish changed images through the host operator; validate public
       browser journeys and Tempo evidence before closing.
@@ -259,3 +259,75 @@ Final stabilized web gate: all 45 files / 634 tests pass in 167.33 seconds, with
 workspace test and integration results are reused from the recorded final-branch and seed/Ask
 gates; contracts also passed 737 tests in the first parent run. The complete serial build passes
 (`/tmp/rei-success-final-build.log`); publication and public acceptance are not yet observed.
+
+### Public release and bounded Ask diagnosis
+
+Manual host publication delivered commit `39236f94ae4432e00cb295a8a08b5b04f3fad35a`;
+all five OCI revisions/image IDs and verified backup/recovery are recorded in the existing
+[deployment guide](../../../docs/operations/deployment.md). Public HTTPS landing routes, exact
+root redirects and readiness passed. Browser read journeys passed PT/EN at 1440/390 px,
+including direct property refresh and all three listing disclosures. Median provenance uses
+one canonical Aurora representative source; the prior accepted Market response independently
+establishes that oracle. The original incorrect three-source probe failure remains preserved.
+
+The initial Ask browser observation failed at its unchanged 15-second terminal wait. Readback
+shows the same run `01a17a1b-e5ff-7d78-a747-a6072ac715c5` completed at 21:27:24.614Z
+with exact result 1154412 centavos/m² and an actual accepted model-written explanation. Tempo
+`35ce814dc780c5b9c1d6caebcafd2e41` proves the first bounded execution interruption and
+native same-run recovery, taking 33.448 seconds overall. Jev remains degraded heuristic; no
+successful Jev classification is claimed. Product deadlines and policies remain unchanged.
+The browser executor must distinguish the initial failed observation from explicit same-run UI
+recovery; actual visible terminal and ambiguous confirmation remain open acceptance. No general
+audit, new diagnostic subsystem, new product retry or timeout increase is authorized by this
+diagnosis. Protected receipts are in the existing 20261026T212105Z evidence directory.
+
+The plan's ticket key was corrected from initiative-qualified `6.13` to local `13`, matching
+the repository ticket-store contract. The same existing plan now supplies its in-review state;
+no ticket, baseline, story scope or historical evidence was recreated.
+
+## Auto Run Result
+
+Implemented live explained Ask using the existing capability, typed admission, SSE/cursor,
+confirmation, cancellation and history mechanisms. Updated the existing presenters, localized
+resources/styles and transport quota parsing, with focused regression tests. Gateway privacy
+verification accepts the observed affirmative acknowledgement only under the retained fail-closed
+contract. The public fixture verifies the actual prefixed browser journeys and preserves failed
+observations separately from explicit same-run recovery. No new product engine or policy.
+
+Two medium review patches were applied (pre-frame cancellation and pending-admission history);
+no finding was deferred or rejected. Required independent targeted follow-up found none. The
+Search test executor split and subsequent public recovery/confirmation oracle each received a
+restricted independent inspection with no finding. No further broad review was opened. Follow-up
+review recommendation is false. Final local gates and exact coverage remain recorded above.
+
+Public acceptance passed on delivered source `39236f94ae4432e00cb295a8a08b5b04f3fad35a`:
+
+- Read journey: PT/EN, 1440/390 px, exact canonical median provenance, three listing disclosures,
+  direct navigation/refresh and no escaped or failed requests. Existing HTTPS checks preserve
+  landing routes, exact-root redirects and readiness.
+- Explained run `01a17a21-aa64-74bf-9a36-8dbaa3b18c05`: one keyboard admission, visible
+  Completed with 1154412 centavos/m² and actual model-written explanation/provenance, presented
+  in both locales and widths. It completed without recovery at 21:33:13.716Z. Tempo
+  `6ab91c62eace9c80bcf41db46838755d` links the same run through routing, typed Market tool,
+  privacy probe, generation, checkpoints and successful execution (4569 ms total).
+- Ambiguous run `01a17a21-e6ab-78c8-8d2e-780da08e71cb`: one admission, probability 0.6,
+  actual pause, one explicit confirmation, then Completed at 21:33:28.400Z with the exact
+  `unavailable_intent/listing_search/not_available` result and no invented price or explanation.
+  Four persisted ordered phases are routing, awaiting_confirmation, confirmed and completed.
+  Tempo `e9b4c5cac8052223b1d0244affe352f4` records pause and confirmed continuation.
+- Parent inspected the actual desktop/mobile explained and confirmation screenshots against the
+  existing Placa composition. No changed-behavior defect or overflow was observed.
+
+Actual browser receipts/screenshots are under protected existing release evidence directory
+`20261026T212105Z`, subdirectories `ask-recovery-1` and `confirmation-1`. Persisted documents,
+full Tempo exports and concise span summaries are protected beside `publication.json` on the
+host. Each passing journey has one admission and the expected zero/one confirmation; no
+resubmission, deadline increase or new automatic retry occurred. The first failed observation
+and sandbox/source-oracle executor failures remain intact.
+
+Residual limits: routing is explicitly heuristic/degraded, not proven successful Jev
+classification; cost is unavailable rather than guessed. The observed explanation is real, with
+Gateway privacy acknowledgement and per-request enforcement. This is a bounded synthetic
+acceptance, not a throughput benchmark. Stories 6.11/6.14 and the required final published E2E
+campaign remain separate outstanding work. Product code and images are unchanged by subsequent
+fixture/documentation commits, so no rebuild or product-gate repetition is required for them.

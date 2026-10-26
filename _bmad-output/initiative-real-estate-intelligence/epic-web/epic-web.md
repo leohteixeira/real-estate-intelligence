@@ -411,3 +411,19 @@ follow-up found none; the detector reports no findings. The existing oversized S
 split without losing assertions or changing deadlines; scoped and final coverage pass, with
 original failed logs preserved. Host publication, public desktop/mobile journeys and matching
 Tempo evidence remain pending; local results do not close CAP-19 production acceptance.
+
+Story 6.13 public acceptance (2026-10-26): manual host release
+`39236f94ae4432e00cb295a8a08b5b04f3fad35a` passes public prefixed read/property refresh and
+explained/confirmation browser journeys in PT/EN at 1440/390 px. Explained run
+`01a17a21-aa64-74bf-9a36-8dbaa3b18c05` returns exactly 1154412 centavos/m² and real
+model-written Gateway prose; trace `6ab91c62eace9c80bcf41db46838755d` links the typed
+Market calculation, privacy probe and generation. Ambiguous run
+`01a17a21-e6ab-78c8-8d2e-780da08e71cb` pauses, receives one explicit confirmation and
+completes with truthful listing-search unavailability; trace
+`e9b4c5cac8052223b1d0244affe352f4` and persistence retain all four phases. Both passing
+journeys complete without recovery; routing is explicitly heuristic/degraded. The original
+15-second failed observation and later same-run native recovery remain separately preserved.
+The existing deployment guide/plan record release identity, verified backup and exact evidence
+locations. Landing and Caddy remain available/unchanged. No PR, merge or remote CI is claimed.
+Required restricted executor follow-up reports no findings; native gates/deadlines remain intact.
+Continue with 6.11, 6.14 and the final published campaign.

@@ -1,10 +1,10 @@
 # Deploy the prepared VPS application stack
 
 The latest observed release is current-branch commit
-`b570a09427bea39ea03d4dda93c7dc0e0c502899`, manually activated on 2026-10-26.
-Its historical seed, replay and native scheduled collection are accepted; see the final section
-for the protected receipt and the precise trace-correlation limit. Original publication evidence
-below remains historical and is preserved.
+`39236f94ae4432e00cb295a8a08b5b04f3fad35a`, manually activated on 2026-10-26 at
+21:24:53Z from `feat/phase-1`, without PR, merge or remote CI. Its release receipt and current
+public evidence are recorded at the end of this document. Earlier seed, collection and business
+acceptance remain historical evidence for unchanged dependencies; their limits are preserved.
 
 Story 1.12 was accepted on 2026-10-26 after manual publication from `feat/phase-1` commit
 `13edbbb7bfee8d69746c34c518191b0dec659754`. Five bounded host builds, immutable image checks,
@@ -548,3 +548,67 @@ for only the two container IDs recorded in `ask-cpu-before.json`. Landing and de
 untouched. Original timeout, admission, persisted evidence and trace remain preserved, rather
 than replaced by the successful attempt. The additional CPU allowance addresses measured
 throttling; this single synthetic execution is not a load-capacity claim.
+
+### Live Ask UI manual release — 2026-10-26 (Story 6.13)
+
+The host operator delivered source `39236f94ae4432e00cb295a8a08b5b04f3fad35a` after local
+lint, strict types, affected coverage and serial build. All five images carry that full OCI
+revision; manual image IDs (not registry manifest digests) are:
+
+| Image   | Docker image ID                                                           |
+| ------- | ------------------------------------------------------------------------- |
+| migrate | `sha256:4595c58fa1ed16f803513ef93bd729f4ac9783f947d0711911d44d276a87e087` |
+| api     | `sha256:611144071c0cd800a782994e5dbbea176259dca20190bcbef54e8aa5c0c13670` |
+| worker  | `sha256:aefeb40729db22adbe32c9c39973a47f2e10df00e87dc8f2df2b2b4895c9a953` |
+| ai      | `sha256:d59ab8dd8fb21e56d8cb2d0414e5ac6b9106c6414bae7f1f2f1e450ee9797872` |
+| web     | `sha256:98c54d2b27ff2c76b6156663bb61eb0c3c964190d447fc02f99d39d71fb640bd` |
+
+Protected host receipt/recovery directory:
+`/var/backups/portfolio/rei-live-ui-release-20261026T212105Z/`. It retains the previous
+configuration and image identities, bounded build logs and `publication.json`. Verified backup
+and restore before migration: `/var/backups/portfolio/rei-20261026T212416024245Z`. The same
+35 migrations were applied, with no new schema change. Recovery must preserve persistent data
+and never automatically revert migrations. All four application services were healthy. Caddy
+was validated and unchanged; the landing and unrelated services were not replaced. Only Caddy
+publishes public ports. Builds ran sequentially with CPU/memory bounds.
+
+Trusted public HTTPS checks passed landing `/`, `/en`, `/pt`, both project presentations,
+the exact application-root redirects and prefixed readiness with database/broker available.
+The public browser read journey passed PT/EN at 1440 and 390 px, direct navigation and property
+refresh, one resolved property with three listing disclosures, and median 951220 centavos/m²
+with its canonical Aurora source and computation date. Overall listing/source counts are three;
+median provenance uses the canonical property representative, not all three listing sources.
+The original incorrect three-source browser oracle and its failed observation are retained.
+The sandbox launch failure was resolved by the already documented root-owned sandbox helper;
+no sandbox or CSP setting was weakened. Receipts and screenshots are protected under
+`/workspace/.ignore/rei-production-evidence/20261026T212105Z/`.
+
+The first live browser Ask observation failed its native 15-second terminal wait. Run
+`01a17a1b-e5ff-7d78-a747-a6072ac715c5` later completed at 21:27:24.614Z with exactly
+1154412 centavos/m² and a real accepted model-written English explanation through
+`anthropic/claude-haiku-5.5` on `vercel-ai-gateway`. Tempo trace
+`35ce814dc780c5b9c1d6caebcafd2e41` records the initial bounded execution interruption and
+same-run checkpoint recovery, finishing in 33.448 seconds. Decision provenance remains
+`heuristic-v1`, degraded, probability 0.9; successful Jev classification is not inferred.
+The failed browser receipt, persisted readbacks and actual trace are retained separately.
+This establishes the downstream model effect, not yet a visible browser terminal or confirmation
+acceptance. Those remaining checks must use retained same-run authority and explicit UI recovery,
+without extending native deadlines or replaying a failed submission blindly.
+
+Story 6.13 public browser acceptance subsequently passed on this same source/images. Explained
+run `01a17a21-aa64-74bf-9a36-8dbaa3b18c05` completed at 21:33:13.716Z without recovery:
+exact result 1154412 centavos/m² and actual model-written Gateway explanation are visible in
+PT/EN at 1440/390 px. Tempo `6ab91c62eace9c80bcf41db46838755d` links routing, typed
+Market tool, pre-text privacy probe, generation, persistence and successful execution (4569 ms
+total). The browser preserves one admission and no confirmation. Original failed evidence above
+is not replaced by this passing journey.
+
+Ambiguous run `01a17a21-e6ab-78c8-8d2e-780da08e71cb` paused at probability 0.6, received
+one explicit UI confirmation and completed at 21:33:28.400Z. Its exact result is
+`unavailable_intent/listing_search/not_available`, with no price or model explanation fabricated.
+Tempo `e9b4c5cac8052223b1d0244affe352f4` records pause and confirmed continuation; the
+persisted phases are routing, awaiting_confirmation, confirmed and completed. Both journeys
+passed prefix, request, page-error and overflow checks. Protected browser receipts are in
+`ask-recovery-1` and `confirmation-1` under the existing local release evidence directory. Host
+`ask-ui-*` and `confirm-ui-*` files retain persisted documents, raw traces and concise summaries.
+These observations close 6.13; final goal-wide E2E remains required after the remaining stories.
