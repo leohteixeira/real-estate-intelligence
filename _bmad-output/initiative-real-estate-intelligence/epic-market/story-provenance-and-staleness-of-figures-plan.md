@@ -3,7 +3,7 @@ title: 'Provenance and staleness of figures'
 type: 'feature'
 ticket: '5'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'd3af655dfe043cb5fccc8980d07510f1e795870b'
 route: 'full'
 route_source: 'auto'
@@ -402,10 +402,24 @@ high 0, medium 0, low 0. Follow-up review recommendation: false; no specific unv
 risk was identified. Build, types, lint, all eight coverage gates, affected real-service campaigns
 and full six-case browser campaign passed as recorded above. Normal staged hooks on implementation
 and test commits passed, including secrets, Prettier, ESLint and commit-message validation.
-Documentation hooks and final delivery identity are recorded before closure.
+Documentation secrets, Prettier, Markdown lint and commit-message hooks also passed. A long line
+added by the parent was wrapped after the Markdown hook rejected it; no product verification was
+repeated for that documentation-only correction.
 
 Limits: native HTTP deliberately schedules a real completion during assessment; it establishes
 reachability rather than production frequency. UI interception establishes rendering only. Failed
 partial executor campaigns remain recorded with their concrete corrections. No assertion, timeout,
 coverage floor or required gate changed. Publication and remaining stories belong to the continuing
 goal and are not claimed complete by this story.
+
+## Delivery
+
+- Delivered on `feat/phase-1`: implementation `715142a`, tests `266cb56`, documentation
+  `a4325fe7b18b80d35dec407c408078e3e538ab48`. All normal applicable hooks passed.
+- Parent verified all 35 reviewed paths appear after the recorded baseline, no reviewed path remains
+  uncommitted, the working copy is clean and all 30 implementation/test inputs still produce the
+  recorded tested SHA-256. Diff whitespace check passed.
+- `tickets.py mark 4.5 done` completed after those checks. This closure only records delivery;
+  no product input changed and no passing product campaign was repeated.
+- Story 4.5 acceptance and applicable gates are satisfied. Continue the existing goal with
+  `tickets.py next`; publication and other stories remain separately tracked.
