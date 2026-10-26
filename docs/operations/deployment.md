@@ -1,5 +1,19 @@
 # Deploy the prepared VPS application stack
 
+The independent portfolio landing was manually updated on 2026-10-26 at 21:45:04Z to
+`69be18fb639755b28e1ade6a21d7201f631da98c`, image
+`sha256:92c79f18bc08626505b4eebc71cbfefa541340e05b45cd82f7867b85842ad551`.
+Its Privacy resolver now retains `/real-estate-intelligence/`; application images remain those
+below. Only the landing web service was replaced; Caddy was unchanged. Protected recovery
+records are in `/var/backups/portfolio/rei-landing-ship-20261026T213952Z/`, including the previous
+configuration and image `sha256:df90b4a61aa04c4da538edf0ac10c701946fa9e18eba7744aefbda563de026c8`.
+Recovery selects that retained image for the landing service alone; no database migration occurred.
+The focused public presentation review closes EN/PT × 1440/390 × motion/reduced/no-WebGL
+(12 cases): six completed EN checkpoints are reused after an interrupted invocation; the six-case
+PT continuation exits zero. Actual Demo/Privacy, fonts, stop navigation, real motion/pause and
+readable fallback are observed. Story 6.11's existing plan preserves attempts and software-GPU
+performance limits; no physical-device frame-rate claim or unchanged-image rebuild is made.
+
 The latest observed release is current-branch commit
 `39236f94ae4432e00cb295a8a08b5b04f3fad35a`, manually activated on 2026-10-26 at
 21:24:53Z from `feat/phase-1`, without PR, merge or remote CI. Its release receipt and current

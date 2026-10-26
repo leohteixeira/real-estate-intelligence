@@ -427,3 +427,16 @@ The existing deployment guide/plan record release identity, verified backup and 
 locations. Landing and Caddy remain available/unchanged. No PR, merge or remote CI is claimed.
 Required restricted executor follow-up reports no findings; native gates/deadlines remain intact.
 Continue with 6.11, 6.14 and the final published campaign.
+
+Story 6.11 public acceptance (2026-10-26): the independent landing fixes only Privacy prefix
+loss through its existing resolver. Source `69be18fb639755b28e1ade6a21d7201f631da98c`, image
+`sha256:92c79f18bc08626505b4eebc71cbfefa541340e05b45cd82f7867b85842ad551`, is manually
+healthy since 21:45:04Z; Caddy/application images are unchanged and protected recovery is retained.
+Four focused tests, lint/typecheck, all 16 landing tests and serial host build pass. Independent
+Quick's two executor findings are corrected; targeted follow-ups find none. Public review closes
+12 EN/PT desktop/mobile motion/reduced/no-WebGL cases with actual rendered pixels, pause/resume,
+stop navigation, readable lighting/fallback, self-hosted fonts and working prefixed Demo/Privacy.
+Six completed EN checkpoints survive an invocation interrupted by SIGTERM; the scoped PT
+continuation exits zero at 22:12:51Z. The existing plan preserves every attempt and software-GPU
+performance limits. Private source remains hidden. Executor-only commits require no rebuild.
+No provider calls, PR, merge or remote CI. Continue with 6.14 and the final published campaign.
