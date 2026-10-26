@@ -42,7 +42,12 @@ import {
   SyntheticListingSource,
   SyntheticLocationsAdapter,
 } from '../packages/infrastructure/dist/index.js';
-import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './support/fixture.ts';
+import {
+  allocatePorts,
+  cleanupAll,
+  preserveCleanup,
+  withPreparedSearchCampaign as withCampaign,
+} from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 test('properties-ingestion preserves its complete real-service campaign', async () => {
   await withCampaign(async ({ command }) => {

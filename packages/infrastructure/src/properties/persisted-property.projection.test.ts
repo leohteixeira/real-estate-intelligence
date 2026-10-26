@@ -183,7 +183,7 @@ describe('persisted initial detail and composite facade', () => {
     );
     await expect(facade.getListing(property.listingId)).rejects.toThrow('Dependency unavailable.');
   });
-  it('delegates missing detail and search without blending ingested facts', async () => {
+  it('delegates missing detail and explicitly injected search without blending ingested facts', async () => {
     const prepared = new SyntheticPropertiesAdapter();
     const facade = new PersistedPropertiesFacade(
       { getProperty: async () => null, getListing: async () => null },
@@ -198,6 +198,9 @@ describe('persisted initial detail and composite facade', () => {
         },
       },
       prepared,
+      undefined,
+      undefined,
+      { execute: (query) => prepared.search(query) },
     );
     expect(await facade.getProperty(fixtureId(999))).toBeNull();
     expect(await facade.getListing(fixtureId(999))).toBeNull();

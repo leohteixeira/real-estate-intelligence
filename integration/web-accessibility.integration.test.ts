@@ -749,7 +749,7 @@ describe('accessibility owned production partition:', () => {
               VITE_PRIVACY_CONTROLLER_NAME: '',
               VITE_PRIVACY_CONTACT_EMAIL: '',
             };
-            fixture = new ComposeFixture(project, settings);
+            fixture = new ComposeFixture(project, settings, { preparedSearch: true });
             await fixture.up(['--build', 'postgres', 'migrations', 'api', 'web']);
             const database = new URL(`postgres://127.0.0.1:${postgres}/${settings.POSTGRES_DB}`);
             database.username = settings.POSTGRES_USER;

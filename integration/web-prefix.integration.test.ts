@@ -10,17 +10,21 @@ for (const prefix of ['', '/real-estate-intelligence']) {
   test(`production web retains ${prefix || 'root'} assets, bilingual navigation, deep routes, API and SSE`, async () => {
     const project = `rei-prefix-${randomUUID()}`;
     const [postgres, api, web] = await allocatePorts(3);
-    const fixture = new ComposeFixture(project, {
-      NODE_ENV: 'test',
-      POSTGRES_USER: 'rei_prefix',
-      POSTGRES_PASSWORD: 'controlled_prefix_fixture',
-      POSTGRES_DB: 'rei_prefix',
-      POSTGRES_PORT: String(postgres),
-      API_PORT: String(api),
-      WEB_PORT: String(web),
-      OTEL_EXPORTER_OTLP_ENDPOINT: '',
-      VITE_PUBLIC_BASE: `${prefix}/`,
-    });
+    const fixture = new ComposeFixture(
+      project,
+      {
+        NODE_ENV: 'test',
+        POSTGRES_USER: 'rei_prefix',
+        POSTGRES_PASSWORD: 'controlled_prefix_fixture',
+        POSTGRES_DB: 'rei_prefix',
+        POSTGRES_PORT: String(postgres),
+        API_PORT: String(api),
+        WEB_PORT: String(web),
+        OTEL_EXPORTER_OTLP_ENDPOINT: '',
+        VITE_PUBLIC_BASE: `${prefix}/`,
+      },
+      { preparedSearch: true },
+    );
     const origin = `http://127.0.0.1:${web}`;
     const base = `${origin}${prefix}`;
     await preserveCleanup(

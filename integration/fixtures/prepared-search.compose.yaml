@@ -1,0 +1,13 @@
+services:
+  api:
+    build:
+      target: build
+    volumes:
+      - '${PREPARED_SEARCH_SOURCE_ROOT:?Owned fixture source root is required}/integration/fixtures/prepared-search-bootstrap.ts:/source/integration/fixtures/prepared-search-bootstrap.ts:ro'
+    command:
+      [
+        'node',
+        '-r',
+        './apps/api/dist/otel.js',
+        '/source/integration/fixtures/prepared-search-bootstrap.ts',
+      ]

@@ -383,3 +383,49 @@ test('API-only fixtures own auto-started broker ports and retain them on staged 
   expect(getPort).toHaveBeenCalledTimes(2);
   await owned.down();
 });
+
+test('prepared search compatibility is explicit and failed setup cleans up with exactly the same files', async () => {
+  const { builder, execute } = fixture();
+  const create = vi.fn((_root: string, _files: string | string[]) => {
+    void _root;
+    void _files;
+    return builder;
+  });
+  const normal = new ComposeFixture('rei-production-search', {}, { create, execute });
+  await normal.up(['postgres']);
+  expect(create.mock.calls[0]![1]).toBe('compose.yaml');
+  expect(normal.environment.PREPARED_SEARCH_SOURCE_ROOT).toBeUndefined();
+  await normal.down();
+  const prepared = new ComposeFixture(
+    'rei-prepared-search',
+    {},
+    { create, execute, preparedSearch: true },
+  );
+  const primary = new Error('owned setup failed');
+  builder.up.mockRejectedValueOnce(primary);
+  await expect(prepared.up(['postgres'])).rejects.toBe(primary);
+  expect(create.mock.calls.at(-1)![1]).toEqual([
+    'compose.yaml',
+    'integration/fixtures/prepared-search.compose.yaml',
+  ]);
+  expect(prepared.environment.PREPARED_SEARCH_SOURCE_ROOT).toBeTruthy();
+  expect(execute).toHaveBeenCalledWith(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'compose.yaml',
+      '--file',
+      'integration/fixtures/prepared-search.compose.yaml',
+      '--project-name',
+      'rei-prepared-search',
+      'down',
+      '--volumes',
+      '--remove-orphans',
+    ],
+    expect.objectContaining({
+      env: expect.objectContaining({ COMPOSE_DISABLE_ENV_FILE: '1', COMPOSE_ENV_FILES: '' }),
+    }),
+  );
+  expect(prepared.dirty).toBe(false);
+});

@@ -125,7 +125,7 @@ test('Ask follows a real prepared completed run through owned HTTP, SSE and Chro
     WEB_PORT: String(web),
     OTEL_EXPORTER_OTLP_ENDPOINT: '',
   };
-  const fixture = new ComposeFixture(project, settings);
+  const fixture = new ComposeFixture(project, settings, { preparedSearch: true });
   const foreign = await askDockerInventory();
   const campaign = {
     runId,

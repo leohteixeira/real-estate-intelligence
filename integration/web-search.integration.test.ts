@@ -4,7 +4,11 @@ import { chromium } from 'playwright';
 import { expect, test } from 'vitest';
 import { parsePlaceResponse, PROPERTY_SORTS } from '../packages/contracts/dist/index.js';
 import type { SearchQuery } from '../packages/contracts/dist/index.js';
-import { allocatePorts, preserveCleanup, withCampaign } from './support/fixture.ts';
+import {
+  allocatePorts,
+  preserveCleanup,
+  withPreparedSearchCampaign as withCampaign,
+} from './support/fixture.ts';
 import { copySurfaceEvidence, runSearchCampaign } from './support/search-campaign.ts';
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';

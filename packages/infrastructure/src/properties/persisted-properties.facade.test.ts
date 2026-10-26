@@ -164,7 +164,7 @@ describe('listing provenance and current text permissions', () => {
     );
   });
 
-  it('exposes no score for an actual singleton and preserves missing/prepared reads and search', async () => {
+  it('exposes no score for an actual singleton and preserves missing/prepared detail reads', async () => {
     const property = await initialProperty();
     const prepared = new SyntheticPropertiesAdapter();
     const search = vi.spyOn(prepared, 'search');
@@ -204,8 +204,8 @@ describe('listing provenance and current text permissions', () => {
       rawProbability: null,
       reasons: [],
     });
-    await facade.search({});
-    expect(search).toHaveBeenCalledWith({});
+    expect(() => facade.search({})).toThrow('Persisted search query is unavailable');
+    expect(search).not.toHaveBeenCalled();
     const missing = new PersistedPropertiesFacade(
       { getProperty: async () => null, getListing: async () => null },
       {
@@ -216,6 +216,36 @@ describe('listing provenance and current text permissions', () => {
     );
     expect(await missing.getProperty(fixtureId(999))).toBeNull();
     expect(await missing.getListing(fixtureId(999))).toBeNull();
+  });
+  it('delegates search only to its dedicated provider and propagates failures', async () => {
+    const prepared = new SyntheticPropertiesAdapter();
+    const fake = vi.spyOn(prepared, 'search');
+    const response = {
+      metadata: {
+        dataMode: 'synthetic-stub' as const,
+        fixtureVersion: 'persisted',
+        asOf: '2026-10-01T12:00:00.000Z',
+      },
+      items: [],
+      totalItems: 0,
+      nextCursor: null,
+      medianPricePerSquareMeter: null,
+      placeCounts: [],
+    };
+    const execute = vi.fn(async () => response);
+    const facade = new PersistedPropertiesFacade(
+      { getProperty: async () => null, getListing: async () => null },
+      { getSourcePermissions: vi.fn(), getSnapshotMetadata: vi.fn() },
+      prepared,
+      undefined,
+      undefined,
+      { execute },
+    );
+    expect(await facade.search({ priceReduced: false })).toBe(response);
+    expect(execute).toHaveBeenCalledWith({ priceReduced: false });
+    execute.mockRejectedValueOnce(new Error('Search unavailable'));
+    await expect(facade.search({})).rejects.toThrow('Search unavailable');
+    expect(fake).not.toHaveBeenCalled();
   });
   it('delegates reductions only to the persisted query, including empty and failed reads', async () => {
     const prepared = new SyntheticPropertiesAdapter();

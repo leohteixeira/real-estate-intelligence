@@ -379,6 +379,8 @@ function fixture(
     facts,
     corrections,
     rejectedCorrections,
+    properties,
+    collection,
     history,
     publications,
     state: () => state,
@@ -386,6 +388,80 @@ function fixture(
   };
 }
 describe('completion-bound durable history reconciliation', () => {
+  it.each(['run', 'legacy recovery', 'correction'] as const)(
+    'leaves Properties identity available while Collection authority is blocked during %s',
+    async (path) => {
+      const f = fixture();
+      if (path === 'correction') {
+        await f.collect(1);
+        f.corrections.push(correction(fact(1)));
+      } else if (path === 'legacy recovery') {
+        f.state().properties.push(new Property(id(1000), id(1001), fact(1), place));
+        f.state().facts.push(fact(1));
+        f.facts.push(fact(1));
+        f.state().queued = true;
+      } else {
+        f.runs.push(completed(1));
+        f.facts.push(fact(1));
+        f.state().queued = true;
+      }
+      let identityLocked = false;
+      f.properties.lockSourceIdentity = async () => {
+        identityLocked = true;
+      };
+      let arrived!: () => void;
+      let release!: () => void;
+      const atAuthority = new Promise<void>((resolve) => {
+        arrived = resolve;
+      });
+      const authorityAvailable = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const waitForAuthority = async () => {
+        arrived();
+        await authorityAvailable;
+      };
+      if (path === 'run') {
+        const read = f.collection.getRunListingFacts;
+        f.collection.getRunListingFacts = async (...args) => {
+          await waitForAuthority();
+          return read(...args);
+        };
+      } else {
+        const verify = f.collection.verifyParsedEvent;
+        f.collection.verifyParsedEvent = async (...args) => {
+          await waitForAuthority();
+          return verify(...args);
+        };
+      }
+      const reconciliation = f.service.execute(25, f.signal);
+      await atAuthority;
+      try {
+        // An ingestion holding Collection authority must still be able to take this identity.
+        expect(identityLocked).toBe(false);
+      } finally {
+        release();
+        await reconciliation;
+      }
+      expect(identityLocked).toBe(true);
+      expect(f.state().current?.acquisitions).toHaveLength(1);
+    },
+  );
+  it('reloads legacy chronology after taking the Properties identity lock', async () => {
+    const f = fixture();
+    await f.collect(1);
+    const previous = structuredClone(f.state().current);
+    await f.collect(2, true, 90);
+    const advanced = structuredClone(f.state().current);
+    f.state().current = previous;
+    f.runs.splice(0);
+    f.properties.lockSourceIdentity = async (transaction) => {
+      (transaction as Scope).state.current = advanced;
+    };
+    await f.service.execute(25, f.signal);
+    expect(f.state().current).toEqual(advanced);
+    expect(f.state().current?.acquisitions).toHaveLength(2);
+  });
   it('commits eligible earlier absence and advances a manifest with no evidence at completion', async () => {
     for (const existing of [true, false]) {
       const f = fixture();

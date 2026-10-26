@@ -17,6 +17,7 @@ import {
   parseListingResponse,
   parsePropertyResponse,
   parseReductionsResponse,
+  parseSearchResponse,
 } from '../packages/contracts/dist/index.js';
 import {
   INITIAL_RESOLUTION_CONFIGURATION,
@@ -45,6 +46,7 @@ import {
   PostgresLocationsFacade,
   PostgresPropertyRepository,
   PostgresListingHistoryRepository,
+  PostgresListingSuppression,
   PostgresSnapshotReparseRepository,
 } from '../packages/infrastructure/dist/index.js';
 import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './support/fixture.ts';
@@ -229,6 +231,8 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
               new PostgresUuidV7Generator(connection),
               clock,
               new PostgresOutbox(connection),
+              undefined,
+              new PostgresListingSuppression(connection),
             );
             const result = await service.execute(sourceId, key, null, signal());
             expect(result.status, key).toBe('completed');
@@ -237,6 +241,15 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
             expect(result.failedCount, key).toBe(0);
             return result;
           };
+          // Normal startup never serves the prepared catalog, even before the first collection.
+          const emptySearch = await get('properties', parseSearchResponse);
+          expect(emptySearch).toMatchObject({
+            metadata: { fixtureVersion: 'persisted-synthetic-search-v1' },
+            items: [],
+            totalItems: 0,
+            medianPricePerSquareMeter: null,
+            nextCursor: null,
+          });
           const baseline = SYNTHETIC_SAO_PAULO_DATASET.runs[0]!;
           const collectCycle = async (cycle: (typeof SYNTHETIC_SAO_PAULO_DATASET.runs)[number]) => {
             for (const [index, source] of SYNTHETIC_SAO_PAULO_DATASET.sources.entries()) {
@@ -292,6 +305,25 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
               ).toBe(false);
             }
           }
+          const baselineSearch = await get('properties', parseSearchResponse);
+          expect(baselineSearch.totalItems).toBe(5);
+          expect(new Set(baselineSearch.items.map((item) => item.id)).size).toBe(5);
+          const currentSearch = async () => get('properties', parseSearchResponse);
+          const assertSearchAgreesWithDetail = async (expectedCount: number) => {
+            const response = await currentSearch();
+            expect(response.totalItems).toBe(expectedCount);
+            expect(response.items).toHaveLength(expectedCount);
+            for (const item of response.items) {
+              const detail = (await get(`properties/${item.id}`, parsePropertyResponse)).property;
+              expect(item).toEqual({
+                ...detail.summary,
+                belowMedianPercent: item.belowMedianPercent,
+              });
+              expect(item.neighborhoodComparison).toBeNull();
+            }
+            return response;
+          };
+          await assertSearchAgreesWithDetail(5);
           const browserEnvironment = { ...process.env };
           delete browserEnvironment.DISPLAY;
           browser = await chromium.launch({
@@ -605,6 +637,161 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
             'places/brazil/largest-reductions',
             parseReductionsResponse,
           );
+          const searchDigest = async () => {
+            const tables = await connection.query<{ tablename: string }>(
+              "SELECT tablename FROM pg_tables WHERE schemaname='properties' ORDER BY tablename",
+            );
+            const digests = [];
+            for (const { tablename } of tables) {
+              if (!/^[a-z_]+$/.test(tablename))
+                throw new Error('Unexpected owned Properties table.');
+              digests.push([
+                tablename,
+                await connection.query(
+                  `SELECT md5(COALESCE(jsonb_agg(to_jsonb(row) ORDER BY to_jsonb(row)::text)::text,'')) AS digest FROM properties.${tablename} row`,
+                ),
+              ]);
+            }
+            return digests;
+          };
+          const beforeSearch = await searchDigest();
+          const catalog = await assertSearchAgreesWithDetail(5);
+          const propertyIdFor = (...members: string[]) =>
+            identities
+              .filter((item) => members.includes(item.source_listing_id))
+              .map((item) => item.property_id)
+              .sort()[0]!;
+          const bv = propertyIdFor('AUR-BV-001', 'BRI-BV-001', 'COB-BV-001');
+          const sn = propertyIdFor('AUR-SN-001', 'BRI-SN-001');
+          const vm = propertyIdFor('BRI-VM-001', 'COB-VM-001');
+          const tt = propertyIdFor('COB-TT-001');
+          const pn = propertyIdFor('AUR-PN-001');
+          const priceOrder = [sn, vm, bv, tt, pn];
+          expect(catalog.items.map((item) => item.id)).toEqual(priceOrder);
+          expect(catalog.items.map((item) => item.pricePerSquareMeter)).toEqual([
+            885135, 918519, 951220, 958333, 993902,
+          ]);
+          expect(catalog.items.map((item) => item.askingPrice!.minorUnits)).toEqual([
+            65500000, 124000000, 78000000, 92000000, 81500000,
+          ]);
+          expect(catalog.items.map((item) => item.timeOnMarketDays)).toEqual([
+            365, 365, 365, 365, 365,
+          ]);
+          expect(catalog.medianPricePerSquareMeter).toBe(951220);
+          expect(catalog.metadata.asOf).toBe('2026-10-01T12:00:00.000Z');
+          expect(catalog.items.map((item) => item.belowMedianPercent)).toEqual([
+            (66085 / 951220) * 100,
+            (32701 / 951220) * 100,
+            0,
+            (-7113 / 951220) * 100,
+            (-42682 / 951220) * 100,
+          ]);
+          const searchQueries: readonly [string, readonly string[], number | null][] = [
+            ['propertyType=house', [vm], 918519],
+            ['minAskingPrice=78000000&maxAskingPrice=78000000', [bv], 951220],
+            ['minPricePerSquareMeter=951220&maxPricePerSquareMeter=951220', [bv], 951220],
+            ['minArea=82&maxArea=82', [bv, pn], 972561],
+            ['minBedrooms=3', [sn, vm, tt], 918519],
+            ['minBathrooms=3', [vm], 918519],
+            ['minParkingSpaces=2', [vm, tt], 938426],
+            ['timeOnMarket=up-to-30', [], null],
+            ['timeOnMarket=31-to-90', [], null],
+            ['timeOnMarket=over-90', priceOrder, 951220],
+            ['timeOnMarket=over-180', priceOrder, 951220],
+            ['priceReduced=true', [sn, vm, bv, tt], 934870],
+            ['priceReduced=false', [pn], 993902],
+            ['returnedToMarket=true', [vm], 918519],
+            ['returnedToMarket=false', [sn, bv, tt, pn], 954777],
+            ['multipleListings=true', [sn, vm, bv], 918519],
+            ['multipleListings=false', [tt, pn], 976118],
+            ['returnedToMarket=true&priceReduced=false&multipleListings=true', [], null],
+            [
+              'minArea=82&maxArea=82&minBedrooms=2&minBathrooms=2&minParkingSpaces=1&priceReduced=false&returnedToMarket=false&multipleListings=false',
+              [pn],
+              993902,
+            ],
+            ['maxAskingPrice=1', [], null],
+            ['placeId=unknown-place', [], null],
+            ['placeId=sao-paulo-bela-vista-avenida-exemplo-fictional-block', [], null],
+          ];
+          for (const [query, ids, median] of searchQueries) {
+            const response = await get(`properties?${query}`, parseSearchResponse);
+            expect(
+              response.items.map((item) => item.id),
+              query,
+            ).toEqual(ids);
+            expect(response.totalItems, query).toBe(ids.length);
+            expect(response.medianPricePerSquareMeter, query).toBe(median);
+          }
+          for (const [scope, ids] of [
+            ['brazil', priceOrder],
+            ['sao-paulo-state', priceOrder],
+            ['sao-paulo', priceOrder],
+            ['sao-paulo-centro', [bv]],
+            ['sao-paulo-bela-vista', [bv]],
+            ['sao-paulo-bela-vista-fictional-block', [bv]],
+          ] as const) {
+            const response = await get(`properties?placeId=${scope}`, parseSearchResponse);
+            expect(response.items.map((item) => item.id)).toEqual(ids);
+            expect(response.placeCounts.find((item) => item.placeId === scope)!.totalItems).toBe(
+              ids.length,
+            );
+          }
+          const filteredCounts = await get('properties?priceReduced=false', parseSearchResponse);
+          expect(
+            filteredCounts.placeCounts.find((item) => item.placeId === 'sao-paulo')!.totalItems,
+          ).toBe(1);
+          expect(
+            filteredCounts.placeCounts.find((item) => item.placeId === 'sao-paulo-centro')!
+              .totalItems,
+          ).toBe(0);
+          for (const [sort, ids] of [
+            ['furthest-below-median', priceOrder],
+            ['lowest-price-per-square-meter', priceOrder],
+            ['longest-on-market', [...priceOrder].sort()],
+            ['most-recent', [...priceOrder].sort()],
+          ] as const) {
+            expect(
+              (await get(`properties?sort=${sort}`, parseSearchResponse)).items.map(
+                (item) => item.id,
+              ),
+            ).toEqual(ids);
+            const seen = [];
+            let cursor: string | null = null;
+            do {
+              const page: ReturnType<typeof parseSearchResponse> = await get(
+                `properties?sort=${sort}&pageSize=2${cursor ? `&cursor=${cursor}` : ''}`,
+                parseSearchResponse,
+              );
+              expect(page.totalItems).toBe(5);
+              expect(page.medianPricePerSquareMeter).toBe(951220);
+              seen.push(...page.items.map((item) => item.id));
+              cursor = page.nextCursor;
+            } while (cursor);
+            expect(seen).toEqual(ids);
+          }
+          const firstPage = await get('properties?pageSize=1', parseSearchResponse);
+          const normalizedPage = await get(
+            `properties?sort=furthest-below-median&placeId=sao-paulo&pageSize=1&cursor=${firstPage.nextCursor}`,
+            parseSearchResponse,
+          );
+          expect(normalizedPage.items[0]!.id).toBe(vm);
+          for (const query of [
+            'cursor=bad',
+            'placeId=BAD',
+            'minArea=2&maxArea=1',
+            `pageSize=1&priceReduced=false&cursor=${firstPage.nextCursor}`,
+            `pageSize=1&sort=most-recent&cursor=${firstPage.nextCursor}`,
+          ]) {
+            const response = await requestHttp(
+              `http://127.0.0.1:${api}/api/v1/properties?${query}`,
+            );
+            expect(response.status).toBe(400);
+            expect(JSON.stringify(await response.json())).not.toMatch(
+              /stack|password|Invalid read query/,
+            );
+          }
+          expect(await searchDigest()).toEqual(beforeSearch);
           // Fixed catalog oracle: original listing prices alone would incorrectly use 68m in Santana.
           const catalogDrops = [
             {
@@ -671,7 +858,13 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
           await connection.query(
             "DELETE FROM platform.outbox WHERE event_type LIKE 'properties.property.%' OR event_type='properties.match.queued-for-review'",
           );
+          const unassigned = await currentSearch();
+          expect(unassigned.totalItems).toBe(9);
+          expect(unassigned.items.map((item) => item.id).sort()).toEqual(
+            identities.map((item) => item.property_id).sort(),
+          );
           await resolver().execute(signal());
+          expect(await currentSearch()).toEqual(catalog);
           expect(await get('places/brazil/largest-reductions', parseReductionsResponse)).toEqual(
             onlineReductions,
           );
@@ -950,6 +1143,7 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
               )
             )[0]!.count,
           ).toBe(6);
+          await assertSearchAgreesWithDetail(6);
           expect(await minimumCount()).toBe(previousMinimumCount);
           expect(
             await connection.query(
@@ -1035,8 +1229,12 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
             ),
           ).toEqual(beforeCorrectionFacts);
           expect(await resolver().execute(signal())).toBe(0);
+          await assertSearchAgreesWithDetail(5);
           // Block an actual history transaction after its listing/outbox writes and before commit.
           // The independent resolver must wait on the same PostgreSQL write guard and then see it.
+          const beforeRacePrice = (await currentSearch()).items.find(
+            (item) => item.id === bv,
+          )!.askingPrice;
           const raceAt = '2027-01-02T12:00:00.000Z';
           await collect(
             sourceId,
@@ -1094,6 +1292,9 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
           let resolutionWork: Promise<number> | undefined;
           try {
             await waitFor('history transaction reached real write barrier', () => entered);
+            expect(
+              (await currentSearch()).items.find((item) => item.id === bv)!.askingPrice,
+            ).toEqual(beforeRacePrice);
             resolutionWork = resolver().execute(signal());
             await waitFor(
               'resolver waits on PostgreSQL advisory lock',
@@ -1211,6 +1412,7 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
           expect(
             (await get(`listings/${target.listing_id}`, parseListingResponse)).listing.status,
           ).toBe('removed');
+          await assertSearchAgreesWithDetail(5);
           await applyRun(
             sourceId,
             'resolution-minimum-return',
@@ -1221,6 +1423,11 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
           expect(
             (await get(`listings/${target.listing_id}`, parseListingResponse)).listing.status,
           ).toBe('active');
+          const afterReturn = await assertSearchAgreesWithDetail(5);
+          expect(afterReturn.items.find((item) => item.id === bv)!.askingPrice).toMatchObject({
+            minorUnits: 1000000,
+            listingId: target.listing_id,
+          });
           const allPropertyEvents = await connection.query<{ event: PropertiesEventV2 }>(
             `SELECT jsonb_build_object('eventId',event_id,'type',event_type,'version',event_version,'aggregateId',aggregate_id,'occurredAt',to_char(occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),'traceContext',trace_context,'payload',payload) AS event FROM platform.outbox WHERE event_type LIKE 'properties.property.%' ORDER BY occurred_at,event_id`,
           );
@@ -1248,8 +1455,53 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
             );
             return rows[0]?.count === 5;
           });
+          await compose('stop', 'worker');
+          const beforeRestart = await currentSearch();
+          await compose('restart', 'api');
+          await waitFor(
+            'restarted API serves committed search',
+            async () => {
+              try {
+                return (await requestHttp(`http://127.0.0.1:${api}/health`)).status === 200;
+              } catch {
+                return false;
+              }
+            },
+            30000,
+          );
+          expect(await currentSearch()).toEqual(beforeRestart);
+          await compose('stop', 'postgres');
+          const failedSearch = await requestHttp(`http://127.0.0.1:${api}/api/v1/properties`);
+          expect(failedSearch.status).toBe(500);
+          expect(JSON.stringify(await failedSearch.json())).not.toMatch(
+            /stack|postgres:|password|synthetic-sao-paulo-v1/,
+          );
+          await compose('up', '--detach', '--wait', 'postgres');
+          await waitFor(
+            'database recovery preserves committed search',
+            async () => {
+              try {
+                return (
+                  (await requestHttp(`http://127.0.0.1:${api}/api/v1/properties`)).status === 200
+                );
+              } catch {
+                return false;
+              }
+            },
+            30000,
+          );
+          expect(await currentSearch()).toEqual(beforeRestart);
         } catch (error) {
-          await compose('logs', '--no-color', '--tail', '100', 'worker', 'api', 'migrations')
+          await compose(
+            'logs',
+            '--no-color',
+            '--tail',
+            '100',
+            'worker',
+            'api',
+            'migrations',
+            'postgres',
+          )
             .then(({ stdout, stderr }) => process.stderr.write(`${stdout}${stderr}`))
             .catch(() => undefined);
           throw error;

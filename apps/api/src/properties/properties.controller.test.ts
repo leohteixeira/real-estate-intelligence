@@ -15,21 +15,27 @@ import {
   SyntheticLocationsAdapter,
   SUPPLEMENTARY_PROPERTY_IDS,
   syntheticReadId,
+  SyntheticPropertiesAdapter,
 } from '@rei/infrastructure';
-import { LOCATIONS_FACADE } from '@rei/application';
+import { LOCATIONS_FACADE, PROPERTY_SEARCH } from '@rei/application';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { configureApi } from '../configure-api';
 import { LocationsModule } from '../locations/index';
 import { PropertiesModule } from './properties.module';
 import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 
-describe('production properties and locations module HTTP contract', () => {
+describe('explicit prepared search and production detail/locations HTTP contract', () => {
   let app: INestApplication;
   let base: string;
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [PropertiesModule, LocationsModule],
     })
+      .overrideProvider(PROPERTY_SEARCH)
+      .useValue({
+        execute: (query: import('@rei/domain').SearchQuery) =>
+          new SyntheticPropertiesAdapter().search(query),
+      })
       .overrideProvider(DATABASE_CONNECTION)
       .useValue({ query: async () => [], close: async () => undefined })
       .overrideProvider(LOCATIONS_FACADE)
@@ -382,5 +388,54 @@ describe('production properties and locations module HTTP contract', () => {
     expect(first.status).toBe(404);
     expect(((await first.json()) as ErrorResponse).error.code).toBe('not_found');
     expect(first.headers.get('x-request-id')).not.toBe(second.headers.get('x-request-id'));
+  });
+});
+
+describe('normal production persisted search HTTP startup', () => {
+  let app: INestApplication;
+  let base: string;
+  let failing = false;
+  beforeAll(async () => {
+    const module = await Test.createTestingModule({ imports: [PropertiesModule] })
+      .overrideProvider(DATABASE_CONNECTION)
+      .useValue({
+        query: async () => {
+          if (failing) throw new Error('Owned database unavailable');
+          return [];
+        },
+        close: async () => undefined,
+      })
+      .overrideProvider(LOCATIONS_FACADE)
+      .useValue(new SyntheticLocationsAdapter())
+      .compile();
+    app = module.createNestApplication();
+    configureApi(app);
+    await app.listen(0, '127.0.0.1');
+    const address = app.getHttpServer().address();
+    if (!address || typeof address === 'string') throw new Error('Missing listener');
+    base = `http://127.0.0.1:${address.port}`;
+  });
+  afterAll(async () => {
+    await app.close();
+  });
+  it('returns strict empty persisted search and refuses fallback after a failed read', async () => {
+    const empty = await fetch(`${base}/api/v1/properties`);
+    expect(empty.status).toBe(200);
+    expect(parseSearchResponse(await empty.json())).toMatchObject({
+      metadata: { fixtureVersion: 'persisted-synthetic-search-v1' },
+      items: [],
+      totalItems: 0,
+      medianPricePerSquareMeter: null,
+      nextCursor: null,
+    });
+    const unknown = await fetch(`${base}/api/v1/properties?placeId=unknown`);
+    expect(parseSearchResponse(await unknown.json()).totalItems).toBe(0);
+    for (const query of ['cursor=bad', 'priceReduced=FALSE', 'minAskingPrice=2&maxAskingPrice=1'])
+      expect((await fetch(`${base}/api/v1/properties?${query}`)).status).toBe(400);
+    failing = true;
+    const failure = await fetch(`${base}/api/v1/properties`);
+    expect(failure.status).toBe(500);
+    const body = await failure.json();
+    expect(JSON.stringify(body)).not.toMatch(/database|Owned|stack|password/);
   });
 });

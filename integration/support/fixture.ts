@@ -60,7 +60,8 @@ interface OneShotWait<TContainer> {
   waitUntilReady(container: TContainer): Promise<unknown>;
 }
 interface FixtureDependencies<TContainer> {
-  create?: (root: string, file: string) => ComposeBuilder;
+  create?: (root: string, file: string | string[]) => ComposeBuilder;
+  preparedSearch?: boolean;
   execute?: Command;
   runtime?: () => Promise<FixtureRuntime<TContainer>>;
   oneShotWait?: () => OneShotWait<TContainer>;
@@ -140,6 +141,7 @@ export class ComposeFixture<TContainer = OwnedContainer> {
   waitOwned: typeof nativeWait;
   started: StartedFixture | undefined;
   dirty: boolean;
+  readonly preparedSearch: boolean;
   constructor(
     project: string,
     environment: Environment,
@@ -148,12 +150,19 @@ export class ComposeFixture<TContainer = OwnedContainer> {
       execute = (file, args, options) => execa(file, args, options),
       runtime,
       oneShotWait,
+      preparedSearch = false,
     }: FixtureDependencies<TContainer> = {},
   ) {
     if (!/^rei-[a-z0-9_-]+$/.test(project))
       throw new Error('An integration fixture needs an owned rei- project name.');
+    this.preparedSearch = preparedSearch;
     this.project = project;
-    this.environment = { ...environment, COMPOSE_DISABLE_ENV_FILE: '1', COMPOSE_ENV_FILES: '' };
+    this.environment = {
+      ...environment,
+      COMPOSE_DISABLE_ENV_FILE: '1',
+      COMPOSE_ENV_FILES: '',
+      ...(preparedSearch ? { PREPARED_SEARCH_SOURCE_ROOT: root } : {}),
+    };
     this.create = create;
     this.execute = execute;
     this.waitOwned = runtime && oneShotWait ? ownedWait(runtime, oneShotWait) : nativeWait;
@@ -183,7 +192,12 @@ export class ComposeFixture<TContainer = OwnedContainer> {
       }
     }
     this.dirty = true;
-    let builder = this.create(root, 'compose.yaml')
+    let builder = this.create(
+      root,
+      this.preparedSearch
+        ? ['compose.yaml', 'integration/fixtures/prepared-search.compose.yaml']
+        : 'compose.yaml',
+    )
       .withEnvironment(this.environment)
       .withProjectName(this.project)
       .withStartupTimeout(240_000)
@@ -223,6 +237,9 @@ export class ComposeFixture<TContainer = OwnedContainer> {
           'compose',
           '--file',
           'compose.yaml',
+          ...(this.preparedSearch
+            ? ['--file', 'integration/fixtures/prepared-search.compose.yaml']
+            : []),
           '--project-name',
           this.project,
           'down',
@@ -250,7 +267,10 @@ export class ComposeFixture<TContainer = OwnedContainer> {
   }
 }
 
-export async function withCampaign<T>(work: (context: { command: Command }) => Promise<T>) {
+export async function withCampaign<T>(
+  work: (context: { command: Command }) => Promise<T>,
+  fixtureOptions: { preparedSearch?: boolean } = {},
+) {
   const fixtures = new Map<string, ComposeFixture>();
   const command: Command = async (file, args: string[], options = {}) => {
     const settings = { ...options, cwd: options.cwd || root, timeout: options.timeout || 300_000 };
@@ -278,7 +298,7 @@ export async function withCampaign<T>(work: (context: { command: Command }) => P
       );
       let fixture = fixtures.get(project);
       if (!fixture) {
-        fixture = new ComposeFixture(project, settings.env || {});
+        fixture = new ComposeFixture(project, settings.env || {}, fixtureOptions);
         fixtures.set(project, fixture);
       }
       if (args[operation] === 'up')
@@ -287,7 +307,15 @@ export async function withCampaign<T>(work: (context: { command: Command }) => P
       if (args[operation] === 'wait')
         return fixture.wait(args.slice(operation + 1), settings.timeout);
       // Real CLI invocations, migration stages and faults retain their production commands.
-      return execa(file, args, {
+      const commandArgs = fixture.preparedSearch
+        ? [
+            ...args.slice(0, operation),
+            '--file',
+            'integration/fixtures/prepared-search.compose.yaml',
+            ...args.slice(operation),
+          ]
+        : args;
+      return execa(file, commandArgs, {
         ...settings,
         env: {
           ...fixture.environment,
@@ -311,4 +339,9 @@ export async function withCampaign<T>(work: (context: { command: Command }) => P
       if (failures.length) throw new AggregateError(failures, 'Owned fixture cleanup failed.');
     },
   );
+}
+
+/** Explicit compatibility fixture for campaigns authored against the prepared search catalog. */
+export function withPreparedSearchCampaign<T>(work: (context: { command: Command }) => Promise<T>) {
+  return withCampaign(work, { preparedSearch: true });
 }

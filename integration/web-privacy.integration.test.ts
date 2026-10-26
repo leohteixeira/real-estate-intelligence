@@ -222,7 +222,7 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
         VITE_PRIVACY_CONTACT_EMAIL: '',
         OTEL_EXPORTER_OTLP_ENDPOINT: '',
       };
-      fixture = new ComposeFixture(project, settings);
+      fixture = new ComposeFixture(project, settings, { preparedSearch: true });
       await fixture.up(['--build', 'postgres', 'migrations', 'api', 'web']);
       const database = new URL(`postgres://127.0.0.1:${postgres}/rei_web_privacy`);
       database.username = settings.POSTGRES_USER;

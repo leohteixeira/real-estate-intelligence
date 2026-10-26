@@ -5,7 +5,11 @@ import { execa } from 'execa';
 import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
 import { expect, test } from 'vitest';
-import { allocatePorts, withCampaign, preserveCleanup } from './support/fixture.ts';
+import {
+  allocatePorts,
+  withPreparedSearchCampaign as withCampaign,
+  preserveCleanup,
+} from './support/fixture.ts';
 import { copySurfaceEvidence, runSearchCampaign } from './support/search-campaign.ts';
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';

@@ -10,7 +10,12 @@ import {
   parsePlaceResponse,
   parsePlacesResponse,
 } from '../packages/contracts/dist/index.js';
-import { allocatePorts, cleanupAll, preserveCleanup, withCampaign } from './support/fixture.ts';
+import {
+  allocatePorts,
+  cleanupAll,
+  preserveCleanup,
+  withPreparedSearchCampaign as withCampaign,
+} from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
 import { exerciseSystemStateReads } from './support/system-state-reads.ts';
