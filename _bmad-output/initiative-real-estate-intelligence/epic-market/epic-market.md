@@ -115,3 +115,10 @@ of CAP-22, not recorded sale figures (CAP-33).
   neighbours, series and collection completion retain their own stories. Figures explicitly
   distinguish persisted evidence from remaining prepared sections (agent, on the owner's behalf,
   2026-10-26).
+
+- Story 4.6 integration: persisted overview and registered neighbours use additive
+  `event-fed-place-figures`, with no prepared section/time fields. Plate counts reuse D-096's
+  represented properties, all active member listings and distinct active-member source IDs without
+  area eligibility. Actual-parent and neighbour scopes come only from Locations; every neighbour
+  row shares one retained snapshot and evaluation instant. Prior variants stay strict and unchanged;
+  monthly series remains prepared, collection completion untracked and suppression deferred.

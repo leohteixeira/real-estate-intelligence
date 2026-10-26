@@ -49,10 +49,20 @@ The figures campaign (`integration/market-figures.integration.test.ts`) owns Pos
 S3-compatible storage, API and worker. Synthetic outbox events arrive as a v2 merge snapshot before
 older listing states. Parsed HTTP proves paired movement (current paired median 2000 / prior 1500),
 four-property observed duration, three reduced listings out of five active listings, the 1.25 ratio,
-null sale and independent prepared counts. It checks removed-member history, reappearance,
-null-area eligibility, global geography, restart/inbox-expiry replay, empty scopes, canonical errors
+null sale and live counts of four properties, five active listings and two active-member sources.
+It also proves actual-parent scopes, registered neighbour median 7000 centavos/m² with 100%
+matched-cohort movement, known empty rows, registered empty adjacency and country null parent.
+It checks removed-member history, reappearance, null-area eligibility, global geography,
+restart/inbox-expiry replay, empty scopes, canonical errors
 and unchanged retained SQL evidence after reads. Domain tests cover exact UTC/leap/month-end and
 thirty-day interval boundaries without depending on wall-clock timing.
+
+The Place browser campaign retains an owned synthetic neighbour through the real outbox and
+worker, compares its 450000 centavos/m² median and 50% movement with parsed HTTP, and checks live
+counts and origins in PT/EN at 390, 960 and 1440px. Its independent prepared monthly-series,
+loading/error/recovery, native evidence, accessibility and navigation assertions remain in place.
+Captures under `apps/web/.impeccable/review/` support comparison with the Place artboards; they do
+not replace manual visual or accessibility assessment.
 
 The price-facts campaign upgrades populated Market v1 history without rewriting evidence, then uses
 the actual outbox, RabbitMQ subscriber, PostgreSQL projection and place overview HTTP to exercise
@@ -195,6 +205,16 @@ entry is strictly typechecked but absent from the production build and public ro
 parsed synthetic API properties and an event-fed median, then separately labels constructed null,
 zero, comparison, returned-to-market and long-content cases. Captures identify the Components and
 Search artboards; production captures identify the actual public entries.
+
+The Place journey preserves the public footer, editable unsent Ask draft and return navigation.
+Its root evidence reuses `accessibilityEntryContract`: the owned HTML health document and exact
+HTTP 308 response are recorded without following the external portfolio destination. Appearance,
+accessibility, privacy, motion and WebGL checks of that independent presentation remain outside
+this repository's owned campaign. Long-name checks await the catalogue's first visible link after
+its serial hierarchy read, then assert the unchanged exact labels, geometry and ancestor navigation.
+The reduction branch also waits for its separate property detail before checking its row. Its
+acquisition uses one current instant after the retained source observation and proves the resulting
+overview remains HTTP 200 and strict-parser valid at a later evaluation instant.
 
 For every future screen entry, import `checkAccessibility` from
 `integration/support/accessibility.ts`, await its fonts/content readiness, then scan its complete

@@ -11,28 +11,28 @@ repeated, nested and private keys. They require no authentication in this synthe
 
 ## Common fields
 
-| Field         | Type                                 | Meaning                                                                                          |
-| ------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z`                           |
-| `basis`       | string                               | Overview: `event-fed-figures-with-prepared-counts`; neighbours/series: `prepared-market-example` |
-| `evaluatedAt` | UTC ISO timestamp                    | Overview: actual computation time; prepared neighbours/series: `2026-10-01T12:00:00.000Z`        |
-| `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block                             |
+| Field         | Type                                 | Meaning                                                                           |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------------------- |
+| `metadata`    | `{ dataMode, fixtureVersion, asOf }` | `synthetic-stub`, `synthetic-sao-paulo-v1`, `2026-10-01T12:00:00.000Z`            |
+| `basis`       | string                               | Overview/neighbours: `event-fed-place-figures`; series: `prepared-market-example` |
+| `evaluatedAt` | UTC ISO timestamp                    | Overview/neighbours: actual computation time; series: `2026-10-01T12:00:00.000Z`  |
+| `place`       | `{ id, kind, name: { en, ptBR } }`   | Registered country, state, city, zone, neighbourhood or street block              |
 
 ## Overview fields
 
-`counts` contains safe integer `properties`, `activeListings` and `sources`. São Paulo has five
-prepared properties, nine active listings and three sources. These counts belong to the prepared
-grouping; they do not count the nine unresolved persisted Properties identities from ingestion.
+The live overview uses `basis: 'event-fed-place-figures'` and has no `preparedSections` or
+`preparedEvaluatedAt`. `counts` contains safe integers: distinct represented in-scope active
+`properties`, all their currently active member `activeListings`, and distinct source identifiers
+among those listings (`sources`). Global lowest-active-asking selection precedes geography. Area
+is not required for counts, so a counted property can be absent from the price sample. Counts reuse
+the exact D-096 ratio/reduction populations and ratio source evidence; they do not use the prepared
+catalog's group labels or the Locations `propertyCount`.
 
-The live overview requires `basis: 'event-fed-figures-with-prepared-counts'`,
-`preparedSections: ['counts']` and `preparedEvaluatedAt`, the independent fixture evaluation time.
-Every figure and the actual-parent median is calculated at `evaluatedAt`. Prepared counts do not
-count the live figure population; story 4.6 owns their integration.
-
-The strict parser also preserves the original `prepared-market-example` overview and the staged
-`event-fed-median-with-prepared-sections` variant. The latter still requires its exact six-section
-list: counts, movement, time on market, reductions, listings/property and sale. Those historical
-variants retain their original fixture arithmetic and independent completion semantics.
+The strict parser preserves all three earlier overview variants unchanged: the original
+`prepared-market-example`, the staged `event-fed-median-with-prepared-sections` with its exact
+six-section list, and `event-fed-figures-with-prepared-counts` with exact `preparedSections: ['counts']`.
+Both staged variants retain required `preparedEvaluatedAt` and their independently prepared count
+meaning. They remain available for prepared composition and compatible clients.
 
 `parentMedian` is null for Brazil. Otherwise it contains `place` and `median`, identifying the
 actual registered parent and its independently evidenced figure. Pinheiros compares with
@@ -73,7 +73,7 @@ they do not assert a collector actually ran. Old monthly examples can be fresh w
 
 For all live figures and the actual-parent median, `freshness` is exactly
 `{ status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 }` and `computedAt` equals
-the overview's current `evaluatedAt`. A listing observation does not prove source collection
+the response's current `evaluatedAt`. A listing observation does not prove source collection
 completion. Completion tracking belongs to a later story.
 
 ## Event-fed asking price rule
@@ -168,7 +168,13 @@ No listing observation is represented as collection completion.
 
 The neighbours payload contains `items`, each with explicit `place`, `median` and `movement`.
 Only Bela Vista and Vila Mariana are registered as adjacent to each other. Pinheiros and every
-other place return an empty array. Sibling geography never implies adjacency.
+other place return an empty array. Sibling geography never implies adjacency. The live
+`event-fed-place-figures` variant calculates each row from that neighbour's registered descendant
+scope, with a single Market snapshot and
+evaluation instant shared by every row. The median follows the headline rule and movement follows
+D-096's matched cohort. Known empty neighbours remain as insufficient-data rows, with live
+`untracked` evidence; non-neighbourhood places retain registered empty adjacency. Prepared-only
+composition still returns the original strictly validated `prepared-market-example` neighbours.
 
 The series payload contains nullable `comparisonPlace` and `points`. Every point has `month`
 (`YYYY-MM`), independently evidenced `median` and nullable `parentMedian`. Exactly twelve
@@ -197,7 +203,7 @@ import { parsePlaceMarketResponse, parsePlaceMarketSeriesResponse } from '@rei/c
 
 const root = 'http://localhost:8200/api/v1/places/sao-paulo-pinheiros/market';
 const response = parsePlaceMarketResponse(await (await fetch(root)).json());
-console.log(response.basis); // event-fed-figures-with-prepared-counts
+console.log(response.basis); // event-fed-place-figures
 console.log(response.parentMedian?.place.id); // sao-paulo-oeste
 console.log(response.figures.askingPriceMovement.value); // null until a paired baseline exists
 console.log(response.figures.recordedSalePricePerSquareMeter.value); // null
@@ -235,14 +241,15 @@ pnpm run test:integration:market-price-facts
 pnpm run test:integration:market
 ```
 
-The figures campaign verifies manually derived paired movement, observed age, listing reductions
-and ratio over reversed v2 membership/history, then replay, reappearance, empty scopes and read
-failures through actual parsed HTTP. The median campaign uses owned PostgreSQL, RabbitMQ,
+The figures campaign verifies manually derived live counts, independent actual-parent medians,
+registered neighbour median/movement, paired movement, observed age, listing reductions and ratio
+over reversed v2 membership/history, then replay, reappearance, empty scopes and read failures
+through actual parsed HTTP. The median campaign uses owned PostgreSQL, RabbitMQ,
 S3-compatible storage, worker and API services to verify event publication, acquisition-driven
 changes, replay beyond inbox retention,
 restart, revision ordering, lifecycle eligibility, conflicts, cancellation and read failures.
 The price-facts campaign additionally proves populated v1 upgrade, all eight causal families,
 removed-member merge/split routing, reverse-first convergence, bounded rejection and SQL rollback.
-The contracts campaign preserves all twenty scopes, prepared neighbours/series, parser/error
+The contracts campaign preserves all twenty scopes, live neighbours and prepared series, parser/error
 states, detached results and exact database snapshots before/after GETs. The full gate is
 `pnpm run test:integration`; unit, lint, strict TypeScript and unchanged coverage floors also apply.

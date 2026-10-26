@@ -96,6 +96,18 @@ time without claiming collection completion. No projection, migration, event con
 fence changes are required. The [API reference](../../docs/api/market.md) records units and provenance;
 the focused `test:integration:market-figures` campaign exercises the real HTTP/worker/SQL path.
 
+## Parent, plate counts and neighbours amendment
+
+The persisted overview and neighbours now use the closed additive `event-fed-place-figures`
+variant without prepared section/time fields. Existing overview variants and prepared neighbours
+retain their original meanings. Counts reuse D-096's represented-property count, active-member
+listing denominator and active-member source identifiers. They require no area, so the median
+sample can be smaller. The actual parent's independently registered descendant scope controls its
+median. Neighbours come exclusively from registered adjacency in its declared order, using each
+neighbour's descendant scope. One retained snapshot and evaluation instant supply every row;
+empty neighbours remain insufficient-data rows with live, untracked evidence. Reads remain
+read-only and fail closed. Monthly series alone remains prepared on its separate endpoint.
+
 ## Reassessment trigger
 
 Reassess projection and response provenance when property reassignment, remaining figures,
