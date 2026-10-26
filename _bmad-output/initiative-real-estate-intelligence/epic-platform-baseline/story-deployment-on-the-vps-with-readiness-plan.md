@@ -3,7 +3,7 @@ title: 'Deployment on the VPS with readiness'
 type: 'feature'
 ticket: '12'
 created: '2026-10-25'
-status: blocked
+status: built
 baseline_revision: '567b03cdb265aca972e236e85404080f85683c5f'
 route: 'full'
 route_source: 'auto'
@@ -18,9 +18,50 @@ context:
   - '/workspace/repos/real-estate-intelligence/specs/adrs/0020-vitest-integration-standard.md'
 warnings: [oversized]
 deferred: []
-blocked_at: '2026-10-25'
-blocked_reason: 'Private remote CI observations and GHCR package-read access unavailable; five release digests and public production evidence remain unobserved. Publish feat/phase-1 during the goal per the owner update; main/PR/merge is not an intermediate prerequisite.'
 ---
+
+## Current authorized continuation — 2026-10-26
+
+The owner explicitly requests manual publication from the current `feat/phase-1` branch,
+without PR, merge or remote CI. This supersedes earlier release restrictions below, including
+historical GHCR/CI prerequisites and the immutable original intent's external-only restriction.
+All local gates, backups, scoped operation and actual public acceptance remain mandatory.
+Preserve the complete historical plan and evidence. No general audit or new planning artifact.
+
+The remaining gap is actual public release and its readiness/trace/journey evidence. The
+operator currently accepts only registry manifests and always pulls; no registry authentication
+is available. Implement the smallest explicit manual release path using host-local immutable
+Docker image IDs, each carrying the full delivered commit in its OCI revision label. Do not
+misrepresent config IDs as registry manifest digests. Preserve default registry operation.
+
+Implementation handoff for this continuation only:
+
+- Add an application-owned manual Compose override for the five existing services, using
+  required local SHA-256 image IDs and `pull_policy: never`. Reuse all production networks,
+  settings, resource limits and credential isolation.
+- Extend the workspace operator's existing Compose/deploy path with an explicit protected
+  `REI_RELEASE_MODE=manual` selector (registry remains the default). Validate the mode, full
+  revision and all image identities/OCI revisions before backup or migration. Manual mode must
+  never pull. Preserve the verified backup, broker cut, migration failure and proxy gates.
+- Extend existing focused operator and production-config tests for manual identity selection,
+  missing/mismatched image rejection before mutation, no pull, and unchanged registry behavior.
+  No new services, framework, diagnostic layer or duplicated fixture harness.
+- Update the existing deployment runbook and infrastructure operator documentation concisely
+  with exact manual semantics and commands. Do not rewrite historical evidence.
+- Run only lightweight focused checks: Python operator tests, affected production-config tests,
+  formatting and scoped static checks. Do not run builds, coverage, browsers or broad gates:
+  the parent serializes those on the shared VPS. Do not access the host, read `.env*`, change
+  protected configuration, commit, push, or edit the external decisions ledger. Return changes
+  for mandatory independent targeted review of this delta. The parent handles host publication,
+  local hooks/commits, public evidence and ticket completion after this implementation returns.
+
+Current targeted verification reuses the accepted readiness outage/recovery, public-prefix
+journeys, all unchanged product unit/coverage/native results and the latest full 3,282-test
+pre-push receipt. New evidence will cover manual Compose/operator behavior, exact clean source
+revision and five host image IDs, verified backup/migration, public readiness, HTTPS paths and
+linked request/outbox/publish/consumer trace. Remote CI is not claimed or required for this
+owner-authorized manual publication. This continuation is targeted after the historical review
+ceiling; do not reopen already accepted product code or general review.
 
 <intent-contract>
 
@@ -800,3 +841,56 @@ No production service, Caddy configuration, migration, persistent data or provid
 this checkpoint. Public HTTPS application journeys, readiness, scheduled synthetic effects and
 linked production Tempo traces remain pending actual release. This documentation-only checkpoint
 reuses the delivered code's valid gates; it does not alter the remote candidate's runtime identity.
+
+### Manual release implementation handoff — 2026-10-26
+
+The unchanged registry production base now has an explicitly selected manual override for the
+same five services. Protected `REI_RELEASE_MODE` defaults to `registry`; `manual` resolves each
+existing `REI_*_DIGEST` field as a host-local Docker image ID hash and sets `pull_policy: never`.
+The historical field names do not establish published registry manifest receipts. The operator
+requires a full release revision, validates all five hash formats and local actual `.Id`/OCI
+revision matches before stopping writers or backup, and never pulls in manual activation.
+Protected configuration wins over inherited Compose variables. Manual migration/activation,
+the existing archive helper and storage resumption explicitly pass `--pull never`; missing local
+images fail safely. Verified backup, broker cut, migration-failure stop and proxy health gates
+remain intact. The runbook and workspace operator documentation carry exact manual settings,
+serial build/label commands and compatible mode-aware recovery.
+
+Focused preparation evidence: `python3 -m unittest infra/test_portfolio.py` passed 29 tests;
+`integration/production-config.test.ts` passed 25 tests; scoped ESLint, strict integration
+TypeScript checking, Python syntax compilation and changed-file formatting/diff checks passed.
+Deployment runbook Markdownlint passed. Applying the product Markdownlint rules to the complete
+workspace infrastructure README reports four pre-existing long lines; its added manual section
+introduces none. No build, coverage, browser campaign, host operation, protected-config access,
+commit or push was performed by this implementation handoff. Parent independent targeted review,
+final local gates/commits, exact-source host image publication and real public readiness/journey/
+linked Tempo acceptance remain pending; story 1.12 stays in progress.
+
+### 2026-10-26 — Targeted manual-release review
+
+- verdicts: 1 finding — high 0, medium 0, low 1, false 0, maybe-false 0
+- findings:
+  - `[low]` `[patch]` The two newly appended workspace authorization sections were in Portuguese,
+    contrary to the root documentation language rule. Translated only the new sections into
+    English; historical bytes remain unchanged. Scoped whitespace verification passed. No runtime
+    defect was found in manual image validation, no-pull activation or recovery ordering.
+
+### Manual preparation result — 2026-10-26
+
+The required context-free implementer and independent Quick reviewer completed this restricted
+continuation. Review compared only the manual delta against product `d82b37e` and workspace
+`429406a`; no historical broad audit was reopened. One cosmetic documentation correction, no
+runtime patches or deferred findings; follow-up review is not recommended. The 29 operator tests,
+25 production-configuration tests and strict integration typecheck passed. Backend/frontend,
+Dockerfiles and dependency inputs are unchanged from the delivered `37edd6c` full local gate,
+verified with `git diff --quiet` over apps, packages, docker and lockfile; its 3,282-test, lint,
+workspace/integration typecheck, build and applicable coverage/native receipts remain valid.
+The production base also remains unchanged. Normal commit hooks remain mandatory.
+
+The parent built landing revision `5c1cc9e17eed8848857e25adb001f851ea84dbbf` successfully on the
+host from a clean archive, limited to 1536 MiB and one CPU; the previous landing remains active.
+Receipt: `/tmp/rei-host-build-landing.log`. No Real Estate migration or activation has occurred.
+The plan is built preparation, not completed public acceptance. Next: commit the reviewed manual
+inputs, build the five exact-source images serially, record their actual local Docker IDs and
+OCI revision, verify the pre-migration backup, activate scoped services and landing, validate/reload
+Caddy, and observe actual public readiness, journeys and the linked Tempo/database effect.

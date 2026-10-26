@@ -137,12 +137,12 @@ id = 12
 type = "story"
 title = "Deployment on the VPS with readiness"
 description = "Deploys the Compose stack to the owner's VPS behind the existing domain and TLS, with CI building the images, `/ready` reporting PostgreSQL and the broker, and traces exported to a backend the owner chooses (B12). The CI image build is the part of B7 this entry delivers; RabbitMQ is a dedicated vhost of the shared instance of the VPS (`architecture.md`, Durability)."
-verify = "The public address answers `/ready` with every dependency up after a deployment started from an exact gated commit on feat/phase-1 while the goal is in progress (owner update, 2026-10-25). Integration into main follows completion of all stories. One trace in the chosen backend shows the request, the outbox row, the publish and the consumer."
+verify = "The public address answers `/ready` with every dependency up after an owner-authorized manual deployment from an exact locally verified feat/phase-1 commit (owner update, 2026-10-26). PR, merge and remote CI are not prerequisites for this publication; local gates and immutable release identity remain required. Integration into main follows completion of all stories. One trace in the chosen backend shows the request, the outbox row, the publish and the consumer."
 covers = ["B12", "B7"]
 after = [4, 7, 8, 14]
 hitl = true
 risk = "medium"
-notes = ["D-088 selects the existing collector and Tempo; local preparation is verified while deployment, public readiness and the production trace remain pending.", "Owner update (2026-10-25): publish from feat/phase-1 until every story is complete; main is not an intermediate publication prerequisite. Existing CI, immutable image identity, HTTPS, readiness and trace gates still apply."]
+notes = ["D-088 selects the existing collector and Tempo; local preparation is verified while deployment, public readiness and the production trace remain pending.", "Owner update (2026-10-25): publish from feat/phase-1 until every story is complete; main is not an intermediate publication prerequisite. Existing CI, immutable image identity, HTTPS, readiness and trace gates still apply.", "Owner update (2026-10-26): publish manually on this VPS without PR, merge or remote CI; retain local checks, immutable host image IDs, verified backup and actual public readiness/trace evidence."]
 
 [[entry]]
 id = 13

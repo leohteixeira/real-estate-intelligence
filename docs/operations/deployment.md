@@ -1,7 +1,10 @@
 # Deploy the prepared VPS application stack
 
 Story 1.12 has verified local readiness and deployment preparation. **Production deployment, public
-HTTPS readiness, remote CI execution and a production Tempo trace remain unverified.** On
+HTTPS readiness and a production Tempo trace remain unverified.** The 2026-10-26 owner instruction
+authorizes a manual release from the current `feat/phase-1` revision without PR, merge or remote
+CI. Local gates, reviewed changes, immutable identities, verified backup and public acceptance
+remain required. The registry workflow remains available for ordinary releases. On
 2026-10-25 the owner authorized the operational work, repository push/PR/CI/image publication/merge
 and deployment needed for delivery. The owner's later instruction uses `feat/phase-1` for
 publication while the goal is in progress; integration into `main` follows completion of all
@@ -53,13 +56,82 @@ evidence remains delivery work. Local readiness and browser checks do not establ
   [the admission contract](../api/ask-tracer.md#anonymous-demo-admission).
   No command here enables collection or requests model execution.
 
-The production file requires all five image digests and every dependency credential before Compose
-can validate. The API and worker have database/broker access, the worker alone has storage and
-snapshot keys, and AI receives its scoped execution token, approved gateway key and API URL. Web
+The production file requires all five image identities and every dependency credential before Compose
+can validate. In registry mode those identities are manifest digests; in manual mode they are local
+Docker image ID hashes, as described below. The API and worker have database/broker access,
+the worker alone has storage and snapshot keys. AI receives its scoped execution token,
+approved gateway key and API URL. Web
 receives no secrets. Keys are runtime settings and never image build arguments.
 Application processes retain the existing OpenTelemetry preload in their image commands.
 
-## Record the release and prepare images
+## Prepare the authorized manual release
+
+Use a clean, locally verified checkout of the full `feat/phase-1` commit. Record its 40-character
+revision, local gate receipts, UTC time and deployment actor. Build the five existing Dockerfiles
+serially on the host from the clean commit archive, with the revision label on **each** image.
+Bound each build to 1536 MiB memory and one CPU. From the application checkout:
+
+```bash
+set -euo pipefail
+release_commit="$(git rev-parse HEAD)"
+test -z "$(git status --porcelain)"
+for image in migrate api worker ai; do
+  git archive "$release_commit" | docker buildx build --load \
+    --resource memory=1536m --resource cpu-quota=100000 \
+    --label "org.opencontainers.image.revision=${release_commit}" \
+    --file "docker/${image}.Dockerfile" --tag "portfolio/rei-${image}:${release_commit}" -
+done
+git archive "$release_commit" | docker buildx build --load \
+  --resource memory=1536m --resource cpu-quota=100000 \
+  --label "org.opencontainers.image.revision=${release_commit}" \
+  --build-arg VITE_PUBLIC_BASE=/real-estate-intelligence/ \
+  --build-arg "VITE_PRIVACY_CONTROLLER_NAME=${VITE_PRIVACY_CONTROLLER_NAME:-}" \
+  --build-arg "VITE_PRIVACY_CONTACT_EMAIL=${VITE_PRIVACY_CONTACT_EMAIL:-}" \
+  --file docker/web.Dockerfile --tag "portfolio/rei-web:${release_commit}" -
+for image in migrate api worker ai web; do
+  docker image inspect --format \
+    '{{.Id}} {{index .Config.Labels "org.opencontainers.image.revision"}}' \
+    "portfolio/rei-${image}:${release_commit}"
+done
+```
+
+These are public build settings; runtime credentials never enter build arguments. D-069 permits
+absent privacy identity for the synthetic-only demo: keep absent values empty and never invent
+them. Real processing stays disabled until the accepted privacy prerequisites are supplied.
+
+The operator still enforces host execution and its existing exclusive lock for activation.
+Privately edit the
+root-owned 0600 `/etc/portfolio/real-estate-intelligence.conf` using `sudoedit`: set
+`REI_RELEASE_MODE=manual`, `REI_RELEASE_COMMIT` to that full revision, and each existing
+`REI_{MIGRATE,API,WORKER,AI,WEB}_DIGEST` field to its image's 64-character `.Id` hash **without**
+`sha256:`. Keep `REI_IMAGE_REPOSITORY` populated for base-file interpolation; the manual override
+replaces every resolved image, so no repository reference is used for application activation.
+The historical field suffix does not establish a published registry manifest receipt. Record
+manual mode plus all five full `sha256:` image IDs in the release receipt; claim no registry
+publication, manifest digest or remote CI result for this path.
+
+`rei-deploy` reads the selector from protected configuration, defaults its absence to `registry`,
+and rejects any other value. Manual mode adds `compose.production.manual.yaml` after the unchanged
+production base. Each image is exactly `sha256:<hash>` with `pull_policy: never`; migration and
+activation also pass `--pull never`. Before stopping writers or taking a backup, the operator
+checks all five identities, requires each local image to exist, and compares both the actual
+Docker `.Id` and full OCI revision label with protected settings. A missing/mismatched image
+refuses deployment without pulling, backing up or migrating. The existing `busybox:1.37.0` backup
+helper and dedicated storage image must also already be present: manual backup passes `--pull never`
+to the archive helper and storage resumption, so an absent helper fails backup before migration.
+Protected settings take precedence over inherited Compose environment variables. All networks,
+credentials, health gates and limits
+remain those of the production base.
+
+To return to registry operation, privately set `REI_RELEASE_MODE=registry` (or remove the selector)
+and replace all five identity fields with the actual registry manifest hashes for the recorded
+revision. Never reuse manual Docker image ID hashes as published registry receipts. Both modes
+use the same scoped
+`rei-services`, `rei-provision`, `rei-deploy` and `rei-proxy` commands below and the same backup,
+broker-cut, migration-failure and proxy gates. Retain previous release mode, revision and all five
+identities before changing configuration so recovery selects the matching image source.
+
+## Registry release workflow
 
 Use a clean checkout of the exact gated `feat/phase-1` revision while the goal is in progress.
 The existing secrets, format, workspace, coverage, real-service integration and container jobs
@@ -144,8 +216,10 @@ sudo ./infra/portfolio rei-provision
 sudo ./infra/portfolio rei-deploy
 ```
 
-`rei-deploy` validates all required settings, pulls digest-pinned images and verifies every OCI
-revision label against `REI_RELEASE_COMMIT`. It stops only this app's API/worker, then takes a
+`rei-deploy` validates all required settings and verifies every image against `REI_RELEASE_COMMIT`.
+Registry mode pulls manifest-pinned images; the explicitly selected manual mode uses only the
+verified local image IDs and never pulls application images. It stops only this app's API/worker,
+then takes a
 pre-migration backup even on the first deployment. Before any dump, while API/worker are stopped,
 it queries every queue in the configured dedicated RabbitMQ vhost using actual JSON counts. All
 ready and unacknowledged counts must be zero, including retry/dead-letter queues; a backlog,
@@ -257,8 +331,10 @@ criterion. Do not run real collection or model requests to produce the proof.
 ## Roll back and retain evidence
 
 On failed public readiness or missing trace evidence, stop the release and retain sanitized logs,
-HTTP statuses, UTC times and trace IDs. Restore all five previous image digests from the release
-ledger and validate with `config --quiet`; stop API/worker writes and start the compatible prior
+HTTP statuses, UTC times and trace IDs. Restore the previous release mode, full revision and all
+five identities from the release ledger (local Docker image IDs for manual; manifest digests for registry),
+retain the corresponding local images, and validate with `config --quiet`; stop API/worker writes
+and start the compatible prior
 application images. Applied migrations are not automatically reversed. Check prior image/schema
 compatibility before restart; if incompatible, use the verified pre-release backup through the
 verified recovery procedure, accepting and recording its recovery-point data loss.
@@ -289,9 +365,11 @@ command if needed. Do not use global backup/restore: those target unrelated PG17
 Never delete original volumes, run broad prune commands or restart another project to recover this stack.
 Repeat public readiness and the synthetic trace check after rollback.
 
-The release evidence must include the full commit and source branch, five manifest digests,
-remote CI run,
-public TLS/readiness receipt, linked Tempo trace and database evidence, and rollback/backup receipt.
+The release evidence must include the full commit and source branch, selected release mode, five
+local Docker image IDs for manual mode or manifest digests and observed remote CI run for registry
+mode, public TLS/readiness receipt, linked Tempo trace and database evidence, and rollback/backup
+receipt. Remote CI and registry publication are not claimed or required for the owner-authorized
+manual release.
 Until these checks actually pass on the authorized VPS, story 1.12 and epic criterion 6 stay pending
 production even when all local checks pass.
 
