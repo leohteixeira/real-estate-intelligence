@@ -93,7 +93,8 @@ export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
       if (
         result.place.id !== id ||
         (result.basis !== 'event-fed-median-with-prepared-sections' &&
-          result.basis !== 'event-fed-figures-with-prepared-counts')
+          result.basis !== 'event-fed-figures-with-prepared-counts' &&
+          result.basis !== 'event-fed-place-figures')
       ) {
         throw new PlaceReadError(502);
       }

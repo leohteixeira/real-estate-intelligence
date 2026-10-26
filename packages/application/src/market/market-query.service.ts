@@ -4,6 +4,7 @@ import {
   DomainValidationError,
   type PlaceRef,
   type PlaceMarketResponse,
+  type PlaceMarketNeighboursResponse,
 } from '@rei/domain';
 import type { Clock } from '../shared/index.js';
 import type { MarketPriceFactsReadPort } from './market-price-facts.port.js';
@@ -52,15 +53,18 @@ export class MarketQueryService implements MarketFacade {
         const snapshot = await this.live.facts.readFigures();
         const facts = snapshot.representatives;
         const evaluatedAt = this.live.clock.now();
+        const figures = remainingPlaceFigures(snapshot, scope.ids, evaluatedAt);
         return structuredClone({
           ...this.base(scope),
-          basis: 'event-fed-figures-with-prepared-counts' as const,
+          basis: 'event-fed-place-figures' as const,
           evaluatedAt,
-          preparedEvaluatedAt: scope.sample.evaluatedAt,
-          preparedSections: ['counts'] as const,
-          counts: scope.sample.counts,
+          counts: {
+            properties: figures.listingsPerProperty.recordCount,
+            activeListings: figures.priceReductions.recordCount,
+            sources: figures.listingsPerProperty.sources.length,
+          },
           figures: {
-            ...remainingPlaceFigures(snapshot, scope.ids, evaluatedAt),
+            ...figures,
             medianAskingPricePerSquareMeter: askingPriceMedian(facts, scope.ids, evaluatedAt),
           },
           parentMedian: parent
@@ -89,21 +93,46 @@ export class MarketQueryService implements MarketFacade {
         : null,
     });
   }
-  public async neighbours(id: string) {
+  public async neighbours(id: string): Promise<PlaceMarketNeighboursResponse | null> {
     const scope = await this.scope(id);
     if (!scope) return null;
-    const items = [];
+    const neighbors = [];
     for (const neighborId of scope.place.adjacentPlaceIds) {
       const neighbor = await this.scope(neighborId);
       if (!neighbor) throw new Error('Registered Market neighbour unavailable.');
-      items.push({
+      neighbors.push(neighbor);
+    }
+    if (this.live) {
+      try {
+        const snapshot = await this.live.facts.readFigures();
+        const evaluatedAt = this.live.clock.now();
+        return structuredClone({
+          ...this.base(scope),
+          basis: 'event-fed-place-figures' as const,
+          evaluatedAt,
+          items: neighbors.map((neighbor) => ({
+            place: ref(neighbor.place),
+            median: askingPriceMedian(snapshot.representatives, neighbor.ids, evaluatedAt),
+            movement: remainingPlaceFigures(snapshot, neighbor.ids, evaluatedAt)
+              .askingPriceMovement,
+          })),
+        });
+      } catch (error: unknown) {
+        if (error instanceof DomainValidationError)
+          throw new Error('Stored Market price facts could not be evaluated.', { cause: error });
+        throw error;
+      }
+    }
+    return structuredClone({
+      ...this.base(scope),
+      items: neighbors.map((neighbor) => ({
         place: ref(neighbor.place),
         median: neighbor.sample.figures.medianAskingPricePerSquareMeter,
         movement: neighbor.sample.figures.askingPriceMovement,
-      });
-    }
-    return structuredClone({ ...this.base(scope), items });
+      })),
+    });
   }
+
   public async monthlySeries(id: string) {
     const scope = await this.scope(id);
     if (!scope) return null;

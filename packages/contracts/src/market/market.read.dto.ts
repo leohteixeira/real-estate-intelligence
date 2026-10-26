@@ -205,6 +205,11 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
     value,
     wireDiscriminated('basis', {
       'prepared-market-example': wireObject({ ...base, ...overview(median) }),
+      'event-fed-place-figures': wireObject({
+        ...base,
+        basis: wireEnum(['event-fed-place-figures']),
+        ...overview(liveMedian, true),
+      }),
       'event-fed-figures-with-prepared-counts': wireObject({
         ...base,
         basis: wireEnum(['event-fed-figures-with-prepared-counts']),
@@ -223,11 +228,13 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
   );
   validateBase(response);
   const live = response.basis !== 'prepared-market-example';
-  const allLive = response.basis === 'event-fed-figures-with-prepared-counts';
+  const placeLive = response.basis === 'event-fed-place-figures';
+  const allLive = placeLive || response.basis === 'event-fed-figures-with-prepared-counts';
   const sections = allLive ? ['counts'] : MARKET_PREPARED_SECTIONS;
-  const preparedAt = live ? response.preparedEvaluatedAt : response.evaluatedAt;
+  const preparedAt =
+    'preparedEvaluatedAt' in response ? response.preparedEvaluatedAt : response.evaluatedAt;
   if (
-    live &&
+    'preparedSections' in response &&
     (response.preparedSections.length !== sections.length ||
       response.preparedSections.some((section, index) => section !== sections[index]) ||
       Date.parse(preparedAt) > Date.parse(response.evaluatedAt) ||
@@ -285,6 +292,22 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
             (figures.priceReductions.value.count / listings) * 100))
     )
       invalidWire();
+    if (placeLive) {
+      const activeSources = figures.listingsPerProperty.sources.map((source) => source.id);
+      if (
+        counts.properties !== properties ||
+        counts.activeListings !== listings ||
+        counts.sources !== activeSources.length ||
+        figures.priceReductions.sources.length !== activeSources.length ||
+        figures.priceReductions.sources.some(
+          (source, index) => source.id !== activeSources[index],
+        ) ||
+        figures.medianAskingPricePerSquareMeter.sources.some(
+          (source) => !activeSources.includes(source.id),
+        )
+      )
+        invalidWire();
+    }
     return response;
   }
   const { properties, activeListings, sources } = response.counts;
@@ -312,9 +335,26 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
 export function parsePlaceMarketNeighboursResponse(value: unknown): PlaceMarketNeighboursResponse {
   const response = parseWire<PlaceMarketNeighboursResponse>(
     value,
-    wireObject({
-      ...base,
-      items: wireArray(wireObject({ place: placeRefWire, median, movement })),
+    wireDiscriminated('basis', {
+      'prepared-market-example': wireObject({
+        ...base,
+        items: wireArray(wireObject({ place: placeRefWire, median, movement })),
+      }),
+      'event-fed-place-figures': wireObject({
+        ...base,
+        basis: wireEnum(['event-fed-place-figures']),
+        items: wireArray(
+          wireObject({
+            place: placeRefWire,
+            median: liveMedian,
+            movement: figure(
+              wireNumber(-100, Number.MAX_SAFE_INTEGER),
+              { windowMonths: wireEnum([6]) },
+              liveEvidence,
+            ),
+          }),
+        ),
+      }),
     }),
   );
   validateBase(response);
@@ -327,8 +367,18 @@ export function parsePlaceMarketNeighboursResponse(value: unknown): PlaceMarketN
       response.place.kind !== 'neighborhood'
     )
       invalidWire();
-    validateFigure(item.median, response.evaluatedAt);
-    validateFigure(item.movement, response.evaluatedAt);
+    if (response.basis === 'event-fed-place-figures') {
+      validateLiveMedian(item.median, response.evaluatedAt);
+      validateLiveFigure(item.movement, response.evaluatedAt);
+      if (
+        item.movement.recordCount > item.median.recordCount ||
+        item.movement.sources.length > item.movement.recordCount * 2
+      )
+        invalidWire();
+    } else {
+      validateFigure(item.median, response.evaluatedAt);
+      validateFigure(item.movement, response.evaluatedAt);
+    }
   }
   return response;
 }

@@ -20,6 +20,7 @@ export function PlaceNeighbours({
 }) {
   const { t, i18n } = useTranslation('place');
   const locale = i18n.language as Locale;
+  const origin = data?.basis === 'event-fed-place-figures' ? 'live' : 'prepared';
   return (
     <section className="panel place-neighbours" aria-labelledby="neighbours-label">
       <div className="sec">
@@ -28,7 +29,7 @@ export function PlaceNeighbours({
       <OverviewReadState pending={pending} error={error} retry={retry} label={t('neighbours')} />
       {data ? (
         <>
-          <p className="place-origin">{t('prepared')}</p>
+          <p className="place-origin">{t(origin)}</p>
           {data.items.length === 0 ? (
             <p className="place-panel-copy">{t('noNeighbours')}</p>
           ) : (
@@ -45,7 +46,11 @@ export function PlaceNeighbours({
                         ? `${formatMedian(item.median.value.minorUnits, locale)} /m²`
                         : t('figureUnavailable')}
                     </p>
-                    <OverviewEvidence evidence={item.median} compactLabel={t('medianEvidence')} />
+                    <OverviewEvidence
+                      evidence={item.median}
+                      origin={origin}
+                      compactLabel={t('medianEvidence')}
+                    />
                   </div>
                   <div className="place-neighbour__movement">
                     <h3 className="fig__label" aria-label={t('movement')}>
@@ -62,6 +67,7 @@ export function PlaceNeighbours({
                     </p>
                     <OverviewEvidence
                       evidence={item.movement}
+                      origin={origin}
                       compactLabel={t('movementEvidence')}
                     />
                   </div>

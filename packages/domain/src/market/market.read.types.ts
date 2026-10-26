@@ -66,9 +66,13 @@ interface PlaceMarketOverview {
   readonly figures: MarketFigures;
   readonly parentMedian: { readonly place: PlaceRef; readonly median: MarketMedian } | null;
 }
+type LivePlaceMarketBase = Omit<MarketResponseBase, 'basis'> & {
+  readonly basis: 'event-fed-place-figures';
+};
 export type PlaceMarketResponse = PlaceMarketOverview &
   (
     | MarketResponseBase
+    | LivePlaceMarketBase
     | (Omit<MarketResponseBase, 'basis'> & {
         readonly basis: 'event-fed-median-with-prepared-sections';
         readonly preparedSections: typeof MARKET_PREPARED_SECTIONS;
@@ -80,13 +84,13 @@ export type PlaceMarketResponse = PlaceMarketOverview &
         readonly preparedEvaluatedAt: string;
       })
   );
-export interface PlaceMarketNeighboursResponse extends MarketResponseBase {
+export type PlaceMarketNeighboursResponse = (MarketResponseBase | LivePlaceMarketBase) & {
   readonly items: readonly {
     readonly place: PlaceRef;
     readonly median: MarketMedian;
     readonly movement: MarketMovement;
   }[];
-}
+};
 export interface PlaceMarketSeriesResponse extends MarketResponseBase {
   readonly comparisonPlace: PlaceRef | null;
   readonly points: readonly {

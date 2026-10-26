@@ -48,6 +48,10 @@ export const portuguese = {
   counts: '{{properties}} imóveis · {{listings}} anúncios ativos · {{sources}} fontes',
   countsOrigin:
     'Contagens preparadas, avaliadas em {{time}}. Não são a amostra contribuinte da mediana ao vivo.',
+  liveCountsOrigin:
+    'Contagens calculadas a partir dos eventos coletados em {{time}}. Imóveis sem área informada também são contados.',
+  livePlaceDisclosure:
+    'Contagens e indicadores calculados a partir dos eventos coletados. A série mensal continua sendo um exemplo preparado.',
   preparedDisclosure:
     'Contagens, demais indicadores, vizinhos e série mensal são exemplos preparados. Não representam continuidade com a mediana calculada por eventos.',
   liveFiguresDisclosure:
@@ -141,6 +145,10 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   counts: '{{properties}} properties · {{listings}} active listings · {{sources}} sources',
   countsOrigin:
     'Prepared counts, evaluated at {{time}}. These are not the live median’s contributing sample.',
+  liveCountsOrigin:
+    'Counts computed from collected events at {{time}}. Properties without a reported area are also counted.',
+  livePlaceDisclosure:
+    'Counts and figures are computed from collected events. Monthly series remains a prepared example.',
   preparedDisclosure:
     'Counts, other figures, neighbours and monthly series are prepared examples. They do not represent continuity with the event-fed median.',
   liveFiguresDisclosure:

@@ -54,9 +54,10 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
     );
   const median = market.data?.figures.medianAskingPricePerSquareMeter;
   const figures = market.data?.figures;
-  const liveFigures = market.data?.basis === 'event-fed-figures-with-prepared-counts';
+  const livePlace = market.data?.basis === 'event-fed-place-figures';
+  const liveFigures = livePlace || market.data?.basis === 'event-fed-figures-with-prepared-counts';
   const preparedAt =
-    market.data && market.data.basis !== 'prepared-market-example'
+    market.data && 'preparedEvaluatedAt' in market.data
       ? market.data.preparedEvaluatedAt
       : undefined;
   const parent = market.data?.parentMedian;
@@ -80,7 +81,7 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
         />
       ) : null}
       <div className="place-body">
-        {market.data && preparedAt ? (
+        {market.data ? (
           <div className="place-counts">
             <p>
               {t('counts', {
@@ -90,7 +91,9 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
               })}
             </p>
             <p className="small">
-              {t('countsOrigin', { time: formatComputedAt(preparedAt, locale) })}
+              {t(livePlace ? 'liveCountsOrigin' : 'countsOrigin', {
+                time: formatComputedAt(preparedAt ?? market.data.evaluatedAt, locale),
+              })}
             </p>
           </div>
         ) : null}
@@ -218,7 +221,13 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
           ) : null}
         </div>
         <p className="place-disclosure">
-          {t(liveFigures ? 'liveFiguresDisclosure' : 'preparedDisclosure')}
+          {t(
+            livePlace
+              ? 'livePlaceDisclosure'
+              : liveFigures
+                ? 'liveFiguresDisclosure'
+                : 'preparedDisclosure',
+          )}
         </p>
         {place.data ? (
           <div className="place-overview-panels">
