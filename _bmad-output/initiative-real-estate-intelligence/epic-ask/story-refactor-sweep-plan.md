@@ -3,7 +3,7 @@ title: 'Ask deferred-finding reconciliation'
 type: 'chore'
 ticket: '16'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '54afb51276fa353882c30904e0d61babce720bde'
 route: 'oneshot'
 route_source: 'auto'
