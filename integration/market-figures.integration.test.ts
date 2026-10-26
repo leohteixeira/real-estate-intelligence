@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test } from 'vitest';
 import { MARKET_LISTING_CONSUMER, type EventEnvelope } from '../packages/application/dist/index.js';
-import { parsePlaceMarketResponse } from '../packages/contracts/dist/index.js';
+import {
+  parsePlaceMarketResponse,
+  parsePlaceMarketNeighboursResponse,
+} from '../packages/contracts/dist/index.js';
 import {
   PropertiesEventV2,
   isSerializableEventPayload,
@@ -129,7 +132,7 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         ): ListingFact => ({
           listingId: id(n),
           propertyId: id(property),
-          sourceId: 'synthetic-figures',
+          sourceId: n === 2 ? 'synthetic-member' : 'synthetic-figures',
           sourceListingId: `listing-${n}`,
           placeId: block,
           propertyType: 'apartment',
@@ -139,7 +142,7 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           currency: 'BRL',
           effectiveAt: time(days),
           provenance: {
-            sourceId: 'synthetic-figures',
+            sourceId: n === 2 ? 'synthetic-member' : 'synthetic-figures',
             sourceListingId: `listing-${n}`,
             sourceUrl: `https://figures.invalid/${n}`,
             runId: id(800),
@@ -205,6 +208,18 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           }),
         );
         add(214, 1, listing(7, 106, 10000, 200));
+        add(
+          215,
+          1,
+          listing(9, 107, 35000, 200, { placeId: 'sao-paulo-vila-mariana-fictional-block' }),
+        );
+        add(
+          216,
+          2,
+          listing(9, 107, 70000, 5, { placeId: 'sao-paulo-vila-mariana-fictional-block' }),
+          'properties.listing.price-changed',
+          35000,
+        );
         const states = [
           { listing: a, revision: 3, assignmentRevision: 0 },
           { listing: other, revision: 2, assignmentRevision: 0 },
@@ -244,10 +259,26 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           expect(response.status).toBe(200);
           return parsePlaceMarketResponse(await response.json());
         };
+        const neighbors = async (place = 'sao-paulo-bela-vista') => {
+          const response = await requestHttp(
+            `http://127.0.0.1:${api}/api/v1/places/${place}/market/neighbours`,
+          );
+          expect(response.status).toBe(200);
+          return parsePlaceMarketNeighboursResponse(await response.json());
+        };
         const empty = await get();
-        expect(empty.basis).toBe('event-fed-figures-with-prepared-counts');
-        expect(empty).toHaveProperty('preparedSections', ['counts']);
+        expect(empty.basis).toBe('event-fed-place-figures');
+        expect(empty).not.toHaveProperty('preparedSections');
+        expect(empty).not.toHaveProperty('preparedEvaluatedAt');
         for (const figure of Object.values(empty.figures)) expect(figure.value).toBeNull();
+        expect(empty.counts).toEqual({ properties: 0, activeListings: 0, sources: 0 });
+        const emptyNeighbors = await neighbors();
+        expect(emptyNeighbors.basis).toBe('event-fed-place-figures');
+        expect(emptyNeighbors.items.map((item) => item.place.id)).toEqual([
+          'sao-paulo-vila-mariana',
+        ]);
+        expect(emptyNeighbors.items[0]!.median).toMatchObject({ recordCount: 0, value: null });
+        expect(emptyNeighbors.items[0]!.movement).toMatchObject({ recordCount: 0, value: null });
         // Snapshot first, then late listing states in reverse revision order through outbox/worker.
         const delivery = [merged, ...events.toReversed()];
         await transactions.runInTransaction((tx) => outbox.append(tx, delivery));
@@ -268,7 +299,7 @@ test('persisted figures match hand-calculated HTTP values with causal membership
             .filter((fact) => [id(1), id(2), id(8)].includes(fact.listingId))
             .every((fact) => fact.propertyId === id(101)),
         ).toBe(true);
-        expect(persisted.priceChanges).toHaveLength(5);
+        expect(persisted.priceChanges).toHaveLength(6);
         const golden = await get();
         expect(golden.figures.medianAskingPricePerSquareMeter).toMatchObject({
           value: { minorUnits: 3000, currency: 'BRL' },
@@ -315,7 +346,39 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           url: 'https://figures.invalid/4',
           collectedAt: time(10),
         });
-        expect(golden.counts.properties).toBe(1); // Remains the explicitly prepared count.
+        expect(golden.counts).toEqual({ properties: 4, activeListings: 5, sources: 2 });
+        expect(golden.figures.listingsPerProperty.sources.map((source) => source.id)).toEqual([
+          'synthetic-figures',
+          'synthetic-member',
+        ]);
+        expect(golden.parentMedian).toMatchObject({
+          place: { id: 'sao-paulo-oeste' },
+          median: { recordCount: 3, value: { minorUnits: 3000 } },
+        });
+        const central = await get('sao-paulo-bela-vista');
+        expect(central.counts).toEqual({ properties: 1, activeListings: 2, sources: 1 });
+        expect(central.parentMedian).toMatchObject({
+          place: { id: 'sao-paulo-centro' },
+          median: { recordCount: 1, value: { minorUnits: 100 } },
+        });
+        const table = await neighbors();
+        expect(table.items.map((item) => item.place.id)).toEqual(['sao-paulo-vila-mariana']);
+        expect(table.items[0]!.median).toMatchObject({
+          recordCount: 1,
+          value: { minorUnits: 7000 },
+        });
+        expect(table.items[0]!.movement).toMatchObject({ recordCount: 1, value: 100 });
+        for (const item of table.items) {
+          expect(item.median.computedAt).toBe(table.evaluatedAt);
+          expect(item.movement.computedAt).toBe(table.evaluatedAt);
+          expect(item.median.sources[0]).toMatchObject({
+            url: 'https://figures.invalid/9',
+            collectedAt: time(5),
+          });
+        }
+        expect((await neighbors('sao-paulo-pinheiros')).items).toEqual([]);
+        expect((await neighbors('sao-paulo-centro')).items).toEqual([]);
+        expect((await get('brazil')).parentMedian).toBeNull();
         const snapshot = async () =>
           db.query<{
             table_name: string;
@@ -347,6 +410,8 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         expect((await get()).figures.askingPriceMovement.value).toBe(
           golden.figures.askingPriceMovement.value,
         );
+        expect((await get()).counts).toEqual(golden.counts);
+        expect((await neighbors()).items[0]!.movement.value).toBe(100);
         // Reappearance never resets the earliest observation.
         const reappeared = listing(8, 101, 20000, 0);
         const reappearance = wire(
@@ -374,12 +439,19 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           (Date.parse(after.evaluatedAt) - anchor) / day + 150,
           10,
         );
+        expect(after.counts).toEqual({ properties: 4, activeListings: 6, sources: 2 });
         expect(after.figures.priceReductions.value).toEqual({ count: 3, percentage: 50 });
         await compose('stop', 'worker');
         const beforeReads = await snapshot();
         await get();
+        const detached = await neighbors();
+        Reflect.set(detached.items[0]!.median.sources[0]!, 'url', 'caller-mutated');
+        expect((await neighbors()).items[0]!.median.sources[0]!.url).toBe(
+          'https://figures.invalid/9',
+        );
         const knownEmpty = await get('sao-paulo-vila-mariana-rua-cenario-um-fictional-block');
         for (const figure of Object.values(knownEmpty.figures)) expect(figure.value).toBeNull();
+        expect(knownEmpty.counts).toEqual({ properties: 0, activeListings: 0, sources: 0 });
         expect(await snapshot()).toEqual(beforeReads);
         expect(
           (await requestHttp(`http://127.0.0.1:${api}/api/v1/places/unknown-place/market`)).status,
@@ -387,21 +459,35 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         expect((await requestHttp(`http://127.0.0.1:${api}/api/v1/places/BAD/market`)).status).toBe(
           400,
         );
+        for (const suffix of ['/neighbours']) {
+          expect(
+            (
+              await requestHttp(
+                `http://127.0.0.1:${api}/api/v1/places/unknown-place/market${suffix}`,
+              )
+            ).status,
+          ).toBe(404);
+          expect(
+            (await requestHttp(`http://127.0.0.1:${api}/api/v1/places/BAD/market${suffix}`)).status,
+          ).toBe(400);
+        }
         // Corrupt persisted evidence must produce the canonical sanitized server error.
         await db.query('ALTER TABLE market.listing_state_evidence RENAME TO owned_unavailable');
         await preserveCleanup(
           async () => {
-            const response = await requestHttp(
-              `http://127.0.0.1:${api}/api/v1/places/sao-paulo-pinheiros/market`,
-            );
-            expect(response.status).toBe(500);
-            expect(await response.json()).toEqual({
-              error: {
-                code: 'internal_error',
-                message: 'An unexpected error occurred.',
-                requestId: expect.any(String),
-              },
-            });
+            for (const suffix of ['', '/neighbours']) {
+              const response = await requestHttp(
+                `http://127.0.0.1:${api}/api/v1/places/sao-paulo-bela-vista/market${suffix}`,
+              );
+              expect(response.status).toBe(500);
+              expect(await response.json()).toEqual({
+                error: {
+                  code: 'internal_error',
+                  message: 'An unexpected error occurred.',
+                  requestId: expect.any(String),
+                },
+              });
+            }
           },
           () => db.query('ALTER TABLE market.owned_unavailable RENAME TO listing_state_evidence'),
         );

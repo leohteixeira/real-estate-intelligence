@@ -79,8 +79,13 @@ describe('Market facade query orchestration', () => {
       message: 'Stored Market price facts could not be evaluated.',
       cause: invalidFact,
     });
+    await expect(service.neighbours('child')).rejects.toMatchObject({
+      message: 'Stored Market price facts could not be evaluated.',
+      cause: invalidFact,
+    });
     await expect(service.getPlaceMarket('BAD')).rejects.toBeInstanceOf(DomainValidationError);
-    expect(readFigures).toHaveBeenCalledTimes(1);
+    await expect(service.neighbours('BAD')).rejects.toBeInstanceOf(DomainValidationError);
+    expect(readFigures).toHaveBeenCalledTimes(2);
   });
   it.each(['child', 'parent'])(
     'translates an unrepresentable live %s median into a server failure',
@@ -142,9 +147,9 @@ describe('Market facade query orchestration', () => {
     });
     const result = (await service.getPlaceMarket('child'))!;
     expect(result).toMatchObject({
-      basis: 'event-fed-figures-with-prepared-counts',
-      evaluatedAt: now(),
-      preparedEvaluatedAt: date,
+      basis: 'event-fed-place-figures',
+      evaluatedAt: '2026-10-11T12:00:00.000Z',
+      counts: { properties: 0, activeListings: 0, sources: 0 },
       figures: {
         medianAskingPricePerSquareMeter: {
           value: null,
@@ -158,10 +163,116 @@ describe('Market facade query orchestration', () => {
     expect(f.scope.mock.calls).toEqual([['child'], ['parent']]);
     expect(await service.getPlaceMarket('unknown')).toBeNull();
     expect(readFigures).toHaveBeenCalledTimes(1);
+    const neighbors = (await service.neighbours('child'))!;
+    expect(neighbors.basis).toBe('event-fed-place-figures');
+    expect(neighbors.items[0]!.median.value).toBeNull();
+    expect(readFigures).toHaveBeenCalledTimes(2);
+    expect(now).toHaveBeenCalledTimes(2);
+    expect(result).not.toHaveProperty('preparedEvaluatedAt');
+    expect(result).not.toHaveProperty('preparedSections');
     readFigures.mockRejectedValue(new Error('Live dependency failed'));
     await expect(service.getPlaceMarket('child')).rejects.toThrow('Live dependency failed');
-    expect((await service.neighbours('child'))!.basis).toBe('prepared-market-example');
+    await expect(service.neighbours('child')).rejects.toThrow('Live dependency failed');
     expect((await service.monthlySeries('child'))!.basis).toBe('prepared-market-example');
+  });
+  it('counts the represented population without an area filter and evaluates only registered neighbours coherently', async () => {
+    const f = fixture();
+    f.scope.mockImplementation(async (id) =>
+      id === 'parent'
+        ? ['child', 'child-block', 'neighbor', 'empty', 'sibling']
+        : [id, `${id}-block`],
+    );
+    const getPlace = f.getPlace.getMockImplementation()!;
+    f.getPlace.mockImplementation(async (id) => {
+      const response = await getPlace(id);
+      return response
+        ? {
+            ...response,
+            place: {
+              ...response.place,
+              adjacentPlaceIds: id === 'child' ? ['neighbor', 'empty'] : [],
+            },
+          }
+        : null;
+    });
+    const listing = (
+      id: string,
+      property: string,
+      place: string,
+      price: number,
+      area: number | null = 10,
+      source = 'source-a',
+    ): ListingFact => ({
+      listingId: id,
+      propertyId: property,
+      placeId: place,
+      sourceId: source,
+      sourceListingId: id,
+      propertyType: 'apartment',
+      status: 'active',
+      askingPriceMinorUnits: price,
+      currency: 'BRL',
+      areaSquareMeters: area,
+      effectiveAt: date,
+      provenance: {
+        sourceId: source,
+        sourceListingId: id,
+        sourceUrl: `https://source.invalid/${id}`,
+        observedAt: date,
+        runId: 'run',
+        snapshotId: 'snapshot',
+        contentHash: `sha256:${'a'.repeat(64)}`,
+      },
+    });
+    const current = [
+      listing('a', 'one', 'child-block', 10000),
+      listing('b', 'one', 'neighbor', 20000, 10, 'source-b'),
+      listing('c', 'null-area', 'child', 5000, null),
+      listing('d', 'outside-minimum', 'neighbor', 1000),
+      listing('e', 'outside-minimum', 'child', 30000),
+      listing('f', 'sibling', 'sibling', 90000),
+    ];
+    const representatives = [current[0]!, current[2]!, current[3]!, current[5]!];
+    const readFigures = vi.fn(async () => ({
+      representatives,
+      current,
+      history: [],
+      priceChanges: [],
+    }));
+    const now = vi.fn(() => date);
+    const service = new MarketQueryService({ read: f.read }, f.locations, {
+      facts: { readCurrent: async () => representatives, readFigures },
+      clock: { now },
+    });
+    const overview = (await service.getPlaceMarket('child'))!;
+    expect(overview.counts).toEqual({ properties: 2, activeListings: 3, sources: 2 });
+    expect(overview.figures.medianAskingPricePerSquareMeter).toMatchObject({
+      recordCount: 1,
+      value: { minorUnits: 1000 },
+    });
+    expect(overview.parentMedian?.median).toMatchObject({
+      recordCount: 3,
+      value: { minorUnits: 1000 },
+    });
+    const neighbors = (await service.neighbours('child'))!;
+    expect(readFigures).toHaveBeenCalledTimes(2);
+    expect(now).toHaveBeenCalledTimes(2);
+    expect(neighbors.items.map((item) => item.place.id)).toEqual(['neighbor', 'empty']);
+    expect(neighbors.items[0]!.median).toMatchObject({
+      recordCount: 1,
+      value: { minorUnits: 100 },
+    });
+    expect(neighbors.items[1]!.median).toMatchObject({ recordCount: 0, value: null });
+    for (const item of neighbors.items) {
+      expect(item.median.computedAt).toBe(date);
+      expect(item.movement.computedAt).toBe(date);
+    }
+    Reflect.set(neighbors.items[0]!.median.sources[0]!, 'url', 'mutated');
+    expect((await service.neighbours('child'))!.items[0]!.median.sources[0]!.url).toBe(
+      'https://source.invalid/d',
+    );
+    expect((await service.neighbours('parent'))!.items).toEqual([]);
+    expect(f.scope.mock.calls.map(([id]) => id)).not.toContain('sibling');
   });
   it('keeps known empty scopes readable, obtains actual parents and detaches fixture state', async () => {
     const { service, read, scope } = fixture();

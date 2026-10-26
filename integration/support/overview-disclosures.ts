@@ -92,6 +92,14 @@ export async function exerciseOverviewDisclosures(
   for (const disclosure of await neighbours.all()) {
     await toggleOverviewDisclosure(page, disclosure, true);
     expect(await disclosure.locator('.place-provenance').isVisible()).toBe(true);
+    expect(await disclosure.locator('.place-origin').textContent()).toBe(
+      locale === 'en'
+        ? 'Figure computed from collected events'
+        : 'Indicador calculado a partir dos eventos coletados',
+    );
+    expect(await disclosure.locator('.place-provenance').textContent()).toContain(
+      locale === 'en' ? 'Freshness not tracked' : 'Atualidade não rastreada',
+    );
   }
   await checkAccessibility(page, `place-overview-expanded-${name}`);
   // Preserve the authored default chart-led / compact state for the normal captures.

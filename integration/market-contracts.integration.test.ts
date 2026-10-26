@@ -73,9 +73,9 @@ test('market-contracts preserves its complete real-service campaign', async () =
       const value = parser(await response.json());
       expect(value.metadata).toStrictEqual(SYNTHETIC_READ_METADATA);
       expect(value.basis).toBe(
-        suffix === '' ? 'event-fed-figures-with-prepared-counts' : 'prepared-market-example',
+        suffix === '/monthly-series' ? 'prepared-market-example' : 'event-fed-place-figures',
       );
-      if (suffix !== '') expect(value.evaluatedAt).toBe('2026-10-01T12:00:00.000Z');
+      if (suffix === '/monthly-series') expect(value.evaluatedAt).toBe('2026-10-01T12:00:00.000Z');
       else expect(Date.now() - Date.parse(value.evaluatedAt)).toBeLessThan(5000);
       return value as ReturnType<T>;
     }
@@ -175,7 +175,7 @@ test('market-contracts preserves its complete real-service campaign', async () =
               kind: place.kind,
               name: place.name,
             });
-            expect(overview.counts.properties).toBe(place.propertyCount);
+            expect(overview.counts.properties).toBe(0);
             expect(overview.parentMedian?.place.id ?? null).toBe(place.parentId);
             expect(overview.figures.medianAskingPricePerSquareMeter).toMatchObject({
               state: 'insufficient-data',
@@ -234,7 +234,7 @@ test('market-contracts preserves its complete real-service campaign', async () =
             ).toBe(place.propertyCount ? 'available' : 'insufficient-data');
           }
           const city = await get('sao-paulo', '', parsePlaceMarketResponse);
-          expect(city.counts).toStrictEqual({ properties: 5, activeListings: 9, sources: 3 });
+          expect(city.counts).toStrictEqual({ properties: 0, activeListings: 0, sources: 0 });
           expect(city.figures.medianAskingPricePerSquareMeter.value).toBeNull();
           const pinheiros = await get('sao-paulo-pinheiros', '', parsePlaceMarketResponse);
           expect(pinheiros!.parentMedian!.place.id).toBe('sao-paulo-oeste');

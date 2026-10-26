@@ -147,6 +147,118 @@ describe('strict prepared Market wire contracts', () => {
       ),
     };
   }
+  function livePlace() {
+    const response = liveFigures();
+    return {
+      metadata: response.metadata,
+      basis: 'event-fed-place-figures',
+      evaluatedAt: response.evaluatedAt,
+      place: response.place,
+      counts: { properties: 1, activeListings: 2, sources: 1 },
+      figures: response.figures,
+      parentMedian: null,
+    };
+  }
+  function liveNeighbors() {
+    const response = livePlace();
+    return {
+      metadata: response.metadata,
+      basis: response.basis,
+      evaluatedAt: response.evaluatedAt,
+      place: neighborhood,
+      items: [
+        {
+          place: { ...neighborhood, id: 'neighbor' },
+          median: response.figures.medianAskingPricePerSquareMeter,
+          movement: response.figures.askingPriceMovement,
+        },
+      ],
+    };
+  }
+  it('accepts fully persisted populations, including counted properties without eligible area', () => {
+    expect(parsePlaceMarketResponse(livePlace()).counts).toEqual({
+      properties: 1,
+      activeListings: 2,
+      sources: 1,
+    });
+    let input: unknown = livePlace();
+    for (const name of ['medianAskingPricePerSquareMeter', 'askingPriceMovement']) {
+      input = changed(input, `figures.${name}.recordCount`, 0);
+      input = changed(input, `figures.${name}.sources`, []);
+      input = changed(input, `figures.${name}.state`, 'insufficient-data');
+      input = changed(input, `figures.${name}.value`, null);
+    }
+    const parsed = parsePlaceMarketResponse(input);
+    expect(parsed.counts.properties).toBe(1);
+    expect(parsed.figures.medianAskingPricePerSquareMeter.recordCount).toBe(0);
+    expect(parsePlaceMarketNeighboursResponse(liveNeighbors()).items).toHaveLength(1);
+    expect(
+      parsePlaceMarketNeighboursResponse({ ...liveNeighbors(), place: country, items: [] }).items,
+    ).toEqual([]);
+  });
+  it.each([
+    ['counts.properties', 2],
+    ['counts.activeListings', 3],
+    ['counts.sources', 0],
+    ['preparedSections', []],
+    ['preparedEvaluatedAt', evaluatedAt],
+    ['figures.priceReductions.sources.0.id', 'another-source'],
+    ['figures.priceReductions.sources.0.label', 'another-source'],
+    ['figures.medianAskingPricePerSquareMeter.recordCount', 2],
+    ['figures.medianAskingPricePerSquareMeter.sources.0.label', 'Prepared'],
+    ['figures.listingsPerProperty.computedAt', evaluatedAt],
+    ['figures.medianTimeOnMarketDays.freshness.status', 'fresh'],
+  ])('rejects contradictory fully persisted overview %s', (path, value) => {
+    expect(() => parsePlaceMarketResponse(changed(livePlace(), path, value))).toThrow(TypeError);
+  });
+  it('rejects live source population contradictions even when individually valid', () => {
+    for (const figure of ['medianAskingPricePerSquareMeter', 'priceReductions']) {
+      let input: unknown = livePlace();
+      input = changed(input, `figures.${figure}.sources.0.id`, 'another-source');
+      input = changed(input, `figures.${figure}.sources.0.label`, 'another-source');
+      expect(() => parsePlaceMarketResponse(input)).toThrow(TypeError);
+    }
+  });
+  it.each([
+    ['items.0.place.id', neighborhood.id],
+    ['items.0.place.kind', 'city'],
+    ['items.0.median.computedAt', evaluatedAt],
+    ['items.0.median.freshness.status', 'fresh'],
+    ['items.0.median.sources.0.label', 'Prepared'],
+    ['items.0.movement.computedAt', evaluatedAt],
+    ['items.0.movement.recordCount', 2],
+    ['items.0.movement.sources.0.collectedAt', '2027-01-01T00:00:00.000Z'],
+    ['preparedSections', []],
+    ['preparedEvaluatedAt', evaluatedAt],
+  ])('rejects contradictory fully persisted neighbours %s', (path, value) => {
+    expect(() => parsePlaceMarketNeighboursResponse(changed(liveNeighbors(), path, value))).toThrow(
+      TypeError,
+    );
+  });
+  it('retains empty live neighbours and rejects duplicate rows', () => {
+    const input = liveNeighbors();
+    const empty = { ...input.items[0]!, place: { ...neighborhood, id: 'empty-neighbor' } };
+    const unavailable = {
+      recordCount: 0,
+      sources: [],
+      computedAt: input.evaluatedAt,
+      freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+      state: 'insufficient-data',
+      value: null,
+    };
+    expect(
+      parsePlaceMarketNeighboursResponse({
+        ...input,
+        items: [
+          input.items[0],
+          { ...empty, median: unavailable, movement: { ...unavailable, windowMonths: 6 } },
+        ],
+      }).items[1]!.median.value,
+    ).toBeNull();
+    expect(() =>
+      parsePlaceMarketNeighboursResponse({ ...input, items: [input.items[0], input.items[0]] }),
+    ).toThrow(TypeError);
+  });
   it('accepts all live figures with independent prepared counts and zero reductions', () => {
     expect(parsePlaceMarketResponse(liveFigures()).counts.properties).toBe(7);
     const paired = changed(liveFigures(), 'figures.askingPriceMovement.sources', [

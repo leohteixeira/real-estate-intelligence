@@ -106,15 +106,31 @@ describe('actual MarketModule HTTP contracts', () => {
       const overview = parsePlaceMarketResponse(
         await success(place.id, '', parsePlaceMarketResponse),
       );
-      expect(overview.basis).toBe('event-fed-figures-with-prepared-counts');
-      expect(overview).toHaveProperty('preparedSections', ['counts']);
+      expect(overview.basis).toBe('event-fed-place-figures');
+      expect(overview).not.toHaveProperty('preparedSections');
       expect(overview.place.id).toBe(place.id);
-      expect(overview.counts.properties).toBe(place.propertyCount);
+      expect(overview.counts).toEqual({ properties: 0, activeListings: 0, sources: 0 });
       expect(overview.parentMedian?.place.id ?? null).toBe(place.parentId);
       const neighbors = parsePlaceMarketNeighboursResponse(
         await success(place.id, '/neighbours', parsePlaceMarketNeighboursResponse),
       );
+      expect(neighbors.basis).toBe('event-fed-place-figures');
+      expect(neighbors).not.toHaveProperty('preparedEvaluatedAt');
       expect(neighbors.items.map((item) => item.place.id)).toEqual(place.adjacentPlaceIds);
+      for (const item of neighbors.items) {
+        expect(item.median).toMatchObject({
+          value: null,
+          recordCount: 0,
+          computedAt: neighbors.evaluatedAt,
+          freshness: { status: 'untracked' },
+        });
+        expect(item.movement).toMatchObject({
+          value: null,
+          recordCount: 0,
+          computedAt: neighbors.evaluatedAt,
+          freshness: { status: 'untracked' },
+        });
+      }
       const series = parsePlaceMarketSeriesResponse(
         await success(place.id, '/monthly-series', parsePlaceMarketSeriesResponse),
       );

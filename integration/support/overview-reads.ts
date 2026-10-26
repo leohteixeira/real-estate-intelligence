@@ -56,9 +56,14 @@ export async function exerciseOverviewReads(
     await page.locator('.place-question button').focus();
     await page.keyboard.press('Enter');
     await expect.poll(() => page.url()).toBe(`${base}/ask/${id}`);
-    await expect.poll(() => page.locator('.place-draft').textContent()).toContain(draft);
-    expect(await page.locator('.place-draft img').count()).toBe(0);
-    expect(await page.locator('.place-draft').textContent()).toContain(
+    const incoming = page.getByRole('textbox', {
+      name: locale === 'en' ? 'Question draft' : 'Rascunho da pergunta',
+      exact: true,
+    });
+    await expect.poll(() => incoming.inputValue()).toBe(draft);
+    expect(await incoming.isEditable()).toBe(true);
+    expect(await page.locator('.ask-composer img').count()).toBe(0);
+    expect(await page.locator('#ask-draft-hint').textContent()).toContain(
       locale === 'en' ? 'not been submitted or executed' : 'não foi enviada nem executada',
     );
     expect(
