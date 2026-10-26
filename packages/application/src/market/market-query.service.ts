@@ -1,6 +1,6 @@
 import {
   askingPriceMedian,
-  MARKET_PREPARED_SECTIONS,
+  remainingPlaceFigures,
   DomainValidationError,
   type PlaceRef,
   type PlaceMarketResponse,
@@ -49,17 +49,18 @@ export class MarketQueryService implements MarketFacade {
     const parent = await this.parent(scope.place.parentId);
     if (this.live) {
       try {
-        const facts = await this.live.facts.readCurrent();
+        const snapshot = await this.live.facts.readFigures();
+        const facts = snapshot.representatives;
         const evaluatedAt = this.live.clock.now();
         return structuredClone({
           ...this.base(scope),
-          basis: 'event-fed-median-with-prepared-sections' as const,
+          basis: 'event-fed-figures-with-prepared-counts' as const,
           evaluatedAt,
           preparedEvaluatedAt: scope.sample.evaluatedAt,
-          preparedSections: MARKET_PREPARED_SECTIONS,
+          preparedSections: ['counts'] as const,
           counts: scope.sample.counts,
           figures: {
-            ...scope.sample.figures,
+            ...remainingPlaceFigures(snapshot, scope.ids, evaluatedAt),
             medianAskingPricePerSquareMeter: askingPriceMedian(facts, scope.ids, evaluatedAt),
           },
           parentMedian: parent

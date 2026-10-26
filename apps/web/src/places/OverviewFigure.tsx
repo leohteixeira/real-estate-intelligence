@@ -50,6 +50,7 @@ export function OverviewMetric({
   unit,
   evidence,
   contributorUnit = 'properties',
+  origin = 'prepared',
   className = '',
   extra,
   priceKind,
@@ -59,6 +60,7 @@ export function OverviewMetric({
   readonly unit?: string;
   readonly evidence: MarketEvidence;
   readonly contributorUnit?: 'properties' | 'listings';
+  readonly origin?: 'prepared' | 'live';
   readonly className?: string;
   readonly extra?: string;
   readonly priceKind?: 'asking' | 'sale';
@@ -88,6 +90,7 @@ export function OverviewMetric({
       <OverviewEvidence
         evidence={evidence}
         contributorUnit={contributorUnit}
+        origin={origin}
         {...(priceKind === 'sale' && extra ? { note: extra } : {})}
       />
     </div>

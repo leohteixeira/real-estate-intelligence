@@ -54,8 +54,9 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
     );
   const median = market.data?.figures.medianAskingPricePerSquareMeter;
   const figures = market.data?.figures;
+  const liveFigures = market.data?.basis === 'event-fed-figures-with-prepared-counts';
   const preparedAt =
-    market.data?.basis === 'event-fed-median-with-prepared-sections'
+    market.data && market.data.basis !== 'prepared-market-example'
       ? market.data.preparedEvaluatedAt
       : undefined;
   const parent = market.data?.parentMedian;
@@ -156,6 +157,7 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
                     : null
                 }
                 evidence={figures.askingPriceMovement}
+                origin={liveFigures ? 'live' : 'prepared'}
               />
               <OverviewMetric
                 className="place-days"
@@ -167,6 +169,7 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
                 }
                 unit={t('daysUnit')}
                 evidence={figures.medianTimeOnMarketDays}
+                origin={liveFigures ? 'live' : 'prepared'}
               />
               <OverviewMetric
                 className="place-reductions30"
@@ -188,6 +191,7 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
                     : undefined
                 }
                 evidence={figures.priceReductions}
+                origin={liveFigures ? 'live' : 'prepared'}
                 contributorUnit="listings"
               />
               <OverviewMetric
@@ -199,19 +203,23 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
                     : null
                 }
                 evidence={figures.listingsPerProperty}
+                origin={liveFigures ? 'live' : 'prepared'}
               />
               <OverviewMetric
                 className="place-sale"
                 label={t('sale')}
                 value={null}
                 evidence={figures.recordedSalePricePerSquareMeter}
+                origin={liveFigures ? 'live' : 'prepared'}
                 priceKind="sale"
                 extra={t('saleReason')}
               />
             </div>
           ) : null}
         </div>
-        <p className="place-disclosure">{t('preparedDisclosure')}</p>
+        <p className="place-disclosure">
+          {t(liveFigures ? 'liveFiguresDisclosure' : 'preparedDisclosure')}
+        </p>
         {place.data ? (
           <div className="place-overview-panels">
             <PlaceSeries id={id} />

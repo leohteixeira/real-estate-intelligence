@@ -6,7 +6,14 @@ import {
   type MarketPriceFactsReadPort,
   type Transaction,
 } from '@rei/application';
-import { parseListingFact, type CausalListingState, type ListingFact } from '@rei/domain';
+import {
+  parseListingFact,
+  parsePropertiesEvent,
+  parsePropertiesEventV2,
+  type CausalListingState,
+  type ListingFact,
+  type MarketFiguresSnapshot,
+} from '@rei/domain';
 import type { DatabaseConnection } from '../shared/index.js';
 import type { DatabaseClient } from '../shared/persistence/database-connection.js';
 import { postgresClientFor } from '../shared/persistence/postgres-transaction.js';
@@ -161,6 +168,58 @@ export class PostgresMarketPriceFacts
       `INSERT INTO market.listing_assignment_current (listing_id,revision,property_id) VALUES ($1,$2,$3) ON CONFLICT (listing_id) DO UPDATE SET revision = EXCLUDED.revision,property_id = EXCLUDED.property_id WHERE market.listing_assignment_current.revision < EXCLUDED.revision`,
       [listingId, revision, propertyId],
     );
+  }
+  public async readFigures(): Promise<MarketFiguresSnapshot> {
+    // A single statement uses one MVCC snapshot even while a projection transaction commits.
+    const rows = await this.connection.query<{
+      representatives: { property_id: string; selected_listing: unknown }[];
+      current: unknown[];
+      history: { revision: string; listing: unknown }[];
+      events: unknown[];
+    }>(`SELECT
+      COALESCE((SELECT jsonb_agg(to_jsonb(p) ORDER BY property_id) FROM market.property_price_current p WHERE selected_listing IS NOT NULL), '[]'::jsonb) AS representatives,
+      COALESCE((SELECT jsonb_agg(e.listing || jsonb_build_object('propertyId', a.property_id) ORDER BY a.listing_id)
+        FROM market.listing_assignment_current a
+        JOIN market.listing_state_current c USING (listing_id)
+        JOIN market.listing_state_evidence e ON e.listing_id=c.listing_id AND e.revision=c.revision), '[]'::jsonb) AS current,
+      COALESCE((SELECT jsonb_agg(jsonb_build_object('revision', e.revision::text, 'listing', e.listing || jsonb_build_object('propertyId', a.property_id)) ORDER BY a.listing_id,e.revision)
+        FROM market.listing_assignment_current a JOIN market.listing_state_evidence e USING (listing_id)), '[]'::jsonb) AS history,
+      COALESCE((SELECT jsonb_agg(business_event ORDER BY event_id) FROM market.price_event_evidence
+        WHERE business_event->>'type'='properties.listing.price-changed'), '[]'::jsonb) AS events`);
+    const row = rows[0];
+    if (!row) rejected();
+    const representatives = row.representatives.map((item) => {
+      const fact = parseListingFact(item.selected_listing);
+      if (fact.propertyId !== item.property_id || fact.status !== 'active') rejected();
+      return fact;
+    });
+    const priceChanges = row.events.map((wire) => {
+      if (typeof wire !== 'object' || wire === null) rejected();
+      const input = { ...wire, traceContext: null };
+      const event =
+        'version' in wire && wire.version === 2
+          ? parsePropertiesEventV2(input)
+          : parsePropertiesEvent(input);
+      if (
+        event.type !== 'properties.listing.price-changed' ||
+        !('previousMinorUnits' in event.payload)
+      )
+        rejected();
+      return {
+        listing: event.payload.listing,
+        previousMinorUnits: event.payload.previousMinorUnits,
+      };
+    });
+    return structuredClone({
+      representatives,
+      current: row.current.map(parseListingFact),
+      history: row.history.map((state) => {
+        const revision = Number(state.revision);
+        if (!Number.isSafeInteger(revision) || revision < 1) rejected();
+        return { revision, listing: parseListingFact(state.listing) };
+      }),
+      priceChanges,
+    });
   }
   public async readCurrent(): Promise<readonly ListingFact[]> {
     const rows = await this.connection.query<{ property_id: string; selected_listing: unknown }>(

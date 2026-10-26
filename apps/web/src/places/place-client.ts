@@ -90,7 +90,11 @@ export function createPlaceClient(baseUrl = config.apiBaseUrl): PlaceClient {
     async market(id: string, signal: AbortSignal) {
       validate(id);
       const result = await read(`/places/${id}/market`, signal, parsePlaceMarketResponse);
-      if (result.place.id !== id || result.basis !== 'event-fed-median-with-prepared-sections') {
+      if (
+        result.place.id !== id ||
+        (result.basis !== 'event-fed-median-with-prepared-sections' &&
+          result.basis !== 'event-fed-figures-with-prepared-counts')
+      ) {
         throw new PlaceReadError(502);
       }
       return result;

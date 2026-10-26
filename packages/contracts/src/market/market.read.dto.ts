@@ -45,11 +45,15 @@ const evidence = {
     ageSeconds: wireNumber(),
   }),
 };
-function figure(value: WireValidator, fields: Readonly<Record<string, WireValidator>> = {}) {
+function figure(
+  value: WireValidator,
+  fields: Readonly<Record<string, WireValidator>> = {},
+  proof = evidence,
+) {
   return wireDiscriminated('state', {
-    available: wireObject({ ...evidence, ...fields, state: wireEnum(['available']), value }),
+    available: wireObject({ ...proof, ...fields, state: wireEnum(['available']), value }),
     'insufficient-data': wireObject({
-      ...evidence,
+      ...proof,
       ...fields,
       state: wireEnum(['insufficient-data']),
       value: wireNull,
@@ -130,6 +134,27 @@ function validateParent(place: PlaceRef, parent: PlaceRef | null): void {
 function validateBase(response: { metadata: { asOf: string }; evaluatedAt: string }): void {
   if (Date.parse(response.metadata.asOf) > Date.parse(response.evaluatedAt)) invalidWire();
 }
+function validateLiveFigure(
+  item: MarketEvidence & { readonly state: string },
+  evaluatedAt: string,
+): void {
+  if (
+    item.computedAt !== evaluatedAt ||
+    (item.state === 'available') !== item.recordCount > 0 ||
+    (item.recordCount === 0) !== (item.sources.length === 0)
+  )
+    invalidWire();
+  let previous: string | null = null;
+  for (const source of item.sources) {
+    if (
+      source.label !== source.id ||
+      Date.parse(source.collectedAt) > Date.parse(evaluatedAt) ||
+      (previous !== null && source.id <= previous)
+    )
+      invalidWire();
+    previous = source.id;
+  }
+}
 function validateLiveMedian(item: MarketFigure<unknown>, evaluatedAt: string): void {
   if (
     item.computedAt !== evaluatedAt ||
@@ -150,15 +175,29 @@ function validateLiveMedian(item: MarketFigure<unknown>, evaluatedAt: string): v
   }
 }
 export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
-  const overview = (medianWire: WireValidator) => ({
+  const overview = (medianWire: WireValidator, allLive = false) => ({
     counts: wireObject({ properties: wireCount, activeListings: wireCount, sources: wireCount }),
     figures: wireObject({
       medianAskingPricePerSquareMeter: medianWire,
-      askingPriceMovement: movement,
-      medianTimeOnMarketDays: figure(wireNumber()),
-      priceReductions: reductions,
-      listingsPerProperty: figure(wireNumber()),
-      recordedSalePricePerSquareMeter: sale,
+      askingPriceMovement: allLive
+        ? figure(
+            wireNumber(-100, Number.MAX_SAFE_INTEGER),
+            { windowMonths: wireEnum([6]) },
+            liveEvidence,
+          )
+        : movement,
+      medianTimeOnMarketDays: figure(wireNumber(), {}, allLive ? liveEvidence : evidence),
+      priceReductions: allLive
+        ? figure(
+            wireObject({ count: wireCount, percentage: wireNumber(0, 100) }),
+            { windowDays: wireEnum([30]) },
+            liveEvidence,
+          )
+        : reductions,
+      listingsPerProperty: figure(wireNumber(), {}, allLive ? liveEvidence : evidence),
+      recordedSalePricePerSquareMeter: allLive
+        ? wireObject({ ...liveEvidence, state: wireEnum(['not-recorded']), value: wireNull })
+        : sale,
     }),
     parentMedian: wireNullable(wireObject({ place: placeRefWire, median: medianWire })),
   });
@@ -166,6 +205,13 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
     value,
     wireDiscriminated('basis', {
       'prepared-market-example': wireObject({ ...base, ...overview(median) }),
+      'event-fed-figures-with-prepared-counts': wireObject({
+        ...base,
+        basis: wireEnum(['event-fed-figures-with-prepared-counts']),
+        ...overview(liveMedian, true),
+        preparedEvaluatedAt: wireDate,
+        preparedSections: wireArray(wireEnum(['counts'])),
+      }),
       'event-fed-median-with-prepared-sections': wireObject({
         ...base,
         basis: wireEnum(['event-fed-median-with-prepared-sections']),
@@ -176,19 +222,24 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
     }),
   );
   validateBase(response);
-  const live = response.basis === 'event-fed-median-with-prepared-sections';
+  const live = response.basis !== 'prepared-market-example';
+  const allLive = response.basis === 'event-fed-figures-with-prepared-counts';
+  const sections = allLive ? ['counts'] : MARKET_PREPARED_SECTIONS;
   const preparedAt = live ? response.preparedEvaluatedAt : response.evaluatedAt;
   if (
     live &&
-    (response.preparedSections.length !== MARKET_PREPARED_SECTIONS.length ||
-      response.preparedSections.some(
-        (section, index) => section !== MARKET_PREPARED_SECTIONS[index],
-      ) ||
+    (response.preparedSections.length !== sections.length ||
+      response.preparedSections.some((section, index) => section !== sections[index]) ||
       Date.parse(preparedAt) > Date.parse(response.evaluatedAt) ||
       Date.parse(response.metadata.asOf) > Date.parse(preparedAt))
   )
     invalidWire();
   for (const [key, item] of Object.entries(response.figures)) {
+    if (allLive) {
+      validateLiveFigure(item, response.evaluatedAt);
+      if (key === 'recordedSalePricePerSquareMeter' && item.recordCount !== 0) invalidWire();
+      continue;
+    }
     if (key === 'medianAskingPricePerSquareMeter' && live) {
       validateLiveMedian(item as MarketFigure<unknown>, response.evaluatedAt);
       continue;
@@ -202,6 +253,39 @@ export function parsePlaceMarketResponse(value: unknown): PlaceMarketResponse {
   if (response.parentMedian) {
     if (live) validateLiveMedian(response.parentMedian.median, response.evaluatedAt);
     else validateFigure(response.parentMedian.median, response.evaluatedAt);
+  }
+  if (allLive) {
+    const { counts, figures } = response;
+    if (
+      counts.activeListings < counts.properties ||
+      counts.sources > counts.activeListings ||
+      (counts.properties === 0 && (counts.activeListings !== 0 || counts.sources !== 0))
+    )
+      invalidWire();
+    const properties = figures.listingsPerProperty.recordCount;
+    const listings = figures.priceReductions.recordCount;
+    if (
+      listings < properties ||
+      (properties === 0 && listings !== 0) ||
+      figures.medianTimeOnMarketDays.recordCount !== properties ||
+      figures.medianAskingPricePerSquareMeter.recordCount > properties ||
+      figures.askingPriceMovement.recordCount >
+        figures.medianAskingPricePerSquareMeter.recordCount ||
+      figures.medianAskingPricePerSquareMeter.sources.length >
+        figures.medianAskingPricePerSquareMeter.recordCount ||
+      figures.askingPriceMovement.sources.length > figures.askingPriceMovement.recordCount * 2 ||
+      figures.medianTimeOnMarketDays.sources.length > properties ||
+      figures.listingsPerProperty.sources.length > listings ||
+      figures.priceReductions.sources.length > listings ||
+      (figures.listingsPerProperty.state === 'available' &&
+        figures.listingsPerProperty.value !== listings / properties) ||
+      (figures.priceReductions.state === 'available' &&
+        (figures.priceReductions.value.count > listings ||
+          figures.priceReductions.value.percentage !==
+            (figures.priceReductions.value.count / listings) * 100))
+    )
+      invalidWire();
+    return response;
   }
   const { properties, activeListings, sources } = response.counts;
   const figures = response.figures;

@@ -1,6 +1,7 @@
 import {
   PROPERTIES_EVENT_TYPES,
   type ListingFact,
+  type MarketFiguresSnapshot,
   type PropertiesEvent,
   type PropertiesEventV2,
   type PropertiesEventType,
@@ -16,6 +17,8 @@ export type MarketPriceFactsEvent = MarketListingEvent | PropertiesEventV2;
 export interface MarketPriceFactsReadPort {
   /** One coherent detached snapshot of global active property representatives, before eligibility. */
   readCurrent(): Promise<readonly ListingFact[]>;
+  /** All retained state, current causal membership and confirmed listing price changes in one SQL snapshot. */
+  readFigures(): Promise<MarketFiguresSnapshot>;
 }
 export interface MarketPriceFactsProjectionPort {
   /** Validate permanent identity/revision fences even if the inbox already contains the event.

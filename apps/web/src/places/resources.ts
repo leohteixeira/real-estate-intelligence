@@ -38,7 +38,7 @@ export const portuguese = {
   untracked: 'Atualidade não rastreada',
   preparedPlace: 'Hierarquia de lugares preparada com dados sintéticos.',
   prepared: 'Exemplo de mercado preparado',
-  live: 'Mediana calculada a partir dos eventos coletados',
+  live: 'Indicador calculado a partir dos eventos coletados',
   preparedCompact: 'Exemplo preparado',
   liveCompact: 'Eventos coletados',
   evidenceProperties_one: '{{formattedCount}} imóvel',
@@ -50,6 +50,8 @@ export const portuguese = {
     'Contagens preparadas, avaliadas em {{time}}. Não são a amostra contribuinte da mediana ao vivo.',
   preparedDisclosure:
     'Contagens, demais indicadores, vizinhos e série mensal são exemplos preparados. Não representam continuidade com a mediana calculada por eventos.',
+  liveFiguresDisclosure:
+    'Indicadores calculados a partir dos eventos coletados. Contagens, vizinhos e série mensal continuam sendo exemplos preparados.',
   parentMedian: 'Mediana do lugar pai: {{name}}',
   parentLink: 'Ver {{name}}',
   movement: 'Movimento do preço pedido, 6 meses',
@@ -129,7 +131,7 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   untracked: 'Freshness not tracked',
   preparedPlace: 'Place hierarchy prepared with synthetic data.',
   prepared: 'Prepared market example',
-  live: 'Median computed from collected events',
+  live: 'Figure computed from collected events',
   preparedCompact: 'Prepared example',
   liveCompact: 'Collected events',
   evidenceProperties_one: '{{formattedCount}} property',
@@ -141,6 +143,8 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
     'Prepared counts, evaluated at {{time}}. These are not the live median’s contributing sample.',
   preparedDisclosure:
     'Counts, other figures, neighbours and monthly series are prepared examples. They do not represent continuity with the event-fed median.',
+  liveFiguresDisclosure:
+    'Figures are computed from collected events. Counts, neighbours and monthly series remain prepared examples.',
   parentMedian: 'Parent median: {{name}}',
   parentLink: 'View {{name}}',
   movement: 'Asking price movement, 6 months',

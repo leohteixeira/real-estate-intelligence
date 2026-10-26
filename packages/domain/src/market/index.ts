@@ -4,3 +4,4 @@ export * from './market.read.types.js';
 export * from './asking-price-median.js';
 export * from './price-input-extraction.js';
 export * from './price-explanation-facts.js';
+export * from './remaining-place-figures.js';

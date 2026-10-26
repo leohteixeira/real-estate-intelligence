@@ -74,6 +74,11 @@ export type PlaceMarketResponse = PlaceMarketOverview &
         readonly preparedSections: typeof MARKET_PREPARED_SECTIONS;
         readonly preparedEvaluatedAt: string;
       })
+    | (Omit<MarketResponseBase, 'basis'> & {
+        readonly basis: 'event-fed-figures-with-prepared-counts';
+        readonly preparedSections: readonly ['counts'];
+        readonly preparedEvaluatedAt: string;
+      })
   );
 export interface PlaceMarketNeighboursResponse extends MarketResponseBase {
   readonly items: readonly {
