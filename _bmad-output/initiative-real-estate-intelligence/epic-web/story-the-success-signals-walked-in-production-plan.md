@@ -331,3 +331,12 @@ Gateway privacy acknowledgement and per-request enforcement. This is a bounded s
 acceptance, not a throughput benchmark. Stories 6.11/6.14 and the required final published E2E
 campaign remain separate outstanding work. Product code and images are unchanged by subsequent
 fixture/documentation commits, so no rebuild or product-gate repetition is required for them.
+
+### Final goal reconciliation
+
+The historical outstanding work above is now closed: stories 6.11/6.14 are done, and the
+[final published campaign](../../../apps/web/.impeccable/review/campaigns/published-final-20261026T221746Z/results/report.md)
+approves all twelve distinct journeys. The report preserves exact-image/component reuse,
+executor failures, fresh confirmation SQL/Tempo and final side-effect readback. All 85 stories
+are done; application and landing images remain unchanged. No additional broad review or
+product-gate repetition was opened for this documentation closure.

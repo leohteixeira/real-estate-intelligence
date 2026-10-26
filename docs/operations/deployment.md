@@ -1,5 +1,12 @@
 # Deploy the prepared VPS application stack
 
+Final acceptance of epics 1–6 is complete: all 85 stories are done and the final published
+campaign approves 12 distinct journeys, with identity-scoped reuse and original executor
+failures preserved. The [final delivery and campaign report](../../apps/web/.impeccable/review/campaigns/published-final-20261026T221746Z/results/report.md)
+records the actual versions, local gates, persisted effects, traces and limits. This closure
+does not rebuild or replace the unchanged application/landing images below. No production
+acceptance remains automatically deferred, and no PR, merge or remote CI is claimed.
+
 The independent portfolio landing was manually updated on 2026-10-26 at 21:45:04Z to
 `69be18fb639755b28e1ade6a21d7201f631da98c`, image
 `sha256:92c79f18bc08626505b4eebc71cbfefa541340e05b45cd82f7867b85842ad551`.
