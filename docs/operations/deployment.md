@@ -1,5 +1,11 @@
 # Deploy the prepared VPS application stack
 
+The latest observed release is current-branch commit
+`b570a09427bea39ea03d4dda93c7dc0e0c502899`, manually activated on 2026-10-26.
+Its historical seed, replay and native scheduled collection are accepted; see the final section
+for the protected receipt and the precise trace-correlation limit. Original publication evidence
+below remains historical and is preserved.
+
 Story 1.12 was accepted on 2026-10-26 after manual publication from `feat/phase-1` commit
 `13edbbb7bfee8d69746c34c518191b0dec659754`. Five bounded host builds, immutable image checks,
 verified backup/restore, all 35 migrations, healthy application containers, public HTTPS readiness
@@ -450,3 +456,16 @@ future `next_run_at`. Retrieve its collection trace from the existing Tempo back
 request, run, inbox and trace identities. Recheck public readiness and landing. A successful CLI
 exit alone does not establish these production acceptance checks; retain actual receipts here
 and in the scheduled collection plan when those checks have been performed.
+
+Observed on 2026-10-26: commit `b570a09427bea39ea03d4dda93c7dc0e0c502899` passed actual
+seed/replay readback (39 runs, 115 observations, 16 raw objects with verified hashes), then one
+native completed run per portal with exact identities, 3 collected/parsed and zero changed/failed.
+Daily schedules remain enabled with clear slots; real sources remain disabled. The protected
+receipt directory is `/var/backups/portfolio/rei-production-collection-20261026T195350Z`;
+`seed-and-replay.json` includes delivered image/container identities, backup paths and 11 public
+HTTPS checks. The Aurora schedule receipt and its Tempo search/full trace establish canonical
+trace `7bf7fc47424d67d830d13412c6780f69` by isolated time window, enclosing run interval and
+matching counts. No exported run-ID or cross-event continuity is inferred. See the existing
+[scheduled production plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-scheduled-collection-in-production-plan.md)
+for actual run/request identities and the bounded deployment-executor recovery. All four services
+and public readiness were healthy after activation; later stories retain browser/business proofs.

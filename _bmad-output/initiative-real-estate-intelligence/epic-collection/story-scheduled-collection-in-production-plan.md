@@ -3,7 +3,7 @@ title: 'Scheduled collection in production'
 type: 'feature'
 ticket: '12'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'f672ecb2f78c51b5b67d9da5c2c088a3f5d21129'
 route: 'full'
 route_source: 'auto'
@@ -80,10 +80,10 @@ raise timeouts or bypass hooks. Manual branch publication needs no PR, merge or 
 - [x] Extend and test explicit historical fixture selection without changing default behavior.
 - [x] Implement and test the seed owner command, reuse real collection service and composition.
 - [x] Add script and concise operation instructions; keep records in this plan/runbook.
-- [ ] Parent reviews/gates/commits, builds only affected images serially, records recovery and
+- [x] Parent reviews/gates/commits, builds release images serially, records recovery and
       exact delivered revision, and activates scoped host services after verified backup.
-- [ ] Parent enables three owned portals using the existing CLI, seeds the dataset, safely enables
-      idle schedules, and records actual run, observation, request/inbox and Tempo identities.
+- [x] Parent verifies the three owned portals already enabled by migrations, seeds the dataset,
+      safely enables idle schedules, and records actual run, observation, request/inbox and Tempo identities.
 
 **Acceptance Criteria:**
 
@@ -179,3 +179,48 @@ coverage,build}.log`. Only one heavy check ran at a time.
 - Follow-up code review recommendation: false; the reproduced logging risk has a direct emission
   regression and no unverified code risk remains. Production acceptance remains open below and
   is not inferred from these checks. The story is built, not accepted or done.
+
+## Observed Production Acceptance — 2026-10-26
+
+- Delivered current branch commit `b570a09427bea39ea03d4dda93c7dc0e0c502899` manually,
+  without PR, merge, remote CI or registry publication. All five immutable host image IDs and
+  four matching healthy container revisions are preserved in the protected receipt below.
+- Recovery configuration checkpoint: `/var/backups/portfolio/rei-manual-prepublication-20261026T195202Z`.
+  Verified restore-tested pre-migration backup: `/var/backups/portfolio/rei-20261026T195210376940Z`.
+  All 35 migrations remain applied; no schema change was introduced by this story.
+- Actual seed/replay receipt:
+  `/var/backups/portfolio/rei-production-collection-20261026T195350Z/seed-and-replay.json`.
+  Real command, PostgreSQL, outbox and object storage verified 39 completed runs, all 115 expected
+  identities/dates/content hashes, 115 parsed events, 39 completed events, 154 outbox identities
+  and 16 deduplicated raw objects with actual matching bytes. Exact replay preserved the complete
+  collection snapshot and every durable observation/event identity.
+- Three native schedules were armed separately. Each completed with observed/parsed/checkpoint 3,
+  changed/suppressed/failed 0, exact expected listing identities, one request/inbox marker,
+  cleared slot and next run on 2026-10-27. Receipts `scheduled-{aurora,brisa,cobalto}.json` in the
+  same protected directory contain full run/request/observation identities and UTC timestamps.
+  Aurora run `01a179c8-06d9-72dd-a956-124d420b3572`, request
+  `01a179c8-0539-76d1-a2f9-619483f9a277`, was observed at 19:55 UTC.
+- Retrieved actual Tempo trace `7bf7fc47424d67d830d13412c6780f69`, containing a successful
+  `collection.scheduled-run` span with the same 3/3/0/0 counts and `replayed=false`.
+  The span encloses the persisted run interval and was the only native scheduled span in the
+  isolated Aurora activation window. This is time/count correlation; the privacy-bounded span
+  does not export a run ID. The original search and complete trace JSON are retained beside the
+  schedule receipt; no unobserved cross-event trace continuity is claimed.
+- On post-activation readback, all four application containers were healthy with matching delivered
+  identities; 11 trusted public HTTPS checks passed, including both landing languages/presentations,
+  deep application routes and exact root redirects. Public readiness reported database/broker available.
+  Only synthetic sources are enabled; three portal schedules remain enabled at their unchanged
+  daily cadence, while the generic fixture schedule remains disabled. These HTTP checks do not
+  replace the later browser journey campaign.
+- Deployment exposed an executor defect after successful migrations and scoped replacement:
+  `pause_writers` redundantly called Compose `start`, which required the removed temporary
+  migration service. The application was already healthy. Scoped proxy validation/reload and
+  actual container/HTTPS readback established successful activation; deployment was not repeated.
+  The root operator now suppresses resume after successful replacement while preserving ordinary
+  backup recovery and stopped writers after failed migration. A new regression reproduced the
+  defect; all 30 root infrastructure tests passed and a targeted independent review found none.
+  Separate root commits: `e91c30c63af40d30bc331c9c3ef7f55a8a88644a` (fix) and
+  `2c142a3d40704486afab2eaae25e30515cca980b` (tests).
+- The review's pending operational evidence obligation is now resolved by these actual receipts.
+  Acceptance and applicable gates hold; no product code changed after the reviewed delivered
+  commit. Earlier evidence remains preserved and unchanged checks were reused.
