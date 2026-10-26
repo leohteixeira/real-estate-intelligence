@@ -469,3 +469,29 @@ matching counts. No exported run-ID or cross-event continuity is inferred. See t
 [scheduled production plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-scheduled-collection-in-production-plan.md)
 for actual run/request identities and the bounded deployment-executor recovery. All four services
 and public readiness were healthy after activation; later stories retain browser/business proofs.
+
+### Published Properties acceptance — 2026-10-26 (Story 3.13)
+
+The read-only snapshot-bound probe
+`node integration/fixtures/probe-properties-production.ts <evidence-json-path>` passed 15 trusted
+HTTPS reads under the application prefix: persisted search, five properties and nine listings.
+The three-listing property is `01a179c6-fc86-7a92-b01f-6b4ebf11623d`; AUR-BV-001, BRI-BV-001 and
+COB-BV-001 share it with deterministic rule evidence and Aurora's BRL 780,000 asking minimum.
+January/July price changes, current source provenance and original dated histories were observed.
+The probe pins this accepted snapshot, including the three native runs recorded above; a later
+scheduled acquisition changes counts and requires a new explicitly identified acceptance snapshot.
+
+The exact probe and full response receipt are protected beside the collection evidence as
+`properties-public-probe.ts` and `properties-public.json`. Source revision remains
+`b570a09427bea39ea03d4dda93c7dc0e0c502899`; no rebuild or deploy was required.
+The synthetic seed uses real run clocks: COB-VM-001's absence event is dated at its actual
+missing-listing run completion, `2026-10-26T19:54:27.864Z`, while its reappearance observation
+is dated `2026-06-01T12:00:00.000Z`. This proof does not claim a simulated April/May exposure gap.
+Original events are immutable; see the story plan for the directed run-record verification.
+
+The reviewed extension adds the source-register GET (16 HTTPS reads total) and checks every
+catalog price/description transition, before/after values and hashes, permitted text version,
+field-effective date and exact history count. It requires the expected text permission, so a
+wrongly denied description or a duplicate scheduled no-op change cannot pass. Expanded receipt:
+`properties-public-reviewed.json`; exact source: `properties-public-reviewed-probe.ts`, beside
+the original narrower receipt. Original evidence remains intact.
