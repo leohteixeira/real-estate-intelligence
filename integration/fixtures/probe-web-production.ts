@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { chromium } from 'playwright';
+import { chromium, errors } from 'playwright';
 
 const [directory, revision, phase] = process.argv.slice(2);
 if (!directory || !revision || !/^[a-f0-9]{40}$/.test(revision))
@@ -37,6 +37,25 @@ const network: Array<{ path: string; status: number; requestId: string | undefin
 const escaped: string[] = [];
 const pageErrors: string[] = [];
 const captures: Array<{ name: string; path: string; text: string; overflow: boolean }> = [];
+let admissions = 0;
+let confirmations = 0;
+let runId: string | null = null;
+let terminalStatus: 'uninterrupted' | 'recovered' | null = null;
+let initialTerminalFailure: {
+  at: string;
+  name: string;
+  message: string;
+  screenshot: string;
+  runId: string;
+  text: string;
+} | null = null;
+let recovery: {
+  visibleAt: string;
+  screenshot: string;
+  runId: string;
+  retriedAt: string | null;
+  completedAt: string | null;
+} | null = null;
 page.on('pageerror', (error) => pageErrors.push(error.name));
 page.on('response', (response) => {
   const url = new URL(response.url());
@@ -55,13 +74,21 @@ await context.route('**/*', async (route) => {
     escaped.push(url.origin + url.pathname);
     await route.abort();
   } else if (route.request().method() === 'POST' && url.pathname.endsWith('/api/v1/runs')) {
+    admissions++;
     await route.continue({
       headers: {
         ...route.request().headers(),
         traceparent: `00-${traceId}-${randomBytes(8).toString('hex')}-01`,
       },
     });
-  } else await route.continue();
+  } else {
+    if (
+      route.request().method() === 'POST' &&
+      /\/api\/v1\/runs\/[^/]+\/confirm$/.test(url.pathname)
+    )
+      confirmations++;
+    await route.continue();
+  }
 });
 try {
   await page.goto(`${base}/${phase === 'read' ? 'places' : 'ask'}/${place}`);
@@ -90,13 +117,18 @@ try {
       await page.getByRole('button', { name: 'Submit question', exact: true }).focus();
       await page.keyboard.press('Enter');
       await page.locator('.ask-live .ask-record').waitFor();
-      const runId = await page.locator('.ask-live .ask-identifiers dd').first().textContent();
+      runId = await page.locator('.ask-live .ask-identifiers dd').first().textContent();
+      if (!runId) throw new Error('Admitted run identity is absent.');
       await writeFile(
         `${directory}/${phase}-pending.json`,
         JSON.stringify({ startedAt, revision, phase, traceId, runId, state: 'admitted' }, null, 2),
         { mode: 0o600 },
       );
       if (phase === 'confirm') {
+        await page
+          .locator('.ask-live')
+          .getByText('Is the proposed intent “Listing search”?', { exact: true })
+          .waitFor();
         await page
           .getByRole('button', { name: 'Confirm proposal and values', exact: true })
           .waitFor();
@@ -105,10 +137,64 @@ try {
           .getByRole('button', { name: 'Confirm proposal and values', exact: true })
           .click();
       }
-      await page
+      const completed = page
         .locator('.ask-live .ask-record__head .st')
-        .filter({ hasText: /^Completed$/ })
-        .waitFor();
+        .filter({ hasText: /^Completed$/ });
+      try {
+        await completed.waitFor();
+        terminalStatus = 'uninterrupted';
+      } catch (error) {
+        if (phase !== 'ask' || !(error instanceof errors.TimeoutError)) throw error;
+        initialTerminalFailure = {
+          at: new Date().toISOString(),
+          name: error instanceof Error ? error.name : 'UnknownError',
+          message: error instanceof Error ? error.message : String(error),
+          screenshot: `${directory}/ask-initial-terminal-failed.png`,
+          runId,
+          text: await page.locator('.ask-live').innerText(),
+        };
+        await page.screenshot({ path: initialTerminalFailure.screenshot, fullPage: true });
+        await writeFile(
+          `${directory}/ask-initial-terminal-failed.json`,
+          JSON.stringify(
+            { result: 'failed', revision, phase, traceId, ...initialTerminalFailure },
+            null,
+            2,
+          ),
+          { mode: 0o600 },
+        );
+        const interruption = page
+          .locator('.ask-live .system-error')
+          .filter({
+            hasText:
+              'Communication was interrupted or refused. This does not confirm the end of the run.',
+          })
+          .filter({
+            hasText: 'Try resuming evidence for this same run. No new question will be submitted.',
+          });
+        await interruption.waitFor();
+        if ((await page.locator('.ask-live .ask-identifiers dd').first().textContent()) !== runId)
+          throw new Error('Run identity changed before explicit recovery.', { cause: error });
+        recovery = {
+          visibleAt: new Date().toISOString(),
+          screenshot: `${directory}/ask-recovery.png`,
+          runId,
+          retriedAt: null,
+          completedAt: null,
+        };
+        await page.screenshot({ path: recovery.screenshot, fullPage: true });
+        recovery.retriedAt = new Date().toISOString();
+        await interruption.getByRole('button', { name: 'Try again', exact: true }).click();
+        if ((await page.locator('.ask-live .ask-identifiers dd').first().textContent()) !== runId)
+          throw new Error('Run identity changed after explicit recovery.', { cause: error });
+        await completed.waitFor();
+        recovery.completedAt = new Date().toISOString();
+        terminalStatus = 'recovered';
+      }
+      if ((await page.locator('.ask-live .ask-identifiers dd').first().textContent()) !== runId)
+        throw new Error('Terminal belongs to a different admitted run.');
+      if (admissions !== 1 || confirmations !== (phase === 'confirm' ? 1 : 0))
+        throw new Error('Journey issued an unexpected admission or confirmation mutation.');
       if (phase === 'ask') {
         const value = await page.locator('.ask-live .fig__value').textContent();
         if (!value?.includes('11,544.12'))
@@ -119,6 +205,32 @@ try {
           !explanation.includes('vercel-ai-gateway')
         )
           throw new Error('Accepted real model explanation/provenance is absent.');
+      } else {
+        // Confirmed non-price execution-unavailable evidence maps to completed/not_available.
+        await page
+          .locator('.ask-live')
+          .getByText('The recognized intent is unavailable.', { exact: true })
+          .waitFor();
+        await page
+          .locator('.ask-live')
+          .getByText('Proposed intent in this record: Listing search.', { exact: true })
+          .waitFor();
+        await page.locator('.ask-live .ask-recorded-confirmation').waitFor();
+        await page
+          .locator('.ask-live')
+          .getByText('No model explanation was returned for this state.', { exact: true })
+          .waitFor();
+        if (await page.locator('.ask-live .fig__value').count())
+          throw new Error('Unavailable listing_search completion unexpectedly presents a price.');
+        if (
+          await page
+            .locator('.ask-live')
+            .getByText('Explanation, written by a model', { exact: true })
+            .count()
+        )
+          throw new Error(
+            'Unavailable listing_search completion unexpectedly presents model prose.',
+          );
       }
     }
     for (const width of [1440, 390]) {
@@ -135,8 +247,15 @@ try {
         await page.locator('.place-median .place-provenance').waitFor({ state: 'visible' });
         const sources = await page.locator('.place-median .prov__sources a').count();
         const evidence = await page.locator('.place-median .place-provenance').innerText();
-        if (sources !== 3 || !/2026/.test(evidence))
-          throw new Error('Visible median lacks three source links or its computation date.');
+        const source = await page.locator('.place-median .prov__sources a').getAttribute('href');
+        if (
+          sources !== 1 ||
+          source !== 'https://aurora.synthetic.invalid/listings/AUR-BV-001' ||
+          !/2026/.test(evidence)
+        )
+          throw new Error(
+            'Visible median lacks its canonical Aurora evidence or computation date.',
+          );
         const counts = await page.locator('.place-counts').innerText();
         if (!/1/.test(counts) || !/3/.test(counts))
           throw new Error('Resolved property/listing/source counts are absent.');
@@ -207,6 +326,22 @@ try {
         startedAt,
         completedAt: new Date().toISOString(),
         traceId,
+        runId,
+        terminalStatus,
+        initialTerminalFailure,
+        recovery,
+        admissions,
+        confirmations,
+        ...(phase === 'confirm'
+          ? {
+              expectedTerminal: { state: 'completed', reason: null },
+              expectedResult: {
+                kind: 'unavailable_intent',
+                intent: 'listing_search',
+                reason: 'not_available',
+              },
+            }
+          : {}),
         captures,
         network,
         escaped,
@@ -223,6 +358,9 @@ try {
       revision,
       phase,
       traceId,
+      runId,
+      terminalStatus,
+      initialTerminalFailure: initialTerminalFailure !== null,
       captures: captures.length,
       directory,
     }),
@@ -239,6 +377,12 @@ try {
         startedAt,
         completedAt: new Date().toISOString(),
         traceId,
+        runId,
+        terminalStatus,
+        initialTerminalFailure,
+        recovery,
+        admissions,
+        confirmations,
         captures,
         network,
         escaped,
