@@ -3,7 +3,7 @@ title: 'Property detail'
 type: 'feature'
 ticket: 9
 created: '2026-10-25'
-status: 'built'
+status: done
 baseline_revision: 'ba855609bdce1a517c6dc30062d0a11b41b9e6ba'
 route: 'oneshot'
 route_source: 'auto'
@@ -106,3 +106,6 @@ unchanged history removal/return, permission, prepared-contract and browser evid
 - Test delivery: `0837ed9a7881c6e6e74a0c1dc8c64be3d9532531` (normal hooks passed);
   the commit includes the initial plan already staged for the all-files gate. This documentation
   update records its completed review and gates without rewriting history.
+- Closure: all reviewed files were committed and the product working copy was clean after
+  `8dbe8e7bea049ebb9963b4041d4bc9b48c8885f8`. Ticket 3.9 was then marked done; the normal
+  closure commit contains only this record and the ticket status.
