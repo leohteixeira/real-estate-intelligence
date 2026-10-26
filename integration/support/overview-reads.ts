@@ -1,6 +1,9 @@
 import type { Page } from 'playwright';
 import { expect } from 'vitest';
-import { parsePlaceMarketSeriesResponse } from '../../packages/contracts/dist/index.js';
+import {
+  parsePlaceMarketResponse,
+  parsePlaceMarketSeriesResponse,
+} from '../../packages/contracts/dist/index.js';
 import { checkAccessibility } from './accessibility.ts';
 import { toggleOverviewDisclosure } from './overview-disclosures.ts';
 
@@ -165,4 +168,70 @@ export async function exerciseHistoricalSeries(page: Page, base: string, locale:
     }
   }
   await checkAccessibility(page, `place-historical-series-${page.viewportSize()!.width}-${locale}`);
+}
+
+/** Controlled UI boundary: a strictly valid stale response; recovery returns to the actual API. */
+export async function exerciseStaleEvidence(page: Page, base: string, locale: 'pt-BR' | 'en') {
+  const id = 'sao-paulo-bela-vista';
+  const endpoint = `${base}/api/v1/places/${id}/market`;
+  let intercepted = 0;
+  await page.route(endpoint, async (route) => {
+    const response = await route.fetch();
+    const real = parsePlaceMarketResponse(await response.json());
+    const stale = structuredClone(real);
+    const evaluated = Date.parse(stale.evaluatedAt);
+    const median = stale.figures.medianAskingPricePerSquareMeter;
+    const synthetic = {
+      ...stale,
+      figures: {
+        ...stale.figures,
+        medianAskingPricePerSquareMeter: {
+          ...median,
+          computedAt: new Date(evaluated - 1_234_500).toISOString(),
+          freshness: {
+            status: 'stale',
+            latestCollectionCompletedAt: new Date(evaluated - 1000).toISOString(),
+            ageSeconds: 1234.5,
+          },
+        },
+      },
+    };
+    const valid = parsePlaceMarketResponse(synthetic);
+    expect(valid.figures.medianAskingPricePerSquareMeter.value).toEqual(median.value);
+    expect(valid.figures.medianAskingPricePerSquareMeter.sources).toEqual(median.sources);
+    intercepted++;
+    await route.fulfill({ response, json: valid });
+  });
+  try {
+    await page.goto(`${base}/places/${id}`);
+    const disclosure = page.locator('.place-median .place-figure-evidence');
+    await disclosure.locator('summary').waitFor({ state: 'visible' });
+    await toggleOverviewDisclosure(page, disclosure, true);
+    const proof = disclosure.locator('.place-provenance');
+    const age =
+      locale === 'en' ? 'Calculation age: 1,234.5 seconds' : 'Idade do cálculo: 1.234,5 segundos';
+    await expect.poll(() => proof.textContent()).toContain(age);
+    expect(await proof.textContent()).toContain(
+      locale === 'en' ? 'Stale data' : 'Dados desatualizados',
+    );
+    expect(await proof.textContent()).toContain('UTC');
+    expect(await proof.textContent()).toMatch(
+      locale === 'en' ? /contributing property/ : /imóvel contribuinte/,
+    );
+    expect(await proof.locator('a').count()).toBe(1);
+    expect(await proof.locator('a').isVisible()).toBe(true);
+    expect(intercepted).toBe(1);
+    await checkAccessibility(page, `place-stale-evidence-${page.viewportSize()!.width}-${locale}`);
+    await toggleOverviewDisclosure(page, disclosure, false);
+  } finally {
+    await page.unroute(endpoint);
+  }
+  await page.goto(`${base}/places/${id}`);
+  const disclosure = page.locator('.place-median .place-figure-evidence');
+  await disclosure.locator('summary').waitFor({ state: 'visible' });
+  await toggleOverviewDisclosure(page, disclosure, true);
+  expect(await disclosure.locator('.place-provenance').textContent()).not.toContain(
+    locale === 'en' ? 'Calculation age:' : 'Idade do cálculo:',
+  );
+  await toggleOverviewDisclosure(page, disclosure, false);
 }

@@ -17,7 +17,7 @@ it.each(['pt-BR', 'en'] as const)(
             evidence={{
               ...evidence,
               recordCount: 2,
-              freshness: { ...evidence.freshness, status },
+              freshness: { ...evidence.freshness, status, ageSeconds: 1234.5 },
               sources: [
                 ...evidence.sources,
                 { ...evidence.sources[0]!, id: 'long', label: 'Long canonical source name' },
@@ -61,6 +61,15 @@ it.each(['pt-BR', 'en'] as const)(
                 : 'Atualidade não rastreada',
         ),
       ).toBeVisible();
+      if (status === 'stale')
+        expect(
+          screen.getByText(
+            locale === 'en'
+              ? 'Calculation age: 1,234.5 seconds'
+              : 'Idade do cálculo: 1.234,5 segundos',
+          ),
+        ).toBeVisible();
+      else expect(screen.queryByText(/Calculation age:|Idade do cálculo:/)).toBeNull();
       view.unmount();
     }
   },

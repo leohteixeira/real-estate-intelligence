@@ -180,3 +180,24 @@ describe('D-097 monthly asking price populations', () => {
     ).toThrow();
   });
 });
+
+it('anchors month rollover to evaluation while retaining actual earlier calculation start', () => {
+  const computedAt = '2026-09-30T23:59:59.500Z';
+  const evaluatedAt = '2026-10-01T00:00:00.500Z';
+  const points = monthlyAskingPriceSeries(
+    [state(1, computedAt)],
+    ['child'],
+    null,
+    evaluatedAt,
+    computedAt,
+  );
+  expect(points[0]!.month).toBe('2025-11');
+  expect(points.at(-1)!.month).toBe('2026-10');
+  expect(points.at(-1)!.asOf).toBe(evaluatedAt);
+  expect(points.at(-1)!.median.value?.minorUnits).toBe(1000);
+  for (const point of points) {
+    expect(point.median.computedAt).toBe(computedAt);
+    expect(point.median.freshness.ageSeconds).toBe(1);
+  }
+  expect(() => monthlyAskingPriceSeries([], [], null, computedAt, evaluatedAt)).toThrow();
+});

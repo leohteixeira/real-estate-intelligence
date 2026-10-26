@@ -382,3 +382,34 @@ describe('PostgresMarketPriceFacts', () => {
     await f.connection.close();
   });
 });
+
+it('upserts source completion monotonically in the owned transaction and reads only requested sources', async () => {
+  const f = fixture();
+  await f.transactions.runInTransaction((tx) =>
+    f.repository.complete(tx, 'synthetic-source', date),
+  );
+  const upsert = f.query.mock.calls.find(([sql]) =>
+    sql.includes('INSERT INTO market.source_completion'),
+  );
+  expect(upsert?.[0]).toContain(
+    'GREATEST(market.source_completion.completed_at, EXCLUDED.completed_at)',
+  );
+  expect(upsert?.[1]).toEqual(['synthetic-source', date]);
+  const read = vi
+    .spyOn(f.connection, 'query')
+    .mockResolvedValue([{ source_id: 'synthetic-source', completed_at: new Date(date) }]);
+  expect(
+    await f.repository.readCompletions(['synthetic-source', 'another-source', 'synthetic-source']),
+  ).toEqual([{ sourceId: 'synthetic-source', completedAt: date }]);
+  expect(read).toHaveBeenCalledWith(expect.stringContaining('WHERE source_id = ANY($1::text[])'), [
+    ['another-source', 'synthetic-source'],
+  ]);
+  await expect(
+    f.transactions.runInTransaction((tx) =>
+      f.repository.complete(tx, 'synthetic-source', 'invalid'),
+    ),
+  ).rejects.toThrow();
+  read.mockResolvedValue([{ source_id: 'synthetic-source', completed_at: new Date(NaN) }]);
+  await expect(f.repository.readCompletions(['synthetic-source'])).rejects.toThrow();
+  await f.connection.close();
+});

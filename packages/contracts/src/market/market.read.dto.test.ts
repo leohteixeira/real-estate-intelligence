@@ -175,6 +175,34 @@ describe('strict prepared Market wire contracts', () => {
       ],
     };
   }
+  it('accepts exact live fresh/stale/untracked ages while preserving observation and completion independence', () => {
+    for (const status of ['fresh', 'stale', 'untracked'] as const) {
+      let input: unknown = livePlace();
+      const computed = '2026-10-11T11:59:50.000Z';
+      const completed =
+        status === 'fresh' ? '2026-09-30T00:00:00.000Z' : '2026-10-11T11:59:55.000Z';
+      input = changed(input, 'figures.medianAskingPricePerSquareMeter.computedAt', computed);
+      input = changed(input, 'figures.medianAskingPricePerSquareMeter.freshness', {
+        status,
+        latestCollectionCompletedAt: status === 'untracked' ? null : completed,
+        ageSeconds: 10,
+      });
+      expect(
+        parsePlaceMarketResponse(input).figures.medianAskingPricePerSquareMeter.freshness.status,
+      ).toBe(status);
+      for (const [path, value] of [
+        ['freshness.ageSeconds', 9],
+        ['computedAt', '2027-01-01T00:00:00Z'],
+        ['freshness.latestCollectionCompletedAt', '2027-01-01T00:00:00Z'],
+        ['freshness.status', status === 'stale' ? 'fresh' : 'stale'],
+      ] as const)
+        expect(() =>
+          parsePlaceMarketResponse(
+            changed(input, `figures.medianAskingPricePerSquareMeter.${path}`, value),
+          ),
+        ).toThrow(TypeError);
+    }
+  });
   it('accepts fully persisted populations, including counted properties without eligible area', () => {
     expect(parsePlaceMarketResponse(livePlace()).counts).toEqual({
       properties: 1,
@@ -673,4 +701,33 @@ describe('strict live monthly series wire contract', () => {
         TypeError,
       );
   });
+});
+
+it('accepts a live calculation crossing UTC month rollover without moving population cutoffs', () => {
+  const input = liveSeries();
+  const computedAt = '2026-09-30T23:59:59.500Z';
+  const completedAt = '2026-10-01T00:00:00.000Z';
+  const evaluatedAt = '2026-10-01T00:00:00.500Z';
+  const response = {
+    ...input,
+    metadata: { ...input.metadata, asOf: computedAt },
+    evaluatedAt,
+    points: input.points.map((point, index) => ({
+      ...point,
+      asOf: index === 11 ? evaluatedAt : point.asOf,
+      median: {
+        ...point.median,
+        computedAt,
+        sources: point.median.sources.map((source) => ({
+          ...source,
+          collectedAt: index === 11 ? computedAt : source.collectedAt,
+        })),
+        freshness: { status: 'stale', latestCollectionCompletedAt: completedAt, ageSeconds: 1 },
+      },
+    })),
+  };
+  const parsed = parsePlaceMarketSeriesResponse(response);
+  expect(parsed.points.at(-1)!.month).toBe('2026-10');
+  expect(parsed.points[0]!.median.computedAt).toBe(computedAt);
+  expect(parsed.points[0]!.median.freshness.ageSeconds).toBe(1);
 });

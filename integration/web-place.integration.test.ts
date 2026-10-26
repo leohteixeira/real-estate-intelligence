@@ -20,7 +20,11 @@ import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
 import { accessibilityEntryContract } from './support/accessibility-catalog.ts';
 import { exerciseSystemStateReads } from './support/system-state-reads.ts';
-import { exerciseHistoricalSeries, exerciseOverviewReads } from './support/overview-reads.ts';
+import {
+  exerciseHistoricalSeries,
+  exerciseOverviewReads,
+  exerciseStaleEvidence,
+} from './support/overview-reads.ts';
 import { acquireOverviewReduction, retainOverviewNeighbour } from './support/overview-history.ts';
 import {
   exerciseOverviewDisclosures,
@@ -364,6 +368,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 });
                 await exerciseSystemStateReads(page, base, width, locale, captures);
                 await exerciseHistoricalSeries(page, base, locale);
+                await exerciseStaleEvidence(page, base, locale);
                 await exerciseOverviewReads(page, base, width, locale, captures);
                 await page.goto(`${base}/places/${bela}`);
                 await expect

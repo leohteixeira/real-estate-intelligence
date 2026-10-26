@@ -1,6 +1,15 @@
+import { createServer } from 'node:http';
+import request from 'supertest';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from 'vitest';
-import { MARKET_LISTING_CONSUMER, type EventEnvelope } from '../packages/application/dist/index.js';
+import {
+  MARKET_LISTING_CONSUMER,
+  MARKET_COMPLETION_CONSUMER,
+  ConsumeMarketCompletion,
+  MarketQueryService,
+  type EventEnvelope,
+  type MarketPriceFactsReadPort,
+} from '../packages/application/dist/index.js';
 import {
   parsePlaceMarketResponse,
   parsePlaceMarketNeighboursResponse,
@@ -8,12 +17,17 @@ import {
 } from '../packages/contracts/dist/index.js';
 import {
   PropertiesEventV2,
+  CollectionRunCompleted,
+  parseSha256Hash,
   isSerializableEventPayload,
   type ListingFact,
   type MinimumAskingPriceFact,
 } from '../packages/domain/dist/index.js';
 import {
   DatabaseConnection,
+  PostgresInbox,
+  PostgresLocationsFacade,
+  SyntheticMarketAdapter,
   PostgresMarketPriceFacts,
   PostgresOutbox,
   PostgresTransactionRunner,
@@ -50,7 +64,8 @@ function minimum(propertyId: string, listings: readonly ListingFact[]): MinimumA
 test('persisted figures match hand-calculated HTTP values with causal membership, lifecycle history and replay', async () => {
   await withCampaign(async ({ command }) => {
     const project = `rei-market-figures-${randomUUID()}`;
-    const [postgres, rabbit, management, minio, minioConsole, api] = await allocatePorts(6);
+    const [postgres, rabbit, management, minio, minioConsole, api, boundaryHttp] =
+      await allocatePorts(7);
     const user = 'rei_market_figures';
     const bucket = 'rei-market-figures';
     const password = 'controlled_market_figures_fixture';
@@ -345,11 +360,11 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           sources: [],
         });
         for (const figure of Object.values(golden.figures)) {
-          expect(figure.computedAt).toBe(golden.evaluatedAt);
+          expect(Date.parse(figure.computedAt)).toBeLessThanOrEqual(Date.parse(golden.evaluatedAt));
           expect(figure.freshness).toEqual({
             status: 'untracked',
             latestCollectionCompletedAt: null,
-            ageSeconds: 0,
+            ageSeconds: (Date.parse(golden.evaluatedAt) - Date.parse(figure.computedAt)) / 1000,
           });
         }
         expect(golden.figures.askingPriceMovement.sources[0]).toMatchObject({
@@ -385,8 +400,10 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         });
         expect(table.items[0]!.movement).toMatchObject({ recordCount: 1, value: 100 });
         for (const item of table.items) {
-          expect(item.median.computedAt).toBe(table.evaluatedAt);
-          expect(item.movement.computedAt).toBe(table.evaluatedAt);
+          expect(Date.parse(item.median.computedAt)).toBeLessThanOrEqual(
+            Date.parse(table.evaluatedAt),
+          );
+          expect(item.movement.computedAt).toBe(item.median.computedAt);
           expect(item.median.sources[0]).toMatchObject({
             url: 'https://figures.invalid/9',
             collectedAt: time(5),
@@ -402,7 +419,8 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           }>(`SELECT 'evidence' AS table_name,md5(COALESCE(string_agg(to_jsonb(e)::text,'' ORDER BY event_id),'')) AS digest FROM market.price_event_evidence e
           UNION ALL SELECT 'states',md5(COALESCE(string_agg(to_jsonb(e)::text,'' ORDER BY listing_id,revision),'')) FROM market.listing_state_evidence e
           UNION ALL SELECT 'assignments',md5(COALESCE(string_agg(to_jsonb(e)::text,'' ORDER BY listing_id),'')) FROM market.listing_assignment_current e
-          UNION ALL SELECT 'minima',md5(COALESCE(string_agg(to_jsonb(e)::text,'' ORDER BY property_id),'')) FROM market.property_price_current e`);
+          UNION ALL SELECT 'minima',md5(COALESCE(string_agg(to_jsonb(e)::text,'' ORDER BY property_id),'')) FROM market.property_price_current e
+          UNION ALL SELECT 'completions',md5(COALESCE(string_agg(to_jsonb(e)::text,'' ORDER BY source_id),'')) FROM market.source_completion e`);
         const retained = await snapshot();
         await compose('restart', 'worker');
         await compose('up', '--detach', '--wait', 'worker');
@@ -552,9 +570,15 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           expect(point.median).toMatchObject({
             value: expected === null ? null : { minorUnits: expected, currency: 'BRL' },
             recordCount: expected === null ? 0 : 1,
-            computedAt: monthlyGolden.evaluatedAt,
+            computedAt: monthlyGolden.points[0]!.median.computedAt,
             state: expected === null ? 'insufficient-data' : 'available',
-            freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+            freshness: {
+              status: 'untracked',
+              latestCollectionCompletedAt: null,
+              ageSeconds:
+                (Date.parse(monthlyGolden.evaluatedAt) - Date.parse(point.median.computedAt)) /
+                1000,
+            },
           });
           expect(point.median.sources).toEqual(
             expected === null
@@ -574,7 +598,7 @@ test('persisted figures match hand-calculated HTTP values with causal membership
               currency: 'BRL',
             },
             recordCount: expected === null ? 1 : 2,
-            computedAt: monthlyGolden.evaluatedAt,
+            computedAt: monthlyGolden.points[0]!.median.computedAt,
           });
           expect(point.parentMedian!.sources).toEqual([
             {
@@ -591,8 +615,18 @@ test('persisted figures match hand-calculated HTTP values with causal membership
           points: response.points.map((point, index) => ({
             ...point,
             ...(index === 11 ? { asOf: 'live' } : {}),
-            median: { ...point.median, computedAt: 'live' },
-            parentMedian: point.parentMedian ? { ...point.parentMedian, computedAt: 'live' } : null,
+            median: {
+              ...point.median,
+              computedAt: 'live',
+              freshness: { ...point.median.freshness, ageSeconds: 0 },
+            },
+            parentMedian: point.parentMedian
+              ? {
+                  ...point.parentMedian,
+                  computedAt: 'live',
+                  freshness: { ...point.parentMedian.freshness, ageSeconds: 0 },
+                }
+              : null,
           })),
         });
         const beforeMonthlyReplay = await snapshot();
@@ -620,13 +654,232 @@ test('persisted figures match hand-calculated HTTP values with causal membership
         expect((await series('brazil')).points.every((point) => point.parentMedian === null)).toBe(
           true,
         );
+        // Source completions travel through the real outbox, broker and production worker.
+        const completion = (n: number, sourceId: string, occurredAt: string): EventEnvelope => {
+          const event = new CollectionRunCompleted({
+            traceContext: null,
+            eventId: id(n),
+            aggregateId: id(n + 1000),
+            occurredAt,
+            payload: {
+              sourceId,
+              observedCount: 0,
+              parsedCount: 0,
+              suppressedCount: 0,
+              failedCount: 0,
+              manifestHash: parseSha256Hash(`sha256:${'a'.repeat(64)}`),
+            },
+          });
+          if (!isSerializableEventPayload(event.payload))
+            throw new Error('Invalid completion payload');
+          return { ...event, payload: event.payload };
+        };
+        const deliverCompletion = async (event: EventEnvelope) => {
+          await transactions.runInTransaction((tx) => outbox.append(tx, [event]));
+          await expect
+            .poll(
+              async () =>
+                (
+                  await db.query<{ count: number }>(
+                    'SELECT count(*)::integer AS count FROM platform.inbox WHERE consumer_name=$1 AND event_id=$2',
+                    [MARKET_COMPLETION_CONSUMER, event.eventId],
+                  )
+                )[0]!.count,
+              { timeout: 30000, interval: 100 },
+            )
+            .toBe(1);
+        };
+        const figuresCompleted = completion(900, 'synthetic-figures', time(20));
+        await deliverCompletion(figuresCompleted);
+        // A last completion may predate observations from a still-running collection.
+        const partial = await get();
+        expect(partial.figures.medianAskingPricePerSquareMeter.freshness.status).toBe('fresh');
+        expect(
+          partial.figures.medianAskingPricePerSquareMeter.sources[0]!.collectedAt >
+            figuresCompleted.occurredAt,
+        ).toBe(true);
+        expect(partial.figures.listingsPerProperty.freshness.status).toBe('untracked');
+        expect(
+          partial.figures.listingsPerProperty.freshness.latestCollectionCompletedAt,
+        ).toBeNull();
+        const memberCompleted = completion(901, 'synthetic-member', time(10));
+        await deliverCompletion(memberCompleted);
+        await deliverCompletion(completion(902, 'unrelated-source', time(0)));
+        const complete = await get();
+        expect(
+          complete.figures.medianAskingPricePerSquareMeter.freshness.latestCollectionCompletedAt,
+        ).toBe(time(20));
+        expect(complete.figures.listingsPerProperty.freshness.latestCollectionCompletedAt).toBe(
+          time(10),
+        );
+        expect(complete.figures.recordedSalePricePerSquareMeter.freshness.status).toBe('untracked');
+        expect((await neighbors()).items[0]!.median.freshness.status).toBe('fresh');
+        const completedSeries = await series('sao-paulo-santana-fictional-block');
+        expect(completedSeries.points[0]!.median.freshness.status).toBe('fresh');
+        expect(completedSeries.points[3]!.median.freshness.status).toBe('untracked');
+        expect(completedSeries.points[3]!.parentMedian!.freshness.status).toBe('fresh');
+        const watermarks = () =>
+          db.query<{ source_id: string; completed_at: Date }>(
+            'SELECT source_id,completed_at FROM market.source_completion ORDER BY source_id',
+          );
+        const retainedCompletions = await watermarks();
+        await compose('restart', 'worker');
+        await compose('up', '--detach', '--wait', 'worker');
+        expect(await watermarks()).toEqual(retainedCompletions);
+        await deliverCompletion(completion(903, 'synthetic-figures', time(30)));
+        await db.query('DELETE FROM platform.inbox WHERE consumer_name=$1', [
+          MARKET_COMPLETION_CONSUMER,
+        ]);
+        for (const event of [memberCompleted, figuresCompleted, figuresCompleted])
+          await broker.publish(event, signal());
+        await expect
+          .poll(
+            async () =>
+              (
+                await db.query<{ count: number }>(
+                  'SELECT count(*)::integer AS count FROM platform.inbox WHERE consumer_name=$1',
+                  [MARKET_COMPLETION_CONSUMER],
+                )
+              )[0]!.count,
+            { timeout: 30000, interval: 100 },
+          )
+          .toBe(2);
+        expect(await watermarks()).toEqual(retainedCompletions);
+        // Real SQL rollback and cancellation leave neither watermark nor inbox effect.
+        const inbox = new PostgresInbox(db);
+        for (const cancel of [false, true]) {
+          const controller = new AbortController();
+          const service = new ConsumeMarketCompletion(facts, transactions, {
+            record: async (tx, consumer, eventId) => {
+              await inbox.record(tx, consumer, eventId);
+              if (cancel) controller.abort(new Error('Owned cancellation'));
+              else throw new Error('Owned inbox failure');
+              return true;
+            },
+          });
+          await expect(
+            service.execute(
+              completion(cancel ? 905 : 904, 'rollback-source', time(0)),
+              controller.signal,
+            ),
+          ).rejects.toThrow();
+          expect(await facts.readCompletions(['rollback-source'])).toEqual([]);
+          expect(
+            await db.query(
+              'SELECT event_id FROM platform.inbox WHERE consumer_name=$1 AND event_id=ANY($2::uuid[])',
+              [MARKET_COMPLETION_CONSUMER, [id(904), id(905)]],
+            ),
+          ).toEqual([]);
+        }
+        // Native HTTP fixture uses production service/ports and a real completion barrier.
+        // It does not freeze time, cache figures or add a production test switch.
+        let calculationStart = 0;
+        let boundaryEvent = 910;
+        const boundaryFacts: MarketPriceFactsReadPort = {
+          readCurrent: () => facts.readCurrent(),
+          readFigures: () => facts.readFigures(),
+          readCompletions: async (sourceIds) => {
+            await expect
+              .poll(() => Date.now(), { timeout: 5000, interval: 1 })
+              .toBeGreaterThan(calculationStart);
+            const event = completion(
+              boundaryEvent++,
+              'synthetic-figures',
+              new Date().toISOString(),
+            );
+            await deliverCompletion(event);
+            return facts.readCompletions(sourceIds);
+          },
+        };
+        const boundary = new MarketQueryService(
+          new SyntheticMarketAdapter(),
+          new PostgresLocationsFacade(db),
+          {
+            facts: boundaryFacts,
+            clock: {
+              now: () => {
+                const instant = new Date().toISOString();
+                calculationStart = Date.parse(instant);
+                return instant;
+              },
+            },
+          },
+        );
+        const server = createServer((incoming, response) => {
+          const operation =
+            incoming.url === '/neighbours'
+              ? boundary.neighbours('sao-paulo-bela-vista')
+              : incoming.url === '/series'
+                ? boundary.monthlySeries('sao-paulo-pinheiros')
+                : boundary.getPlaceMarket('sao-paulo-pinheiros');
+          void operation
+            .then((result) => {
+              response.setHeader('content-type', 'application/json');
+              response.end(JSON.stringify(result));
+            })
+            .catch(() => {
+              response.statusCode = 500;
+              response.end();
+            });
+        });
+        await new Promise<void>((resolve) => server.listen(boundaryHttp, '127.0.0.1', resolve));
+        await preserveCleanup(
+          async () => {
+            for (const [path, parser] of [
+              ['/', parsePlaceMarketResponse],
+              ['/neighbours', parsePlaceMarketNeighboursResponse],
+              ['/series', parsePlaceMarketSeriesResponse],
+            ] as const) {
+              const response = await request(`http://127.0.0.1:${boundaryHttp}`)
+                .get(path)
+                .expect(200);
+              const result = parser(response.body);
+              const figures =
+                'figures' in result
+                  ? [...Object.values(result.figures), result.parentMedian!.median]
+                  : 'items' in result
+                    ? result.items.flatMap((item) => [item.median, item.movement])
+                    : result.points.flatMap((point) => [point.median, point.parentMedian!]);
+              expect(figures.some((figure) => figure.freshness.status === 'stale')).toBe(true);
+              for (const figure of figures) {
+                expect(figure.freshness.ageSeconds).toBe(
+                  (Date.parse(result.evaluatedAt) - Date.parse(figure.computedAt)) / 1000,
+                );
+                if (figure.freshness.status !== 'stale') continue;
+                expect(Date.parse(figure.computedAt)).toBeLessThan(
+                  Date.parse(figure.freshness.latestCollectionCompletedAt!),
+                );
+                expect(
+                  Date.parse(figure.freshness.latestCollectionCompletedAt!),
+                ).toBeLessThanOrEqual(Date.parse(result.evaluatedAt));
+              }
+              if ('figures' in result) {
+                expect(result.figures.medianAskingPricePerSquareMeter.value).toEqual(
+                  golden.figures.medianAskingPricePerSquareMeter.value,
+                );
+                expect(result.figures.medianAskingPricePerSquareMeter.sources).toEqual(
+                  golden.figures.medianAskingPricePerSquareMeter.sources,
+                );
+              }
+            }
+          },
+          () =>
+            new Promise<void>((resolve, reject) =>
+              server.close((error) => (error ? reject(error) : resolve())),
+            ),
+        );
+        expect((await get()).figures.medianAskingPricePerSquareMeter.freshness.status).toBe(
+          'fresh',
+        );
         await compose('stop', 'worker');
         const beforeReads = await snapshot();
         await get();
         const detachedSeries = await series('sao-paulo-santana-fictional-block');
         Reflect.set(detachedSeries.points[0]!.median.sources[0]!, 'url', 'mutated');
-        expect(stableSeries(await series('sao-paulo-santana-fictional-block'))).toEqual(
-          stableSeries(monthlyGolden),
+        const detachedReread = await series('sao-paulo-santana-fictional-block');
+        expect(detachedReread.points[0]!.median.sources[0]!.url).toBe('https://figures.invalid/50');
+        expect(detachedReread.points[0]!.median.value).toEqual(
+          monthlyGolden.points[0]!.median.value,
         );
         const emptyHistorical = await series(
           'sao-paulo-vila-mariana-rua-cenario-um-fictional-block',
@@ -661,6 +914,34 @@ test('persisted figures match hand-calculated HTTP values with causal membership
             (await requestHttp(`http://127.0.0.1:${api}/api/v1/places/BAD/market${suffix}`)).status,
           ).toBe(400);
         }
+        // A future persisted completion fails closed on all three HTTP surfaces.
+        const completionBeforeFault = await facts.readCompletions(['synthetic-figures']);
+        await db.query(
+          "UPDATE market.source_completion SET completed_at=now()+interval '1 day' WHERE source_id=$1",
+          ['synthetic-figures'],
+        );
+        await preserveCleanup(
+          async () => {
+            for (const suffix of ['', '/neighbours', '/monthly-series']) {
+              const response = await requestHttp(
+                `http://127.0.0.1:${api}/api/v1/places/sao-paulo-bela-vista/market${suffix}`,
+              );
+              expect(response.status).toBe(500);
+              expect(await response.json()).toEqual({
+                error: {
+                  code: 'internal_error',
+                  message: 'An unexpected error occurred.',
+                  requestId: expect.any(String),
+                },
+              });
+            }
+          },
+          () =>
+            db.query(
+              'UPDATE market.source_completion SET completed_at=$2::timestamptz WHERE source_id=$1',
+              ['synthetic-figures', completionBeforeFault[0]!.completedAt],
+            ),
+        );
         // Corrupt persisted evidence must produce the canonical sanitized server error.
         await db.query('ALTER TABLE market.listing_state_evidence RENAME TO owned_unavailable');
         await preserveCleanup(

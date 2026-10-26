@@ -20,9 +20,9 @@ export async function exerciseSystemStateReads(
   const read = await requestHttp(marketUrl);
   expect(read.status).toBe(200);
   const market = parsePlaceMarketResponse(await read.json());
-  // The owned event-fed median is explicitly untracked. A stale condition belongs
-  // in the labelled gallery, not a fabricated response that violates this contract.
-  expect(market.figures.medianAskingPricePerSquareMeter.freshness.status).toBe('untracked');
+  // Genuine synthetic-data acquisition completed before these transport/recovery journeys.
+  // The separately labelled stale UI boundary is exercised by exerciseStaleEvidence.
+  expect(market.figures.medianAskingPricePerSquareMeter.freshness.status).toBe('fresh');
   const requestId = read.headers.get('x-request-id');
   expect(requestId).toMatch(/^[0-9a-f-]{36}$/i);
   const capture = async (condition: string) => {

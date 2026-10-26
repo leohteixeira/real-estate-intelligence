@@ -71,7 +71,7 @@ describe('Market facade query orchestration', () => {
       throw invalidFact;
     });
     const service = new MarketQueryService({ read: f.read }, f.locations, {
-      facts: { readCurrent: async () => [], readFigures },
+      facts: { readCompletions: async () => [], readCurrent: async () => [], readFigures },
       clock: { now: () => date },
     });
     await expect(service.getPlaceMarket('child')).rejects.toMatchObject({
@@ -120,6 +120,7 @@ describe('Market facade query orchestration', () => {
       };
       const service = new MarketQueryService({ read: f.read }, f.locations, {
         facts: {
+          readCompletions: async () => [],
           readCurrent: async () => [fact],
           readFigures: async () => ({
             representatives: [fact],
@@ -147,7 +148,7 @@ describe('Market facade query orchestration', () => {
     }));
     const now = vi.fn(() => '2026-10-11T12:00:00.000Z');
     const service = new MarketQueryService({ read: f.read }, f.locations, {
-      facts: { readCurrent: async () => [], readFigures },
+      facts: { readCompletions: async () => [], readCurrent: async () => [], readFigures },
       clock: { now },
     });
     const result = (await service.getPlaceMarket('child'))!;
@@ -172,7 +173,7 @@ describe('Market facade query orchestration', () => {
     expect(neighbors.basis).toBe('event-fed-place-figures');
     expect(neighbors.items[0]!.median.value).toBeNull();
     expect(readFigures).toHaveBeenCalledTimes(2);
-    expect(now).toHaveBeenCalledTimes(2);
+    expect(now).toHaveBeenCalledTimes(4);
     expect(result).not.toHaveProperty('preparedEvaluatedAt');
     expect(result).not.toHaveProperty('preparedSections');
     const series = (await service.monthlySeries('child'))!;
@@ -185,7 +186,7 @@ describe('Market facade query orchestration', () => {
       ),
     ).toBe(true);
     expect(readFigures).toHaveBeenCalledTimes(3);
-    expect(now).toHaveBeenCalledTimes(3);
+    expect(now).toHaveBeenCalledTimes(6);
     Reflect.set(series.metadata, 'fixtureVersion', 'mutated');
     expect((await service.monthlySeries('child'))!.metadata.fixtureVersion).toBe('fixture');
     expect((await service.monthlySeries('parent'))!.comparisonPlace).toBeNull();
@@ -260,7 +261,11 @@ describe('Market facade query orchestration', () => {
     }));
     const now = vi.fn(() => date);
     const service = new MarketQueryService({ read: f.read }, f.locations, {
-      facts: { readCurrent: async () => representatives, readFigures },
+      facts: {
+        readCompletions: async () => [],
+        readCurrent: async () => representatives,
+        readFigures,
+      },
       clock: { now },
     });
     const overview = (await service.getPlaceMarket('child'))!;
@@ -275,7 +280,7 @@ describe('Market facade query orchestration', () => {
     });
     const neighbors = (await service.neighbours('child'))!;
     expect(readFigures).toHaveBeenCalledTimes(2);
-    expect(now).toHaveBeenCalledTimes(2);
+    expect(now).toHaveBeenCalledTimes(4);
     expect(neighbors.items.map((item) => item.place.id)).toEqual(['neighbor', 'empty']);
     expect(neighbors.items[0]!.median).toMatchObject({
       recordCount: 1,
@@ -359,4 +364,85 @@ describe('Market facade query orchestration', () => {
       .mockResolvedValueOnce({ ...sample, points: [{ month: '2026-09', median: unavailable }] });
     await expect(misaligned.service.monthlySeries('child')).rejects.toThrow('misaligned');
   });
+});
+
+it('uses one snapshot and a later completion read for exact stale evidence across all live surfaces', async () => {
+  const f = fixture();
+  const computedAt = '2026-09-30T23:59:59.000Z';
+  const completedAt = '2026-09-30T23:59:59.500Z';
+  const evaluatedAt = '2026-10-01T00:00:01.250Z';
+  const fact: ListingFact = {
+    listingId: 'listing',
+    propertyId: 'property',
+    sourceId: 'source-a',
+    sourceListingId: 'listing',
+    placeId: 'child',
+    propertyType: 'apartment',
+    status: 'active',
+    askingPriceMinorUnits: 10000,
+    currency: 'BRL',
+    areaSquareMeters: 10,
+    effectiveAt: '2026-01-01T00:00:00.000Z',
+    provenance: {
+      sourceId: 'source-a',
+      sourceListingId: 'listing',
+      sourceUrl: 'https://source.invalid/listing',
+      observedAt: '2026-01-01T00:00:00.000Z',
+      runId: 'run',
+      snapshotId: 'snapshot',
+      contentHash: `sha256:${'a'.repeat(64)}`,
+    },
+  };
+  f.scope.mockImplementation(async (id) =>
+    id === 'parent' || id === 'neighbor' ? ['child'] : [id],
+  );
+  const snapshot = {
+    representatives: [fact],
+    current: [fact],
+    history: [{ revision: 1, listing: fact }],
+    priceChanges: [],
+  };
+  const readFigures = vi.fn(async () => snapshot);
+  const readCompletions = vi.fn(async () => [{ sourceId: 'source-a', completedAt }]);
+  let ticks = 0;
+  const now = vi.fn(() => (ticks++ % 2 === 0 ? computedAt : evaluatedAt));
+  const service = new MarketQueryService({ read: f.read }, f.locations, {
+    facts: { readCurrent: async () => [fact], readFigures, readCompletions },
+    clock: { now },
+  });
+  const overview = (await service.getPlaceMarket('child'))!;
+  for (const figure of [...Object.values(overview.figures), overview.parentMedian!.median]) {
+    expect(figure.computedAt).toBe(computedAt);
+    expect(figure.freshness).toEqual({
+      status: figure.sources.length ? 'stale' : 'untracked',
+      latestCollectionCompletedAt: figure.sources.length ? completedAt : null,
+      ageSeconds: 2.25,
+    });
+  }
+  expect(overview.figures.medianAskingPricePerSquareMeter.value?.minorUnits).toBe(1000);
+  const neighbours = (await service.neighbours('child'))!;
+  expect(neighbours.items[0]!.median.freshness.status).toBe('stale');
+  const series = (await service.monthlySeries('child'))!;
+  expect(series.points.at(-1)!.month).toBe('2026-10');
+  if (series.basis !== 'event-fed-place-figures') throw new Error('Expected live series');
+  expect(series.points.at(-1)!.asOf).toBe(evaluatedAt);
+  expect(series.points[0]!.median.freshness.status).toBe('untracked');
+  expect(series.points.at(-1)!.median.freshness).toEqual({
+    status: 'stale',
+    latestCollectionCompletedAt: completedAt,
+    ageSeconds: 2.25,
+  });
+  expect(series.points.every((point) => point.median.computedAt === computedAt)).toBe(true);
+  expect(readFigures).toHaveBeenCalledTimes(3);
+  expect(readCompletions).toHaveBeenCalledTimes(3);
+  expect(readCompletions).toHaveBeenCalledWith(['source-a']);
+  expect(readFigures.mock.invocationCallOrder[0]).toBeLessThan(now.mock.invocationCallOrder[0]!);
+  expect(now.mock.invocationCallOrder[0]).toBeLessThan(
+    readCompletions.mock.invocationCallOrder[0]!,
+  );
+  expect(readCompletions.mock.invocationCallOrder[0]).toBeLessThan(
+    now.mock.invocationCallOrder[1]!,
+  );
+  Reflect.set(overview.figures.medianAskingPricePerSquareMeter.sources[0]!, 'url', 'mutated');
+  expect(fact.provenance.sourceUrl).toBe('https://source.invalid/listing');
 });

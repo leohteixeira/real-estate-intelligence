@@ -118,11 +118,18 @@ test('market-contracts preserves its complete real-service campaign', async () =
         figures: Object.fromEntries(
           Object.entries(body.figures).map(([key, value]) => [
             key,
-            { ...value, computedAt: 'live' },
+            { ...value, computedAt: 'live', freshness: { ...value.freshness, ageSeconds: 0 } },
           ]),
         ),
         parentMedian: body.parentMedian
-          ? { ...body.parentMedian, median: { ...body.parentMedian.median, computedAt: 'live' } }
+          ? {
+              ...body.parentMedian,
+              median: {
+                ...body.parentMedian.median,
+                computedAt: 'live',
+                freshness: { ...body.parentMedian.median.freshness, ageSeconds: 0 },
+              },
+            }
           : null,
       };
     }
@@ -179,7 +186,11 @@ test('market-contracts preserves its complete real-service campaign', async () =
               value: null,
               recordCount: 0,
               sources: [],
-              freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
+              freshness: {
+                status: 'untracked',
+                latestCollectionCompletedAt: null,
+                ageSeconds: expect.any(Number),
+              },
             });
             expect(overview.figures.recordedSalePricePerSquareMeter.state).toBe('not-recorded');
             expect(overview.figures.recordedSalePricePerSquareMeter.value).toBe(null);

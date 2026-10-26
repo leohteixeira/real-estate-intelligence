@@ -270,7 +270,10 @@ test('event-fed median persists real broker evidence, fences replay and follows 
         expect(golden.figures.medianAskingPricePerSquareMeter.freshness).toEqual({
           status: 'untracked',
           latestCollectionCompletedAt: null,
-          ageSeconds: 0,
+          ageSeconds:
+            (Date.parse(golden.evaluatedAt) -
+              Date.parse(golden.figures.medianAskingPricePerSquareMeter.computedAt)) /
+            1000,
         });
         expect(Date.now() - Date.parse(golden.evaluatedAt)).toBeLessThan(5000);
         const beforeReplay = await count();
