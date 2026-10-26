@@ -163,6 +163,41 @@ Erasure of pre-existing Properties and Market derived records belongs to stories
 this Collection command does not claim those capabilities. Implementation and verification evidence
 belongs to the existing [story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-collection/story-removal-request-and-suppression-list-plan.md).
 
+### Accepted clarification — D-095, 2026-10-25
+
+Properties consumes the existing authenticated `collection.listing.suppressed` through a committed
+inbox/transaction/outbox effect. Collection's public authority locks the stable source identity and
+confirms the canonical suppression/event identity and timestamp before Properties takes its identity
+and resolution locks. Properties erases incoming facts/dispositions, immutable original lineage,
+current/acquisition/history/effect rows, either-side matching comparisons and minimum evidence
+containing the erased listing on either side. Shared source progress remains. Platform erases
+matching retained Properties publications, including group publications, through its owning port.
+The audit exception in D-091 is unchanged.
+
+If the erased original Property ID anchors surviving membership, replace that group ID with the
+smallest surviving immutable original Property UUID before deleting the erased original. Keep the
+survivors together while their substantive matching evidence is unchanged; normal future matching
+changes can resolve them again. Preserve each survivor's own lineage, rights and unaffected minimum
+history. Erasure does not fabricate reversible absence or a price movement.
+
+The additive, closed version-one `properties.listing.suppressed` contract carries only the canonical
+cause/suppression/source identity, nullable removed listing/original property IDs and causal counters,
+and affected previous/resulting property IDs with strictly advancing revision counters. Each group
+change contains exactly `previousPropertyId`, nullable `propertyId`, `previousRevision` and
+`revision`. It carries no listing snapshots, minimum, values or provenance. Committed chronology
+can advance before resolution; HTTP remains the current-state/minimum authority. A final member
+yields a null resulting property. A pending/unknown identity yields no group changes. Minimal
+suppression notifications are excluded from derived-publication erasure, preserving consecutive
+notifications before relay and after receipt-based replay without replacement or recovery events.
+Only stable identity, cause/suppression IDs and nullable removed internal IDs remain in a permanent
+Properties receipt, independent of inbox/outbox retention. Confirmed suppressed parsed delivery is
+acknowledged as ignored; unconfirmed input fails closed. Prepared detail fallback also consults
+current suppression authority.
+
+Already delivered broker copies are outside local retained-copy erasure. Market's separate derived
+erasure remains story 4.8. Evidence and limits belong to the existing
+[Properties story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-properties/story-erasure-of-a-suppressed-listing-plan.md).
+
 ## Consequences
 
 Collectors and parsers must share one sanitizer and one closed allowlist, and storage must support

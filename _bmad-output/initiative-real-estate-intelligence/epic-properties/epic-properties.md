@@ -63,6 +63,18 @@ the screens (epic-web), not review of uncertain matches (epic-authentication-and
 
 ## Notes
 
+- Decision: D-095 (agent, on the owner's behalf, 2026-10-25) distinguishes permanent privacy
+  erasure from reversible removal. Erase the suppressed listing's owned history/evidence and
+  retained Properties publication copies through their owning capabilities. Keep surviving group
+  members together until substantive matching evidence changes; if their original anchor is erased,
+  explicitly rekey to the smallest remaining original property UUID rather than retain the anchor's
+  evidence or delete survivors. Preserve remaining immutable lineage. The additive strict
+  `properties.listing.suppressed` v1 event carries only the removed identity, cause and necessary
+  group ID/revision transitions, with no survivor snapshots or values.
+  Minimal identity/cause receipts preserve idempotency beyond inbox retention. Confirmed suppressed
+  parsed messages are successful no-ops; other failed authority remains rejected. Market derived
+  erasure remains story 4.8. The 3.12 plan and ADR 0015 record the delivered contract/evidence.
+
 - Decision: D-093 (agent, on the owner's behalf, 2026-10-25) fixes the measured existing
   `d092-initial` v1 weights without an artificial configuration-version change. Calibration
   evaluates every one of the 36 labelled pairs in each of thirteen monthly retained-evidence

@@ -621,3 +621,47 @@ per-value provenance, current denied text rights, and replay after restart/inbox
 fixture neither enables a real source nor claims general recognition of person names in arbitrary
 prose; known structured contact names are masked deterministically. Prepared source bytes,
 catalogs and labels remain unchanged.
+
+## Permanent listing suppression
+
+The production worker subscribes to the frozen Collection suppression contract, confirms its exact
+canonical authority and commits erasure before acknowledging. Search and reductions use the
+surviving persisted members; listing details and a final empty property return `404`. If the erased
+original Property UUID was the current anchor, the smallest surviving original Property UUID becomes
+the canonical group identity. Surviving members retain their own source rights and provenance.
+Prepared detail fallback consults permanent suppression before returning any member.
+
+`@rei/domain` additionally exports `PropertiesListingSuppressed`,
+`PROPERTIES_LISTING_SUPPRESSED_TYPE` and `parsePropertiesListingSuppressed`. This separate closed v1
+contract preserves all frozen listing/group contracts. It uses the usual seven-field envelope;
+`aggregateId` is the erased internal listing UUID, or the suppression UUID if never materialized.
+
+| Payload field                           | Meaning                                                       |
+| --------------------------------------- | ------------------------------------------------------------- |
+| `causeEventId`, `suppressionId`         | Canonical Collection cause and permanent suppression UUIDs    |
+| `sourceId`, `sourceListingId`           | Permanently suppressed stable source identity                 |
+| `listingId`, `originalPropertyId`       | Removed internal UUIDs, both null if never materialized       |
+| `listingRevision`, `assignmentRevision` | Last retained causal counters, null when unavailable          |
+| `changes`                               | Affected current groups, empty for pending/unknown identities |
+
+Each change contains exactly `previousPropertyId`, nullable resulting `propertyId`,
+`previousRevision` and strictly advancing `revision`. Final-member erasure has a null resulting ID.
+A pending/unknown identity has no group changes. The notification carries identity/cause and
+revision transitions only: no survivor snapshots, minimum, values or provenance. Current HTTP
+reads calculate survivor state and minimum from committed chronology, which can advance before
+resolution. A suppression cause time can precede an already committed survivor observation.
+
+Properties deletes matching retained value-bearing publication copies and minimum/comparison/history
+evidence, then retains a minimal identity/cause receipt independently of temporary inbox/outbox
+markers. Minimal `properties.listing.suppressed` notifications are excluded from derived-payload
+erasure, so consecutive suppressions preserve each notification before relay and during replay.
+Duplicate causes and old/new parsed messages for confirmed suppressed identities are acknowledged
+without recreation or a second privacy event, including after a process restart and inbox pruning.
+Malformed or unconfirmed suppression and forged nonsuppressed parsed input fail closed. A failure
+or cancellation before commit rolls back the entire Properties effect. Already delivered broker
+copies are outside local retained-copy deletion; Market erasure remains story 4.8.
+
+After building, `integration/listing-suppression.integration.test.ts` exercises these Properties
+paths alongside the existing actual removal command, PostgreSQL 18, RabbitMQ and S3 campaign. See
+[the story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-properties/story-erasure-of-a-suppressed-listing-plan.md)
+for the tested version and any evidence limits.

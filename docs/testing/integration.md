@@ -374,8 +374,14 @@ owner-scoped Collection/platform/audit erasure, delayed parsed delivery after an
 removed, shared synthetic ownership, storage failure/resumption, prepared collection/reparse,
 suppressed portal checkpoint/count/manifest evidence, and an explicitly owned encrypted local real
 reservation with cancellation and late-PUT reconciliation. The local real fixture generates its
-key in memory and performs no outside source or photograph requests. It does not exercise future
-Properties/Market derived-data erasure or infer historical orphan ownership.
+key in memory and performs no outside source or photograph requests. It also consumes suppression
+through the real Properties broker entry, materializes history and
+resolution, and checks production HTTP search/details/reductions, non-anchor/anchor/final-member
+erasure, pending evidence, atomic SQL rollback/cancellation and durable replay after inbox pruning.
+The D-095 refinement adds chronology-ahead-of-resolution HTTP minimum checks and consecutive
+minimal suppression notifications retained before relay and after replay/pruning; its final native
+campaign evidence is recorded separately in the story plan.
+Market derived-data erasure and historical orphan attribution remain outside this campaign.
 
 Run the affected snapshot lifecycle, snapshot reparse, resumable collection, image fingerprint and
 synthetic collection campaigns after this campaign, preserving fixed expiry, accepted fixture
