@@ -3,7 +3,7 @@ title: 'Persisted parent median, plate counts and neighbours'
 type: 'feature'
 ticket: '6'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '76f59441a73fa12dc1d87012c10a71f20f37c434'
 route: 'full'
 route_source: 'auto'
