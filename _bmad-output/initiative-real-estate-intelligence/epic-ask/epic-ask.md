@@ -66,6 +66,24 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Decision: D-102 adds explicit `routed-text-explanation-v1` admission and the independent
+  `intent-price-explanation-v1` graph partition to compose retained decision, confirmation,
+  deterministic tool and existing receipt-bound explanation in one run. Historical versions
+  and bytes remain intact through additive migration; accepted evidence and budgets survive
+  recovery. Story 5.14 includes this necessary functional dependency and proves one complete
+  exported trace without inventing spans or treating separate-mode traces as equivalent.
+  Unavailable intents never generate; missing cost/usage remains explicit. D-012 and ADR 0020
+  continue to override the Nest skill's incompatible stack/test examples
+  (agent, on the owner's behalf, 2026-10-26).
+
+- Implementation: story 5.14 adds D-102's combined contract, additive migration 6008 and private
+  SDK export projections. The owned native campaign passed PT/EN public inspect/SSE, complete
+  exported ancestry, confirmation/restart, accepted-artifact recovery with unchanged budget,
+  unavailable/stale/cancelled/wrong-partition paths and populated historical bytes. A whole-export
+  scan passed after an actual SQL fault. Affected coverage, build, strict typecheck and lint passed;
+  independent quick review and ticket closure remain pending. Providers are synthetic, with no
+  live quality, billing or production rollout claim (agent, on the owner's behalf, 2026-10-26).
+
 - Implementation: story 5.13 ships the versioned offline decision/explanation evaluation pack
   and a strictly checked opt-in synthetic Jev probe. All 3,198 offline tests, affected coverage,
   build, strict typecheck, lint and independent quick review passed. The single live attempt

@@ -117,3 +117,25 @@ our engineering inference from these interfaces, not a provider guarantee of a n
 Expand factual language through a new version and offline fidelity cases. Prefer a stronger
 structured pre-transmission provider attestation if one becomes available, preserving ADR 0014.
 Any direct route needs equivalent evidence before receiving user-derived data.
+
+## D-102 extension: one trace per routed explained run
+
+On 2026-10-26, add explicit `routed-text-explanation-v1` and the separate
+`intent-price-explanation-v1` partition. Compose the retained typed routing/confidence gate with
+the existing receipt-bound explanation node only for authorized price execution. Reuse API-owned
+confirmation, tool receipts, conservative reservations, immutable acceptance and fresh-lease
+recovery. Migration 6008 extends constraints and model fences without rewriting historical rows
+or changing old graph partitions. Closed historical admission and evidence remain supported.
+
+Instrument actual run/node transitions, decision/physical attempts, tool and checkpoint work;
+retain request/outbox/consumer parents. Export only bounded operational fields through typed SDK
+exporter projections, including automatic HTTP/Pg failure spans. Preserve span identity and
+categorical failure while removing arbitrary payload-bearing fields. Missing cost or usage stays
+unavailable. The owned native trace campaign uses fake provider capabilities and a local OTLP
+sink, including restart, populated upgrade and SQL saver-failure recovery. This establishes
+runtime causality and privacy for those exercised paths, without claiming live provider quality,
+billing evidence, a production collector rollout or exactly-once provider delivery.
+
+The 2026-10-26 native campaign passed these assertions. Its fake application and telemetry preload
+resolve the same mounted `dist` and shutdown bridge, preserving one SDK owner and bounded final
+flush across process restarts. API and worker use their normal image entrypoints.

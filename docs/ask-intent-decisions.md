@@ -161,3 +161,26 @@ After `pnpm run build`, run `pnpm run test:integration:ask-intent` for the compl
 routed campaign. Its existing-style serial preparation script builds the four application/migration
 images before the bounded test; the test tags them into a unique owned Compose fixture. The
 aggregate `pnpm run test:integration` includes the same preparation. No live model is contacted.
+
+## Combined routing and explanation (D-102)
+
+`routed-text-explanation-v1` is an additional closed admission mode with the same owner capability,
+creation replay, confirmation, cancellation and expiry rules. It retains the routed decision,
+then adds `modelExplanation` only after `executeIntent` produced an authorized Market price.
+The new `intent-price-explanation-v1` partition cannot read historical routing checkpoints.
+Price completion requires the authoritative decision, tool receipt and accepted model artifact;
+other combined states carry null explanation. Historical `routed-text-v1` never generates.
+See [the explanation contract](api/ask-model-explanation.md#combined-routed-explanation-d-102).
+
+The native `test:integration:ask-trace` campaign exports one causal trace through request,
+outbox producer, broker consumer, AI run, executed nodes, real provider attempts, typed tool and
+checkpoint operations. Queue and total duration start at persisted admission, including reclaim;
+confidence/source/degradation/confirmation and validated usage are categorical or bounded.
+Absent provider usage/cost is explicitly unavailable. The supported SDK exporter boundary drops
+arbitrary names, URLs/SQL, error text, events, link metadata and resource text while preserving
+IDs, parent edges, timings and safe outcomes. Provider SDK payload telemetry stays disabled.
+
+On 2026-10-26 the full native campaign passed: PT/EN completion and SSE, retained low-confidence
+confirmation across restart, accepted-artifact reclaim with unchanged reservations, unavailable
+intent without generation, stale/cancelled authority and partition refusal, populated historical
+upgrade, actual exported parent edges and the whole-export sensitive-value scan after SQL failure.

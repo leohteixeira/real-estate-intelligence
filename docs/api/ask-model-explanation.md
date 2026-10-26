@@ -61,3 +61,32 @@ spend. Local rate admission and definitive refusals do not record transient brea
 Successful outbound phases taking at least 2.5 seconds contribute one slow breaker outcome while
 returning their actual output. Accepted evidence persists before saver ACK; reclaim reuses it with
 a rebound Market receipt and unchanged reservations. Exactly-once provider network delivery is not promised.
+
+## Combined routed explanation (D-102)
+
+Explicit `routed-text-explanation-v1` admission uses the same closed text envelope and owner
+capability as `routed-text-v1`. It returns `202` with that mode and queued run/thread IDs. It
+retains the decision and confidence gate before running the Market tool, then explains only an
+authorized price receipt. Its separate checkpoint partition is `intent-price-explanation-v1`.
+The graph visits `typedDecision`, `confidenceGate`, `executeIntent` and, for price,
+`modelExplanation`. A probability below 0.85 pauses before tool or generation; explicit
+confirmation can edit validated operands and resumes the retained decision across restarts.
+
+Combined snapshots and SSE always include `explanation`; it is null until a completed price.
+Recognized unavailable intents return their typed unavailable result with null explanation and
+make no generation attempt. Model acceptance, original deadlines, privacy evidence, grammar,
+immutable receipt binding and the conservative 1,000-token reservation limit are shared with the
+existing explained mode. Reclaim rebinds execution authority and reuses accepted artifacts.
+Historical mode documents, evidence and graph partitions keep their original meaning.
+
+`pnpm run test:integration:ask-trace` prepares images serially and runs the owned native
+API/RabbitMQ/worker/AI campaign with both provider capabilities replaced at fixture composition.
+An OTLP/HTTP capture receives actual exports from all three services. It checks parent edges,
+PT/EN public inspect/SSE, confidence pause across restart, accepted-artifact recovery after a
+PostgreSQL saver fault, preserved populated historical bytes and whole-export privacy. No live
+provider, collector or production service is used.
+
+The 2026-10-26 native run passed the full campaign, including actual exported ancestry and
+the complete export scan after a real SQL error. The mounted fixture resolves its preload and
+AppModule from the same `dist`, so the normal Nest lifecycle flushes the single SDK on restart.
+This evidence covers synthetic provider behavior; live model quality and billing remain untested.
