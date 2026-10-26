@@ -144,6 +144,35 @@ null tombstone. Reads retrieve those facts in one coherent Market-only statement
 geography and area eligibility. The additive 2002 migration backfills all retained v1 state history,
 assignment zero and property minima while preserving the original 2001 evidence unchanged.
 
+## Suppressed listings (D-099)
+
+Market consumes the closed `collection.listing.suppressed` and `properties.listing.suppressed`
+notifications. Both paths authenticate the canonical Collection cause through its public authority
+before taking the existing Market writer lock. Erasure, minimal permanent receipts, effective group
+changes, survivor minima and the transport inbox commit together. The broker acknowledges only
+following that commit. Delivery order does not change the result.
+
+Suppression removes the listing's current references, all retained state and assignment evidence,
+legacy listing envelopes and every causal event envelope containing its copied identity or payload.
+Independently materialized survivor facts remain. Market retains stable identity/cause receipts and
+JSONB-normalized SHA-256 event/state/assignment fingerprints, without price, place, source URL or
+other collected payload. Exact replay is inert after inbox/publication retention and process restart;
+conflicting event, aggregate revision, listing identity or causal revision still fails.
+
+Strict validation applies to the original future envelope before an erased member is screened.
+Mixed snapshots advance survivors and retain only their independent facts plus minimal envelope
+fences. Suppression of an original group anchor installs an effective redirect only when its old
+ID changes or ends at null. Redirect chains resolve consistently during projection, global minimum
+selection and snapshot history reads. Original causal property IDs and assignment revisions remain
+unchanged. Removing an ordinary member preserves its group. A null redirect ends the old association;
+a later valid survivor assignment can establish another one.
+
+Every overview/count/provenance value, registered neighbour row and own/actual-parent monthly point
+is evaluated using the same documented rules without the erased listing. The next cheapest surviving
+active member can become the global representative. Source completion watermarks remain monotonic
+and unchanged by listing erasure. Ordinary `properties.listing.removed` remains reversible lifecycle
+absence: its retained history and original observed time on market survive reappearance.
+
 ## Remaining persisted figures (D-096)
 
 All inputs come from one coherent read of Market-owned current assignments, retained listing

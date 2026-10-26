@@ -198,6 +198,33 @@ Already delivered broker copies are outside local retained-copy erasure. Market'
 erasure remains story 4.8. Evidence and limits belong to the existing
 [Properties story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-properties/story-erasure-of-a-suppressed-listing-plan.md).
 
+### Accepted clarification — D-099, 2026-10-26
+
+Market participates in permanent suppression through the existing authenticated Collection cause
+and the unchanged minimal Properties notification. Each delivery authenticates the canonical cause
+before taking the Market writer lock; owner receipts, physical content erasure, survivor minima,
+redirects and inbox effects are atomic. Collection-first delivery cannot discard the later
+Properties group transition. A failed transaction leaves no receipt or acknowledged effect.
+
+Delete current references before immutable evidence. Erase legacy and causal envelopes containing
+the removed listing, including copied group snapshots, while preserving independently materialized
+survivor state/history and source completion watermarks. Retain only stable identity/cause receipts
+and JSONB-normalized SHA-256 event and causal-key fingerprints for permanent replay/conflict
+protection. A guarded transaction-local identity plus the matching authenticated receipt permits
+only matching content deletion; unrelated deletion and every immutable update remain rejected.
+
+Retain original causal assignment IDs/revisions. Translate effective membership afterward through
+permanent erased-anchor redirects. Only a transition away from the erased original anchor (including
+null) creates a redirect; removing an ordinary member does not redirect its surviving group. Resolve
+chains in minima and snapshot history reads, irrespective of notification order. Null ends an old
+association without tombstoning a survivor. Strict-validate future mixed envelopes before screening
+an erased member, then project their survivors without retaining the copied erased payload.
+
+The existing [Market story plan](../../_bmad-output/initiative-real-estate-intelligence/epic-market/story-erasure-of-the-facts-of-a-suppressed-listing-plan.md)
+records exact verification and limits. Broker delivery already outside owned retained storage cannot
+be physically recalled; permanent screening prevents its rematerialization. No production erasure
+is established by disposable synthetic fixture evidence.
+
 ## Consequences
 
 Collectors and parsers must share one sanitizer and one closed allowlist, and storage must support

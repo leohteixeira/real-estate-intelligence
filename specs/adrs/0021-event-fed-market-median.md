@@ -147,6 +147,28 @@ between calculation and evaluation; it does not establish stale frequency in pro
 browser's bounded stale response is an explicit UI boundary fixture, with strict parsing and recovery
 to the real API. Existing native disclosures show localized age without a new UI layer.
 
+## D-099 amendment — permanent listing erasure
+
+Migration 2004 adds Market-only minimal suppression/cause receipts, erased identity and normalized
+SHA-256 event/causal-key fences, Properties notification receipts and effective erased-anchor
+redirects. Immutable evidence admits a narrow DELETE exception only for matching content, a matching
+permanent owner receipt and the transaction-local erasure identity. Ordinary immutable UPDATE and
+unrelated DELETE remain forbidden. No foreign SQL, new public suppression version or cache is needed.
+
+Authenticate the canonical Collection cause on either notification path, then serialize erasure
+with normal projection under `market:price-facts`. Delete references before evidence and copied
+legacy/causal envelopes, retaining independently materialized survivor history and all permanent
+business-conflict checks. A later strict mixed envelope screens only erased members; survivors
+advance. Minimal fingerprints replace full envelopes and remain after inbox/publication expiry.
+
+Original causal assignments remain unchanged. Effective membership resolves permanent anchor chains
+in projection, minimum recomputation and one-snapshot current/history reads. Only an erased original
+anchor transitioning to another ID or null creates a redirect; P-to-P member changes do not. Null
+ends an old association, and later valid survivor assignments remain eligible. Recompute each figure
+and all twelve own/actual-parent points without the suppressed listing under the existing rules.
+Ordinary removal retains lifecycle history and original observed duration. D-098 source watermarks
+and freshness rules remain independent of erasure.
+
 ## Reassessment trigger
 
 Reassess projection and response provenance when property reassignment, remaining figures,

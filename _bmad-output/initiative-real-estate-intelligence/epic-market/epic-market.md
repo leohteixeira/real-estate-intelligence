@@ -135,3 +135,12 @@ of CAP-22, not recorded sale figures (CAP-33).
   anchored to evaluation across UTC rollover. Prepared variants retain their strict guarantees.
   No cached figures, Collection SQL or completion payload inventory is introduced. Native HTTP
   completion-barrier and controlled stale UI evidence distinguish their boundaries explicitly.
+
+- D-099 / Story 4.8: Market erases suppressed listing current/history and copied legacy/causal
+  envelopes atomically with permanent minimal identity/cause/fingerprint receipts and inbox effects.
+  Both notifications authenticate the canonical Collection cause. Original causal assignments stay
+  unchanged; erased original anchors redirect effective membership, including chains/null, while
+  ordinary member removal preserves its group. Strict mixed envelopes still project survivors.
+  Every live figure and twelve-month own/parent point recomputes without the erased listing;
+  ordinary reversible removal and D-098 completion watermarks retain their original semantics.
+  Exact verification and operational limits are recorded in the existing story plan.

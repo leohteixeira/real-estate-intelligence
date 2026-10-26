@@ -78,6 +78,24 @@ strictly valid stale overview at the UI boundary in all six language/viewport ca
 age, count/source/computation and native keyboard/accessibility behavior, then recovers to real API
 responses. This interception proves presentation, rather than production stale frequency.
 
+D-099 extends `integration/listing-suppression.integration.test.ts` using the same owned PostgreSQL,
+RabbitMQ, object store and actual removal CLI. Its Market scenarios prove full copied-content
+erasure, narrow immutable guards, rollback without inbox commit, concurrent projection, legacy and
+mixed causal replay after transport/publication expiry, effective consecutive-anchor chains,
+non-anchor preservation, null associations and later valid assignments. Hand-computed HTTP checks
+cover overview populations/figures/provenance, registered neighbours and all twelve own/parent
+monthly points. Ordinary removal/reappearance remains distinct from irreversible suppression.
+Run it alone after building:
+
+```bash
+pnpm exec vitest run --config vitest.integration.config.ts integration/listing-suppression.integration.test.ts
+```
+
+The complete Place campaign invokes the real removal command after its ordinary fixtures, then
+checks the actual post-erasure overview, unchanged registered neighbour and twelve empty own/parent
+points in PT/EN at 390, 960 and 1440px, including rendered monthly rows and accessibility. Screenshots
+use the existing review artifact directory. Its owned fixture does not establish production erasure.
+
 The price-facts campaign upgrades populated Market v1 history without rewriting evidence, then uses
 the actual outbox, RabbitMQ subscriber, PostgreSQL projection and place overview HTTP to exercise
 all eight causal event families. It checks merge/split destinations for removed members, independent
