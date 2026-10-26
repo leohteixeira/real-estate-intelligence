@@ -3,7 +3,7 @@ title: 'Remaining persisted place figures'
 type: 'feature'
 ticket: '4'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '0d2ee3ee5328219e8883f1abf7a929311b346fc6'
 route: 'full'
 route_source: 'auto'
