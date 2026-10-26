@@ -1,10 +1,12 @@
 import {
   askingPriceMedian,
+  monthlyAskingPriceSeries,
   remainingPlaceFigures,
   DomainValidationError,
   type PlaceRef,
   type PlaceMarketResponse,
   type PlaceMarketNeighboursResponse,
+  type PlaceMarketSeriesResponse,
 } from '@rei/domain';
 import type { Clock } from '../shared/index.js';
 import type { MarketPriceFactsReadPort } from './market-price-facts.port.js';
@@ -133,10 +135,32 @@ export class MarketQueryService implements MarketFacade {
     });
   }
 
-  public async monthlySeries(id: string) {
+  public async monthlySeries(id: string): Promise<PlaceMarketSeriesResponse | null> {
     const scope = await this.scope(id);
     if (!scope) return null;
     const parent = await this.parent(scope.place.parentId);
+    if (this.live) {
+      try {
+        const snapshot = await this.live.facts.readFigures();
+        const evaluatedAt = this.live.clock.now();
+        return structuredClone({
+          ...this.base(scope),
+          basis: 'event-fed-place-figures' as const,
+          evaluatedAt,
+          comparisonPlace: parent ? ref(parent.place) : null,
+          points: monthlyAskingPriceSeries(
+            snapshot.history,
+            scope.ids,
+            parent?.ids ?? null,
+            evaluatedAt,
+          ),
+        });
+      } catch (error: unknown) {
+        if (error instanceof DomainValidationError)
+          throw new Error('Stored Market price facts could not be evaluated.', { cause: error });
+        throw error;
+      }
+    }
     return structuredClone({
       ...this.base(scope),
       comparisonPlace: parent ? ref(parent.place) : null,

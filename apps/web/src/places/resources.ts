@@ -51,7 +51,7 @@ export const portuguese = {
   liveCountsOrigin:
     'Contagens calculadas a partir dos eventos coletados em {{time}}. Imóveis sem área informada também são contados.',
   livePlaceDisclosure:
-    'Contagens e indicadores calculados a partir dos eventos coletados. A série mensal continua sendo um exemplo preparado.',
+    'Contagens, indicadores e série mensal calculados a partir dos eventos coletados. Cada mês usa sua própria população histórica.',
   preparedDisclosure:
     'Contagens, demais indicadores, vizinhos e série mensal são exemplos preparados. Não representam continuidade com a mediana calculada por eventos.',
   liveFiguresDisclosure:
@@ -72,6 +72,9 @@ export const portuguese = {
   series: 'Preço pedido por m², 12 meses',
   seriesTable: 'Medianas mensais de pedido e evidências',
   seriesDescription: 'Série preparada de {{name}}; lacunas indicam valores não disponíveis.',
+  liveSeriesDescription:
+    'Série histórica de {{name}} calculada a partir dos eventos coletados; lacunas indicam valores não disponíveis.',
+  monthlyCutoff: 'População até {{time}}',
   month: 'Mês (UTC)',
   pointEvidence: 'Evidências do mês',
   figureEvidence: 'Evidências',
@@ -148,7 +151,7 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   liveCountsOrigin:
     'Counts computed from collected events at {{time}}. Properties without a reported area are also counted.',
   livePlaceDisclosure:
-    'Counts and figures are computed from collected events. Monthly series remains a prepared example.',
+    'Counts, figures and monthly series are computed from collected events. Each month uses its own historical population.',
   preparedDisclosure:
     'Counts, other figures, neighbours and monthly series are prepared examples. They do not represent continuity with the event-fed median.',
   liveFiguresDisclosure:
@@ -169,6 +172,9 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   series: 'Asking price per m², 12 months',
   seriesTable: 'Monthly asking medians and evidence',
   seriesDescription: 'Prepared series for {{name}}; gaps indicate unavailable values.',
+  liveSeriesDescription:
+    'Historical series for {{name}} computed from collected events; gaps indicate unavailable values.',
+  monthlyCutoff: 'Population as of {{time}}',
   month: 'Month (UTC)',
   pointEvidence: 'Monthly evidence',
   figureEvidence: 'Evidence',

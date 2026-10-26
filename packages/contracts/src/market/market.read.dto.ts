@@ -383,18 +383,25 @@ export function parsePlaceMarketNeighboursResponse(value: unknown): PlaceMarketN
   return response;
 }
 export function parsePlaceMarketSeriesResponse(value: unknown): PlaceMarketSeriesResponse {
-  const response = parseWire<PlaceMarketSeriesResponse>(
-    value,
+  const series = (live: boolean) =>
     wireObject({
       ...base,
+      basis: wireEnum([live ? 'event-fed-place-figures' : 'prepared-market-example']),
       comparisonPlace: wireNullable(placeRefWire),
       points: wireArray(
         wireObject({
           month: wirePattern(/^\d{4}-(?:0[1-9]|1[0-2])$/),
-          median,
-          parentMedian: wireNullable(median),
+          ...(live ? { asOf: wireDate } : {}),
+          median: live ? liveMedian : median,
+          parentMedian: wireNullable(live ? liveMedian : median),
         }),
       ),
+    });
+  const response = parseWire<PlaceMarketSeriesResponse>(
+    value,
+    wireDiscriminated('basis', {
+      'prepared-market-example': series(false),
+      'event-fed-place-figures': series(true),
     }),
   );
   validateBase(response);
@@ -406,11 +413,35 @@ export function parsePlaceMarketSeriesResponse(value: unknown): PlaceMarketSerie
     if (previous !== null && ordinal !== previous + 1) invalidWire();
     previous = ordinal;
     if ((point.parentMedian === null) !== (response.comparisonPlace === null)) invalidWire();
-    validateFigure(point.median, response.evaluatedAt);
-    if (point.parentMedian) validateFigure(point.parentMedian, response.evaluatedAt);
-    if (point.median.computedAt.slice(0, 7) !== point.month) invalidWire();
-    if (point.parentMedian && point.parentMedian.computedAt.slice(0, 7) !== point.month)
-      invalidWire();
+  }
+  if (response.basis === 'event-fed-place-figures') {
+    const evaluation = new Date(response.evaluatedAt);
+    const terminal = new Date(evaluation);
+    // Normalize offsets into UTC before comparing the month.
+    if (response.points[11]!.month !== evaluation.toISOString().slice(0, 7)) invalidWire();
+    for (const [index, point] of response.points.entries()) {
+      terminal.setTime(evaluation.getTime());
+      terminal.setUTCDate(1);
+      terminal.setUTCHours(0, 0, 0, 0);
+      terminal.setUTCMonth(terminal.getUTCMonth() - 10 + index);
+      const cutoff =
+        index === 11 ? response.evaluatedAt : new Date(terminal.getTime() - 1).toISOString();
+      if (point.asOf !== cutoff) invalidWire();
+      for (const item of [point.median, point.parentMedian]) {
+        if (!item) continue;
+        validateLiveMedian(item, response.evaluatedAt);
+        if (item.sources.some((source) => Date.parse(source.collectedAt) > Date.parse(point.asOf)))
+          invalidWire();
+      }
+    }
+  } else {
+    for (const point of response.points) {
+      validateFigure(point.median, response.evaluatedAt);
+      if (point.parentMedian) validateFigure(point.parentMedian, response.evaluatedAt);
+      if (point.median.computedAt.slice(0, 7) !== point.month) invalidWire();
+      if (point.parentMedian && point.parentMedian.computedAt.slice(0, 7) !== point.month)
+        invalidWire();
+    }
   }
   return response;
 }

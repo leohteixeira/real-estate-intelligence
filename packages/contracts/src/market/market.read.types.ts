@@ -91,7 +91,7 @@ export type PlaceMarketNeighboursResponse = (MarketResponseBase | LivePlaceMarke
     readonly movement: MarketMovement;
   }[];
 };
-export interface PlaceMarketSeriesResponse extends MarketResponseBase {
+interface PreparedMarketSeriesResponse extends MarketResponseBase {
   readonly comparisonPlace: PlaceRef | null;
   readonly points: readonly {
     readonly month: string;
@@ -99,3 +99,16 @@ export interface PlaceMarketSeriesResponse extends MarketResponseBase {
     readonly parentMedian: MarketMedian | null;
   }[];
 }
+
+export interface LiveMarketSeriesPoint {
+  readonly month: string;
+  readonly asOf: string;
+  readonly median: MarketMedian;
+  readonly parentMedian: MarketMedian | null;
+}
+export type PlaceMarketSeriesResponse =
+  | PreparedMarketSeriesResponse
+  | (LivePlaceMarketBase & {
+      readonly comparisonPlace: PlaceRef | null;
+      readonly points: readonly LiveMarketSeriesPoint[];
+    });

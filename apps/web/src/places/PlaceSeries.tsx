@@ -2,7 +2,7 @@ import type { MarketMedian, PlaceMarketSeriesResponse } from '@rei/contracts';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Provenance } from '../shared/Provenance';
-import { formatExactMoney, formatMedian } from './formatters';
+import { formatComputedAt, formatExactMoney, formatMedian } from './formatters';
 import type { Locale } from './locale';
 import { seriesQuery } from './place-queries';
 import { OverviewReadState } from './OverviewReadState';
@@ -35,7 +35,12 @@ export function Chart({ series }: { readonly series: PlaceMarketSeriesResponse }
         <svg
           viewBox="0 0 480 180"
           role="img"
-          aria-label={t('seriesDescription', { name: series.place.name.ptBR })}
+          aria-label={t(
+            series.basis === 'event-fed-place-figures'
+              ? 'liveSeriesDescription'
+              : 'seriesDescription',
+            { name: series.place.name.ptBR },
+          )}
         >
           {ticks.map((value) => (
             <path
@@ -92,7 +97,7 @@ export function Chart({ series }: { readonly series: PlaceMarketSeriesResponse }
     </figure>
   );
 }
-function MonthlyValue({ median }: { readonly median: MarketMedian }) {
+function MonthlyValue({ median, asOf }: { readonly median: MarketMedian; readonly asOf?: string }) {
   const { t, i18n } = useTranslation('place');
   return (
     <>
@@ -104,7 +109,14 @@ function MonthlyValue({ median }: { readonly median: MarketMedian }) {
       </span>
       <details className="place-point-evidence">
         <summary>{t('pointEvidence')}</summary>
-        <p className="place-origin">{t('prepared')}</p>
+        <p className="place-origin">{t(asOf ? 'live' : 'prepared')}</p>
+        {asOf ? (
+          <p className="place-month-cutoff">
+            <time dateTime={asOf}>
+              {t('monthlyCutoff', { time: formatComputedAt(asOf, i18n.language as Locale) })}
+            </time>
+          </p>
+        ) : null}
         <Provenance evidence={median} synthetic />
       </details>
     </>
@@ -129,7 +141,9 @@ export function PlaceSeries({ id }: { readonly id: string }) {
       />
       {series ? (
         <>
-          <p className="place-origin">{t('prepared')}</p>
+          <p className="place-origin">
+            {t(series.basis === 'event-fed-place-figures' ? 'live' : 'prepared')}
+          </p>
           <Chart series={series} />
           <details className="place-series-disclosure">
             <summary>{t('seriesDisclosure')}</summary>
@@ -150,11 +164,17 @@ export function PlaceSeries({ id }: { readonly id: string }) {
                     <tr key={point.month}>
                       <th scope="row">{point.month}</th>
                       <td>
-                        <MonthlyValue median={point.median} />
+                        <MonthlyValue
+                          median={point.median}
+                          asOf={'asOf' in point ? point.asOf : undefined}
+                        />
                       </td>
                       {point.parentMedian ? (
                         <td>
-                          <MonthlyValue median={point.parentMedian} />
+                          <MonthlyValue
+                            median={point.parentMedian}
+                            asOf={'asOf' in point ? point.asOf : undefined}
+                          />
                         </td>
                       ) : null}
                     </tr>

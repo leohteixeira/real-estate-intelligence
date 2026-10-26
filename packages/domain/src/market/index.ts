@@ -5,3 +5,4 @@ export * from './asking-price-median.js';
 export * from './price-input-extraction.js';
 export * from './price-explanation-facts.js';
 export * from './remaining-place-figures.js';
+export * from './monthly-asking-price-series.js';
