@@ -97,18 +97,60 @@ confidence. Invalid distributions and caller cancellation are rejected. Unavaila
 routing falls back to deterministic PT/EN `heuristic-v1`, with explicit degraded provenance and
 the same confidence gate.
 
-The offline corpus is `apps/ai/src/models/fixtures/ask-intents-v1.ts`. Unit tests exercise the
-real pinned SDKs with intercepted HTTP, without contacting a model. The optional compatibility
-probe uses only fixed public text and requires explicit execution after building:
+The offline evaluation uses the 14 public PT/EN rows and safe case IDs in
+`apps/ai/src/models/fixtures/ask-intents-v1.ts`. The measured fake Jev comparison and the existing
+heuristic run without credentials or network as part of `pnpm test`. They verify accuracy,
+selected-label probability, the 0.85 confidence gate, elapsed latency and cost arithmetic.
+Incorrect and failed decisions stay in the case denominator; mean probability covers successful
+decisions only. Confidence expectation accuracy compares the gate with each fixture's label;
+it does not claim probability calibration or live model quality.
+
+The optional probe uses exactly the first two fixed synthetic price cases, sequentially through
+`GatewayIntentDecider`, with its original deadlines, privacy check and zero SDK retries. No
+heuristic fallback conceals a provider failure. The default command succeeds without a build,
+key or provider initialization:
 
 ```sh
-pnpm --filter @rei/ai build
-node apps/ai/scripts/probe-intent-decision.ts --live
+pnpm --filter @rei/ai probe:intent
+pnpm run build
+pnpm --filter @rei/ai probe:intent --live
 ```
 
-Supply `AI_GATEWAY_API_KEY` through the process environment. The probe prints decision metadata
-and never prints credentials or visitor text. It is excluded from ordinary verification and was
-not run for this implementation.
+Supply `AI_GATEWAY_API_KEY` through the process environment; no environment file is loaded.
+Explicit live execution without a key exits unsuccessfully before loading provider code. The
+JSON result contains only dataset/model identifiers, safe case IDs/locales, correctness,
+confidence, typed failures, privacy verification, latency in milliseconds and cost scalars.
+The probe exits unsuccessfully for provider/privacy failure or incorrect classification.
+Default tests and CI never enable it. Root strict type checking includes the intent probe and
+all integration probes.
+
+Cost evidence accepts only finite, nonnegative numeric `providerMetadata.gateway.cost` in USD;
+absent, string, negative or nonfinite values are unavailable. Every attempted SDK call is counted,
+including each privacy probe and failed call. Per-phase and overall coverage show attempted,
+observed and unavailable counts. `observedUsd` sums only supplied valid evidence; `totalUsd` is
+null unless every call has cost evidence. Zero provider calls (the heuristic) have zero provider
+spend. No billing or catalog requests, inferred token prices or generated explanation calls are
+made. Raw metadata, response bodies, errors, credentials and query text are never reported.
+Latency is elapsed wall time measured with a monotonic clock; offline fake timings verify
+arithmetic and are not provider benchmarks.
+
+The reusable `price-explanation-facts-v1` corpus in
+`packages/domain/src/ask/fixtures/price-explanation-facts-v1.ts` retains every exact-fact
+permutation and adversarial PT/EN outcome. Existing decision and graph tests retain invalid
+output and below/exact/above-threshold proofs. `receipt-model-explainer.test.ts`,
+`receipt-model-resilience.test.ts` and `ai-policy-matrix.test.ts` retain explanation fidelity,
+privacy and typed failure-policy evidence. The unchanged `ask-intent-decision`, `ask-checkpoints`,
+`ask-model-explanation` and `ask-delivery` integration campaigns retain real-service evidence for
+confirmation, checkpoints, restart, receipt acceptance and idempotency. This evaluation-only
+change does not rerun the persistence campaigns.
+
+The single authorized live run on 2026-10-26 exited unsuccessfully: both fixed cases returned
+`policy` during the privacy phase, so neither classification ran. The two privacy calls took
+1,152.74 ms overall (576.37 ms mean; 925.79 ms nearest-rank p95), with cost unavailable for both.
+The report retained both failures in its denominator and marked the probe as failed. Live
+classification accuracy and confidence remain unmeasured, and total spend remains unavailable.
+Offline fake accuracy is not evidence of live accuracy. The implementation plan records the
+verification commands; no live retry or persistence campaign was performed.
 
 Migration `6007_ask_unavailable_intents.sql` replaces only the routed-document predicate. Existing
 price, historical tracer and prepared contracts remain unchanged. Durable reads and SSE replay the

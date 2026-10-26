@@ -66,6 +66,13 @@ screens (epic-web), not the execution of the other four intents (epic-expanded-i
 
 ## Notes
 
+- Implementation: story 5.13 ships the versioned offline decision/explanation evaluation pack
+  and a strictly checked opt-in synthetic Jev probe. All 3,198 offline tests, affected coverage,
+  build, strict typecheck, lint and independent quick review passed. The single live attempt
+  failed policy in privacy: two public probes, no classifications or retries; live accuracy and
+  spend remain unavailable. Production mechanisms and prior persistence evidence are unchanged
+  (agent, on the owner's behalf, 2026-10-26).
+
 - Implementation: story 5.11 completes the offline provider/dependency failure matrix with
   production Jev policy wiring, bounded per-physical retries, original deadlines, transient-only
   breakers, conservative fresh generative reservations and categorical telemetry. Native SDK
