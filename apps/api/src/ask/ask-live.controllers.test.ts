@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
-import { AskLiveError } from '@rei/application';
+import { AskLiveError, AskQuotaError } from '@rei/application';
 import { parseAskLiveRun } from '@rei/contracts';
 import { askDispatchProof } from '@rei/infrastructure';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -113,6 +113,7 @@ describe('scoped Ask command, dispatch and tool boundaries', () => {
       body,
       capability,
       'request-key-123456',
+      { visitorDigest: expect.stringMatching(/^[0-9a-f]{64}$/) },
       expect.any(AbortSignal),
     );
     const confirmation = { runId: routed.id, decisionReceiptId: identity.eventId, inputs };
@@ -193,7 +194,7 @@ describe('scoped Ask command, dispatch and tool boundaries', () => {
     });
     live.createText.mockResolvedValueOnce({ kind: 'refused', reason: 'missing_area' });
     const status = vi.fn();
-    const response = { status } as unknown as import('express').Response;
+    const response = { status, cookie: vi.fn() } as unknown as import('express').Response;
     expect(await controller.create(body, req(`Bearer ${capability}`), response)).toEqual({
       mode: 'text-price-v1',
       code: 'price_input_refused',
@@ -240,6 +241,7 @@ describe('scoped Ask command, dispatch and tool boundaries', () => {
       create,
       capability,
       'request-key-123456',
+      { visitorDigest: expect.stringMatching(/^[0-9a-f]{64}$/) },
       expect.any(AbortSignal),
     );
     await expect(
@@ -363,4 +365,55 @@ describe('scoped Ask command, dispatch and tool boundaries', () => {
       }),
     ).rejects.toBe(failure);
   });
+});
+
+it('maps each typed daily quota to its closed public 429 body', async () => {
+  for (const scope of ['visitor', 'global'] as const) {
+    const failure = await liveAuthorized(async () => {
+      throw new AskQuotaError(scope, '2026-10-27T03:00:00.000Z');
+    }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(HttpException);
+    if (!(failure instanceof HttpException)) throw new Error('Expected quota exception.');
+    expect(failure.getStatus()).toBe(429);
+    expect(failure.getResponse()).toEqual({
+      code: 'quota_exceeded',
+      scope,
+      reopensAt: '2026-10-27T03:00:00.000Z',
+    });
+  }
+});
+
+it('propagates one authenticated visitor digest through all five creation modes', async () => {
+  vi.stubEnv('ASK_DISPATCH_SECRET', secret);
+  const live = facade(),
+    controller = new AskLiveController(live);
+  live.createRouted.mockResolvedValue(queued);
+  const cookie = vi.fn(),
+    response = { cookie } as unknown as import('express').Response;
+  let token = '';
+  for (const mode of [
+    'structured-price-v1',
+    'text-price-v1',
+    'text-price-explanation-v1',
+    'routed-text-v1',
+    'routed-text-explanation-v1',
+  ]) {
+    const request = req(`Bearer ${capability}`);
+    if (token) request.headers.cookie = token;
+    const candidate =
+      mode === 'structured-price-v1'
+        ? create
+        : { mode, threadId: null, placeId: null, query: 'Price 10, area 2 m2', locale: 'en' };
+    const result = await controller.create(candidate, request, response);
+    expect(JSON.stringify(result)).not.toContain('visitor');
+    if (!token) token = `${cookie.mock.calls[0]![0]}=${cookie.mock.calls[0]![1]}`;
+  }
+  expect(cookie).toHaveBeenCalledOnce();
+  const admissions = [
+    ...live.create.mock.calls,
+    ...live.createText.mock.calls,
+    ...live.createRouted.mock.calls,
+  ].map((call) => call[3]);
+  expect(admissions).toHaveLength(5);
+  expect(new Set(admissions.map((admission: unknown) => JSON.stringify(admission))).size).toBe(1);
 });

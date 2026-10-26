@@ -1,11 +1,18 @@
 import { Controller, Get, HttpException, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { afterAll, beforeAll, expect, it } from 'vitest';
+import { AskQuotaError } from '@rei/application';
+import { AskQuotaException } from './ask-quota.exception';
 import { ApiExceptionFilter } from './api-exception.filter';
 import { AskPendingLimitException } from './ask-pending-limit.exception';
 
 @Controller()
 class RefusalController {
+  @Get('quota')
+  public quota(): never {
+    throw new AskQuotaException(new AskQuotaError('visitor', '2026-10-27T03:00:00.000Z'));
+  }
+
   @Get('capacity')
   public capacity(): never {
     throw new AskPendingLimitException();
@@ -44,5 +51,16 @@ it('continues sanitizing arbitrary 429 exception payloads', async () => {
       message: 'Too many requests were made.',
       requestId: expect.any(String),
     },
+  });
+});
+
+it('preserves the strict quota refusal and reopening through the global sanitizer', async () => {
+  const response = await fetch(`${origin}/quota`);
+  expect(response.status).toBe(429);
+  expect(response.headers.get('x-request-id')).toBeTruthy();
+  expect(await response.json()).toEqual({
+    code: 'quota_exceeded',
+    scope: 'visitor',
+    reopensAt: '2026-10-27T03:00:00.000Z',
   });
 });

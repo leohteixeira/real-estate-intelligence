@@ -371,7 +371,9 @@ describe('retained Ask creation fence before thread preparation', () => {
         new PostgresTransactionRunner(connection),
         outbox,
       );
-      await expect(repository.create(body, capability, key)).rejects.toMatchObject({ kind });
+      await expect(
+        repository.create(body, capability, key, { visitorDigest: 'a'.repeat(64) }),
+      ).rejects.toMatchObject({ kind });
       expect(query.mock.calls.map(([sql]) => sql)).toEqual([
         'BEGIN',
         expect.stringContaining('pg_advisory_xact_lock'),
@@ -407,12 +409,140 @@ describe('retained Ask creation fence before thread preparation', () => {
         new PostgresTransactionRunner(connection),
         outbox,
       );
-      await expect(repository.create(original, owner, key)).resolves.toEqual(run);
+      await expect(
+        repository.create(original, owner, key, { visitorDigest: 'a'.repeat(64) }),
+      ).resolves.toEqual(run);
       expect(
         query.mock.calls.filter(([sql]) => sql.includes('pg_advisory_xact_lock')),
       ).toHaveLength(2);
       expect(query.mock.calls.filter(([sql]) => sql.includes('JOIN ask.thread'))).toHaveLength(2);
       expect(query.mock.calls.some(([sql]) => sql.startsWith('INSERT'))).toBe(false);
+      expect(outbox.append).not.toHaveBeenCalled();
+    } finally {
+      await connection.close();
+    }
+  });
+});
+
+describe('atomic daily quota admission', () => {
+  const admission = { visitorDigest: 'a'.repeat(64) };
+  const clock = {
+    at: new Date('2018-11-04T03:00:00Z'),
+    deadline: new Date('2018-11-04T03:02:00Z'),
+    day_start: new Date('2018-11-04T03:00:00Z'),
+    reopens_at: new Date('2018-11-05T02:00:00Z'),
+  };
+  it.each([
+    ['global', 100, 20, 0],
+    ['visitor', 20, 20, 0],
+    ['capacity', 100, 20, 3],
+    ['accepted', 99, 19, 0],
+    ['rollback', 99, 19, 0],
+  ] as const)(
+    'preserves %s precedence and transaction effects',
+    async (outcome, globalCount, visitorCount, pending) => {
+      const connection = new DatabaseConnection('postgres://synthetic.invalid/ask');
+      const query = vi.fn<DatabaseClient['query']>();
+      const authority = { authority_digest: askDigest(owner) };
+      const rows: readonly (readonly object[])[] = [
+        [],
+        [],
+        [],
+        [{ id: original.threadId, ...authority }],
+        [],
+        [],
+        [authority],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [authority],
+        [{ count: pending }],
+        ...(pending === 3
+          ? []
+          : [
+              [],
+              [{ id: run.id }],
+              [{ id: run.id }],
+              [clock],
+              [{ global_count: globalCount, visitor_count: visitorCount }],
+            ]),
+        ...(outcome === 'accepted' || outcome === 'rollback'
+          ? [[], [{ sequence: 1 }], [], []]
+          : []),
+        [],
+      ];
+      for (const value of rows) query.mockResolvedValueOnce(value);
+      vi.spyOn(connection, 'leaseClient').mockResolvedValue({ query, release: vi.fn() });
+      const outbox = {
+        append: vi.fn().mockImplementation(async () => {
+          if (outcome === 'rollback') throw new Error('controlled outbox failure');
+        }),
+      };
+      try {
+        const repository = new PostgresAskRunRepository(
+          connection,
+          new PostgresTransactionRunner(connection),
+          outbox,
+        );
+        const work = repository.create(original, owner, key, admission);
+        if (outcome === 'accepted') {
+          const accepted = await work;
+          expect(accepted.createdAt).toBe(clock.at.toISOString());
+          expect(JSON.stringify(accepted)).not.toContain(admission.visitorDigest);
+          expect(
+            query.mock.calls.find(([sql]) => sql.startsWith('INSERT INTO ask.run '))?.[1]?.at(-1),
+          ).toBe(admission.visitorDigest);
+          expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
+        } else {
+          await expect(work).rejects.toMatchObject(
+            outcome === 'visitor' || outcome === 'global'
+              ? { scope: outcome, reopensAt: clock.reopens_at.toISOString() }
+              : { kind: outcome === 'rollback' ? 'unavailable' : 'capacity' },
+          );
+          expect(query.mock.calls.at(-1)?.[0]).toBe('ROLLBACK');
+        }
+        const calls = query.mock.calls;
+        if (outcome !== 'capacity') {
+          const lock = calls.findIndex(([, values]) => values?.[0] === 'ask:demo-quota:global');
+          const observed = calls.findIndex(([sql]) =>
+            sql.includes('WITH observed AS MATERIALIZED'),
+          );
+          expect(observed).toBeGreaterThan(lock);
+          expect(calls[observed]?.[0]).toContain("AT TIME ZONE 'America/Sao_Paulo'");
+          expect(calls.find(([sql]) => sql.includes('AS global_count'))?.[1]).toEqual([
+            clock.day_start,
+            clock.reopens_at,
+            admission.visitorDigest,
+          ]);
+        } else expect(calls.some(([sql]) => sql.includes('AS global_count'))).toBe(false);
+        expect(outbox.append).toHaveBeenCalledTimes(
+          outcome === 'accepted' || outcome === 'rollback' ? 1 : 0,
+        );
+      } finally {
+        await connection.close();
+      }
+    },
+  );
+  it('rejects malformed visitor metadata and invalid policy rather than bypassing limits', async () => {
+    const connection = new DatabaseConnection('postgres://synthetic.invalid/ask');
+    try {
+      const transactions = new PostgresTransactionRunner(connection),
+        outbox = { append: vi.fn() };
+      const repository = new PostgresAskRunRepository(connection, transactions, outbox);
+      for (const visitorDigest of ['', 'raw cookie', 'a'.repeat(63)])
+        await expect(
+          repository.create(original, owner, key, { visitorDigest }),
+        ).rejects.toMatchObject({ kind: 'invalid' });
+      expect(
+        () =>
+          new PostgresAskRunRepository(connection, transactions, outbox, {
+            visitorDailyLimit: 0,
+            globalDailyLimit: 100,
+          }),
+      ).toThrow('quota configuration');
       expect(outbox.append).not.toHaveBeenCalled();
     } finally {
       await connection.close();

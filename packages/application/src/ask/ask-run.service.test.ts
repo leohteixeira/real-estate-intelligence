@@ -52,7 +52,7 @@ describe('Ask lifecycle facade', () => {
       failure: 'execution_unavailable' as const,
     };
     for (const work of [
-      service.create(create, 'authority', 'key', signal),
+      service.create(create, 'authority', 'key', { visitorDigest: 'a'.repeat(64) }, signal),
       service.run('run', 'authority', signal),
       service.thread('thread', 'authority', signal),
       service.events('run', 'authority', 2, signal),
@@ -70,7 +70,13 @@ describe('Ask lifecycle facade', () => {
       ),
     ])
       await expect(work).rejects.toBe(failure);
-    expect(repository.create).toHaveBeenCalledExactlyOnceWith(create, 'authority', 'key', signal);
+    expect(repository.create).toHaveBeenCalledExactlyOnceWith(
+      create,
+      'authority',
+      'key',
+      { visitorDigest: 'a'.repeat(64) },
+      signal,
+    );
     expect(repository.run).toHaveBeenCalledExactlyOnceWith('run', 'authority', signal);
     expect(repository.thread).toHaveBeenCalledExactlyOnceWith('thread', 'authority', signal);
     expect(repository.events).toHaveBeenCalledExactlyOnceWith('run', 'authority', 2, signal);
@@ -88,13 +94,21 @@ describe('Ask lifecycle facade', () => {
       locale: 'en' as const,
     };
     repository.create.mockClear();
-    expect(await service.createText(text, 'authority', 'key', signal)).toEqual({
+    expect(
+      await service.createText(text, 'authority', 'key', { visitorDigest: 'a'.repeat(64) }, signal),
+    ).toEqual({
       kind: 'refused',
       reason: 'invalid_price',
     });
     expect(repository.create).not.toHaveBeenCalled();
     await expect(
-      service.createText({ ...text, query: 'Price 10, area 2 m2' }, 'authority', 'key', signal),
+      service.createText(
+        { ...text, query: 'Price 10, area 2 m2' },
+        'authority',
+        'key',
+        { visitorDigest: 'a'.repeat(64) },
+        signal,
+      ),
     ).rejects.toBe(failure);
     expect(repository.create).toHaveBeenCalledExactlyOnceWith(
       {
@@ -104,15 +118,23 @@ describe('Ask lifecycle facade', () => {
       },
       'authority',
       'key',
+      { visitorDigest: 'a'.repeat(64) },
       signal,
     );
     await expect(
-      service.createRouted({ ...text, mode: 'routed-text-v1' }, 'authority', 'key', signal),
+      service.createRouted(
+        { ...text, mode: 'routed-text-v1' },
+        'authority',
+        'key',
+        { visitorDigest: 'a'.repeat(64) },
+        signal,
+      ),
     ).rejects.toBe(failure);
     expect(repository.create).toHaveBeenLastCalledWith(
       { ...text, mode: 'routed-text-v1', inputs: null },
       'authority',
       'key',
+      { visitorDigest: 'a'.repeat(64) },
       signal,
     );
     await expect(
@@ -120,6 +142,7 @@ describe('Ask lifecycle facade', () => {
         { ...text, mode: 'routed-text-v1', query: 'Price 10, area 2 m2' },
         'authority',
         'key',
+        { visitorDigest: 'a'.repeat(64) },
         signal,
       ),
     ).rejects.toBe(failure);
@@ -132,6 +155,7 @@ describe('Ask lifecycle facade', () => {
       },
       'authority',
       'key',
+      { visitorDigest: 'a'.repeat(64) },
       signal,
     );
     repository.confirm.mockClear();
@@ -162,11 +186,23 @@ describe('Ask lifecycle facade', () => {
     };
     repository.create.mockResolvedValueOnce(queued);
     expect(
-      await service.createText({ ...text, query: queued.question }, 'authority', 'key', signal),
+      await service.createText(
+        { ...text, query: queued.question },
+        'authority',
+        'key',
+        { visitorDigest: 'a'.repeat(64) },
+        signal,
+      ),
     ).toEqual({ kind: 'accepted', run: queued });
     repository.create.mockClear();
     await expect(
-      service.createText(text, 'authority', 'key', AbortSignal.abort()),
+      service.createText(
+        text,
+        'authority',
+        'key',
+        { visitorDigest: 'a'.repeat(64) },
+        AbortSignal.abort(),
+      ),
     ).rejects.toThrow();
     expect(repository.create).not.toHaveBeenCalled();
   });

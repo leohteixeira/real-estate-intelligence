@@ -184,6 +184,15 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         await db.query(await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'));
         await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [file.slice(0, -4)]);
       }
+      // Independent additive admission metadata is required by current creation; keep the
+      // populated 6006-to-6007 document/terminal migration proof unchanged.
+      const admissionMigration = '6009_ask_demo_quotas.sql';
+      await db.query(
+        await readFile(new URL(`../migrations/${admissionMigration}`, import.meta.url), 'utf8'),
+      );
+      await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [
+        admissionMigration.slice(0, -4),
+      ]);
       const repository = new PostgresAskRunRepository(
         db,
         new PostgresTransactionRunner(db),
@@ -201,6 +210,7 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         },
         capability,
         secret(),
+        { visitorDigest: 'a'.repeat(64) },
       );
       const priorEvent = (
         await db.query<{ event_id: string }>(
@@ -250,6 +260,7 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         },
         capability,
         secret(),
+        { visitorDigest: 'a'.repeat(64) },
       );
       const priorRoutedEvent = (
         await db.query<{ event_id: string }>(
@@ -1217,6 +1228,7 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         },
         capability,
         secret(),
+        { visitorDigest: 'a'.repeat(64) },
       );
       await expect(
         db.query('UPDATE ask.run SET document=document || \'{"extra":true}\'::jsonb WHERE id=$1', [

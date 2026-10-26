@@ -22,7 +22,13 @@ describe('complete SDK export privacy boundary', () => {
       duration: [1, 0],
       ended: true,
       status: { code: SpanStatusCode.ERROR, message: sentinel },
-      attributes: { 'db.statement': sentinel, 'http.url': sentinel, 'rei.ask.outcome': 'failed' },
+      attributes: {
+        'db.statement': sentinel,
+        'http.url': sentinel,
+        'http.request.header.cookie': sentinel,
+        'rei.ask.visitor_digest': sentinel,
+        'rei.ask.outcome': 'failed',
+      },
       events: [
         { name: sentinel, time: [1, 0], attributes: { secret: sentinel } },
         {

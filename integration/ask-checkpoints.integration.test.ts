@@ -1134,7 +1134,9 @@ test('cancelled checkpoint turns retain only the latest eight and age older comp
         signal,
       );
     };
-    const completed = await runs.create(body, context.capability, secret());
+    const completed = await runs.create(body, context.capability, secret(), {
+      visitorDigest: 'a'.repeat(64),
+    });
     const first = await claimRun(completed);
     if (first.step !== 'structured-price-v1') throw new Error('Expected historical price turn.');
     await saveCheckpoint(first, 'price-v1');
@@ -1188,6 +1190,7 @@ test('cancelled checkpoint turns retain only the latest eight and age older comp
         { ...body, mode: 'routed-text-v1', threadId: completed.threadId },
         context.capability,
         secret(),
+        { visitorDigest: 'a'.repeat(64) },
       );
       const input = await claimRun(proposed);
       const address = {
@@ -1561,9 +1564,11 @@ test('6003 upgrades a genuine populated 6002 structured/text baseline without re
       new PostgresOutbox(context.database),
     );
     for (const replay of replays)
-      expect(await repository.create(replay.request, context.capability, replay.key)).toEqual(
-        replay.run,
-      );
+      expect(
+        await repository.create(replay.request, context.capability, replay.key, {
+          visitorDigest: 'a'.repeat(64),
+        }),
+      ).toEqual(replay.run);
     expect(
       await context.database.query<{ count: number }>(
         'SELECT count(*)::integer AS count FROM ask.thread WHERE principal_id IS NOT NULL',
