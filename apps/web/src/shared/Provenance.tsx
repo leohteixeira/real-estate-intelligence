@@ -1,6 +1,6 @@
 import type { MarketEvidence } from '@rei/contracts';
 import { useTranslation } from 'react-i18next';
-import { formatComputedAt, formatCount } from '../places/formatters';
+import { formatComputedAt, formatCount, formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
 
 export interface MethodLink {
@@ -43,6 +43,13 @@ export function Provenance({
         {t('computed', { time: formatComputedAt(evidence.computedAt, i18n.language as Locale) })}
       </span>
       <span>{t(evidence.freshness.status)}</span>
+      {evidence.freshness.status === 'stale' ? (
+        <span>
+          {t('calculationAge', {
+            seconds: formatQuantity(evidence.freshness.ageSeconds, i18n.language as Locale),
+          })}
+        </span>
+      ) : null}
       {synthetic ? <span className="tag tag--synthetic">{t('synthetic')}</span> : null}
       {method ? <a href={method.href}>{method.label}</a> : null}
     </div>

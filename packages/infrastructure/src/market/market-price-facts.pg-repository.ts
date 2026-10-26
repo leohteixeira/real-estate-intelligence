@@ -1,6 +1,7 @@
 import {
   ExternalFailure,
   MARKET_LISTING_CONSUMER,
+  type MarketCompletionProjectionPort,
   type MarketPriceFactsEvent,
   type MarketPriceFactsProjectionPort,
   type MarketPriceFactsReadPort,
@@ -13,6 +14,8 @@ import {
   type CausalListingState,
   type ListingFact,
   type MarketFiguresSnapshot,
+  type MarketSourceCompletion,
+  parseRfc3339Timestamp,
 } from '@rei/domain';
 import type { DatabaseConnection } from '../shared/index.js';
 import type { DatabaseClient } from '../shared/persistence/database-connection.js';
@@ -22,9 +25,37 @@ function rejected(): never {
   throw new ExternalFailure({ kind: 'rejected', operation: MARKET_LISTING_CONSUMER });
 }
 export class PostgresMarketPriceFacts
-  implements MarketPriceFactsProjectionPort, MarketPriceFactsReadPort
+  implements
+    MarketPriceFactsProjectionPort,
+    MarketPriceFactsReadPort,
+    MarketCompletionProjectionPort
 {
   public constructor(private readonly connection: DatabaseConnection) {}
+  public async complete(
+    transaction: Transaction,
+    sourceId: string,
+    completedAt: string,
+  ): Promise<void> {
+    parseRfc3339Timestamp(completedAt, 'completedAt');
+    const client = postgresClientFor(transaction, this.connection);
+    await client.query(
+      `INSERT INTO market.source_completion (source_id, completed_at) VALUES ($1, $2::timestamptz)
+       ON CONFLICT (source_id) DO UPDATE SET completed_at = GREATEST(market.source_completion.completed_at, EXCLUDED.completed_at)`,
+      [sourceId, completedAt],
+    );
+  }
+  public async readCompletions(
+    sourceIds: readonly string[],
+  ): Promise<readonly MarketSourceCompletion[]> {
+    const rows = await this.connection.query<{ source_id: string; completed_at: Date }>(
+      `SELECT source_id, completed_at FROM market.source_completion WHERE source_id = ANY($1::text[]) ORDER BY source_id`,
+      [[...new Set(sourceIds)].sort()],
+    );
+    return rows.map((row) => ({
+      sourceId: row.source_id,
+      completedAt: parseRfc3339Timestamp(row.completed_at.toISOString(), 'completedAt'),
+    }));
+  }
   public async project(transaction: Transaction, event: MarketPriceFactsEvent): Promise<void> {
     const client = postgresClientFor(transaction, this.connection);
     // One context-local lock covers every evidence/frontier/minimum change and its inbox commit.

@@ -64,9 +64,9 @@ const median = figure(wireObject({ minorUnits: wireMoney, currency: wireEnum(['B
 const liveEvidence = {
   ...evidence,
   freshness: wireObject({
-    status: wireEnum(['untracked']),
-    latestCollectionCompletedAt: wireNull,
-    ageSeconds: wireEnum([0]),
+    status: wireEnum(['fresh', 'stale', 'untracked']),
+    latestCollectionCompletedAt: wireNullable(wireDate),
+    ageSeconds: wireNumber(),
   }),
 };
 const liveMedian = wireDiscriminated('state', {
@@ -134,12 +134,27 @@ function validateParent(place: PlaceRef, parent: PlaceRef | null): void {
 function validateBase(response: { metadata: { asOf: string }; evaluatedAt: string }): void {
   if (Date.parse(response.metadata.asOf) > Date.parse(response.evaluatedAt)) invalidWire();
 }
+function validateLiveEvidence(item: MarketEvidence, evaluatedAt: string): void {
+  const computed = Date.parse(item.computedAt);
+  const evaluated = Date.parse(evaluatedAt);
+  const latest = item.freshness.latestCollectionCompletedAt;
+  if (computed > evaluated || item.freshness.ageSeconds !== (evaluated - computed) / 1000)
+    invalidWire();
+  if (latest === null) {
+    if (item.freshness.status !== 'untracked') invalidWire();
+  } else if (
+    item.sources.length === 0 ||
+    Date.parse(latest) > evaluated ||
+    item.freshness.status !== (computed < Date.parse(latest) ? 'stale' : 'fresh')
+  )
+    invalidWire();
+}
 function validateLiveFigure(
   item: MarketEvidence & { readonly state: string },
   evaluatedAt: string,
 ): void {
+  validateLiveEvidence(item, evaluatedAt);
   if (
-    item.computedAt !== evaluatedAt ||
     (item.state === 'available') !== item.recordCount > 0 ||
     (item.recordCount === 0) !== (item.sources.length === 0)
   )
@@ -156,8 +171,8 @@ function validateLiveFigure(
   }
 }
 function validateLiveMedian(item: MarketFigure<unknown>, evaluatedAt: string): void {
+  validateLiveEvidence(item, evaluatedAt);
   if (
-    item.computedAt !== evaluatedAt ||
     (item.state === 'available') !== item.recordCount > 0 ||
     (item.recordCount === 0) !== (item.sources.length === 0) ||
     item.sources.length > item.recordCount

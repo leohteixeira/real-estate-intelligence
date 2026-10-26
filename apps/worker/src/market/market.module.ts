@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import {
   ConsumeMarketListing,
+  ConsumeMarketCompletion,
+  type MarketCompletionProjectionPort,
   INBOX,
   MARKET_PRICE_FACTS,
   TRANSACTION_RUNNER,
@@ -11,6 +13,7 @@ import {
 import { PostgresMarketPriceFacts, type DatabaseConnection } from '@rei/infrastructure';
 import { DATABASE_CONNECTION } from '../persistence.module';
 import { MarketListingConsumer } from './market-listing.consumer';
+import { MarketCompletionConsumer } from './market-completion.consumer';
 
 @Module({
   providers: [
@@ -28,8 +31,18 @@ import { MarketListingConsumer } from './market-listing.consumer';
         inbox: Inbox,
       ) => new ConsumeMarketListing(facts, transactions, inbox),
     },
+    {
+      provide: ConsumeMarketCompletion,
+      inject: [MARKET_PRICE_FACTS, TRANSACTION_RUNNER, INBOX],
+      useFactory: (
+        facts: MarketCompletionProjectionPort,
+        transactions: TransactionRunner,
+        inbox: Inbox,
+      ) => new ConsumeMarketCompletion(facts, transactions, inbox),
+    },
     MarketListingConsumer,
+    MarketCompletionConsumer,
   ],
-  exports: [MarketListingConsumer],
+  exports: [MarketListingConsumer, MarketCompletionConsumer],
 })
 export class MarketModule {}

@@ -1,4 +1,5 @@
 import { DomainValidationError, parseRfc3339Timestamp } from '../shared/index.js';
+import { marketFreshness } from './market-freshness.js';
 import { askingPriceMedian } from './asking-price-median.js';
 import type { LiveMarketSeriesPoint } from './market.read.types.js';
 import type { MarketStateEvidence } from './remaining-place-figures.js';
@@ -9,7 +10,11 @@ export function monthlyAskingPriceSeries(
   scopeIds: readonly string[],
   parentScopeIds: readonly string[] | null,
   evaluatedAt: string,
+  computedAt = evaluatedAt,
 ): readonly LiveMarketSeriesPoint[] {
+  parseRfc3339Timestamp(computedAt, 'computedAt');
+  if (Date.parse(computedAt) > Date.parse(evaluatedAt))
+    throw new DomainValidationError('Computation follows evaluation.', 'computedAt');
   const evaluated = new Date(parseRfc3339Timestamp(evaluatedAt, 'evaluatedAt'));
   // Validate every retained state, including evidence ineligible at the requested cutoffs.
   askingPriceMedian(
@@ -47,9 +52,21 @@ export function monthlyAskingPriceSeries(
     return {
       month,
       asOf,
-      median: askingPriceMedian(facts, scopeIds, evaluatedAt),
+      median: marketFreshness(
+        askingPriceMedian(facts, scopeIds, evaluatedAt),
+        [],
+        evaluatedAt,
+        computedAt,
+      ),
       parentMedian:
-        parentScopeIds === null ? null : askingPriceMedian(facts, parentScopeIds, evaluatedAt),
+        parentScopeIds === null
+          ? null
+          : marketFreshness(
+              askingPriceMedian(facts, parentScopeIds, evaluatedAt),
+              [],
+              evaluatedAt,
+              computedAt,
+            ),
     };
   });
 }

@@ -1,5 +1,7 @@
 import {
   askingPriceMedian,
+  marketFreshness,
+  type MarketEvidence,
   monthlyAskingPriceSeries,
   remainingPlaceFigures,
   DomainValidationError,
@@ -46,16 +48,42 @@ export class MarketQueryService implements MarketFacade {
     if (!parent) throw new Error('Registered Market parent unavailable.');
     return parent;
   }
+  private async calculation() {
+    if (!this.live) throw new Error('Live Market unavailable.');
+    const snapshot = await this.live.facts.readFigures();
+    const computedAt = this.live.clock.now();
+    const sourceIds = [
+      ...new Set(
+        [
+          ...snapshot.representatives,
+          ...snapshot.current,
+          ...snapshot.history.map(({ listing }) => listing),
+          ...snapshot.priceChanges.map(({ listing }) => listing),
+        ].map((listing) => listing.sourceId),
+      ),
+    ].sort();
+    const completions = await this.live.facts.readCompletions(sourceIds);
+    const evaluatedAt = this.live.clock.now();
+    const proof = <T extends MarketEvidence>(figure: T): T =>
+      marketFreshness(figure, completions, evaluatedAt, computedAt);
+    return { snapshot, computedAt, evaluatedAt, proof };
+  }
   public async getPlaceMarket(id: string): Promise<PlaceMarketResponse | null> {
     const scope = await this.scope(id);
     if (!scope) return null;
     const parent = await this.parent(scope.place.parentId);
     if (this.live) {
       try {
-        const snapshot = await this.live.facts.readFigures();
+        const { snapshot, evaluatedAt, proof } = await this.calculation();
         const facts = snapshot.representatives;
-        const evaluatedAt = this.live.clock.now();
-        const figures = remainingPlaceFigures(snapshot, scope.ids, evaluatedAt);
+        const calculated = remainingPlaceFigures(snapshot, scope.ids, evaluatedAt);
+        const figures = {
+          askingPriceMovement: proof(calculated.askingPriceMovement),
+          medianTimeOnMarketDays: proof(calculated.medianTimeOnMarketDays),
+          priceReductions: proof(calculated.priceReductions),
+          listingsPerProperty: proof(calculated.listingsPerProperty),
+          recordedSalePricePerSquareMeter: proof(calculated.recordedSalePricePerSquareMeter),
+        };
         return structuredClone({
           ...this.base(scope),
           basis: 'event-fed-place-figures' as const,
@@ -67,12 +95,14 @@ export class MarketQueryService implements MarketFacade {
           },
           figures: {
             ...figures,
-            medianAskingPricePerSquareMeter: askingPriceMedian(facts, scope.ids, evaluatedAt),
+            medianAskingPricePerSquareMeter: proof(
+              askingPriceMedian(facts, scope.ids, evaluatedAt),
+            ),
           },
           parentMedian: parent
             ? {
                 place: ref(parent.place),
-                median: askingPriceMedian(facts, parent.ids, evaluatedAt),
+                median: proof(askingPriceMedian(facts, parent.ids, evaluatedAt)),
               }
             : null,
         });
@@ -106,17 +136,17 @@ export class MarketQueryService implements MarketFacade {
     }
     if (this.live) {
       try {
-        const snapshot = await this.live.facts.readFigures();
-        const evaluatedAt = this.live.clock.now();
+        const { snapshot, evaluatedAt, proof } = await this.calculation();
         return structuredClone({
           ...this.base(scope),
           basis: 'event-fed-place-figures' as const,
           evaluatedAt,
           items: neighbors.map((neighbor) => ({
             place: ref(neighbor.place),
-            median: askingPriceMedian(snapshot.representatives, neighbor.ids, evaluatedAt),
-            movement: remainingPlaceFigures(snapshot, neighbor.ids, evaluatedAt)
-              .askingPriceMovement,
+            median: proof(askingPriceMedian(snapshot.representatives, neighbor.ids, evaluatedAt)),
+            movement: proof(
+              remainingPlaceFigures(snapshot, neighbor.ids, evaluatedAt).askingPriceMovement,
+            ),
           })),
         });
       } catch (error: unknown) {
@@ -141,8 +171,7 @@ export class MarketQueryService implements MarketFacade {
     const parent = await this.parent(scope.place.parentId);
     if (this.live) {
       try {
-        const snapshot = await this.live.facts.readFigures();
-        const evaluatedAt = this.live.clock.now();
+        const { snapshot, computedAt, evaluatedAt, proof } = await this.calculation();
         return structuredClone({
           ...this.base(scope),
           basis: 'event-fed-place-figures' as const,
@@ -153,7 +182,12 @@ export class MarketQueryService implements MarketFacade {
             scope.ids,
             parent?.ids ?? null,
             evaluatedAt,
-          ),
+            computedAt,
+          ).map((point) => ({
+            ...point,
+            median: proof(point.median),
+            parentMedian: point.parentMedian ? proof(point.parentMedian) : null,
+          })),
         });
       } catch (error: unknown) {
         if (error instanceof DomainValidationError)
