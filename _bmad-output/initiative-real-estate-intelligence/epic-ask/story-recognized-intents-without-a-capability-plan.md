@@ -3,7 +3,7 @@ title: 'Recognized intents without a capability'
 type: 'feature'
 ticket: '5'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '04819728120b19ac5549a1a6b986abb811281d43'
 route: 'full'
 route_source: 'auto'
