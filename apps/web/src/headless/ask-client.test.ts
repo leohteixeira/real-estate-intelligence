@@ -416,3 +416,32 @@ describe('headless live HTTP and SSE client', () => {
     },
   );
 });
+
+it.each([
+  { code: 'quota_exceeded', scope: 'global', reopensAt: '2026-10-27T00:00:00.000Z' },
+  { code: 'quota_exceeded', scope: 'visitor', reopensAt: '2026-10-27T00:00:00.000Z' },
+])('retains only strict quota reset evidence %j', async (quota) => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(quota, { status: 429 })));
+  await expect(
+    createHeadlessAskClient('').create(input, capability, key, signal()),
+  ).rejects.toMatchObject({ status: 429, quota });
+});
+it.each([
+  'private rejection',
+  JSON.stringify({ code: 'quota_exceeded', scope: 'global', reopensAt: 'tomorrow' }),
+  JSON.stringify({
+    code: 'quota_exceeded',
+    scope: 'global',
+    reopensAt: '2026-10-27T00:00:00.000Z',
+    private: 'secret',
+  }),
+])('discards malformed quota bodies without leaking them %s', async (body) => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(body, { status: 429 })));
+  await expect(
+    createHeadlessAskClient('').create(input, capability, key, signal()),
+  ).rejects.toMatchObject({
+    status: 429,
+    quota: undefined,
+    message: 'The public contract could not be read.',
+  });
+});

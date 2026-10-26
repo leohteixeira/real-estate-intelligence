@@ -442,7 +442,7 @@ describe('contract-backed Search surface', () => {
     });
     expect(firstPages).toHaveLength(2);
   });
-  it('sends every editor field and ordering through the complete query boundary', async () => {
+  it('selects every property type and applies the final type through the query boundary', async () => {
     const request = reads();
     mount(`/search/${bela.id}?view=filters`);
     await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
@@ -452,6 +452,15 @@ describe('contract-backed Search surface', () => {
       expect(screen.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true');
     }
     await userEvent.click(screen.getByRole('button', { name: 'Apartamento' }));
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar 1 imóvel' }));
+    expect(screen.getByLabelText('URL')).toHaveTextContent('propertyType=apartment');
+    expect(request.mock.calls.some(([url]) => url.includes('propertyType=apartment'))).toBe(true);
+  });
+  it('sends all six typed numeric fields through the query boundary', async () => {
+    const request = reads();
+    mount(`/search/${bela.id}?view=filters`);
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
     for (const [name, value] of [
       ['Preço pedido (R$) — Mínimo', '600.000,50'],
       ['Preço pedido (R$) — Máximo', '900.000'],
@@ -461,6 +470,33 @@ describe('contract-backed Search surface', () => {
       ['Área (m²) — Máximo', '82,5'],
     ])
       await userEvent.type(screen.getByRole('textbox', { name }), value!);
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar 1 imóvel' }));
+    const expected = {
+      minAskingPrice: '60000050',
+      maxAskingPrice: '90000000',
+      minPricePerSquareMeter: '900000',
+      maxPricePerSquareMeter: '1000000',
+      minArea: '80.5',
+      maxArea: '82.5',
+    };
+    const applied = new URL(screen.getByLabelText('URL').textContent!, 'http://localhost')
+      .searchParams;
+    for (const [key, value] of Object.entries(expected)) expect(applied.get(key)).toBe(value);
+    expect(
+      request.mock.calls.some(([url]) =>
+        Object.entries(expected).every(
+          ([key, value]) => new URL(url, 'http://localhost').searchParams.get(key) === value,
+        ),
+      ),
+    ).toBe(true);
+  });
+  it('combines room, market-time and flag edits with all existing numeric and type filters', async () => {
+    const request = reads();
+    mount(
+      `/search/${bela.id}?propertyType=apartment&minAskingPrice=60000050&maxAskingPrice=90000000&minPricePerSquareMeter=900000&maxPricePerSquareMeter=1000000&minArea=80.5&maxArea=82.5&view=filters`,
+    );
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
     await userEvent.click(
       within(screen.getByRole('group', { name: 'Quartos' })).getByRole('button', {
         name: '3+',
@@ -500,6 +536,13 @@ describe('contract-backed Search surface', () => {
         ),
       ),
     ).toBe(true);
+  });
+  it('preserves the complete combined filters through every ordering and removes the area range', async () => {
+    const request = reads();
+    mount(
+      `/search/${bela.id}?propertyType=apartment&minAskingPrice=60000050&maxAskingPrice=90000000&minPricePerSquareMeter=900000&maxPricePerSquareMeter=1000000&minArea=80.5&maxArea=82.5&minBedrooms=3&minBathrooms=3&minParkingSpaces=2&timeOnMarket=over-180&priceReduced=true&returnedToMarket=true&multipleListings=true`,
+    );
+    await screen.findByText('R$ 9.512');
     for (const sort of [
       'furthest-below-median',
       'lowest-price-per-square-meter',
