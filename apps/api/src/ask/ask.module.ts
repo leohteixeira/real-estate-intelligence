@@ -32,7 +32,7 @@ import { MarketModule } from '../market/index';
 import { GraphCheckpointController } from './graph-checkpoint.controller';
 import { GraphCheckpointRetentionJob } from './graph-checkpoint-retention.job';
 import { AskQueueExpiryJob } from './ask-queue-expiry.job';
-import { AskInternalController } from './ask-internal.controller';
+import { AskInternalController, AskDecisionController } from './ask-internal.controller';
 
 @Module({
   imports: [MarketModule],
@@ -43,6 +43,7 @@ import { AskInternalController } from './ask-internal.controller';
     AskToolController,
     GraphCheckpointController,
     AskInternalController,
+    AskDecisionController,
   ],
   providers: [
     {

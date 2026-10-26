@@ -49,6 +49,10 @@ export class InMemoryRunExecutor implements RunExecutor {
       return Promise.reject(
         new ExternalFailure({ kind: this.failure, operation: 'run-executor.execute' }),
       );
+    if (input.step === 'routed-text-v1')
+      return Promise.reject(
+        new ExternalFailure({ kind: 'rejected', operation: 'run-executor.execute' }),
+      );
     if (input.step !== 'foundation') {
       const receipt = this.priceReceipt;
       if (

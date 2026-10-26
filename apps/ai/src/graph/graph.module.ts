@@ -1,3 +1,10 @@
+import {
+  GatewayIntentDecider,
+  DegradedIntentDecider,
+  INTENT_DECIDER,
+  type IntentDecider,
+} from '../models/intent-decider';
+import { HttpIntentDecisionAdapter } from '../models/http-intent-decision.adapter';
 import { Module } from '@nestjs/common';
 
 import { NO_OP_GRAPH, noOpGraphProvider } from './no-op.graph';
@@ -22,13 +29,18 @@ import { ModelPolicyTelemetry } from '../models/model-telemetry';
     ModelPolicyTelemetry,
     noOpGraphProvider,
     {
+      provide: INTENT_DECIDER,
+      useFactory: () =>
+        new DegradedIntentDecider(new GatewayIntentDecider(readConfig(process.env).gatewayApiKey)),
+    },
+    {
       provide: LANGUAGE_MODEL,
       useFactory: () => new GatewayLanguageModelAdapter(readConfig(process.env).gatewayApiKey),
     },
     {
       provide: PRICE_GRAPH,
-      inject: [PRICE_TOOL, LANGUAGE_MODEL],
-      useFactory: (tool: PricePerSquareMeterTool, model: LanguageModel) => {
+      inject: [PRICE_TOOL, LANGUAGE_MODEL, INTENT_DECIDER],
+      useFactory: (tool: PricePerSquareMeterTool, model: LanguageModel, decider: IntentDecider) => {
         const origin = readConfig(process.env).apiBaseUrl;
         return new PriceGraphFactory(
           tool,
@@ -41,6 +53,10 @@ import { ModelPolicyTelemetry } from '../models/model-telemetry';
               ? new HttpModelExplanationAdapter(origin)
               : { execute: () => Promise.reject(new ModelExplanationFailure('policy')) },
           ),
+          decider,
+          origin
+            ? new HttpIntentDecisionAdapter(origin)
+            : { execute: () => Promise.reject(new ModelExplanationFailure('policy')) },
         );
       },
     },

@@ -83,7 +83,11 @@ export class PostgresGraphCheckpointRepository implements GraphCheckpointPort {
       });
       if (
         request.graphVersion !==
-        (authorized.basis === 'text-price-explanation-v1' ? 'price-explanation-v1' : 'price-v1')
+        (authorized.basis === 'routed-text-v1'
+          ? 'intent-routing-v1'
+          : authorized.basis === 'text-price-explanation-v1'
+            ? 'price-explanation-v1'
+            : 'price-v1')
       )
         throw new AskLiveError('forbidden');
       const horizon = await client.query<{ expired: boolean }>(
@@ -243,8 +247,8 @@ export class PostgresGraphCheckpointRepository implements GraphCheckpointPort {
     return this.transaction(signal, async (client) => {
       const candidates = await client.query<{ id: string; thread_id: string }>(
         `SELECT r.id::text,r.thread_id::text FROM ask.run r WHERE graph_started_at IS NOT NULL AND graph_pruned_at IS NULL AND
-        (graph_expires_at<=clock_timestamp() OR (state IN ('completed','failed','expired') AND
-          (SELECT count(*) FROM ask.run newer WHERE newer.thread_id=r.thread_id AND newer.state IN ('completed','failed','expired') AND (newer.document->>'updatedAt',newer.id)>(r.document->>'updatedAt',r.id))>=8)) ORDER BY r.id LIMIT $1`,
+        (graph_expires_at<=clock_timestamp() OR (state IN ('completed','failed','expired','cancelled') AND
+          (SELECT count(*) FROM ask.run newer WHERE newer.thread_id=r.thread_id AND newer.state IN ('completed','failed','expired','cancelled') AND (newer.document->>'updatedAt',newer.id)>(r.document->>'updatedAt',r.id))>=8)) ORDER BY r.id LIMIT $1`,
         [limit],
       );
       let pruned = 0;
@@ -253,8 +257,8 @@ export class PostgresGraphCheckpointRepository implements GraphCheckpointPort {
         await lockAskThread(client, candidate.thread_id);
         const eligible = await client.query<{ id: string }>(
           `UPDATE ask.run r SET graph_pruned_at=clock_timestamp() WHERE id=$1 AND graph_pruned_at IS NULL AND
-          (graph_expires_at<=clock_timestamp() OR (state IN ('completed','failed','expired') AND
-            (SELECT count(*) FROM ask.run newer WHERE newer.thread_id=r.thread_id AND newer.state IN ('completed','failed','expired') AND (newer.document->>'updatedAt',newer.id)>(r.document->>'updatedAt',r.id))>=8)) RETURNING id::text`,
+          (graph_expires_at<=clock_timestamp() OR (state IN ('completed','failed','expired','cancelled') AND
+            (SELECT count(*) FROM ask.run newer WHERE newer.thread_id=r.thread_id AND newer.state IN ('completed','failed','expired','cancelled') AND (newer.document->>'updatedAt',newer.id)>(r.document->>'updatedAt',r.id))>=8)) RETURNING id::text`,
           [candidate.id],
         );
         if (!eligible[0]) continue;

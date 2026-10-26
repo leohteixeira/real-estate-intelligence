@@ -1,3 +1,5 @@
+import { Command } from '@langchain/langgraph';
+import type { RoutedExecutionInput } from '@rei/domain';
 import {
   BadRequestException,
   Inject,
@@ -28,6 +30,11 @@ export class ExecutionService {
     @Inject(NO_OP_GRAPH) private readonly graph: NoOpGraph,
     @Optional() @Inject(PRICE_GRAPH) private readonly priceFactory?: PriceGraphFactory,
   ) {}
+  public execute(
+    input: Exclude<RunExecutionInput, { step: 'routed-text-v1' }>,
+    signal: AbortSignal,
+  ): Promise<Exclude<RunExecutionEvidence, { step: 'routed-text-v1' }>>;
+  public execute(input: RunExecutionInput, signal: AbortSignal): Promise<RunExecutionEvidence>;
   public async execute(
     input: RunExecutionInput,
     signal: AbortSignal,
@@ -81,6 +88,7 @@ export class ExecutionService {
     input: RunExecutionInput,
     signal: AbortSignal,
   ): Promise<RunExecutionEvidence> {
+    if (input.step === 'routed-text-v1') return this.traverseRouted(input, signal);
     if (input.step !== 'foundation') {
       if (!this.priceFactory) throw new GraphCheckpointFailure('rejected');
       const invocation = this.priceFactory.create(
@@ -172,5 +180,76 @@ export class ExecutionService {
       outcome: 'foundation-executed',
       visitedNodes,
     });
+  }
+  private async traverseRouted(
+    input: RoutedExecutionInput,
+    signal: AbortSignal,
+  ): Promise<RunExecutionEvidence> {
+    if (!this.priceFactory) throw new GraphCheckpointFailure('rejected');
+    const invocation = this.priceFactory.createRouted(
+      input,
+      signal,
+      Date.now() + (readConfig(process.env).tracerDeadlineMs ?? 4500),
+    );
+    const config = {
+      configurable: { thread_id: input.threadId },
+      signal,
+      durability: 'sync' as const,
+      streamMode: 'updates' as const,
+    };
+    const saved = await invocation.saver.getTuple(config);
+    if (saved) invocation.saver.assertTuple(saved);
+    const prior = saved ? await invocation.graph.getState(config) : null;
+    const completed = prior?.next.length === 0 && saved?.pendingWrites?.length === 0;
+    if (!completed) {
+      const interrupted = prior?.tasks.some((task) => task.interrupts?.length);
+      // A saved interrupt can precede dispatch's pause commit after a crash. Keep it
+      // stopped until the API has retained confirmation; resume data is no authority.
+      if (!interrupted || (await invocation.canResume())) {
+        const updates = await invocation.graph.stream(
+          saved
+            ? interrupted
+              ? new Command({ resume: true })
+              : null
+            : { input: invocation.input },
+          config,
+        );
+        for await (const update of updates) {
+          signal.throwIfAborted();
+          void update;
+        }
+      }
+    }
+    const final = await invocation.graph.getState(config);
+    signal.throwIfAborted();
+    invocation.saver.assertCanonical(final.values.input);
+    const decision = final.values.decision;
+    if (!decision) throw new ModelExplanationFailure('rejected');
+    const identity = {
+      version: 1,
+      eventId: input.eventId,
+      runId: input.runId,
+      threadId: input.threadId,
+      step: input.step,
+      executionId: input.executionId,
+      decisionReceiptId: decision.receiptId,
+    };
+    if (final.next.length)
+      return parseRunExecutionEvidence({ ...identity, outcome: 'awaiting-confirmation' });
+    if (final.values.outcome === 'execution-unavailable')
+      return parseRunExecutionEvidence({ ...identity, outcome: 'execution-unavailable' });
+    let receipt = parsePriceToolReceipt(final.values.receipt);
+    if (completed || receipt.executionId !== input.executionId) {
+      const rebound = await invocation.rebind();
+      if (
+        receipt.receiptId !== rebound.receiptId ||
+        receipt.result.minorUnits !== rebound.result.minorUnits ||
+        receipt.result.computedAt !== rebound.result.computedAt ||
+        !sameAskInputs(receipt.inputs, rebound.inputs)
+      )
+        throw new PriceToolFailure('rejected');
+      receipt = rebound;
+    }
+    return parseRunExecutionEvidence({ ...identity, outcome: 'price-calculated', receipt });
   }
 }

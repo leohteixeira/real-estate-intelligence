@@ -32,6 +32,7 @@ export async function invokePriceTool(
   authority: PriceAuthority,
 ): Promise<PriceToolReceipt> {
   authority.signal.throwIfAborted();
+  if (!input.inputs) throw new PriceToolFailure('rejected');
   const request = {
     version: 1 as const,
     eventId: input.eventId,

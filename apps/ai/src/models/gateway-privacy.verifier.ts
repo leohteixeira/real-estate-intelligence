@@ -14,7 +14,10 @@ const metadataSchema = z.object({
   gateway: z.object({ routing: z.object({ planningReasoning: z.string().max(2048) }) }),
 });
 /** Parse the documented gateway routing acknowledgement, never the generated probe text. */
-export function verifyGatewayAcknowledgement(result: LanguageModelResult, model: string): void {
+export function verifyGatewayAcknowledgement(
+  result: Pick<LanguageModelResult, 'model' | 'route' | 'metadata' | 'warnings'>,
+  model: string,
+): void {
   const metadata = metadataSchema.safeParse(result.metadata);
   if (
     !metadata.success ||

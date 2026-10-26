@@ -96,7 +96,11 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       (values.executionId !== undefined && values.executionId !== this.#input.executionId) ||
       (values.graphVersion !== undefined &&
         values.graphVersion !==
-          (this.#input.step === 'text-price-explanation-v1' ? 'price-explanation-v1' : 'price-v1'))
+          (this.#input.step === 'routed-text-v1'
+            ? 'intent-routing-v1'
+            : this.#input.step === 'text-price-explanation-v1'
+              ? 'price-explanation-v1'
+              : 'price-v1'))
     )
       throw new GraphCheckpointFailure('rejected');
     const namespace: unknown = values.checkpoint_ns ?? '';
@@ -110,9 +114,11 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       threadId: this.#input.threadId,
       executionId: this.#input.executionId,
       graphVersion:
-        this.#input.step === 'text-price-explanation-v1'
-          ? ('price-explanation-v1' as const)
-          : ('price-v1' as const),
+        this.#input.step === 'routed-text-v1'
+          ? ('intent-routing-v1' as const)
+          : this.#input.step === 'text-price-explanation-v1'
+            ? ('price-explanation-v1' as const)
+            : ('price-v1' as const),
       namespace,
     };
     try {
@@ -167,7 +173,9 @@ export class RemoteCheckpointSaver extends BaseCheckpointSaver {
       input.step !== this.#input.step ||
       input.query !== this.#input.query ||
       input.locale !== this.#input.locale ||
-      !sameAskInputs(input.inputs, this.#input.inputs)
+      (input.inputs === null || this.#input.inputs === null
+        ? input.inputs !== this.#input.inputs
+        : !sameAskInputs(input.inputs, this.#input.inputs))
     )
       throw new GraphCheckpointFailure('rejected', 'canonical-values');
   }

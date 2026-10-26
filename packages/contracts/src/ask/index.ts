@@ -1,4 +1,6 @@
 export {};
+export * from './intent-decision.types.js';
+export * from './intent-decision.dto.js';
 export * from './ask.read.types.js';
 export * from './ask.read.dto.js';
 export * from './ask.command.dto.js';

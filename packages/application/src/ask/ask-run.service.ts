@@ -25,6 +25,38 @@ export class AskRunService implements AskLiveFacade {
     );
     return { kind: 'accepted', run };
   }
+  public async createRouted(
+    request: import('@rei/domain').RoutedAskCreate,
+    capability: string,
+    key: string,
+    signal?: AbortSignal,
+  ): Promise<import('@rei/domain').AskLiveRun> {
+    signal?.throwIfAborted();
+    if (!this.market) throw new Error('Market calculation unavailable.');
+    const extracted = this.market.extractPriceInputs(request.query, request.locale);
+    return this.repository.create(
+      { ...request, inputs: extracted.kind === 'refused' ? null : extracted.inputs },
+      capability,
+      key,
+      signal,
+    );
+  }
+  public async confirm(
+    request: import('@rei/domain').RoutedAskConfirmation,
+    capability: string,
+    signal?: AbortSignal,
+  ): Promise<import('@rei/domain').AskLiveRun> {
+    signal?.throwIfAborted();
+    if (request.inputs) {
+      if (!this.market) throw new Error('Market calculation unavailable.');
+      // Reuse Market validation; a preview calculation has no durable tool effect.
+      this.market.pricePerSquareMeter(request.inputs, new Date().toISOString());
+    }
+    return this.repository.confirm(request, capability, signal);
+  }
+  public readonly refuse: AskRunRepository['refuse'] = (...args) => this.repository.refuse(...args);
+  public readonly executeDecision: AskRunRepository['executeDecision'] = (...args) =>
+    this.repository.executeDecision(...args);
   public readonly create: AskRunRepository['create'] = (...args) => this.repository.create(...args);
   public readonly expireQueued: AskRunRepository['expireQueued'] = (...args) =>
     this.repository.expireQueued(...args);

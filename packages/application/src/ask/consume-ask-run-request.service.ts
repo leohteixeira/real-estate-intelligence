@@ -62,5 +62,7 @@ export class ConsumeAskRunRequest {
       signal,
       deadlineAt,
     );
+    if (evidence.step === 'routed-text-v1' && evidence.outcome === 'awaiting-confirmation')
+      return { disposition: 'deferred' };
   }
 }

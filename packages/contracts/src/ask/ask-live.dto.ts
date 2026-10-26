@@ -1,4 +1,11 @@
 import {
+  parseRoutedAskLiveRun,
+  routedLiveRunWire,
+  routedExecutionWire,
+  routedEvidenceWire,
+  parseRoutedExecutionEvidence,
+} from './intent-decision.dto.js';
+import {
   invalidWire,
   parseWire,
   wireArray,
@@ -213,12 +220,16 @@ export type ExplainedAskLiveRun = Omit<HistoricalAskLiveRun, 'basis'> & {
   readonly basis: 'text-price-explanation-v1';
   readonly explanation: ModelExplanation | null;
 };
-export type AskLiveRun = HistoricalAskLiveRun | ExplainedAskLiveRun;
+export type AskLiveRun =
+  | HistoricalAskLiveRun
+  | ExplainedAskLiveRun
+  | import('./intent-decision.types.js').RoutedAskLiveRun;
 export interface AskLiveThread {
   readonly basis:
     | 'structured-price-v1'
     | 'text-price-v1'
     | 'text-price-explanation-v1'
+    | 'routed-text-v1'
     | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
@@ -229,7 +240,7 @@ export interface AskLiveEvent {
   readonly id: string;
   readonly runId: string;
   readonly sequence: number;
-  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed' | 'ask.expired';
+  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed' | 'ask.expired' | 'ask.cancelled';
   readonly terminal: boolean;
   readonly run: AskLiveRun;
 }
@@ -283,11 +294,13 @@ export type ExplainedExecutionResponse = Omit<
 export type PriceExecutionRequest =
   | StructuredExecutionRequest
   | TextExecutionRequest
-  | ExplainedExecutionRequest;
+  | ExplainedExecutionRequest
+  | import('./intent-decision.types.js').RoutedExecutionInput;
 export type PriceExecutionResponse =
   | StructuredExecutionResponse
   | TextExecutionResponse
-  | ExplainedExecutionResponse;
+  | ExplainedExecutionResponse
+  | import('./intent-decision.types.js').RoutedExecutionEvidence;
 export type AskClaim =
   | {
       readonly disposition: 'busy';
@@ -416,6 +429,13 @@ const priceExecutionWire = (value: unknown) => {
     typeof value === 'object' &&
     value !== null &&
     'step' in value &&
+    value.step === 'routed-text-v1'
+  )
+    return routedExecutionWire(value);
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
     value.step === 'text-price-explanation-v1'
   )
     return explainedExecutionWire(value);
@@ -429,6 +449,13 @@ const priceExecutionWire = (value: unknown) => {
   else structuredExecutionWire(value);
 };
 const priceEvidenceWire = (value: unknown) => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'routed-text-v1'
+  )
+    return routedEvidenceWire(value);
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -487,6 +514,13 @@ const explainedLiveRunWire = wireObject({
   explanation: wireNullable(modelExplanationWire),
 });
 const liveRunWire = (value: unknown) => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'basis' in value &&
+    value.basis === 'routed-text-v1'
+  )
+    return routedLiveRunWire(value);
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -613,6 +647,7 @@ export function parseStructuredExecutionEvidence(value: unknown): StructuredExec
 }
 export function parseAskLiveRun(value: unknown): AskLiveRun {
   const run = parseWire<AskLiveRun>(value, liveRunWire);
+  if (run.basis === 'routed-text-v1') return parseRoutedAskLiveRun(run);
   if (run.basis !== 'structured-price-v1') textQueryWire(run.question);
   if (
     run.basis === 'text-price-explanation-v1' &&
@@ -696,6 +731,7 @@ export function parseAskLiveThread(value: unknown): AskLiveThread {
         'structured-price-v1',
         'text-price-v1',
         'text-price-explanation-v1',
+        'routed-text-v1',
         'mixed-price-v1',
       ]),
       id: wireUuid,
@@ -726,7 +762,13 @@ export function parseAskLiveEvent(value: unknown): AskLiveEvent {
       id: wirePattern(/^[0-9a-f-]{36}:v1:[1-9][0-9]*$/),
       runId: wireUuid,
       sequence: wireNumber(1, 100000, true),
-      event: wireEnum(['ask.progress', 'ask.completed', 'ask.failed', 'ask.expired']),
+      event: wireEnum([
+        'ask.progress',
+        'ask.completed',
+        'ask.failed',
+        'ask.expired',
+        'ask.cancelled',
+      ]),
       terminal: wireBoolean,
       run: liveRunWire,
     }),
@@ -794,7 +836,8 @@ export function parseAskCompletion(value: unknown): AskCompletion {
   );
   if ((result.evidence === null) === (result.failure === null)) invalidWire();
   if (result.evidence) {
-    if (result.evidence.step === 'text-price-explanation-v1')
+    if (result.evidence.step === 'routed-text-v1') parseRoutedExecutionEvidence(result.evidence);
+    else if (result.evidence.step === 'text-price-explanation-v1')
       parseExplainedExecutionEvidence(result.evidence);
     else if (result.evidence.step === 'text-price-v1') parseTextExecutionEvidence(result.evidence);
     else parseStructuredExecutionEvidence(result.evidence);

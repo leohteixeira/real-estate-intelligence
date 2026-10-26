@@ -155,7 +155,9 @@ export class HttpRunExecutor implements RunExecutor {
         (result.step === 'foundation' ||
           !sameAskIdentity(input, result) ||
           input.executionId !== result.executionId ||
-          !sameAskInputs(input.inputs, result.receipt.inputs))
+          (input.step !== 'routed-text-v1' &&
+            (result.step === 'routed-text-v1' ||
+              !sameAskInputs(input.inputs, result.receipt.inputs))))
       )
         throw new Error();
       return result;

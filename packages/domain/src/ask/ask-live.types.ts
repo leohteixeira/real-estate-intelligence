@@ -17,7 +17,10 @@ export type ExplainedAskCreate = Omit<TextAskCreate, 'mode'> & {
 export type TextAskCreateInput = TextAskCreate | ExplainedAskCreate;
 /** Internal admission only: these inputs are derived by Market, never supplied by text callers. */
 export type ValidatedTextAskCreate = TextAskCreateInput & { readonly inputs: AskInputs };
-export type ValidatedAskCreate = StructuredAskCreate | ValidatedTextAskCreate;
+export type ValidatedAskCreate =
+  | StructuredAskCreate
+  | ValidatedTextAskCreate
+  | import('./intent-decision.types.js').ValidatedRoutedAskCreate;
 export type PriceResult = Extract<AskResult, { kind: 'price_per_square_meter' }>;
 export interface AskRequestedIdentity {
   readonly version: 1;
@@ -58,12 +61,16 @@ export type ExplainedAskLiveRun = Omit<HistoricalAskLiveRun, 'basis'> & {
   readonly basis: 'text-price-explanation-v1';
   readonly explanation: import('./model-explanation.js').ModelExplanation | null;
 };
-export type AskLiveRun = HistoricalAskLiveRun | ExplainedAskLiveRun;
+export type AskLiveRun =
+  | HistoricalAskLiveRun
+  | ExplainedAskLiveRun
+  | import('./intent-decision.types.js').RoutedAskLiveRun;
 export interface AskLiveThread {
   readonly basis:
     | 'structured-price-v1'
     | 'text-price-v1'
     | 'text-price-explanation-v1'
+    | 'routed-text-v1'
     | 'mixed-price-v1';
   readonly id: string;
   readonly principalId: null;
@@ -74,7 +81,7 @@ export interface AskLiveEvent {
   readonly id: string;
   readonly runId: string;
   readonly sequence: number;
-  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed' | 'ask.expired';
+  readonly event: 'ask.progress' | 'ask.completed' | 'ask.failed' | 'ask.expired' | 'ask.cancelled';
   readonly terminal: boolean;
   readonly run: AskLiveRun;
 }
@@ -125,11 +132,13 @@ export type ExplainedExecutionEvidence = Omit<
 export type PriceExecutionInput =
   | StructuredExecutionInput
   | TextExecutionInput
-  | ExplainedExecutionInput;
+  | ExplainedExecutionInput
+  | import('./intent-decision.types.js').RoutedExecutionInput;
 export type PriceExecutionEvidence =
   | StructuredExecutionEvidence
   | TextExecutionEvidence
-  | ExplainedExecutionEvidence;
+  | ExplainedExecutionEvidence
+  | import('./intent-decision.types.js').RoutedExecutionEvidence;
 export type AskClaim =
   | {
       readonly disposition: 'busy';

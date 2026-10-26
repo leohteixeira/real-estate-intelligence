@@ -1,3 +1,5 @@
+import { parseRoutedExecutionInput, parseRoutedExecutionEvidence } from './intent-decision.dto.js';
+import type { RoutedExecutionInput, RoutedExecutionEvidence } from './intent-decision.types.js';
 import { invalidWire, parseWire, wireEnum, wireObject, wireUuid } from '../shared/wire.js';
 import { askQueryWire } from './ask.read.dto.js';
 import {
@@ -36,12 +38,14 @@ export type RunExecutionRequest =
   | FoundationExecutionRequest
   | StructuredExecutionRequest
   | TextExecutionRequest
-  | ExplainedExecutionRequest;
+  | ExplainedExecutionRequest
+  | RoutedExecutionInput;
 export type RunExecutionResponse =
   | FoundationExecutionResponse
   | StructuredExecutionResponse
   | TextExecutionResponse
-  | ExplainedExecutionResponse;
+  | ExplainedExecutionResponse
+  | RoutedExecutionEvidence;
 const identityFields = {
   version: wireEnum([1]),
   runId: wireUuid,
@@ -50,6 +54,13 @@ const identityFields = {
 };
 
 export function parseRunExecutionRequest(value: unknown): RunExecutionRequest {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'routed-text-v1'
+  )
+    return parseRoutedExecutionInput(value);
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -77,6 +88,13 @@ export function parseRunExecutionRequest(value: unknown): RunExecutionRequest {
   );
 }
 export function parseRunExecutionEvidence(value: unknown): RunExecutionResponse {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'step' in value &&
+    value.step === 'routed-text-v1'
+  )
+    return parseRoutedExecutionEvidence(value);
   if (
     typeof value === 'object' &&
     value !== null &&

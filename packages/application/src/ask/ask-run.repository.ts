@@ -25,6 +25,22 @@ export class AskLiveError extends Error {
   }
 }
 export interface AskRunRepository {
+  confirm(
+    request: import('@rei/domain').RoutedAskConfirmation,
+    capability: string,
+    signal?: AbortSignal,
+  ): Promise<AskLiveRun>;
+  refuse(
+    runId: string,
+    decisionReceiptId: string,
+    capability: string,
+    signal?: AbortSignal,
+  ): Promise<AskLiveRun>;
+  executeDecision(
+    request: import('@rei/domain').IntentDecisionRequest,
+    grant: string,
+    signal: AbortSignal,
+  ): Promise<import('@rei/domain').IntentDecisionResponse>;
   expireQueued(limit: number, signal?: AbortSignal): Promise<number>;
   create(
     request: ValidatedAskCreate,

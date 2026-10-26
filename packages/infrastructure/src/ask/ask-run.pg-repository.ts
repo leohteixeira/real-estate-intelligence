@@ -1,3 +1,17 @@
+import { isDeepStrictEqual } from 'node:util';
+import {
+  parseRoutedAskCreate,
+  parseRoutedAskConfirmation,
+  parseIntentDecisionRequest,
+  parseIntentDecisionReceipt,
+  parseIntentDecisionResponse,
+} from '@rei/contracts';
+import type {
+  RoutedAskConfirmation,
+  IntentDecisionRequest,
+  IntentDecisionResponse,
+  RoutedAskLiveRun,
+} from '@rei/domain';
 import { randomBytes } from 'node:crypto';
 import {
   AskLiveError,
@@ -28,6 +42,7 @@ import {
 } from '@rei/domain';
 import {
   parseAskCompletion,
+  parseRunExecutionRequest,
   parseAskLiveEvent,
   parseAskLiveRun,
   parseAskRequestedIdentity,
@@ -64,7 +79,7 @@ interface StoredRun {
   readonly grant_digest: string | null;
 }
 class AskTerminalEvent extends DomainEvent<
-  'ask.run.completed' | 'ask.run.failed' | 'ask.run.expired',
+  'ask.run.completed' | 'ask.run.failed' | 'ask.run.expired' | 'ask.run.cancelled',
   { readonly runId: string; readonly threadId: string }
 > {
   public constructor(eventId: string, run: AskLiveRun) {
@@ -76,7 +91,9 @@ class AskTerminalEvent extends DomainEvent<
           ? 'ask.run.completed'
           : run.state === 'expired'
             ? 'ask.run.expired'
-            : 'ask.run.failed',
+            : run.state === 'cancelled'
+              ? 'ask.run.cancelled'
+              : 'ask.run.failed',
       version: 1,
       occurredAt: run.updatedAt,
       traceContext: extractAmqpTraceContext({ ...activeAmqpTraceHeaders() }),
@@ -147,7 +164,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
           ? 'ask.completed'
           : run.state === 'expired'
             ? 'ask.expired'
-            : 'ask.failed'
+            : run.state === 'cancelled'
+              ? 'ask.cancelled'
+              : 'ask.failed'
         : 'ask.progress',
       terminal: run.terminal !== null,
       run,
@@ -179,20 +198,34 @@ export class PostgresAskRunRepository implements AskRunRepository {
     signal?: AbortSignal,
   ): Promise<AskLiveRun> {
     const request: ValidatedAskCreate = structuredClone(
-      untrusted.mode !== 'structured-price-v1'
+      untrusted.mode === 'routed-text-v1'
         ? {
-            ...(untrusted.mode === 'text-price-explanation-v1'
-              ? parseExplainedAskCreate
-              : parseTextAskCreate)({
+            ...parseRoutedAskCreate({
               mode: untrusted.mode,
               threadId: untrusted.threadId,
               placeId: untrusted.placeId,
               query: untrusted.query,
               locale: untrusted.locale,
             }),
-            inputs: parseStructuredAskCreate({ ...untrusted, mode: 'structured-price-v1' }).inputs,
+            inputs: untrusted.inputs
+              ? parseStructuredAskCreate({ ...untrusted, mode: 'structured-price-v1' }).inputs
+              : null,
           }
-        : parseStructuredAskCreate(untrusted),
+        : untrusted.mode !== 'structured-price-v1'
+          ? {
+              ...(untrusted.mode === 'text-price-explanation-v1'
+                ? parseExplainedAskCreate
+                : parseTextAskCreate)({
+                mode: untrusted.mode,
+                threadId: untrusted.threadId,
+                placeId: untrusted.placeId,
+                query: untrusted.query,
+                locale: untrusted.locale,
+              }),
+              inputs: parseStructuredAskCreate({ ...untrusted, mode: 'structured-price-v1' })
+                .inputs,
+            }
+          : parseStructuredAskCreate(untrusted),
     );
     if (!/^[A-Za-z0-9_-]{43,128}$/.test(capability) || !/^[A-Za-z0-9_-]{16,128}$/.test(key))
       throw new AskLiveError('invalid');
@@ -204,9 +237,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
         request.placeId,
         request.query,
         request.locale,
-        request.inputs.priceMinorUnits,
-        request.inputs.currency,
-        request.inputs.areaSquareMeters,
+        request.inputs?.priceMinorUnits ?? null,
+        request.inputs?.currency ?? null,
+        request.inputs?.areaSquareMeters ?? null,
       ]),
     );
     let replay = false;
@@ -268,7 +301,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!authority[0]) throw new AskLiveError('forbidden');
       this.authorize(authority[0], capability);
       const pending = await client.query<{ count: number }>(
-        "SELECT count(*)::integer AS count FROM ask.run WHERE thread_id=$1 AND state IN ('queued','running')",
+        "SELECT count(*)::integer AS count FROM ask.run WHERE thread_id=$1 AND state IN ('queued','running','awaiting_confirmation')",
         [threadId],
       );
       if (pending[0]!.count >= askDeliveryPolicy.pendingLimit) throw new AskLiveError('capacity');
@@ -295,6 +328,9 @@ export class PostgresAskRunRepository implements AskRunRepository {
         terminal: null,
         steps: [],
         ...(request.mode === 'text-price-explanation-v1' ? { explanation: null } : {}),
+        ...(request.mode === 'routed-text-v1'
+          ? { confirmation: null, confirmationDeadline: null }
+          : {}),
       });
       await client.query(
         `INSERT INTO ask.run (id,thread_id,creation_key,request_fingerprint,requested_event_id,state,price_minor_units,area_square_meters,document,admitted_at,queue_expires_at) VALUES ($1,$2,$3,$4,$5,'queued',$6,$7,$8,$9,$10)`,
@@ -304,8 +340,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
           creationKey,
           fingerprint,
           eventId,
-          request.inputs.priceMinorUnits,
-          request.inputs.areaSquareMeters,
+          request.inputs?.priceMinorUnits ?? null,
+          request.inputs?.areaSquareMeters ?? null,
           run,
           clock[0]!.at,
           clock[0]!.deadline,
@@ -405,8 +441,14 @@ export class PostgresAskRunRepository implements AskRunRepository {
       }
       const expired = await this.expire(tx, client, row, identity);
       if (expired) return { disposition: 'terminal', identity, run: expired };
+      if (run.state === 'awaiting_confirmation')
+        return {
+          disposition: 'busy',
+          identity,
+          retryAfterMs: askAdmissionPolicy.maximumBusyRetryAfterMs,
+        };
       const head = await client.query<{ id: string }>(
-        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND state IN ('queued','running') ORDER BY admission_sequence LIMIT 1",
+        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND state IN ('queued','running','awaiting_confirmation') ORDER BY admission_sequence LIMIT 1",
         [identity.threadId],
       );
       if (!head[0]) throw new AskLiveError('unavailable');
@@ -433,37 +475,50 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const checkpointGrant = randomBytes(32).toString('base64url');
       const at = await this.lifecycleAt(client, run.updatedAt);
       if (run.state === 'queued')
-        run = {
+        run = parseAskLiveRun({
           ...run,
           state: 'running',
           updatedAt: at,
-          decision: {
-            source:
-              run.basis !== 'structured-price-v1' ? 'validated-text-v1' : 'fixed-structured-v1',
-            intent: 'price_per_square_meter',
-            decidedAt: at,
-          },
-          steps: [{ sequence: 1, phase: 'calculating', at }],
-        };
+          ...(run.basis === 'routed-text-v1'
+            ? {
+                decision: run.decision,
+                steps: run.steps.length
+                  ? run.steps
+                  : [{ sequence: 1, phase: 'routing' as const, at }],
+              }
+            : {
+                decision: {
+                  source:
+                    run.basis !== 'structured-price-v1'
+                      ? ('validated-text-v1' as const)
+                      : ('fixed-structured-v1' as const),
+                  intent: 'price_per_square_meter' as const,
+                  decidedAt: at,
+                },
+                steps: [{ sequence: 1, phase: 'calculating' as const, at }],
+              }),
+        });
       const claims = await client.query<{ expires_at: Date }>(
         `UPDATE ask.run SET state='running',execution_id=$2,claim_expires_at=clock_timestamp()+interval '30 seconds',grant_digest=$3,document=$4,checkpoint_grant_digest=$5 WHERE id=$1 RETURNING claim_expires_at AS expires_at`,
         [run.id, executionId, askDigest(grant), run, askDigest(checkpointGrant)],
       );
       if (row.execution_id === null) await this.append(client, run);
+      const input = parseRunExecutionRequest({
+        ...identity,
+        step: run.basis,
+        query: run.question,
+        locale: run.locale,
+        executionId,
+        toolGrant: grant,
+        checkpointGrant,
+        inputs: run.originalInputs,
+      });
+      if (input.step === 'foundation') throw new AskLiveError('invalid');
       return {
         disposition: 'claimed',
         identity,
         expiresAt: claims[0]!.expires_at.toISOString(),
-        input: {
-          ...identity,
-          step: run.basis,
-          query: run.question,
-          locale: run.locale,
-          executionId,
-          toolGrant: grant,
-          checkpointGrant,
-          inputs: run.originalInputs,
-        },
+        input,
       };
     }, signal);
   }
@@ -475,9 +530,11 @@ export class PostgresAskRunRepository implements AskRunRepository {
     identity: AskRequestedIdentity,
   ): Promise<AskLiveRun | null> {
     const previous = this.identity(row, identity);
+    if (previous.basis === 'routed-text-v1')
+      return this.expireRouted(tx, client, previous, identity);
     if (previous.state !== 'queued') return null;
     const eligible = await client.query<{ at: Date }>(
-      "SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND state='queued' AND queue_expires_at<=clock_timestamp()",
+      "SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp()))",
       [identity.runId],
     );
     if (!eligible[0]) return null;
@@ -513,7 +570,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!rows[0]) throw new AskLiveError('forbidden');
       this.authorize(rows[0], capability);
       return client.query<{ id: string }>(
-        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND state='queued' AND queue_expires_at<=clock_timestamp() ORDER BY admission_sequence LIMIT 100",
+        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp())) ORDER BY admission_sequence LIMIT 100",
         [threadId],
       );
     }, signal);
@@ -539,7 +596,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
     const candidates = await this.transaction(
       (_tx, client) =>
         client.query<{ id: string; thread_id: string; admission_sequence: string }>(
-          "SELECT id::text,thread_id::text,admission_sequence::text FROM ask.run WHERE state='queued' AND queue_expires_at<=clock_timestamp() ORDER BY CASE WHEN ask.run.admission_sequence>$1::bigint THEN 0 ELSE 1 END, ask.run.admission_sequence LIMIT $2",
+          "SELECT id::text,thread_id::text,admission_sequence::text FROM ask.run WHERE ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp())) ORDER BY CASE WHEN ask.run.admission_sequence>$1::bigint THEN 0 ELSE 1 END, ask.run.admission_sequence LIMIT $2",
           [this.expiryFrontier, limit],
         ),
       signal,
@@ -581,10 +638,31 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!row) throw new AskLiveError('forbidden');
       const run = this.identity(row, request);
       await authorizeAskExecution(client, request, { scope: 'tool', grant });
+      const executableInputs =
+        run.basis === 'routed-text-v1'
+          ? run.confirmation
+            ? run.confirmation.inputs
+            : run.originalInputs
+          : run.originalInputs;
+      if (run.basis === 'routed-text-v1') {
+        const accepted = await client.query<{ document: unknown }>(
+          'SELECT document FROM ask.decision_receipt WHERE run_id=$1',
+          [run.id],
+        );
+        if (
+          !run.decision ||
+          !accepted[0] ||
+          !isDeepStrictEqual(parseIntentDecisionReceipt(accepted[0].document), run.decision) ||
+          run.decision.intent !== 'price_per_square_meter' ||
+          (run.decision.probability < 0.85 && !run.confirmation)
+        )
+          throw new AskLiveError('forbidden');
+      }
       if (
+        !executableInputs ||
         !row.grant_digest ||
         !equalAskDigest(row.grant_digest, askDigest(grant)) ||
-        !sameAskInputs(run.originalInputs, request.inputs)
+        !sameAskInputs(executableInputs, request.inputs)
       )
         throw new AskLiveError('forbidden');
       const rows = await client.query<{ document: unknown }>(
@@ -624,6 +702,8 @@ export class PostgresAskRunRepository implements AskRunRepository {
       const row = await this.stored(client, request.runId);
       if (!row) throw new AskLiveError('forbidden');
       const previous = this.identity(row, request);
+      if (previous.basis === 'routed-text-v1')
+        return this.completeRouted(tx, client, row, previous, request);
       if (
         row.execution_id !== request.executionId ||
         (previous.terminal && previous.state !== (request.evidence ? 'completed' : 'failed'))
@@ -633,6 +713,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       let result: PriceResult | null = null;
       let explanation = null;
       if (request.evidence) {
+        if (request.evidence.step === 'routed-text-v1') throw new AskLiveError('forbidden');
         if (request.evidence.step !== previous.basis) throw new AskLiveError('forbidden');
         const rows = await client.query<{ document: unknown }>(
           'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
@@ -699,5 +780,304 @@ export class PostgresAskRunRepository implements AskRunRepository {
       await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(request.eventId));
       return structuredClone(run);
     }, signal);
+  }
+  public async executeDecision(
+    untrusted: IntentDecisionRequest,
+    grant: string,
+    signal: AbortSignal,
+  ): Promise<IntentDecisionResponse> {
+    const request = parseIntentDecisionRequest(untrusted);
+    return this.transaction(async (_tx, client) => {
+      await this.lock(client, request.threadId);
+      const run = await authorizeAskExecution(client, request, { scope: 'checkpoint', grant });
+      if (run.basis !== 'routed-text-v1') throw new AskLiveError('forbidden');
+      const rows = await client.query<{ document: unknown }>(
+        'SELECT document FROM ask.decision_receipt WHERE run_id=$1',
+        [run.id],
+      );
+      const previous = rows[0] ? parseIntentDecisionReceipt(rows[0].document) : null;
+      if (request.operation === 'get')
+        return { operation: 'get', decision: previous, confirmation: run.confirmation };
+      if (request.operation === 'reserve') {
+        if (previous) throw new AskLiveError('conflict');
+        const attempts = await client.query<{ id: string; execution_id: string }>(
+          'SELECT id::text,execution_id::text FROM ask.decision_attempt WHERE run_id=$1 AND attempt_key=$2',
+          [run.id, request.attemptKey],
+        );
+        if (attempts[0]) {
+          if (attempts[0].execution_id !== request.executionId) throw new AskLiveError('conflict');
+          return { operation: 'reserve', reservationId: attempts[0].id };
+        }
+        const id = await this.uuid(client);
+        await client.query(
+          'INSERT INTO ask.decision_attempt(run_id,id,attempt_key,execution_id) VALUES($1,$2,$3,$4)',
+          [run.id, id, request.attemptKey, request.executionId],
+        );
+        return { operation: 'reserve', reservationId: id };
+      }
+      if (previous) {
+        const { receiptId, acceptedAt, ...decision } = previous;
+        void receiptId;
+        void acceptedAt;
+        if (!isDeepStrictEqual(decision, request.decision)) throw new AskLiveError('conflict');
+        return { operation: 'accept', decision: previous };
+      }
+      const attempts = await client.query<{ execution_id: string }>(
+        'SELECT execution_id::text FROM ask.decision_attempt WHERE run_id=$1 AND id=$2',
+        [run.id, request.reservationId],
+      );
+      if (attempts[0]?.execution_id !== request.executionId) throw new AskLiveError('forbidden');
+      const at = await this.lifecycleAt(client, run.updatedAt);
+      const decision = parseIntentDecisionReceipt({
+        ...request.decision,
+        receiptId: await this.uuid(client),
+        acceptedAt: at,
+      });
+      await client.query(
+        'INSERT INTO ask.decision_receipt(run_id,id,reservation_id,document) VALUES($1,$2,$3,$4)',
+        [run.id, decision.receiptId, request.reservationId, decision],
+      );
+      const updated = parseAskLiveRun({ ...run, decision, updatedAt: at });
+      await client.query('UPDATE ask.run SET document=$2 WHERE id=$1', [run.id, updated]);
+      await this.append(client, updated);
+      return parseIntentDecisionResponse({ operation: 'accept', decision });
+    }, signal);
+  }
+  private async expireRouted(
+    tx: Transaction,
+    client: DatabaseClient,
+    previous: RoutedAskLiveRun,
+    identity: AskRequestedIdentity,
+  ): Promise<AskLiveRun | null> {
+    const eligible = await client.query<{ at: Date }>(
+      "SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp()))",
+      [previous.id],
+    );
+    if (!eligible[0]) return null;
+    const at = eligible[0].at.toISOString();
+    const run = parseAskLiveRun({
+      ...previous,
+      state: 'expired',
+      updatedAt: at,
+      terminal: {
+        state: 'expired',
+        reason: previous.decision ? 'confirmation_expired' : 'queue_expired',
+        at,
+      },
+      steps: [...previous.steps, { sequence: previous.steps.length + 1, phase: 'expired', at }],
+    });
+    await client.query("UPDATE ask.run SET state='expired',document=$2 WHERE id=$1", [run.id, run]);
+    await this.append(client, run);
+    await this.outbox.append(tx, [new AskTerminalEvent(await this.uuid(client), run)]);
+    await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
+    return run;
+  }
+  public async confirm(
+    untrusted: RoutedAskConfirmation,
+    capability: string,
+    signal?: AbortSignal,
+  ): Promise<AskLiveRun> {
+    const request = parseRoutedAskConfirmation(untrusted);
+    if (request.inputs)
+      parseStructuredAskCreate({
+        mode: 'structured-price-v1',
+        threadId: null,
+        placeId: null,
+        query: 'Validate confirmation operands',
+        locale: 'en',
+        inputs: request.inputs,
+      });
+    return this.resolveConfirmation(
+      request.runId,
+      request.decisionReceiptId,
+      capability,
+      request,
+      signal,
+    );
+  }
+  public async refuse(
+    runId: string,
+    decisionReceiptId: string,
+    capability: string,
+    signal?: AbortSignal,
+  ): Promise<AskLiveRun> {
+    parseUuidV7(runId);
+    parseUuidV7(decisionReceiptId);
+    return this.resolveConfirmation(runId, decisionReceiptId, capability, null, signal);
+  }
+  private async resolveConfirmation(
+    id: string,
+    decisionReceiptId: string,
+    capability: string,
+    confirmation: RoutedAskConfirmation | null,
+    signal?: AbortSignal,
+  ): Promise<AskLiveRun> {
+    return this.transaction(async (tx, client) => {
+      const initial = await this.stored(client, id);
+      if (!initial) throw new AskLiveError('forbidden');
+      this.authorize(initial, capability);
+      await this.lock(client, parseAskLiveRun(initial.document).threadId);
+      const row = (await this.stored(client, id))!;
+      this.authorize(row, capability);
+      const previous = parseAskLiveRun(row.document);
+      if (previous.basis !== 'routed-text-v1' || previous.decision?.receiptId !== decisionReceiptId)
+        throw new AskLiveError('conflict');
+      if (confirmation && previous.confirmation) {
+        if (
+          !previous.confirmation.inputs !== !confirmation.inputs ||
+          (confirmation.inputs &&
+            previous.confirmation.inputs &&
+            !sameAskInputs(previous.confirmation.inputs, confirmation.inputs))
+        )
+          throw new AskLiveError('conflict');
+        return previous;
+      }
+      if (previous.terminal) {
+        if (!confirmation && previous.state === 'cancelled') return previous;
+        if (previous.state === 'expired') return previous;
+        throw new AskLiveError('conflict');
+      }
+      const identity = {
+        version: 1 as const,
+        eventId: row.requested_event_id,
+        runId: id,
+        threadId: previous.threadId,
+      };
+      const expired = await this.expireRouted(tx, client, previous, identity);
+      if (expired) return expired;
+      if (previous.state !== 'awaiting_confirmation') throw new AskLiveError('conflict');
+      const at = await this.lifecycleAt(client, previous.updatedAt);
+      // The deadline can pass between the eligibility query and this transition's
+      // timestamp. Fence the actual retained confirmation instant as well.
+      if (
+        previous.confirmationDeadline &&
+        Date.parse(at) >= Date.parse(previous.confirmationDeadline)
+      ) {
+        const expiredAtTransition = await this.expireRouted(tx, client, previous, identity);
+        if (expiredAtTransition) return expiredAtTransition;
+        throw new AskLiveError('unavailable');
+      }
+      const state = confirmation ? 'queued' : 'cancelled';
+      const run = parseAskLiveRun({
+        ...previous,
+        state,
+        updatedAt: at,
+        confirmation: confirmation ? { decisionReceiptId, inputs: confirmation.inputs, at } : null,
+        terminal: confirmation ? null : { state: 'cancelled', reason: 'visitor_cancelled', at },
+        steps: [
+          ...previous.steps,
+          {
+            sequence: previous.steps.length + 1,
+            phase: confirmation ? 'confirmed' : 'cancelled',
+            at,
+          },
+        ],
+      });
+      await client.query('UPDATE ask.run SET state=$2,document=$3 WHERE id=$1', [id, state, run]);
+      await this.append(client, run);
+      if (!confirmation) {
+        await this.outbox.append(tx, [new AskTerminalEvent(await this.uuid(client), run)]);
+        await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
+      }
+      return run;
+    }, signal);
+  }
+  private async completeRouted(
+    tx: Transaction,
+    client: DatabaseClient,
+    row: StoredRun,
+    previous: RoutedAskLiveRun,
+    request: AskCompletion,
+  ): Promise<AskLiveRun> {
+    if (row.execution_id !== request.executionId) throw new AskLiveError('forbidden');
+    const evidence = request.evidence;
+    if (evidence && evidence.step !== 'routed-text-v1') throw new AskLiveError('forbidden');
+    if (previous.terminal) {
+      if (previous.state !== (evidence?.outcome === 'price-calculated' ? 'completed' : 'failed'))
+        throw new AskLiveError('forbidden');
+      return previous;
+    }
+    if (
+      previous.state === 'awaiting_confirmation' &&
+      evidence?.outcome === 'awaiting-confirmation' &&
+      evidence.decisionReceiptId === previous.decision?.receiptId
+    )
+      return previous;
+    await authorizeAskExecution(client, request);
+    if (evidence && evidence.decisionReceiptId !== previous.decision?.receiptId)
+      throw new AskLiveError('forbidden');
+    const at = await this.lifecycleAt(client, previous.updatedAt);
+    if (evidence?.outcome === 'awaiting-confirmation') {
+      if (!previous.decision || previous.decision.probability >= 0.85 || previous.confirmation)
+        throw new AskLiveError('forbidden');
+      const checkpoints = await client.query<{ present: boolean }>(
+        "SELECT EXISTS(SELECT 1 FROM ask.graph_checkpoint WHERE run_id=$1 AND graph_version='intent-routing-v1') AS present",
+        [previous.id],
+      );
+      if (!checkpoints[0]?.present) throw new AskLiveError('forbidden');
+      const deadlines = await client.query<{ deadline: Date }>(
+        "SELECT COALESCE(confirmation_deadline,$2::timestamptz+interval '10 minutes') AS deadline FROM ask.run WHERE id=$1",
+        [previous.id, at],
+      );
+      const deadline = deadlines[0]!.deadline.toISOString();
+      const run = parseAskLiveRun({
+        ...previous,
+        state: 'awaiting_confirmation',
+        updatedAt: at,
+        confirmationDeadline: deadline,
+        steps: [
+          ...previous.steps,
+          { sequence: previous.steps.length + 1, phase: 'awaiting_confirmation', at },
+        ],
+      });
+      await client.query(
+        "UPDATE ask.run SET state='awaiting_confirmation',confirmation_deadline=$2,document=$3 WHERE id=$1",
+        [run.id, deadline, run],
+      );
+      await this.append(client, run);
+      return run;
+    }
+    let result: PriceResult | null = null;
+    if (evidence?.outcome === 'price-calculated') {
+      const accepted = await client.query<{ document: unknown }>(
+        'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
+        [previous.id],
+      );
+      if (!accepted[0]) throw new AskLiveError('forbidden');
+      const receipt = parsePriceToolReceipt(accepted[0].document);
+      if (
+        !isDeepStrictEqual(receipt, evidence.receipt) ||
+        receipt.executionId !== request.executionId ||
+        !previous.decision ||
+        previous.decision.intent !== 'price_per_square_meter' ||
+        (previous.decision.probability < 0.85 && !previous.confirmation)
+      )
+        throw new AskLiveError('forbidden');
+      result = receipt.result;
+    } else if (
+      evidence?.outcome === 'execution-unavailable' &&
+      previous.decision?.probability !== undefined &&
+      previous.decision.probability < 0.85 &&
+      !previous.confirmation
+    )
+      throw new AskLiveError('forbidden');
+    const state = result ? 'completed' : 'failed';
+    const finalAt = await this.lifecycleAt(client, result?.computedAt ?? at);
+    const run = parseAskLiveRun({
+      ...previous,
+      state,
+      updatedAt: finalAt,
+      result,
+      terminal: { state, reason: result ? null : 'execution_unavailable', at: finalAt },
+      steps: [
+        ...previous.steps,
+        { sequence: previous.steps.length + 1, phase: state, at: finalAt },
+      ],
+    });
+    await client.query('UPDATE ask.run SET state=$2,document=$3 WHERE id=$1', [run.id, state, run]);
+    await this.append(client, run);
+    await this.outbox.append(tx, [new AskTerminalEvent(await this.uuid(client), run)]);
+    await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(request.eventId));
+    return run;
   }
 }

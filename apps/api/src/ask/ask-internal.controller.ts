@@ -9,8 +9,18 @@ import {
   Req,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
-import { MODEL_EXPLANATION_REPOSITORY, type ModelExplanationRepository } from '@rei/application';
-import { parseModelExplanationRequest, parseModelExplanationResponse } from '@rei/contracts';
+import {
+  ASK_LIVE_FACADE,
+  type AskLiveFacade,
+  MODEL_EXPLANATION_REPOSITORY,
+  type ModelExplanationRepository,
+} from '@rei/application';
+import {
+  parseModelExplanationRequest,
+  parseModelExplanationResponse,
+  parseIntentDecisionRequest,
+  parseIntentDecisionResponse,
+} from '@rei/contracts';
 import type { Request } from 'express';
 import { liveAuthorized, strongAskBearer } from './ask-live.controller';
 import { askRequestWork } from './ask-request-signal';
@@ -39,6 +49,32 @@ export class AskInternalController {
     return parseModelExplanationResponse(
       await askRequestWork(request, (signal) =>
         liveAuthorized(() => this.explanations.execute(input, grant, signal)),
+      ),
+    );
+  }
+}
+
+/** Decision authority remains in the API; AI receives only a claim-scoped receipt route. */
+@Controller('internal/ask/runs/:id/decision')
+export class AskDecisionController {
+  public constructor(@Inject(ASK_LIVE_FACADE) private readonly live: AskLiveFacade) {}
+  @Post()
+  @HttpCode(200)
+  public async execute(@Param('id') id: string, @Body() body: unknown, @Req() request: Request) {
+    readQuery(request, 'none');
+    if (!/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] ?? ''))
+      throw new UnsupportedMediaTypeException();
+    const grant = strongAskBearer(request.headers.authorization);
+    let input;
+    try {
+      input = parseIntentDecisionRequest(body);
+      if (input.runId !== id) throw new Error();
+    } catch {
+      throw new BadRequestException();
+    }
+    return parseIntentDecisionResponse(
+      await askRequestWork(request, (signal) =>
+        liveAuthorized(() => this.live.executeDecision(input, grant, signal)),
       ),
     );
   }

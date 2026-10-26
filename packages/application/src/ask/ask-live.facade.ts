@@ -5,6 +5,12 @@ export type TextAskAdmission =
   | { readonly kind: 'accepted'; readonly run: AskLiveRun }
   | { readonly kind: 'refused'; readonly reason: PriceInputRefusalReason };
 export interface AskLiveFacade extends AskRunRepository {
+  createRouted(
+    request: import('@rei/domain').RoutedAskCreate,
+    capability: string,
+    key: string,
+    signal?: AbortSignal,
+  ): Promise<AskLiveRun>;
   createText(
     request: TextAskCreateInput,
     capability: string,
