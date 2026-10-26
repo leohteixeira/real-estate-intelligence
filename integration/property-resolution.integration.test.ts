@@ -666,6 +666,109 @@ test('entity resolution preserves genuine acquisition lineage and converges thro
           const vm = propertyIdFor('BRI-VM-001', 'COB-VM-001');
           const tt = propertyIdFor('COB-TT-001');
           const pn = propertyIdFor('AUR-PN-001');
+          const detail = (await get(`properties/${bv}`, parsePropertyResponse)).property;
+          expect(detail.listings.map((listing) => listing.source.sourceListingId)).toEqual([
+            'AUR-BV-001',
+            'BRI-BV-001',
+            'COB-BV-001',
+          ]);
+          const minimum = detail.listings[0]!;
+          expect(detail.listings.every((listing) => listing.status === 'active')).toBe(true);
+          expect(detail.summary.askingPrice).toEqual({
+            minorUnits: 78000000,
+            currency: 'BRL',
+            listingId: minimum.id,
+            provenance: minimum.provenance,
+          });
+          expect(minimum.provenance).toMatchObject({
+            sourceId: 'synthetic-portal-aurora',
+            sourceListingId: 'AUR-BV-001',
+            sourceUrl: 'https://aurora.synthetic.invalid/listings/AUR-BV-001',
+            observedAt: '2026-10-01T12:00:00.000Z',
+          });
+          expect(detail.sale).toEqual({ status: 'not-recorded' });
+          expect(detail.summary.timeOnMarketDays).toBe(365);
+          expect(detail.priceChanges).toMatchObject([
+            {
+              effectiveAt: '2026-01-01T12:00:00.000Z',
+              previousMinorUnits: 82000000,
+              currentMinorUnits: 80000000,
+              provenance: { sourceListingId: 'AUR-BV-001' },
+            },
+            {
+              effectiveAt: '2026-07-01T12:00:00.000Z',
+              previousMinorUnits: 80000000,
+              currentMinorUnits: 78000000,
+              provenance: { sourceListingId: 'AUR-BV-001' },
+            },
+          ]);
+          expect(detail.priceChanges[0]!.changePercent).toBeCloseTo(-2.4390243902439024);
+          expect(detail.priceChanges[1]!.changePercent).toBe(-2.5);
+          expect(
+            detail.sourceAgreement.map(({ field, agrees, values }) => ({
+              field,
+              agrees,
+              values: values.map((value) => value.value),
+            })),
+          ).toEqual([
+            {
+              field: 'propertyType',
+              agrees: true,
+              values: ['apartment', 'apartment', 'apartment'],
+            },
+            { field: 'areaSquareMeters', agrees: true, values: [82, 82, 82] },
+            { field: 'bedrooms', agrees: true, values: [2, 2, 2] },
+            { field: 'bathrooms', agrees: true, values: [2, 2, 2] },
+            { field: 'parkingSpaces', agrees: true, values: [1, 1, 1] },
+            {
+              field: 'neighborhood',
+              agrees: false,
+              values: ['Bela Vista', 'Bela Vista', 'Vila Mariana'],
+            },
+          ]);
+          for (const agreement of detail.sourceAgreement)
+            expect(
+              agreement.values.map(({ listingId, sourceId }) => ({ listingId, sourceId })),
+            ).toEqual(
+              detail.listings.map((listing) => ({
+                listingId: listing.id,
+                sourceId: listing.source.sourceId,
+              })),
+            );
+          expect(detail.featureAgreement).toEqual(
+            ['balcony', 'elevator'].map((feature) => ({
+              feature,
+              reportingCount: 3,
+              reportingPercent: 100,
+              listingIds: detail.listings.map((listing) => listing.id),
+              sourceIds: detail.listings.map((listing) => listing.source.sourceId),
+            })),
+          );
+          expect(detail.preparedEvidence).toMatchObject({
+            kind: 'deterministic-rule',
+            probabilityBasis: 'deterministic-uncalibrated',
+            listingIds: detail.listings.map((listing) => listing.id),
+            configurationId: INITIAL_RESOLUTION_CONFIGURATION.id,
+            configurationVersion: INITIAL_RESOLUTION_CONFIGURATION.version,
+          });
+          expect(detail.preparedEvidence.productionMatchScore).toBeGreaterThanOrEqual(0.9);
+          expect(detail.preparedEvidence.reasons).toHaveLength(15);
+          expect(detail.preparedEvidence.reasons).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                type: 'rule-comparison',
+                feature: 'images',
+                available: true,
+                score: 1,
+              }),
+              expect.objectContaining({
+                type: 'rule-comparison',
+                feature: 'coordinates',
+                available: false,
+                score: null,
+              }),
+            ]),
+          );
           const priceOrder = [sn, vm, bv, tt, pn];
           expect(catalog.items.map((item) => item.id)).toEqual(priceOrder);
           expect(catalog.items.map((item) => item.pricePerSquareMeter)).toEqual([
