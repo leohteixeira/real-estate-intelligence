@@ -165,3 +165,12 @@ identical, and no application code or manifest changed.
 The two deferred instruction inconsistencies remain explicit above. The current web build also
 retains its pre-existing Vite warning for the 536.96 kB `CityScene` chunk; neither condition changes
 the documentation-only story's runtime behavior.
+
+### Deferred finding closure — 2026-10-26, story 1.13
+
+Both historical deferred records remain unchanged above and are now closed. Story 1.1 removed
+the temporary AI bundle path: `apps/ai/package.json` builds with `nest build`, and
+`docker/ai.Dockerfile` builds and deploys compiled Nest output using pnpm. No exception is needed.
+The current `/workspace/AGENTS.md` specifies NestJS 12, LangChain/LangGraph, `_bmad-output/`
+product specifications and RabbitMQ 5672/15672; the former conflicting guidance is absent.
+This closure changes documentation only and requires no runtime rerun or instruction-file edit.

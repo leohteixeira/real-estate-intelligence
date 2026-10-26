@@ -169,3 +169,15 @@ for it here.
   meaningful types without explicit any or checking suppressions, preserved real-service proofs
   and an updated TypeScript Vitest configuration (owner, 2026-10-11; agent, on the owner's behalf,
   2026-10-11). JavaScript verification remains baseline evidence, not final typed verification.
+
+- Story 1.13 reconciliation (2026-10-26): both deferred instruction findings from story 1.11
+  are closed by the delivered Nest migration and current workspace AGENTS. Other plans have no
+  deferred review findings; their UUID, delivery, resilience, tracing, retention and production
+  prerequisites are covered by their completed owning stories. Story 1.12 records the accepted
+  manual `feat/phase-1` release, public prefixed readiness and linked Tempo trace; this supersedes
+  the historical pending-production notes above. No remote CI or registry receipt is claimed.
+  The legacy concurrent-publisher handoff instant remains modeled by ordering tests plus real
+  upgrade coverage, without a synchronized live-race claim or a demonstrated open defect.
+  No runtime refactor is justified by the recorded findings. The unchanged-code full gate and
+  separately verified manual release delta remain applicable; later business production journeys
+  retain their own acceptance and are not inferred from platform closure.
