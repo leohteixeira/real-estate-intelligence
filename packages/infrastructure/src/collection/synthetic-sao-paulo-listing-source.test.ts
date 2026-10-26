@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { SYNTHETIC_SAO_PAULO_DATASET } from './synthetic-sao-paulo.dataset.js';
 import { SyntheticSaoPauloListingSource } from './synthetic-sao-paulo-listing-source.js';
 
 describe('SyntheticSaoPauloListingSource', () => {
@@ -17,6 +18,62 @@ describe('SyntheticSaoPauloListingSource', () => {
 
     expect(identities).toEqual(['AUR-BV-001', 'AUR-PN-001', 'AUR-SN-001']);
     expect(cursor).toBe('fixture:2026-10:3');
+  });
+
+  it.each(SYNTHETIC_SAO_PAULO_DATASET.runs)(
+    'selects the exact historical bytes and observations for $runKey',
+    async (cycle) => {
+      const adapter = new SyntheticSaoPauloListingSource(0, cycle.runKey);
+      const signal = new AbortController().signal;
+      for (const { sourceId } of SYNTHETIC_SAO_PAULO_DATASET.sources) {
+        const expected = cycle.observations.filter((item) => item.sourceId === sourceId);
+        let cursor: string | null = null;
+        for (let index = 0; index < expected.length; index++) {
+          const page = await adapter.fetchPage(sourceId, cursor, signal);
+          const observation = expected[index]!;
+          expect(page.documents).toHaveLength(1);
+          expect(page.documents[0]).toMatchObject({
+            sourceId,
+            sourceListingId: observation.sourceListingId,
+            observedAt: observation.observedAt,
+            bytes: Uint8Array.from(Buffer.from(JSON.stringify(observation.listing), 'utf8')),
+          });
+          await expect(adapter.parse(page.documents[0]!, signal)).resolves.toEqual(
+            observation.listing,
+          );
+          expect(page.exhausted).toBe(index + 1 === expected.length);
+          cursor = page.nextCursor;
+          expect(cursor).toBe(`fixture:${cycle.runKey}:${index + 1}`);
+        }
+      }
+    },
+  );
+
+  it('rejects unknown cycles and cross-cycle checkpoints', async () => {
+    expect(() => new SyntheticSaoPauloListingSource(0, '2025-09')).toThrow(RangeError);
+    await expect(
+      new SyntheticSaoPauloListingSource(0, '2025-10').fetchPage(
+        'synthetic-portal-aurora',
+        'fixture:2026-10:1',
+        new AbortController().signal,
+      ),
+    ).rejects.toMatchObject({ kind: 'rejected', operation: 'collection.source.fetch-page' });
+  });
+
+  it('preserves admission suppression for an explicit historical cycle', async () => {
+    const page = await new SyntheticSaoPauloListingSource(0, '2025-10').fetchPage(
+      'synthetic-portal-aurora',
+      null,
+      new AbortController().signal,
+      undefined,
+      async () => false,
+    );
+    expect(page).toEqual({
+      documents: [],
+      suppressedListingIds: ['AUR-BV-001'],
+      nextCursor: 'fixture:2025-10:1',
+      exhausted: false,
+    });
   });
 
   it('returns immutable page structures with independently owned exact bytes', async () => {
