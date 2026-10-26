@@ -3,7 +3,7 @@ title: 'Market in production'
 type: 'chore'
 ticket: '9'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '533acdef9ab17b2e4257e8bb841eedd4ee0d4aa5'
 route: 'oneshot'
 route_source: 'auto'
