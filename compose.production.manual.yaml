@@ -1,0 +1,18 @@
+# Explicit host-local release override. REI_*_DIGEST values are local Docker image ID
+# hashes in manual mode, not published registry manifest receipts. Keep the production base first.
+services:
+  migrations:
+    image: 'sha256:${REI_MIGRATE_DIGEST:?Set the local migration image ID hash}'
+    pull_policy: never
+  api:
+    image: 'sha256:${REI_API_DIGEST:?Set the local API image ID hash}'
+    pull_policy: never
+  worker:
+    image: 'sha256:${REI_WORKER_DIGEST:?Set the local worker image ID hash}'
+    pull_policy: never
+  ai:
+    image: 'sha256:${REI_AI_DIGEST:?Set the local AI image ID hash}'
+    pull_policy: never
+  web:
+    image: 'sha256:${REI_WEB_DIGEST:?Set the local web image ID hash}'
+    pull_policy: never
