@@ -21,20 +21,33 @@ const settings = {
   SNAPSHOT_ENCRYPTION_KEY_ID: 'fixture',
   SNAPSHOT_ENCRYPTION_KEY_BASE64: Buffer.alloc(32, 1).toString('base64'),
 };
-const config = (overrides: Record<string, string | undefined> = {}) =>
-  execa('docker', ['compose', '--file', 'compose.production.yaml', 'config', '--format', 'json'], {
-    extendEnv: false,
-    env: {
-      PATH: process.env.PATH,
-      COMPOSE_DISABLE_ENV_FILE: '1',
-      COMPOSE_ENV_FILES: '',
-      ...settings,
-      ...overrides,
+const config = (overrides: Record<string, string | undefined> = {}, manual = false) =>
+  execa(
+    'docker',
+    [
+      'compose',
+      '--file',
+      'compose.production.yaml',
+      ...(manual ? ['--file', 'compose.production.manual.yaml'] : []),
+      'config',
+      '--format',
+      'json',
+    ],
+    {
+      extendEnv: false,
+      env: {
+        PATH: process.env.PATH,
+        COMPOSE_DISABLE_ENV_FILE: '1',
+        COMPOSE_ENV_FILES: '',
+        ...settings,
+        ...overrides,
+      },
+      timeout: 30_000,
     },
-    timeout: 30_000,
-  });
+  );
 interface Service {
   image: string;
+  pull_policy?: string;
   ports?: unknown[];
   build?: unknown;
   cpus: number;
@@ -89,5 +102,37 @@ test.each(Object.keys(settings))(
   'production rejects missing required input %s before startup',
   async (name) => {
     await expect(config({ [name]: undefined })).rejects.toThrow();
+  },
+);
+
+test('manual production selects only local immutable IDs without changing runtime boundaries', async () => {
+  const registry = JSON.parse((await config()).stdout) as { services: Record<string, Service> };
+  const manual = JSON.parse((await config({}, true)).stdout) as {
+    services: Record<string, Service>;
+  };
+  const roles = {
+    migrations: 'MIGRATE',
+    api: 'API',
+    worker: 'WORKER',
+    ai: 'AI',
+    web: 'WEB',
+  } as const;
+  for (const [name, role] of Object.entries(roles)) {
+    const identity = settings[`REI_${role}_DIGEST`];
+    expect(manual.services[name]?.image).toBe(`sha256:${identity}`);
+    expect(manual.services[name]?.pull_policy).toBe('never');
+    const { image: registryImage, ...registryRuntime } = registry.services[name]!;
+    const { image: localImage, pull_policy: pullPolicy, ...manualRuntime } = manual.services[name]!;
+    expect(registryImage).toContain('@sha256:');
+    expect(localImage).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(pullPolicy).toBe('never');
+    expect(manualRuntime).toEqual(registryRuntime);
+  }
+});
+
+test.each(['MIGRATE', 'API', 'WORKER', 'AI', 'WEB'])(
+  'manual production rejects missing local image identity %s before startup',
+  async (role) => {
+    await expect(config({ [`REI_${role}_DIGEST`]: undefined }, true)).rejects.toThrow();
   },
 );
