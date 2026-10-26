@@ -1,0 +1,30 @@
+export const intentResilienceSettings = Object.freeze({
+  policies: {
+    fallback: 'intent.local-degradation',
+    bulkhead: 'intent.bulkhead',
+    circuitBreaker: 'intent.circuit-breaker',
+    retry: 'intent.transient-retry',
+    rateLimit: 'intent.rate-limit',
+    timeout: 'intent.attempt-timeout',
+  },
+  timeoutMs: 3500,
+  slowCallThresholdMs: 2500,
+  retry: {
+    attempts: 3,
+    baseDelayMs: 100,
+    maxDelayMs: 1000,
+    maxRetryAfterMs: 30000,
+    budgetWindowMs: 10000,
+    budgetRatio: 0.1,
+    lowTrafficRetryReserve: 2,
+  },
+  bulkhead: { maxConcurrent: 3, maxQueue: 6, queueTimeout: 500 },
+  breaker: {
+    failureRateThreshold: 50,
+    minimumCalls: 20,
+    slidingWindow: { type: 'time' as const, size: 10000 },
+    openDuration: 30000,
+    halfOpenMaxCalls: 1,
+  },
+  rateLimit: { limit: 10, interval: 1000, maxWait: 0 },
+});

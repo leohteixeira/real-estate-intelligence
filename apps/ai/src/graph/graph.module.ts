@@ -1,9 +1,6 @@
-import {
-  GatewayIntentDecider,
-  DegradedIntentDecider,
-  INTENT_DECIDER,
-  type IntentDecider,
-} from '../models/intent-decider';
+import { GatewayIntentDecider, INTENT_DECIDER, type IntentDecider } from '../models/intent-decider';
+import { ResilientIntentDecider } from '../models/resilient-intent-decider';
+import { AiDependencyPolicyTelemetry } from '../shared/ai-policy.telemetry';
 import { HttpIntentDecisionAdapter } from '../models/http-intent-decision.adapter';
 import { Module } from '@nestjs/common';
 
@@ -27,11 +24,12 @@ import { ModelPolicyTelemetry } from '../models/model-telemetry';
   imports: [ToolsModule],
   providers: [
     ModelPolicyTelemetry,
+    AiDependencyPolicyTelemetry,
     noOpGraphProvider,
     {
       provide: INTENT_DECIDER,
       useFactory: () =>
-        new DegradedIntentDecider(new GatewayIntentDecider(readConfig(process.env).gatewayApiKey)),
+        new ResilientIntentDecider(new GatewayIntentDecider(readConfig(process.env).gatewayApiKey)),
     },
     {
       provide: LANGUAGE_MODEL,

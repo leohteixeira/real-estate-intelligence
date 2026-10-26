@@ -1,12 +1,11 @@
+import { AiRetryAllowance, withinAiDeadline } from '../shared/ai-resilience';
 import { randomBytes } from 'node:crypto';
 import {
   BulkheadPolicy,
   CircuitBreakerPolicy,
   FallbackPolicy,
   OutboundRateLimitPolicy,
-  OutboundRateLimitError,
   ResiliencePolicy,
-  RetryPolicy,
   TimeoutPolicy,
 } from '@nestjs/resilience';
 import {
@@ -48,11 +47,15 @@ import { modelAttemptSpan } from './model-telemetry';
 export class ReceiptModelExplainer implements ModelExplainer {
   readonly #bulkhead: BulkheadPolicy;
   readonly #breakers: ReadonlyMap<string, CircuitBreakerPolicy>;
-  readonly #attempt: ResiliencePolicy;
+  readonly #limiter: OutboundRateLimitPolicy;
+  readonly #timeout: TimeoutPolicy;
+  readonly #retry: ReadonlyMap<string, AiRetryAllowance>;
+  readonly #physicalFailures = new WeakSet<object>();
   public constructor(
     private readonly model: LanguageModel,
     private readonly transport: ModelExplanationTransport,
     private readonly now: () => number = Date.now,
+    random: () => number = Math.random,
   ) {
     this.#bulkhead = new BulkheadPolicy({ name: settings.policies.bulkhead, ...settings.bulkhead });
     this.#breakers = new Map(
@@ -61,17 +64,44 @@ export class ReceiptModelExplainer implements ModelExplainer {
         new CircuitBreakerPolicy({
           name: `${settings.policies.circuitBreaker}.${settings.route}.${model}`,
           ...settings.breaker,
-          recordIf: recordModelFailure,
+          recordIf: (error) =>
+            error instanceof SlowModelAttempt ||
+            (error instanceof ModelExplanationFailure &&
+              recordModelFailure(error) &&
+              this.#physicalFailures.has(error)),
         }),
       ]),
     );
-    this.#attempt = ResiliencePolicy.wrap(
-      new RetryPolicy({ name: settings.policies.retry, attempts: 1, retryIf: () => false }),
-      new OutboundRateLimitPolicy({ name: settings.policies.rateLimit, ...settings.rateLimit }),
-      new TimeoutPolicy({ name: settings.policies.timeout, timeout: settings.timeoutMs }),
+    this.#retry = new Map(
+      [settings.primary, settings.secondary].map((model) => [
+        model,
+        new AiRetryAllowance(settings.retry, now, random),
+      ]),
     );
+    this.#limiter = new OutboundRateLimitPolicy({
+      name: settings.policies.rateLimit,
+      ...settings.rateLimit,
+    });
+    this.#timeout = new TimeoutPolicy({
+      name: settings.policies.timeout,
+      timeout: settings.timeoutMs,
+    });
   }
   public async explain(
+    receipt: PriceToolReceipt,
+    context: ModelExplanationContext,
+    signal: AbortSignal,
+    deadlineAt: number,
+  ): Promise<ModelExplanation> {
+    return withinAiDeadline(
+      signal,
+      deadlineAt,
+      this.now,
+      () => new ModelExplanationFailure('cancelled'),
+      (bounded) => this.explainWithinDeadline(receipt, context, bounded, deadlineAt),
+    );
+  }
+  private async explainWithinDeadline(
     receipt: PriceToolReceipt,
     context: ModelExplanationContext,
     signal: AbortSignal,
@@ -154,6 +184,7 @@ export class ReceiptModelExplainer implements ModelExplainer {
       signal,
       deadlineAt,
     );
+    this.live(signal, deadlineAt);
     try {
       return parseModelExplanationResponse(response);
     } catch {
@@ -198,72 +229,100 @@ export class ReceiptModelExplainer implements ModelExplainer {
     model: string,
     prompt: string,
     maxOutputTokens: number,
+    context: ModelExplanationContext,
     signal: AbortSignal,
     deadlineAt: number,
     purpose: 'privacy-probe' | 'explanation',
-    evidenceAgeMs = 0,
-  ): Promise<LanguageModelResult> {
-    return modelAttemptSpan(model, purpose, evidenceAgeMs, () =>
-      this.attempt(model, prompt, maxOutputTokens, signal, deadlineAt),
-    );
-  }
-  private async attempt(
-    model: string,
-    prompt: string,
-    maxOutputTokens: number,
-    signal: AbortSignal,
-    deadlineAt: number,
-  ): Promise<LanguageModelResult> {
-    this.live(signal, deadlineAt);
-    const bounded = AbortSignal.any([
+    privacy?: GatewayPrivacyEvidence,
+  ): Promise<{ result: LanguageModelResult; reservation: ModelAttemptReservation }> {
+    const breaker = this.#breakers.get(`${settings.route}:${model}`);
+    const allowance = this.#retry.get(model);
+    if (!breaker || !allowance) throw new ModelExplanationFailure('policy');
+    allowance.recordCall();
+    const retry = allowance.policy(
+      settings.policies.retry,
       signal,
-      AbortSignal.timeout(Math.max(1, Math.ceil(deadlineAt - this.now()))),
-    ]);
+      deadlineAt,
+      settings.timeoutMs,
+      (error) =>
+        error instanceof ModelExplanationFailure &&
+        error.kind === 'transient' &&
+        this.#physicalFailures.has(error),
+      (error) => (error instanceof ModelExplanationFailure ? error.retryAfterMs : undefined),
+    );
     try {
-      const breaker = this.#breakers.get(`${settings.route}:${model}`);
-      if (!breaker) throw new ModelExplanationFailure('policy');
-      const result = await breaker.execute(
-        async ({ signal: attempt }) => {
-          try {
-            return await this.#attempt.execute(
-              ({ signal: timed }) =>
-                this.model.generate(
-                  {
-                    model,
-                    route: settings.route,
-                    prompt,
-                    maxOutputTokens,
-                    zeroDataRetention: true,
-                  },
-                  timed,
-                ),
-              { signal: attempt, source: 'LanguageModel' },
-            );
-          } catch (error) {
-            this.live(bounded, deadlineAt);
-            // Local admission backpressure is not evidence of provider health.
-            if (error instanceof OutboundRateLimitError) throw error;
-            const failure = modelFailure(error, bounded);
-            if (failure.kind === 'exhausted') breaker.trip();
-            throw failure;
-          }
+      return await breaker.execute(
+        async ({ signal: logical }) => {
+          const started = this.now();
+          const outcome = await ResiliencePolicy.wrap(retry, this.#limiter).execute(
+            async ({ signal: admitted }) => {
+              this.live(admitted, deadlineAt);
+              if (privacy) assertGatewayPrivacy(privacy, model, this.now());
+              const reservation = await this.reserve(
+                model,
+                purpose,
+                maxOutputTokens,
+                context,
+                admitted,
+                deadlineAt,
+              );
+              this.live(admitted, deadlineAt);
+              if (privacy) assertGatewayPrivacy(privacy, model, this.now());
+              const result = await modelAttemptSpan(
+                model,
+                purpose,
+                privacy ? this.now() - privacy.verifiedAt : 0,
+                async () => {
+                  try {
+                    return await this.#timeout.execute(
+                      ({ signal: timed }) =>
+                        this.model.generate(
+                          {
+                            model,
+                            route: settings.route,
+                            prompt,
+                            maxOutputTokens,
+                            zeroDataRetention: true,
+                          },
+                          timed,
+                        ),
+                      { signal: admitted, source: 'LanguageModel' },
+                    );
+                  } catch (error) {
+                    this.live(admitted, deadlineAt);
+                    const failure = modelFailure(error, admitted);
+                    this.#physicalFailures.add(failure);
+                    if (failure.kind === 'exhausted') breaker.trip();
+                    throw failure;
+                  }
+                },
+              );
+              this.live(admitted, deadlineAt);
+              if (
+                !Number.isSafeInteger(result.outputTokens) ||
+                result.outputTokens === undefined ||
+                result.outputTokens <= 0 ||
+                result.outputTokens > maxOutputTokens ||
+                typeof result.text !== 'string' ||
+                result.text.length > 2048
+              )
+                throw new ModelExplanationFailure('rejected');
+              verifyGatewayAcknowledgement(result, model);
+              return { result, reservation };
+            },
+            { signal: logical, source: 'LanguageModel' },
+          );
+          this.live(logical, deadlineAt);
+          if (this.now() - started >= settings.slowCallThresholdMs)
+            throw new SlowModelAttempt(outcome);
+          return outcome;
         },
-        { signal: bounded, source: 'LanguageModel' },
+        { signal, source: 'LanguageModel' },
       );
-      this.live(bounded, deadlineAt);
-      if (
-        !Number.isSafeInteger(result.outputTokens) ||
-        result.outputTokens === undefined ||
-        result.outputTokens <= 0 ||
-        result.outputTokens > maxOutputTokens ||
-        typeof result.text !== 'string' ||
-        result.text.length > 2048
-      )
-        throw new ModelExplanationFailure('rejected');
-      verifyGatewayAcknowledgement(result, model);
-      return result;
     } catch (error) {
-      throw modelFailure(error, bounded);
+      this.live(signal, deadlineAt);
+      if (error instanceof SlowModelAttempt) return error.outcome;
+      throw modelFailure(error, signal);
     }
   }
   private async generate(
@@ -273,11 +332,11 @@ export class ReceiptModelExplainer implements ModelExplainer {
     signal: AbortSignal,
     deadlineAt: number,
   ): Promise<ModelExplanation> {
-    await this.reserve(model, 'privacy-probe', settings.probeTokens, context, signal, deadlineAt);
     await this.outbound(
       model,
       settings.probeText,
       settings.probeTokens,
+      context,
       signal,
       deadlineAt,
       'privacy-probe',
@@ -292,25 +351,17 @@ export class ReceiptModelExplainer implements ModelExplainer {
       expiresAt: verifiedAt + settings.evidenceTtlMs,
     };
     assertGatewayPrivacy(privacy, model, this.now());
-    const reservation = await this.reserve(
+    // Only versioned instructions and facts from this receipt cross the provider boundary.
+    const prompt = `${MODEL_EXPLANATION_PROMPT}\n${MODEL_EXPLANATION_GRAMMAR}\nReturn exactly the three following factual sentences, each once, in any order, separated by one space. Return no other text.\n${explanationFacts(receipt, context.locale).join('\n')}`;
+    const { result, reservation } = await this.outbound(
       model,
-      'explanation',
+      prompt,
       settings.explanationTokens,
       context,
       signal,
       deadlineAt,
-    );
-    assertGatewayPrivacy(privacy, model, this.now());
-    // Only versioned instructions and facts from this receipt cross the provider boundary.
-    const prompt = `${MODEL_EXPLANATION_PROMPT}\n${MODEL_EXPLANATION_GRAMMAR}\nReturn exactly the three following factual sentences, each once, in any order, separated by one space. Return no other text.\n${explanationFacts(receipt, context.locale).join('\n')}`;
-    const result = await this.outbound(
-      model,
-      prompt,
-      reservation.maxOutputTokens,
-      signal,
-      deadlineAt,
       'explanation',
-      this.now() - privacy.verifiedAt,
+      privacy,
     );
     if (!validExplanationText(result.text, receipt, context.locale))
       throw new ModelExplanationFailure('rejected');
@@ -346,5 +397,13 @@ export class ReceiptModelExplainer implements ModelExplainer {
     )
       throw new ModelExplanationFailure('rejected');
     return accepted.explanation;
+  }
+}
+
+class SlowModelAttempt extends Error {
+  public constructor(
+    public readonly outcome: { result: LanguageModelResult; reservation: ModelAttemptReservation },
+  ) {
+    super('Slow model attempt.');
   }
 }

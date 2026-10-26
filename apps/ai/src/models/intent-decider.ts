@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
-import { experimental_decide as decide, APICallError } from 'ai';
-import { createGateway, GatewayError, GatewayResponseError } from '@ai-sdk/gateway';
+import { experimental_decide as decide } from 'ai';
+import { createGateway } from '@ai-sdk/gateway';
+import { gatewayFailure } from './gateway-failure';
 import {
   askIntents,
   parseIntentDecision,
@@ -68,7 +69,14 @@ export function heuristicDecision(query: string): IntentDecision {
     privacyEvidenceId: null,
   });
 }
-/** One Gateway attempt per call. A public probe precedes every user-bearing classification. */
+export interface IntentAttemptPolicy {
+  execute<T>(
+    work: (signal: AbortSignal) => Promise<T>,
+    signal: AbortSignal,
+    deadlineAt: number,
+  ): Promise<T>;
+}
+/** Each SDK invocation sends once. A public probe precedes user-bearing classification. */
 export class GatewayIntentDecider implements IntentDecider {
   public constructor(
     private readonly apiKey: string | undefined,
@@ -80,6 +88,7 @@ export class GatewayIntentDecider implements IntentDecider {
     _locale: 'en' | 'pt-BR',
     signal: AbortSignal,
     deadlineAt: number,
+    attempts?: IntentAttemptPolicy,
   ): Promise<IntentDecision> {
     void _locale;
     signal.throwIfAborted();
@@ -91,7 +100,11 @@ export class GatewayIntentDecider implements IntentDecider {
       AbortSignal.timeout(
         Math.min(
           2147483647,
-          Math.ceil(Math.min(deadlineAt - Date.now(), modelExplanationSettings.timeoutMs)),
+          Math.ceil(
+            attempts
+              ? deadlineAt - Date.now()
+              : Math.min(deadlineAt - Date.now(), modelExplanationSettings.timeoutMs),
+          ),
         ),
       ),
     ]);
@@ -106,7 +119,7 @@ export class GatewayIntentDecider implements IntentDecider {
     const gateway = this.gatewayFactory({ apiKey: this.apiKey }).evaluation(model);
     // The pinned Gateway evaluation alias predates AI SDK's normalized text parts.
     // Project only our text-only capability into its typed doEvaluate contract.
-    const call = (state: string) =>
+    const call = (state: string, attemptSignal: AbortSignal) =>
       this.sdkDecide({
         model: {
           specificationVersion: 'v4',
@@ -135,10 +148,23 @@ export class GatewayIntentDecider implements IntentDecider {
         state,
         questions,
         maxRetries: 0,
-        abortSignal: bounded,
+        abortSignal: attemptSignal,
         providerOptions: { gateway: { zeroDataRetention: true } },
         telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
       });
+    const physicalCall = (state: string, privacy?: GatewayPrivacyEvidence) => {
+      const work = async (attemptSignal: AbortSignal) => {
+        if (privacy) assertGatewayPrivacy(privacy, model, Date.now());
+        if (bounded.aborted || Date.now() >= deadlineAt)
+          throw new ModelExplanationFailure('cancelled');
+        try {
+          return await call(state, attemptSignal);
+        } catch (error) {
+          throw gatewayFailure(error, attemptSignal);
+        }
+      };
+      return attempts ? attempts.execute(work, bounded, deadlineAt) : work(bounded);
+    };
     const acknowledgement = (result: Awaited<ReturnType<typeof call>>) => ({
       model: result.response.modelId,
       route: 'vercel-ai-gateway' as const,
@@ -146,7 +172,7 @@ export class GatewayIntentDecider implements IntentDecider {
       warnings: result.warnings ?? [],
     });
     try {
-      const probe = await call(
+      const probe = await physicalCall(
         'Public privacy capability probe: determine the intent of the fixed sentence "hello".',
       );
       bounded.throwIfAborted();
@@ -162,7 +188,7 @@ export class GatewayIntentDecider implements IntentDecider {
       };
       assertGatewayPrivacy(evidence, model, Date.now());
       bounded.throwIfAborted();
-      const result = await call(query);
+      const result = await physicalCall(query, evidence);
       bounded.throwIfAborted();
       verifyGatewayAcknowledgement(acknowledgement(result), model);
       const answer = result.answers.intent;
@@ -180,22 +206,10 @@ export class GatewayIntentDecider implements IntentDecider {
         throw new ModelExplanationFailure('rejected');
       }
     } catch (error) {
-      if (signal.aborted) throw new ModelExplanationFailure('cancelled');
+      if (signal.aborted || Date.now() >= deadlineAt)
+        throw new ModelExplanationFailure('cancelled');
       if (bounded.aborted) throw new ModelExplanationFailure('transient');
-      if (error instanceof ModelExplanationFailure) throw error;
-      if (
-        GatewayResponseError.isInstance(error) ||
-        (!APICallError.isInstance(error) && !GatewayError.isInstance(error))
-      )
-        throw new ModelExplanationFailure('rejected');
-      const status = error.statusCode;
-      throw new ModelExplanationFailure(
-        status === 401 || status === 403
-          ? 'policy'
-          : status !== undefined && status < 500 && status !== 429 && status !== 408
-            ? 'rejected'
-            : 'transient',
-      );
+      throw gatewayFailure(error, signal);
     }
   }
 }
