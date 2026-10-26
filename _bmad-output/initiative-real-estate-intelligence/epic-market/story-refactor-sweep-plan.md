@@ -3,7 +3,7 @@ title: 'Market deferred-finding reconciliation'
 type: 'chore'
 ticket: '10'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'efa03616db605d44998a6233a572551e5ceb584d'
 route: 'oneshot'
 route_source: 'auto'
