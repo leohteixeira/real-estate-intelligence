@@ -78,8 +78,21 @@ The pinned Gateway evaluation alias takes a text state while the AI SDK normaliz
 a narrow typed bridge projects only text into `doEvaluate`. No provider types cross the
 application port. A fixed public probe must provide the existing Gateway ZDR routing
 acknowledgement before visitor text is transmitted. Provider warnings are rejected before SDK
-warning logging. Calls disable retries and payload telemetry, and share a bounded cancellation
-signal. Selected-label probability comes from its distribution, independently of any provider
+warning logging. SDK retries and payload telemetry are disabled. Production composes named
+fallback, bulkhead, logical breaker, transient retry, physical limiter and attempt timeout
+policies. The public probe and user classification consume separate limiter tokens; only the
+failed phase repeats, and user-bearing retries recheck the original privacy evidence. Each phase
+allows at most three attempts with full jitter (100 ms exponential base, one-second cap), subject
+to a shared ten-second rolling retry allowance of about 10% with two low-traffic slots. Valid
+`Retry-After` must fit the remaining deadline plus a complete 3.5-second attempt; advice over
+30 seconds suppresses retry. The original deadline includes queueing and backoff. Caller abort
+or original-deadline expiry stops all attempts and cannot produce a heuristic answer. One failed
+decision records one transient breaker outcome after retry; successful decisions taking at least
+2.5 seconds contribute one slow outcome while returning the actual decision. Definitive refusals
+and local admission pressure are excluded. Identifiable exhausted quota opens only Jev's circuit
+immediately.
+Policy events project named categorical fields only, excluding provider messages and raw headers.
+Selected-label probability comes from its distribution, independently of any provider
 confidence. Invalid distributions and caller cancellation are rejected. Unavailable private
 routing falls back to deterministic PT/EN `heuristic-v1`, with explicit degraded provenance and
 the same confidence gate.

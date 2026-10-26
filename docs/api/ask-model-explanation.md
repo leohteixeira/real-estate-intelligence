@@ -43,7 +43,21 @@ The scoped `POST /api/v1/internal/ask/runs/:id/model-explanation` supports stric
 and `accept` envelopes under the fresh checkpoint grant. API/SQL fence run, execution, lease,
 thread and receipt identity. Each outbound probe reserves 16 output tokens; generation reserves 224.
 Aggregate reservations cannot exceed 1,000 per run and are never refunded after uncertainty.
-Named resilience policies bound admission, concurrency, rate, breaker health, single attempts,
-timeout and eligible fallback. Cancellation/policy/authentication/fidelity/budget refusals do not
-fallback. Accepted evidence persists before saver ACK; reclaim reuses it with a rebound Market
-receipt and unchanged reservations. Exactly-once provider network delivery is not promised.
+Named resilience policies apply fallback, bulkhead, route-specific breaker, transient retry,
+per-physical-request limiter and a 3.5-second attempt timeout, in that order. Each failed public
+probe or facts phase gets at most two physical requests, with a fresh persisted reservation before
+each one; successful phases and acceptance are never repeated by this policy. Retry uses full
+jitter from a 100 ms exponential base capped at one second. Valid `Retry-After` is honored only
+when both it and a complete attempt fit the original deadline; advice over 30 seconds suppresses
+retry. A rolling ten-second allowance admits about 10% retries with two low-traffic retry slots
+per model. Attempts and fallback still share the 1,000-token persisted run limit.
+
+The original deadline and caller cancellation cover receipt recovery, queue admission, backoff,
+reservation and HTTP, including clients that ignore cancellation. Expiration never yields a model
+answer or fallback. Attempt timeout remains transient while the original deadline allows work.
+Cancellation/policy/authentication/fidelity/budget refusals do not retry or fallback. Structured
+exhausted quota immediately opens only its model/route circuit and prevents current-call secondary
+spend. Local rate admission and definitive refusals do not record transient breaker outcomes.
+Successful outbound phases taking at least 2.5 seconds contribute one slow breaker outcome while
+returning their actual output. Accepted evidence persists before saver ACK; reclaim reuses it with
+a rebound Market receipt and unchanged reservations. Exactly-once provider network delivery is not promised.

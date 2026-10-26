@@ -54,3 +54,21 @@ Malformed input/state returns safe 400; missing/malformed Bearer 401; foreign,
 stale or expired authority/state 403; conflicting replay/fork 409; oversized JSON
 413; wrong content type 415; unavailable persistence 503. Transient transport and
 cancellation remain recoverable; definitive corrupt/forbidden state fails safely.
+
+## AI-side resilience and replay
+
+Checkpoint and price-tool HTTP adapters send once. Their AI-owned policies retry safe transient
+network, attempt-timeout and `5xx` failures up to three physical attempts, keeping the original
+request, identifiers and grant. Checkpoint puts retain their checkpoint ID/digest; writes retain
+checkpoint/task/index addressing; the price tool recovers its one retained receipt per run.
+Definitive `4xx`, conflicting content and invalid responses are never retried or recorded as
+transient breaker failures. Saver acknowledgement still follows durable confirmation.
+
+Both dependencies have isolated admission and logical breakers. Retries consume physical limiter
+capacity and a ten-second rolling allowance of about 10%, with two low-traffic retry slots per
+dependency. Full jitter uses a 100 ms exponential base capped at one second, and another complete
+3.5-second attempt must fit the original deadline. Queue admission, backoff and HTTP share that
+deadline and caller cancellation; neither can outlive it or return a late successful answer.
+Exhaustion fails the graph node with a typed failure. The worker's executor continues to send one
+HTTP request per delivery; durable broker redelivery owns run-step retry. Named checkpoint and
+tool telemetry excludes requests, grants and dependency error payloads.
