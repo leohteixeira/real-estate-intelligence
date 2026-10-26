@@ -3,7 +3,7 @@ title: 'Headless web client'
 type: 'feature'
 ticket: '9'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: '026428f245ac1ef3ef312f4f2dff0a098e87fc4c'
 route: 'full'
 route_source: 'auto'
@@ -325,3 +325,16 @@ Final changed-file formatting, scoped Markdown lint and diff checks passed befor
 Residual limits: prefix behavior is unit-tested and the actual HTTP/SSE journey is local/native;
 this story supplies no public HTTPS, browser visual, live-provider or production acceptance.
 Those requirements remain with the existing production stories and final published E2E campaign.
+
+## Delivery closure
+
+Story 5.9 is done after the parent observed final native acceptance, affected coverage, unchanged
+workspace/backend gates and the required independent review. Delivery commits:
+
+- `e198fe94ee36f486768b4edc741447642cfa786d` — feat: add resumable headless live run client.
+- `4863fef50c770523422a4b326492b740b52d9f19` — test: prove headless confirmation and cancellation.
+- `e9985b878453074d3882561ab60bd02edd1de409` — docs: record verified headless client delivery.
+
+The built gate observed a clean product repository with all sixteen reviewed files committed and
+all twelve delivered source hashes unchanged by hooks. The orchestrator marked 5.9 done and
+continues `tickets.py next`. No push, production mutation or provider call belongs to this delivery.
