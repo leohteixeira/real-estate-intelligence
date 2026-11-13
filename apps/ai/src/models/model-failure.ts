@@ -10,10 +10,6 @@ export function modelFailure(error: unknown, signal: AbortSignal): ModelExplanat
   return new ModelExplanationFailure('transient');
 }
 
-export function eligibleModelFallback(error: unknown): boolean {
-  return error instanceof ModelExplanationFailure && error.kind === 'transient';
-}
-
 export function recordModelFailure(error: unknown): boolean {
   return (
     error instanceof ModelExplanationFailure &&

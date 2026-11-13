@@ -8,7 +8,7 @@ import {
   type PriceToolRequest,
 } from '@rei/contracts';
 import { ReceiptModelExplainer } from '../models/receipt-model-explainer';
-import { acknowledged, modelTransportFixture } from '../models/model-test.fixture';
+import { generated, modelTransportFixture } from '../models/model-test.fixture';
 import type { LanguageModelRequest } from '../models/language-model.port';
 import type { ModelExplainer } from '../models/model-explanation.port';
 import { checkpointFixture } from './checkpoint-test.fixture';
@@ -189,13 +189,7 @@ describe('combined routing and explanation', () => {
     async (probability) => {
       const transport = modelTransportFixture();
       const generate = vi.fn(async (request: LanguageModelRequest) =>
-        acknowledged(
-          request.model,
-          request.prompt === 'Return the single public word: ready.'
-            ? 'ready'
-            : request.prompt.split('\n').slice(-3).reverse().join(' '),
-          request.prompt === 'Return the single public word: ready.' ? 1 : 32,
-        ),
+        generated(request.prompt.split('\n').slice(-3).reverse().join(' '), 32),
       );
       const model = new ReceiptModelExplainer({ generate }, transport);
       const f = fixture(probability, model);
@@ -227,7 +221,7 @@ describe('combined routing and explanation', () => {
         outcome: 'price-calculated',
         explanation: { authorship: 'model-written' },
       });
-      expect(generate).toHaveBeenCalledTimes(2);
+      expect(generate).toHaveBeenCalledOnce();
       const budget = transport.reserved;
       const recovered = await f
         .service()
@@ -244,7 +238,7 @@ describe('combined routing and explanation', () => {
         expect(Buffer.from(record.checkpoint.base64, 'base64').toString()).not.toContain(
           'queueDurationMs',
         );
-      expect(generate).toHaveBeenCalledTimes(2);
+      expect(generate).toHaveBeenCalledOnce();
       expect(f.decider.decide).toHaveBeenCalledOnce();
     },
   );

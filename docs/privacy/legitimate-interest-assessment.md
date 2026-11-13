@@ -157,13 +157,14 @@ requirement to the binding decision and the current evidence, without treating p
 | ROP-04                   | Independent permission, transient processing, bounded dHash64 acquisition and shared source admission; ADR 0015/D-089. | Story 2.9 records local real-service proof of rate, no-photo-storage and denied-image behaviour; real-source necessity and permission remain gated.        |
 | ROP-05                   | Suppression first; pre-fetch and pre-write exclusion plus erasure; ADR 0015.                                           | Collection 2.10, rights channel, correspondence periods and backup/consumer removal evidence remain pending.                                               |
 | ROP-06                   | Bounded outbox/inbox delivery retention and metadata-only observability; ADR 0017.                                     | Local evidence covers delivery/collection telemetry; audit/dead-letter/log/trace/backup periods and external processors need review.                       |
-| Any external model route | No model ingestion in MVP; isolated AI and pre-transmission verified ZDR for user text; ADR 0014.                      | No collection-text transmission is authorized here. Future provider/basis/region review is separate from ZDR route verification.                           |
+| Any external model route | No model ingestion; isolated AI; Ask question text goes directly to Anthropic, no ZDR verification; ADR 0029.          | No collection-text transmission is authorized here. Standard commercial API terms apply; provider/basis/region review remains open.                        |
 
 The owner must supply public identity/contact and a bilingual, discoverable notice, exercise the
 rights workflow, and verify recipients, contracts, regions and applicable transfer evidence.
 Future hosting, telemetry exporters, AI providers and public readers are not approved recipients
 merely because the architecture depicts them. Supplier or transmission changes require a new
-inventory review; ZDR does not supply collection's lawful basis or eliminate transient processing.
+inventory review; a provider's retention terms do not supply collection's lawful basis or
+eliminate transient processing.
 
 ## Conditional conclusion and stop conditions
 

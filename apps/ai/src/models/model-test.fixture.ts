@@ -25,22 +25,30 @@ export const modelReceipt = parsePriceToolReceipt({
     computedAt: '2026-10-11T00:00:00.000Z',
   },
 });
-export function acknowledged(model: string, text = 'ready', outputTokens = 1): LanguageModelResult {
+export const approvedModel = 'claude-haiku-5-5';
+export function generated(text: string, outputTokens = 1): LanguageModelResult {
+  return { text, outputTokens, model: approvedModel, route: 'anthropic-direct' };
+}
+/** Messages API response body for intercepted HTTP. No SDK or module is mocked. */
+export function anthropicMessage(
+  text: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
-    text,
-    outputTokens,
-    model,
-    route: 'vercel-ai-gateway',
-    warnings: [],
-    metadata: {
-      gateway: {
-        routing: {
-          planningReasoning:
-            'ZDR requested: 1 attempts → 1 ZDR attempts. ZDR execution order: anthropic(system)',
-        },
-      },
-    },
+    id: 'msg_offline_fixture',
+    type: 'message',
+    role: 'assistant',
+    model: approvedModel,
+    content: [{ type: 'text', text }],
+    stop_reason: 'end_turn',
+    stop_sequence: null,
+    usage: { input_tokens: 12, output_tokens: 7 },
+    ...overrides,
   };
+}
+/** Messages API error body with the documented `error.type` discriminant. */
+export function anthropicError(type: string): Record<string, unknown> {
+  return { type: 'error', error: { type, message: 'private provider detail' } };
 }
 /** Test-only persistent API double; production DI never selects this implementation. */
 export function modelTransportFixture(): ModelExplanationTransport & {

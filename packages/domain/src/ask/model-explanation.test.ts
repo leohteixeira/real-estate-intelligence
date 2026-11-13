@@ -39,12 +39,26 @@ describe('price-explanation-facts-v1 offline PT/EN fidelity dataset', () => {
       grammarVersion: 'price-explanation-facts-v1',
       locale: 'en',
       text: explanationFacts(receipt, 'en').join(' '),
-      model: 'anthropic/claude-haiku-5.5',
-      route: 'vercel-ai-gateway',
-      privacyEvidenceId: 'p'.repeat(32),
+      model: 'claude-haiku-5-5',
+      route: 'anthropic-direct',
+      privacyEvidenceId: null,
       outputTokens: 50,
       acceptedAt: receipt.result.computedAt,
     };
+    // Retained before ADR 0029: a gateway record keeps its evidence identifier.
+    const historical: ModelExplanation = {
+      ...explanation,
+      model: 'anthropic/claude-haiku-5.5',
+      route: 'vercel-ai-gateway',
+      privacyEvidenceId: 'p'.repeat(32),
+    };
+    expect(validModelExplanation(historical, receipt, 'en')).toBe(true);
+    expect(validModelExplanation({ ...historical, privacyEvidenceId: null }, receipt, 'en')).toBe(
+      false,
+    );
+    expect(
+      validModelExplanation({ ...explanation, privacyEvidenceId: 'p'.repeat(32) }, receipt, 'en'),
+    ).toBe(false);
     expect(
       validModelExplanation(explanation, { ...receipt, executionId: receipt.runId }, 'en'),
     ).toBe(true);
@@ -65,7 +79,7 @@ describe('price-explanation-facts-v1 offline PT/EN fidelity dataset', () => {
     expect(
       sameModelExplanation(explanation, {
         ...explanation,
-        model: 'deepseek/deepseek-v4-flash-0731',
+        model: 'anthropic/claude-haiku-5.5',
       }),
     ).toBe(false);
   });

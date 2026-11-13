@@ -15,8 +15,10 @@ export interface ModelExplanation extends AskRequestedIdentity {
   readonly locale: ExplanationLocale;
   readonly text: string;
   readonly model: string;
-  readonly route: 'vercel-ai-gateway';
-  readonly privacyEvidenceId: string;
+  /** `vercel-ai-gateway` is historical (ADR 0029): retained records stay readable, none is new. */
+  readonly route: 'anthropic-direct' | 'vercel-ai-gateway';
+  /** Null on every direct record; only historical gateway records carry an identifier. */
+  readonly privacyEvidenceId: string | null;
   readonly outputTokens: number;
   readonly acceptedAt: string;
 }
@@ -26,9 +28,10 @@ export interface ModelExplanationAuthority extends AskRequestedIdentity {
 export interface ModelAttemptReservation {
   readonly reservationId: string;
   readonly attemptKey: string;
+  /** `privacy-probe` exists only on historical gateway reservations. */
   readonly purpose: 'privacy-probe' | 'explanation';
   readonly model: string;
-  readonly route: 'vercel-ai-gateway';
+  readonly route: 'anthropic-direct' | 'vercel-ai-gateway';
   readonly maxOutputTokens: number;
   readonly reservedTotal: number;
 }
@@ -38,9 +41,9 @@ export type ModelExplanationRequest = ModelExplanationAuthority &
     | {
         readonly operation: 'reserve';
         readonly attemptKey: string;
-        readonly purpose: 'privacy-probe' | 'explanation';
+        readonly purpose: 'explanation';
         readonly model: string;
-        readonly route: 'vercel-ai-gateway';
+        readonly route: 'anthropic-direct';
         readonly maxOutputTokens: number;
       }
     | { readonly operation: 'accept'; readonly explanation: ModelExplanation }
@@ -93,7 +96,10 @@ export function validModelExplanation(
     explanation.authorship === 'model-written' &&
     explanation.promptVersion === MODEL_EXPLANATION_PROMPT &&
     explanation.grammarVersion === MODEL_EXPLANATION_GRAMMAR &&
-    explanation.route === 'vercel-ai-gateway' &&
+    (explanation.route === 'anthropic-direct'
+      ? explanation.privacyEvidenceId === null
+      : explanation.route === 'vercel-ai-gateway' &&
+        typeof explanation.privacyEvidenceId === 'string') &&
     Number.isSafeInteger(explanation.outputTokens) &&
     explanation.outputTokens > 0 &&
     explanation.outputTokens <= MODEL_OUTPUT_BUDGET &&

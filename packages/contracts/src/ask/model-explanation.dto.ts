@@ -7,7 +7,9 @@ import {
   wirePattern,
   wireNumber,
   wireDate,
+  wireNull,
   wireNullable,
+  wireDiscriminated,
   type WireValidator,
 } from '../shared/wire.js';
 import type { AskRequestedIdentity } from './ask-live.dto.js';
@@ -22,23 +24,28 @@ export interface ModelExplanation extends AskRequestedIdentity {
   readonly locale: 'en' | 'pt-BR';
   readonly text: string;
   readonly model: string;
-  readonly route: 'vercel-ai-gateway';
-  readonly privacyEvidenceId: string;
+  /** `vercel-ai-gateway` is historical (ADR 0029): retained records stay readable, none is new. */
+  readonly route: 'anthropic-direct' | 'vercel-ai-gateway';
+  /** Null on every direct record; only historical gateway records carry an identifier. */
+  readonly privacyEvidenceId: string | null;
   readonly outputTokens: number;
   readonly acceptedAt: string;
 }
 export interface ModelAttemptReservation {
   readonly reservationId: string;
   readonly attemptKey: string;
+  /** `privacy-probe` exists only on historical gateway reservations. */
   readonly purpose: 'privacy-probe' | 'explanation';
   readonly model: string;
-  readonly route: 'vercel-ai-gateway';
+  readonly route: 'anthropic-direct' | 'vercel-ai-gateway';
   readonly maxOutputTokens: number;
   readonly reservedTotal: number;
 }
 const identity = { version: wireEnum([1]), eventId: wireUuid, runId: wireUuid, threadId: wireUuid };
-const model = wireEnum(['anthropic/claude-haiku-5.5', 'deepseek/deepseek-v4-flash-0731']);
-const route = wireEnum(['vercel-ai-gateway']);
+const model = wireEnum(['claude-haiku-5-5']);
+const route = wireEnum(['anthropic-direct']);
+const historicalModel = wireEnum(['anthropic/claude-haiku-5.5', 'deepseek/deepseek-v4-flash-0731']);
+const historicalRoute = wireEnum(['vercel-ai-gateway']);
 const attemptKey = wirePattern(/^[A-Za-z0-9_-]{16,128}$/);
 const boundedText: WireValidator = (value) => {
   if (
@@ -51,7 +58,7 @@ const boundedText: WireValidator = (value) => {
   )
     invalidWire();
 };
-export const modelExplanationWire = wireObject({
+const explanationFields = {
   ...identity,
   explanationId: wireUuid,
   toolReceiptId: wireUuid,
@@ -61,29 +68,52 @@ export const modelExplanationWire = wireObject({
   grammarVersion: wireEnum(['price-explanation-facts-v1']),
   locale: wireEnum(['en', 'pt-BR']),
   text: boundedText,
-  model,
-  route,
-  privacyEvidenceId: attemptKey,
   outputTokens: wireNumber(1, 1000, true),
   acceptedAt: wireDate,
+};
+/** The route selects one closed shape; a direct record can never carry privacy evidence. */
+export const modelExplanationWire = wireDiscriminated('route', {
+  'anthropic-direct': wireObject({
+    ...explanationFields,
+    model,
+    route,
+    privacyEvidenceId: wireNull,
+  }),
+  'vercel-ai-gateway': wireObject({
+    ...explanationFields,
+    model: historicalModel,
+    route: historicalRoute,
+    privacyEvidenceId: attemptKey,
+  }),
 });
-const reservationWire = wireObject({
+const reservationFields = {
   reservationId: wireUuid,
   attemptKey,
-  purpose: wireEnum(['privacy-probe', 'explanation']),
-  model,
-  route,
   maxOutputTokens: wireNumber(1, 1000, true),
   reservedTotal: wireNumber(1, 1000, true),
+};
+const reservationWire = wireDiscriminated('route', {
+  'anthropic-direct': wireObject({
+    ...reservationFields,
+    purpose: wireEnum(['explanation']),
+    model,
+    route,
+  }),
+  'vercel-ai-gateway': wireObject({
+    ...reservationFields,
+    purpose: wireEnum(['privacy-probe', 'explanation']),
+    model: historicalModel,
+    route: historicalRoute,
+  }),
 });
 export type ModelExplanationRequest = AskRequestedIdentity & { readonly executionId: string } & (
     | { readonly operation: 'get' }
     | {
         readonly operation: 'reserve';
         readonly attemptKey: string;
-        readonly purpose: 'privacy-probe' | 'explanation';
+        readonly purpose: 'explanation';
         readonly model: string;
-        readonly route: 'vercel-ai-gateway';
+        readonly route: 'anthropic-direct';
         readonly maxOutputTokens: number;
       }
     | { readonly operation: 'accept'; readonly explanation: ModelExplanation }
@@ -106,7 +136,8 @@ export function parseModelExplanationRequest(value: unknown): ModelExplanationRe
           ...base,
           operation: wireEnum(['reserve']),
           attemptKey,
-          purpose: wireEnum(['privacy-probe', 'explanation']),
+          // New spend is direct only; the historical gateway literals are read-only.
+          purpose: wireEnum(['explanation']),
           model,
           route,
           maxOutputTokens: wireNumber(1, 1000, true),

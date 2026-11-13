@@ -1,6 +1,7 @@
 # ADR 0027 — Receipt-bound model explanations
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by [ADR 0029](0029-direct-anthropic-provider-for-ask.md), which
+  replaces the gateway-only verified privacy section with a direct Anthropic route
 - **Date:** 2026-10-12
 - **Extends:** ADRs 0008, 0009, 0014, 0025 and 0026
 - **Accepted by:** the agent on the owner's behalf, 2026-10-12 (D-050)

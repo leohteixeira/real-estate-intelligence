@@ -29,6 +29,15 @@ describe('readConfig', () => {
   it.each(['0', '65536', '4111rest', 'http'])('rejects an invalid AI_PORT value: %s', (value) => {
     expect(() => readConfig({ AI_PORT: value })).toThrow('AI_PORT must be a valid port number.');
   });
+  it('reads the Anthropic credential only from ANTHROPIC_API_KEY and ignores the removed gateway key', () => {
+    expect(readConfig({ ANTHROPIC_API_KEY: 'offline-fixture' })).toEqual({
+      port: 4111,
+      anthropicApiKey: 'offline-fixture',
+    });
+    expect(readConfig({ ANTHROPIC_API_KEY: '', AI_GATEWAY_API_KEY: 'removed' })).toEqual({
+      port: 4111,
+    });
+  });
   it('keeps execution disabled when token is absent or empty and accepts strict authority', () => {
     expect(readConfig({ AI_INTERNAL_TOKEN: '' })).toEqual({ port: 4111 });
     expect(readConfig({ AI_INTERNAL_TOKEN: 'a'.repeat(48) }).internalToken).toBe('a'.repeat(48));

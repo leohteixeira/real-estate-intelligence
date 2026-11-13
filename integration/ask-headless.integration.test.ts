@@ -33,7 +33,7 @@ test('actual headless client resumes edited confirmation and observes explicit c
     MINIO_ROOT_USER: 'rei_headless',
     MINIO_ROOT_PASSWORD: secret(),
     AI_INTERNAL_TOKEN: secret(),
-    AI_GATEWAY_API_KEY: '',
+    ANTHROPIC_API_KEY: '',
     ASK_DISPATCH_SECRET: secret(),
     SNAPSHOT_ENCRYPTION_KEY_ID: 'headless-fixture-v1',
     SNAPSHOT_ENCRYPTION_KEY_BASE64: randomBytes(32).toString('base64'),

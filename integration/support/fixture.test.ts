@@ -188,7 +188,11 @@ test('starts only selected services, preserves profiles and performs exact owned
   expect(builder.withProfiles).toHaveBeenCalledWith('tools');
   expect(builder.withBuild).toHaveBeenCalledOnce();
   expect(builder.withEnvironment).toHaveBeenCalledWith(
-    expect.objectContaining({ COMPOSE_DISABLE_ENV_FILE: '1', COMPOSE_ENV_FILES: '' }),
+    expect.objectContaining({
+      COMPOSE_DISABLE_ENV_FILE: '1',
+      COMPOSE_ENV_FILES: '',
+      ANTHROPIC_API_KEY: '',
+    }),
   );
   await owned.down();
   expect(down).toHaveBeenCalledWith({ timeout: 120_000, removeVolumes: true });
@@ -213,12 +217,14 @@ test('later staged startup preserves changed worker environment and disabled env
     SYNTHETIC_PAGE_DELAY_MS: '5000',
     COMPOSE_DISABLE_ENV_FILE: '0',
     COMPOSE_ENV_FILES: 'must-not-load',
+    ANTHROPIC_API_KEY: 'must-not-reach-a-container',
   });
   expect(builder.withEnvironment).toHaveBeenLastCalledWith(
     expect.objectContaining({
       SYNTHETIC_PAGE_DELAY_MS: '5000',
       COMPOSE_DISABLE_ENV_FILE: '1',
       COMPOSE_ENV_FILES: '',
+      ANTHROPIC_API_KEY: '',
     }),
   );
   await owned.down();

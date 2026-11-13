@@ -8,7 +8,7 @@ const settings = {
   REI_WORKER_DIGEST: '3'.repeat(64),
   REI_AI_DIGEST: '4'.repeat(64),
   REI_WEB_DIGEST: '5'.repeat(64),
-  AI_GATEWAY_API_KEY: 'controlled_gateway_fixture',
+  ANTHROPIC_API_KEY: 'controlled_anthropic_fixture',
   DATABASE_URL: 'postgres://portfolio-postgres18/rei',
   RABBITMQ_URL: 'amqp://fixture:controlled@portfolio-rabbitmq/rei',
   ASK_DISPATCH_SECRET: 'd'.repeat(64),
@@ -89,10 +89,15 @@ test('production isolates five immutable application images with bounded resourc
       /RABBITMQ|OBJECT_STORE|SNAPSHOT_ENCRYPTION/,
     );
   }
-  expect(parsed.services.ai.environment?.AI_GATEWAY_API_KEY).toBe(settings.AI_GATEWAY_API_KEY);
+  expect(parsed.services.ai.environment?.ANTHROPIC_API_KEY).toBe(settings.ANTHROPIC_API_KEY);
   for (const name of ['api', 'worker', 'web', 'migrations'] as const) {
-    expect(parsed.services[name].environment ?? {}).not.toHaveProperty('AI_GATEWAY_API_KEY');
+    expect(parsed.services[name].environment ?? {}).not.toHaveProperty('ANTHROPIC_API_KEY');
   }
+  // The retired gateway credential reaches no container, even when the host still exports it.
+  const stale = JSON.parse(
+    (await config({ AI_GATEWAY_API_KEY: 'controlled_stale_gateway_fixture' })).stdout,
+  ) as typeof parsed;
+  expect(JSON.stringify(stale.services)).not.toMatch(/AI_GATEWAY_API_KEY|stale_gateway/);
   expect(parsed.services.api.environment?.OTEL_EXPORTER_OTLP_ENDPOINT).toBe(
     'http://portfolio-collector:4318',
   );
@@ -104,6 +109,15 @@ test.each(Object.keys(settings))(
     await expect(config({ [name]: undefined })).rejects.toThrow();
   },
 );
+
+test('the retired gateway key does not satisfy the required Anthropic key', async () => {
+  await expect(
+    config({
+      ANTHROPIC_API_KEY: undefined,
+      AI_GATEWAY_API_KEY: 'controlled_stale_gateway_fixture',
+    }),
+  ).rejects.toThrow();
+});
 
 test('manual production selects only local immutable IDs without changing runtime boundaries', async () => {
   const registry = JSON.parse((await config()).stdout) as { services: Record<string, Service> };

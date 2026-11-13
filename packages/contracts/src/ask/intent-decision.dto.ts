@@ -46,7 +46,7 @@ const decisionFields = {
   probabilities: wireObject(
     Object.fromEntries(askIntents.map((intent) => [intent, wireNumber(0, 1)])),
   ),
-  source: wireEnum(['gateway-jev-v1', 'heuristic-v1']),
+  source: wireEnum(['claude-haiku-v1', 'gateway-jev-v1', 'heuristic-v1']),
   degraded: wireBoolean,
   taxonomyVersion: wireEnum(['ask-intents-v1']),
   privacyEvidenceId: wireNullable(wirePattern(/^[A-Za-z0-9_-]{16,128}$/)),

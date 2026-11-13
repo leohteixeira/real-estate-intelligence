@@ -20,8 +20,8 @@ if (
   ![
     'approved',
     'invented',
-    'privacy',
-    'fallback',
+    'refusal',
+    'retry',
     'authentication',
     'usage',
     'cancelled',
@@ -29,17 +29,17 @@ if (
   ].includes(scenario)
 )
   throw new Error('An explicit model fixture scenario is required.');
-const attempts = { probes: 0, generations: 0 };
+const attempts = { generations: 0 };
 const scripted: LanguageModel = {
   async generate(request: LanguageModelRequest, signal: AbortSignal) {
-    const probe = request.prompt === 'Return the single public word: ready.';
-    if (probe) attempts.probes++;
-    else attempts.generations++;
+    attempts.generations++;
     if (signal.aborted || scenario === 'cancelled') throw new ModelExplanationFailure('cancelled');
     if (scenario === 'authentication') throw new ModelExplanationFailure('authentication');
-    if (scenario === 'fallback' && request.model.startsWith('anthropic/'))
+    // The provider declining the request is definitive: no retry and no other model.
+    if (scenario === 'refusal') throw new ModelExplanationFailure('policy');
+    if (scenario === 'retry' && attempts.generations % 2 === 1)
       throw new ModelExplanationFailure('transient');
-    if (!probe && scenario === 'wait-generation') {
+    if (scenario === 'wait-generation') {
       await new Promise<never>((_resolve, reject) => {
         const abort = () => reject(new ModelExplanationFailure('cancelled'));
         if (signal.aborted) abort();
@@ -47,27 +47,14 @@ const scripted: LanguageModel = {
       });
     }
     const sentences = request.prompt.split('\n').slice(-3);
-    const provider = request.model.startsWith('anthropic/') ? 'anthropic' : 'deepseek';
     return {
-      text: probe
-        ? 'ready'
-        : scenario === 'invented'
+      text:
+        scenario === 'invented'
           ? sentences.reverse().join(' ').replace(/68/g, '69')
           : sentences.reverse().join(' '),
-      outputTokens: scenario === 'usage' ? undefined : probe ? 1 : 64,
+      outputTokens: scenario === 'usage' ? undefined : 64,
       model: request.model,
       route: request.route,
-      warnings: [],
-      metadata:
-        scenario === 'privacy'
-          ? {}
-          : {
-              gateway: {
-                routing: {
-                  planningReasoning: `ZDR requested: 1 attempts → 1 ZDR attempts. ZDR execution order: ${provider}(system)`,
-                },
-              },
-            },
     };
   },
 };

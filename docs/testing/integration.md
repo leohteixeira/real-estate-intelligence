@@ -189,16 +189,27 @@ The model-explanation campaign mounts an explicit TypeScript bootstrap inside an
 container. It composes the production Nest modules and overrides only `LanguageModel` with a
 scripted test implementation; production startup has no fake selector. The real API, Market tool,
 worker, RabbitMQ, PostgreSQL budget/accepted evidence and native remote saver remain in the flow.
-PT/EN inspect/thread/SSE, idempotency, approved/transient-secondary output, invented figures,
-missing ZDR acknowledgement, authentication and malformed usage are checked without a live model
-request. Real concurrent reservations enforce the 1,000-token budget across reclaim; FIFO admission,
-capacity and queued expiry retain their existing semantics. Pre-aborted requests, cancelled probes
-and an HTTP caller disconnect during generation leave conservative spend without a fallback.
+PT/EN inspect/thread/SSE, idempotency, approved output, one transient retry, invented figures,
+provider refusal, authentication and malformed usage are checked without a live model request.
+Reservations that name the retired gateway route are refused. Real concurrent reservations enforce
+the 1,000-token budget across reclaim; FIFO admission, capacity and queued expiry retain their
+existing semantics. Pre-aborted requests and an HTTP caller disconnect during generation leave
+conservative spend without a second attempt.
 Checkpoint-ACK failure after accepted evidence and completed-before-terminal recovery restart only
 the owned AI process, then check stable receipt/explanation IDs, fresh authority, unchanged spend
 and zero new model calls. A genuine populated pre-6005 native graph checks exact historical
-checkpoint/pending-write/document digests, old recovery and an explained run in the same thread. See
+checkpoint/pending-write/document digests, old recovery and an explained run in the same thread.
+A populated pre-6010 database holds a completed run with gateway-era attempts and explanation;
+the real migration container then applies `6010_ask_anthropic_direct.sql`. The retained bytes are
+unchanged, inspect/thread/SSE still read the gateway record beside a new direct-route run in the
+same thread, and SQL refuses every mixed gateway/direct shape. The routed campaign does the same
+for a `gateway-jev-v1` decision receipt. See
 [the implemented model protocol](../api/ask-model-explanation.md).
+
+Every Compose fixture forces an empty `ANTHROPIC_API_KEY` and disables env-file loading, so a key
+exported in the developer's shell cannot reach a fixture container. Campaigns that exercise the
+provider adapter give the real SDK client an in-process `fetch`; no campaign opens a connection to
+the provider.
 
 The RunExecutor campaign has two distinct tests: an authenticated HTTP/configuration boundary
 campaign against the production AI image, and a production worker-command E2E journey resolving the

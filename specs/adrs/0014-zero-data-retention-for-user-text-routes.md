@@ -1,6 +1,6 @@
 # ADR 0014 — Zero Data Retention for user-text model routes
 
-- **Status:** accepted
+- **Status:** superseded by [ADR 0029](0029-direct-anthropic-provider-for-ask.md) on 2026-11-13
 - **Date:** 2026-10-10
 - **Extends:** ADR 0009
 - **Accepted by:** the agent on the owner's behalf, 2026-10-10

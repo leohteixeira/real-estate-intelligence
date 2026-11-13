@@ -1,6 +1,7 @@
 # ADR 0009 — AI provider resilience policies
 
-- **Status:** accepted
+- **Status:** accepted; amended by [ADR 0029](0029-direct-anthropic-provider-for-ask.md), which
+  removes the gateway, the secondary model and the Zero Data Retention requirement
 - **Date:** 2026-10-09
 
 ## Context

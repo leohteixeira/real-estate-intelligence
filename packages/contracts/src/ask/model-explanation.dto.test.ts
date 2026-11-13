@@ -27,11 +27,18 @@ const explanation = {
   grammarVersion: 'price-explanation-facts-v1',
   locale: 'en',
   text: 'Receipt-bound facts.',
+  model: 'claude-haiku-5-5',
+  route: 'anthropic-direct',
+  privacyEvidenceId: null,
+  outputTokens: 80,
+  acceptedAt: '2026-10-11T00:00:00.000Z',
+};
+/** Retained before ADR 0029; production holds such rows, so they must keep parsing. */
+const historical = {
+  ...explanation,
   model: 'anthropic/claude-haiku-5.5',
   route: 'vercel-ai-gateway',
   privacyEvidenceId: 'privacy-evidence-identifier',
-  outputTokens: 80,
-  acceptedAt: '2026-10-11T00:00:00.000Z',
 };
 describe('closed model explanation transport', () => {
   it('keeps explained admission separate and enforces the unchanged input bound', () => {
@@ -64,10 +71,10 @@ describe('closed model explanation transport', () => {
       executionId,
       operation: 'reserve',
       attemptKey: 'attempt-key-identifier',
-      purpose: 'privacy-probe',
+      purpose: 'explanation',
       model: explanation.model,
       route: explanation.route,
-      maxOutputTokens: 16,
+      maxOutputTokens: 224,
     };
     const accept = { ...identity, executionId, operation: 'accept', explanation };
     for (const request of [get, reserve, accept])
@@ -78,8 +85,8 @@ describe('closed model explanation transport', () => {
       purpose: reserve.purpose,
       model: reserve.model,
       route: reserve.route,
-      maxOutputTokens: 16,
-      reservedTotal: 256,
+      maxOutputTokens: 224,
+      reservedTotal: 448,
     };
     for (const response of [
       { operation: 'get', explanation: null },
@@ -105,8 +112,11 @@ describe('closed model explanation transport', () => {
     expect(() => parseModelExplanation({ ...explanation, executionId })).toThrow();
   });
   it.each([
-    { model: 'anthropic/another-model' },
+    { model: 'claude-another-model' },
+    { model: 'anthropic/claude-haiku-5.5' },
     { route: 'direct-anthropic' },
+    { route: 'vercel-ai-gateway' },
+    { privacyEvidenceId: 'privacy-evidence-identifier' },
     { authorship: 'template' },
     { promptVersion: 'unversioned' },
     { grammarVersion: 'unversioned' },
@@ -125,21 +135,66 @@ describe('closed model explanation transport', () => {
   ])('rejects malformed artifact field %j', (changed) => {
     expect(() => parseModelExplanation({ ...explanation, ...changed })).toThrow();
   });
-  it('admits the explicitly approved secondary, but not another dynamically chosen route', () => {
+  it('keeps retained gateway evidence readable without admitting any new gateway spend', () => {
+    expect(parseModelExplanation(historical)).toEqual(historical);
     expect(
-      parseModelExplanation({ ...explanation, model: 'deepseek/deepseek-v4-flash-0731' }).model,
+      parseModelExplanation({ ...historical, model: 'deepseek/deepseek-v4-flash-0731' }).model,
     ).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(parseModelExplanationResponse({ operation: 'get', explanation: historical })).toEqual({
+      operation: 'get',
+      explanation: historical,
+    });
+    for (const changed of [
+      { privacyEvidenceId: null },
+      { privacyEvidenceId: 'short' },
+      { model: 'claude-haiku-5-5' },
+      { model: 'deepseek/new-version' },
+    ])
+      expect(() => parseModelExplanation({ ...historical, ...changed })).toThrow();
+    const reservation = {
+      reservationId: executionId,
+      attemptKey: 'attempt-key-identifier',
+      model: historical.model,
+      route: historical.route,
+      maxOutputTokens: 16,
+      reservedTotal: 16,
+    };
+    for (const purpose of ['privacy-probe', 'explanation'])
+      expect(
+        parseModelExplanationResponse({
+          operation: 'reserve',
+          reservation: { ...reservation, purpose },
+        }),
+      ).toEqual({ operation: 'reserve', reservation: { ...reservation, purpose } });
     expect(() =>
-      parseModelExplanationRequest({
-        ...identity,
-        executionId,
+      parseModelExplanationResponse({
         operation: 'reserve',
-        attemptKey: 'attempt-key-identifier',
-        purpose: 'explanation',
-        model: 'deepseek/new-version',
-        route: explanation.route,
-        maxOutputTokens: 224,
+        reservation: {
+          ...reservation,
+          purpose: 'privacy-probe',
+          model: explanation.model,
+          route: explanation.route,
+        },
       }),
     ).toThrow();
+    const reserve = {
+      ...identity,
+      executionId,
+      operation: 'reserve',
+      attemptKey: 'attempt-key-identifier',
+      purpose: 'explanation',
+      model: explanation.model,
+      route: explanation.route,
+      maxOutputTokens: 224,
+    };
+    expect(parseModelExplanationRequest(reserve)).toEqual(reserve);
+    for (const changed of [
+      { purpose: 'privacy-probe' },
+      { model: historical.model, route: historical.route },
+      { model: 'deepseek/deepseek-v4-flash-0731', route: historical.route },
+      { route: historical.route },
+      { model: 'claude-haiku-5-5-next' },
+    ])
+      expect(() => parseModelExplanationRequest({ ...reserve, ...changed })).toThrow();
   });
 });

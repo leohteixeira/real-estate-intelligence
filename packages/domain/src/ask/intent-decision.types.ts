@@ -24,9 +24,11 @@ export interface IntentDecision {
   readonly intent: AskIntent;
   readonly probability: number;
   readonly probabilities: Readonly<Record<AskIntent, number>>;
-  readonly source: 'gateway-jev-v1' | 'heuristic-v1';
+  /** `gateway-jev-v1` is historical (ADR 0029): retained receipts stay readable, none is new. */
+  readonly source: 'claude-haiku-v1' | 'gateway-jev-v1' | 'heuristic-v1';
   readonly degraded: boolean;
   readonly taxonomyVersion: 'ask-intents-v1';
+  /** Non-null exactly on historical `gateway-jev-v1` receipts. */
   readonly privacyEvidenceId: string | null;
 }
 export interface IntentDecisionReceipt extends IntentDecision {

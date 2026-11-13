@@ -30,7 +30,7 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0006         | Superseded frontend toolchain and TypeScript 5.9 decision                              |
 | 0007 to 0010 | AI runtime boundary, typed routing, AI resilience, durable runs (0007 supersedes 0002) |
 | 0011 to 0013 | Bounded contexts and layout, events and outbox, ports and resilience                   |
-| 0014         | Zero Data Retention for every external model route that receives user text             |
+| 0014         | Superseded Zero Data Retention rule for user-text model routes (see 0029)              |
 | 0015         | Collected-data allowlist, permissions, snapshots, photographs and suppression          |
 | 0016         | TypeScript 6 toolchain and retained frontend choices (supersedes 0006)                 |
 | 0017 to 0020 | Delivery retention, snapshot retention/reconciliation, and typed Vitest integration    |
@@ -42,6 +42,7 @@ persistence, telemetry or toolchain needs an ADR before it becomes code.
 | 0026         | FIFO admission, three pending runs and truthful queued expiry                          |
 | 0027         | Versioned receipt-bound model explanations and pre-transmission privacy                |
 | 0028         | Web routing, read cache, localization and component-test standard                      |
+| 0029         | Direct Anthropic provider for Ask (supersedes 0014; amends 0008, 0009 and 0027)        |
 
 The architecture document is a reading of the spec and the ADRs, not a source: when it disagrees
 with an accepted ADR, the ADR wins and the document is corrected.

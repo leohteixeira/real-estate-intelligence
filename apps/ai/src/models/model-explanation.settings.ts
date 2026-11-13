@@ -1,11 +1,9 @@
 export const modelExplanationSettings = Object.freeze({
-  primary: 'anthropic/claude-haiku-5.5',
-  secondary: 'deepseek/deepseek-v4-flash-0731',
-  route: 'vercel-ai-gateway' as const,
-  probeText: 'Return the single public word: ready.',
-  probeTokens: 16,
+  /** Anthropic model identifier, sent as written. There is no secondary model (ADR 0029). */
+  model: 'claude-haiku-5-5',
+  route: 'anthropic-direct' as const,
+  provider: 'anthropic' as const,
   explanationTokens: 224,
-  evidenceTtlMs: 30000,
   timeoutMs: 3500,
   slowCallThresholdMs: 2500,
   retry: {
@@ -18,7 +16,6 @@ export const modelExplanationSettings = Object.freeze({
     lowTrafficRetryReserve: 2,
   },
   policies: {
-    fallback: 'model-explanation.eligible-fallback',
     bulkhead: 'model-explanation.bulkhead',
     circuitBreaker: 'model-explanation.circuit-breaker',
     retry: 'model-explanation.transient-retry',

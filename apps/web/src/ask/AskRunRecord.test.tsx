@@ -8,7 +8,9 @@ import { createLocale } from '../places/locale';
 import { formatComputedAt, formatExactMoney } from '../places/formatters';
 import { AskRunRecord } from './AskRunRecord';
 import { completed, prior, running } from './ask-fixtures.test';
-import { parseAskRun } from '@rei/contracts';
+import { parseAskRun, parseRoutedAskLiveRun } from '@rei/contracts';
+import { completed as routed } from '../headless/ask-fixtures.test';
+import { askEnglish, askPortuguese } from './ask-resources';
 afterEach(cleanup);
 it.each([
   ['pt-BR', 80.125, '80,125'],
@@ -69,7 +71,7 @@ it.each(['pt-BR', 'en'] as const)(
       ),
     ).toBeVisible();
     expect(document.querySelectorAll('.steps li')).toHaveLength(completed.steps.length);
-    expect(document.body).not.toHaveTextContent('Jev');
+    expect(document.body).not.toHaveTextContent(/Jev|Claude|Haiku/i);
     expect(document.body).toHaveTextContent(
       locale === 'en'
         ? 'This example is not associated with a place.'
@@ -127,3 +129,90 @@ it('shows no result while progressing and no price for unavailable history', () 
   );
   expect(document.body).not.toHaveTextContent('R$');
 });
+
+const explanationBase = {
+  version: 1,
+  eventId: routed.id,
+  runId: routed.id,
+  threadId: routed.threadId,
+  explanationId: '019ddddd-1234-7123-8123-123456789abc',
+  toolReceiptId: '019eeeee-1234-7123-8123-123456789abc',
+  reservationId: '019fffff-1234-7123-8123-123456789abc',
+  authorship: 'model-written',
+  promptVersion: 'price-explanation-prompt-v1',
+  grammarVersion: 'price-explanation-facts-v1',
+  locale: 'en',
+  text: 'The asking price divided by area is the returned deterministic value.',
+  outputTokens: 30,
+  acceptedAt: routed.updatedAt,
+};
+it.each(['pt-BR', 'en'] as const)(
+  'renders a historical gateway record with its original model, route, source and privacy evidence in %s',
+  (locale) => {
+    const labels = locale === 'en' ? askEnglish : askPortuguese;
+    const run = parseRoutedAskLiveRun({
+      ...routed,
+      basis: 'routed-text-explanation-v1',
+      locale: 'en',
+      decision: {
+        ...routed.decision,
+        source: 'gateway-jev-v1',
+        degraded: false,
+        privacyEvidenceId: 'historical-decision-evidence',
+      },
+      explanation: {
+        ...explanationBase,
+        model: 'anthropic/claude-haiku-5.5',
+        route: 'vercel-ai-gateway',
+        privacyEvidenceId: 'historical-privacy-evidence',
+      },
+    });
+    render(
+      <I18nextProvider i18n={createLocale(locale)}>
+        <MemoryRouter>
+          <AskRunRecord run={run} placeId="sao-paulo-bela-vista" />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+    expect(screen.getByText('anthropic/claude-haiku-5.5')).toBeInTheDocument();
+    expect(screen.getByText('vercel-ai-gateway')).toBeInTheDocument();
+    expect(screen.getByText(labels.privacyEvidence).nextElementSibling).toHaveTextContent(
+      'historical-privacy-evidence',
+    );
+    expect(screen.getByText(labels.decisionSource).nextElementSibling).toHaveTextContent(
+      'gateway-jev-v1',
+    );
+  },
+);
+it.each(['pt-BR', 'en'] as const)(
+  'renders a direct record without a privacy evidence row in %s',
+  (locale) => {
+    const labels = locale === 'en' ? askEnglish : askPortuguese;
+    const run = parseRoutedAskLiveRun({
+      ...routed,
+      basis: 'routed-text-explanation-v1',
+      locale: 'en',
+      decision: { ...routed.decision, source: 'claude-haiku-v1', degraded: false },
+      explanation: {
+        ...explanationBase,
+        model: 'claude-haiku-5-5',
+        route: 'anthropic-direct',
+        privacyEvidenceId: null,
+      },
+    });
+    render(
+      <I18nextProvider i18n={createLocale(locale)}>
+        <MemoryRouter>
+          <AskRunRecord run={run} placeId="sao-paulo-bela-vista" />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+    expect(screen.getByText(labels.model).nextElementSibling).toHaveTextContent('claude-haiku-5-5');
+    expect(screen.getByText(labels.route).nextElementSibling).toHaveTextContent('anthropic-direct');
+    expect(screen.queryByText(labels.privacyEvidence)).not.toBeInTheDocument();
+    expect(screen.getByText(labels.decisionSource).nextElementSibling).toHaveTextContent(
+      'claude-haiku-v1',
+    );
+    expect(document.body).not.toHaveTextContent('null');
+  },
+);

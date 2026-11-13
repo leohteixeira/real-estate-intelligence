@@ -1,6 +1,7 @@
 # ADR 0008 — Typed query routing with Jev
 
-- **Status:** accepted
+- **Status:** accepted; amended by [ADR 0029](0029-direct-anthropic-provider-for-ask.md), which
+  replaces the Jev adapter and the gateway route with a direct Anthropic classifier
 - **Date:** 2026-10-09
 
 ## Context

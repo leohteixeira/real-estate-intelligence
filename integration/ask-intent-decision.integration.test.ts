@@ -142,7 +142,7 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
     MINIO_ROOT_USER: 'rei_intent',
     MINIO_ROOT_PASSWORD: secret(),
     AI_INTERNAL_TOKEN: token,
-    AI_GATEWAY_API_KEY: '',
+    ANTHROPIC_API_KEY: '',
     ASK_DISPATCH_SECRET: dispatch,
     SNAPSHOT_ENCRYPTION_KEY_ID: 'intent-fixture-v1',
     SNAPSHOT_ENCRYPTION_KEY_BASE64: randomBytes(32).toString('base64'),
@@ -315,10 +315,89 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         evidence: null,
         failure: 'execution_unavailable',
       });
+      // A decision accepted through the retired gateway, stored before the direct-provider
+      // migration (6010), must survive it byte for byte and stay readable through the API.
+      const gatewayRouted = await facade.createRouted(
+        {
+          mode: 'routed-text-v1',
+          threadId: null,
+          placeId: null,
+          query: 'listing search',
+          locale: 'en',
+        },
+        capability,
+        secret(),
+        { visitorDigest: 'a'.repeat(64) },
+      );
+      const gatewayIdentity = {
+        version: 1 as const,
+        eventId: (
+          await db.query<{ event_id: string }>(
+            'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
+            [gatewayRouted.id],
+          )
+        )[0]!.event_id,
+        runId: gatewayRouted.id,
+        threadId: gatewayRouted.threadId,
+      };
+      const gatewayClaim = await facade.claim(gatewayIdentity);
+      if (gatewayClaim.disposition !== 'claimed') throw new Error('Expected gateway-era claim.');
+      const gatewayReservation = await facade.executeDecision(
+        {
+          ...gatewayIdentity,
+          executionId: gatewayClaim.input.executionId,
+          operation: 'reserve',
+          attemptKey: secret(),
+        },
+        gatewayClaim.input.checkpointGrant,
+        new AbortController().signal,
+      );
+      if (gatewayReservation.operation !== 'reserve')
+        throw new Error('Expected gateway-era reservation.');
+      const gatewayDecision = await facade.executeDecision(
+        {
+          ...gatewayIdentity,
+          executionId: gatewayClaim.input.executionId,
+          operation: 'accept',
+          reservationId: gatewayReservation.reservationId,
+          decision: parseIntentDecision({
+            intent: 'listing_search',
+            probability: 0.85,
+            probabilities: Object.fromEntries(
+              askIntents.map((label) => [label, label === 'listing_search' ? 0.85 : 0.03]),
+            ),
+            source: 'gateway-jev-v1',
+            degraded: false,
+            taxonomyVersion: 'ask-intents-v1',
+            privacyEvidenceId: 'historical-gateway-evidence-0001',
+          }),
+        },
+        gatewayClaim.input.checkpointGrant,
+        new AbortController().signal,
+      );
+      if (gatewayDecision.operation !== 'accept') throw new Error('Expected gateway-era receipt.');
+      // The pre-6010 predicate does not know the direct classifier source yet.
+      expect(
+        await db.query<{ valid: boolean }>('SELECT ask.valid_intent_decision($1::jsonb) AS valid', [
+          { ...gatewayDecision.decision, source: 'claude-haiku-v1', privacyEvidenceId: null },
+        ]),
+      ).toEqual([{ valid: false }]);
+      await facade.complete({
+        ...gatewayIdentity,
+        executionId: gatewayClaim.input.executionId,
+        evidence: null,
+        failure: 'execution_unavailable',
+      });
       const retained = () =>
-        db.query<{ id: string; document: unknown; events: unknown; receipt: unknown }>(
-          'SELECT id::text,document,(SELECT jsonb_agg(e.document ORDER BY e.sequence) FROM ask.run_event e WHERE e.run_id=r.id) AS events,(SELECT t.document FROM ask.tool_receipt t WHERE t.run_id=r.id) AS receipt FROM ask.run r WHERE id=ANY($1::uuid[]) ORDER BY id',
-          [[prior.id, priorRouted.id]],
+        db.query<{
+          id: string;
+          document: unknown;
+          events: unknown;
+          receipt: unknown;
+          decision: unknown;
+        }>(
+          'SELECT id::text,document,(SELECT jsonb_agg(e.document ORDER BY e.sequence) FROM ask.run_event e WHERE e.run_id=r.id) AS events,(SELECT t.document FROM ask.tool_receipt t WHERE t.run_id=r.id) AS receipt,(SELECT d.document FROM ask.decision_receipt d WHERE d.run_id=r.id) AS decision FROM ask.run r WHERE id=ANY($1::uuid[]) ORDER BY id',
+          [[prior.id, priorRouted.id, gatewayRouted.id]],
         );
       const beforeUpgrade = await retained();
       const upgrade = '6007_ask_unavailable_intents.sql';
@@ -416,6 +495,33 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
         });
         return read(id);
       };
+      expect(
+        await db.query<{ version: string }>(
+          "SELECT version FROM schema_migrations WHERE version='6010_ask_anthropic_direct'",
+        ),
+      ).toEqual([{ version: '6010_ask_anthropic_direct' }]);
+      expect((await read(gatewayRouted.id)).decision).toEqual(gatewayDecision.decision);
+      expect(gatewayDecision.decision).toMatchObject({
+        source: 'gateway-jev-v1',
+        degraded: false,
+        privacyEvidenceId: 'historical-gateway-evidence-0001',
+      });
+      expect(
+        await db.query<{ source: string; valid: boolean }>(
+          `SELECT v.d->>'source' AS source,ask.valid_intent_decision(v.d) AS valid FROM (VALUES
+            ($1::jsonb),($1::jsonb || '{"source":"claude-haiku-v1","privacyEvidenceId":null}'),
+            ($1::jsonb || '{"source":"claude-haiku-v1"}'),
+            ($1::jsonb || '{"source":"claude-haiku-v1","privacyEvidenceId":null,"degraded":true}'),
+            ($1::jsonb || '{"privacyEvidenceId":null}')) AS v(d)`,
+          [gatewayDecision.decision],
+        ),
+      ).toEqual([
+        { source: 'gateway-jev-v1', valid: true },
+        { source: 'claude-haiku-v1', valid: true },
+        { source: 'claude-haiku-v1', valid: false },
+        { source: 'claude-haiku-v1', valid: false },
+        { source: 'gateway-jev-v1', valid: false },
+      ]);
       const count = async (id: string) =>
         db.query<{ tools: number; models: number; decisions: number }>(
           'SELECT (SELECT count(*)::integer FROM ask.tool_receipt WHERE run_id=$1) AS tools,(SELECT count(*)::integer FROM ask.model_explanation WHERE run_id=$1) AS models,(SELECT count(*)::integer FROM ask.decision_receipt WHERE run_id=$1) AS decisions',
@@ -1128,9 +1234,9 @@ test('routed confidence gate survives restarts, preserves decisions, fences term
             ...address,
             operation: 'reserve',
             attemptKey: secret(),
-            purpose: 'privacy-probe',
-            model: 'anthropic/claude-haiku-5.5',
-            route: 'vercel-ai-gateway',
+            purpose: 'explanation',
+            model: 'claude-haiku-5-5',
+            route: 'anthropic-direct',
             maxOutputTokens: 10,
           },
         ],

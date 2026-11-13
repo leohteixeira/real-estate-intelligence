@@ -1,4 +1,3 @@
-import { gatewayCostUsd } from './gateway-privacy.verifier';
 import { channel, type Channel } from 'node:diagnostics_channel';
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import type { ResilienceEvent } from '@nestjs/resilience';
@@ -15,15 +14,8 @@ const types: ReadonlyArray<ResilienceEvent['type']> = [
   'circuit-rejected',
   'bulkhead-rejected',
   'rate-limited',
-  'fallback',
 ];
-const breakerModels = new Map(
-  [settings.primary, settings.secondary].map((model) => [
-    `${settings.policies.circuitBreaker}.${settings.route}.${model}`,
-    model,
-  ]),
-);
-const names = new Set<string>([...Object.values(settings.policies), ...breakerModels.keys()]);
+const names = new Set<string>(Object.values(settings.policies));
 const failureKinds = new Set<string>([
   'policy',
   'rejected',
@@ -51,14 +43,15 @@ export function safeModelPolicyAttributes(message: unknown) {
     !types.some((type) => type === message.type)
   )
     return undefined;
-  const model = breakerModels.get(message.policy);
   const failure = 'error' in message ? safeFailureKind(message.error) : undefined;
   return {
     'dependency.name': 'model-explanation',
     'resilience.policy.name': message.policy,
     'resilience.event.type': String(message.type),
     'rei.ai.route': settings.route,
-    ...(model ? { 'rei.ai.model': model } : {}),
+    ...(message.policy === settings.policies.circuitBreaker
+      ? { 'rei.ai.model': settings.model }
+      : {}),
     ...(failure ? { 'rei.ai.failure.kind': failure } : {}),
   };
 }
@@ -92,21 +85,17 @@ export class ModelPolicyTelemetry implements OnModuleInit, OnModuleDestroy {
 /** A span covers the actual policy-wrapped attempt and validated bounded usage, never its text. */
 export async function modelAttemptSpan(
   model: string,
-  purpose: 'privacy-probe' | 'explanation',
-  evidenceAgeMs: number,
   work: () => Promise<LanguageModelResult>,
 ): Promise<LanguageModelResult> {
+  const purpose = 'explanation';
   const attributes = {
-    'rei.ai.model':
-      model === settings.primary || model === settings.secondary ? model : 'unapproved',
+    'rei.ai.model': model === settings.model ? model : 'unapproved',
     'rei.ai.route': settings.route,
-    'rei.ai.provider': settings.route,
+    'rei.ai.provider': settings.provider,
     'rei.ai.usage': 'unavailable',
+    // The Messages API reports token usage, not a price; cost stays explicitly unavailable.
     'rei.ai.cost': 'unavailable',
     'rei.ai.attempt.purpose': purpose,
-    'rei.ai.privacy.evidence_age_ms': Number.isFinite(evidenceAgeMs)
-      ? Math.max(0, Math.min(settings.evidenceTtlMs, Math.floor(evidenceAgeMs)))
-      : 0,
   };
   const meter = metrics.getMeter('rei.ai.model-explanation');
   const metricAttributes = {
@@ -120,11 +109,6 @@ export async function modelAttemptSpan(
       const started = performance.now();
       try {
         const result = await work();
-        const cost = gatewayCostUsd(result.metadata);
-        if (cost !== null) {
-          span.setAttribute('rei.ai.cost', 'available');
-          span.setAttribute('rei.ai.cost_usd', cost);
-        }
         span.setAttribute(
           'rei.ai.usage',
           Number.isSafeInteger(result.outputTokens) &&
