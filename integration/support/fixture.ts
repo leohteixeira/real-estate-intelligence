@@ -133,6 +133,16 @@ export async function availablePort(requested?: number) {
   return port;
 }
 
+/**
+ * Forced on every owned Compose command. No env file is loaded, and the provider key is always
+ * empty: Compose inherits the host shell, where `ANTHROPIC_API_KEY` is commonly exported, and a
+ * fixture AI container must never be able to send a test question to the real Anthropic API.
+ */
+const isolatedEnvironment = Object.freeze({
+  COMPOSE_DISABLE_ENV_FILE: '1',
+  COMPOSE_ENV_FILES: '',
+  ANTHROPIC_API_KEY: '',
+});
 export class ComposeFixture<TContainer = OwnedContainer> {
   project: string;
   environment: Environment;
@@ -159,8 +169,7 @@ export class ComposeFixture<TContainer = OwnedContainer> {
     this.project = project;
     this.environment = {
       ...environment,
-      COMPOSE_DISABLE_ENV_FILE: '1',
-      COMPOSE_ENV_FILES: '',
+      ...isolatedEnvironment,
       ...(preparedSearch ? { PREPARED_SEARCH_SOURCE_ROOT: root } : {}),
     };
     this.create = create;
@@ -178,8 +187,7 @@ export class ComposeFixture<TContainer = OwnedContainer> {
     this.environment = {
       ...this.environment,
       ...environment,
-      COMPOSE_DISABLE_ENV_FILE: '1',
-      COMPOSE_ENV_FILES: '',
+      ...isolatedEnvironment,
     };
     // API readiness now authenticates to RabbitMQ, which Compose starts as its dependency.
     // Older database/API-only campaigns must also own these automatically started host ports.
@@ -320,8 +328,7 @@ export async function withCampaign<T>(
         env: {
           ...fixture.environment,
           ...settings.env,
-          COMPOSE_DISABLE_ENV_FILE: '1',
-          COMPOSE_ENV_FILES: '',
+          ...isolatedEnvironment,
         },
       });
     }

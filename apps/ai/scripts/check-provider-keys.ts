@@ -1,11 +1,10 @@
-// Checks that the two AI provider keys work: one small request per provider.
+// Checks that the Anthropic API key works: one small request.
 // Prints the provider, the model and the outcome. Never prints a key, a header or a prompt.
 //
 //   pnpm --filter @rei/ai run check:keys
 
 import Anthropic from '@anthropic-ai/sdk';
 
-const GATEWAY_URL = 'https://ai-gateway.vercel.sh/v1';
 const PROMPT = 'Reply with the single word OK.';
 const MAX_TOKENS = 256;
 const TIMEOUT_MS = 30_000;
@@ -13,41 +12,6 @@ const TIMEOUT_MS = 30_000;
 function report(provider, ok, detail) {
   console.log(`${ok ? 'OK  ' : 'FAIL'}  ${provider}: ${detail}`);
   return ok;
-}
-
-async function checkGateway() {
-  const provider = 'Vercel AI Gateway';
-  const key = process.env.AI_GATEWAY_API_KEY;
-  if (!key) return report(provider, false, 'AI_GATEWAY_API_KEY is empty');
-
-  const model = process.env.AI_GATEWAY_CHECK_MODEL ?? 'anthropic/claude-haiku-5.5';
-  let response;
-  try {
-    response = await fetch(`${GATEWAY_URL}/chat/completions`, {
-      method: 'POST',
-      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model,
-        max_tokens: MAX_TOKENS,
-        messages: [{ role: 'user', content: PROMPT }],
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch (error) {
-    return report(provider, false, `no response (${error.name})`);
-  }
-
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const reason = body?.error?.type ?? body?.error?.code ?? 'unknown error';
-    return report(provider, false, `HTTP ${response.status} (${reason}) for model ${model}`);
-  }
-  const text = body?.choices?.[0]?.message?.content ?? '';
-  return report(
-    provider,
-    true,
-    `HTTP ${response.status}, model ${body.model ?? model}, replied "${text.trim().slice(0, 20)}"`,
-  );
 }
 
 async function checkAnthropic() {
@@ -88,5 +52,4 @@ async function checkAnthropic() {
   }
 }
 
-const results = await Promise.all([checkGateway(), checkAnthropic()]);
-process.exit(results.every(Boolean) ? 0 : 1);
+process.exit((await checkAnthropic()) ? 0 : 1);

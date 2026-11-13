@@ -26,9 +26,15 @@ const decision = {
   probabilities: Object.fromEntries(
     askIntents.map((label) => [label, label === 'price_per_square_meter' ? 0.84 : 0.032]),
   ),
-  source: 'gateway-jev-v1',
+  source: 'claude-haiku-v1',
   degraded: false,
   taxonomyVersion: 'ask-intents-v1',
+  privacyEvidenceId: null,
+};
+/** Retained before ADR 0029; production holds such receipts, so they must keep parsing. */
+const historicalDecision = {
+  ...decision,
+  source: 'gateway-jev-v1',
   privacyEvidenceId: 'p'.repeat(24),
 };
 const retained = parseIntentDecisionReceipt({ ...decision, receiptId: id, acceptedAt: at });
@@ -87,9 +93,20 @@ describe('closed routed Ask wire contracts', () => {
       { ...decision, probability: 0.85 },
       { ...decision, probabilities: { ...decision.probabilities, extra: 0 } },
       { ...decision, degraded: true },
-      { ...decision, privacyEvidenceId: null },
+      { ...decision, privacyEvidenceId: 'p'.repeat(24) },
+      { ...decision, source: 'claude-haiku-v2' },
+      { ...historicalDecision, privacyEvidenceId: null },
+      { ...historicalDecision, degraded: true },
+      { ...decision, source: 'heuristic-v1' },
     ])
       expect(() => parseIntentDecision(invalid)).toThrow();
+    expect(parseIntentDecision(historicalDecision)).toEqual(historicalDecision);
+    const historicalReceipt = { ...historicalDecision, receiptId: id, acceptedAt: at };
+    expect(parseIntentDecisionReceipt(historicalReceipt)).toEqual(historicalReceipt);
+    expect(parseRoutedAskLiveRun({ ...run, decision: historicalReceipt })).toEqual({
+      ...run,
+      decision: historicalReceipt,
+    });
     expect(() =>
       parseRoutedAskCreate({
         mode: 'routed-text-v1',
@@ -249,11 +266,17 @@ describe('closed combined routing and explanation contracts', () => {
     grammarVersion: 'price-explanation-facts-v1',
     locale: 'en',
     text: 'Receipt-bound facts.',
+    model: 'claude-haiku-5-5',
+    route: 'anthropic-direct',
+    privacyEvidenceId: null,
+    outputTokens: 64,
+    acceptedAt: at,
+  };
+  const gatewayExplanation = {
+    ...explanation,
     model: 'anthropic/claude-haiku-5.5',
     route: 'vercel-ai-gateway',
     privacyEvidenceId: 'p'.repeat(24),
-    outputTokens: 64,
-    acceptedAt: at,
   };
   it('admits only the explicit new closed mode and preserves historical admission', () => {
     const create = { mode, threadId: null, placeId: null, query: run.question, locale: 'en' };
@@ -347,5 +370,15 @@ describe('closed combined routing and explanation contracts', () => {
     ])
       expect(() => parseRoutedAskLiveRun({ ...completed, explanation: changed })).toThrow();
     expect(() => parseRoutedAskLiveRun({ ...run, basis: mode, explanation })).toThrow();
+    // A retained gateway artifact keeps rendering; a mixed shape is never valid.
+    expect(parseRoutedAskLiveRun({ ...completed, explanation: gatewayExplanation })).toMatchObject({
+      explanation: gatewayExplanation,
+    });
+    for (const changed of [
+      { ...gatewayExplanation, privacyEvidenceId: null },
+      { ...explanation, privacyEvidenceId: 'p'.repeat(24) },
+      { ...explanation, route: 'vercel-ai-gateway' },
+    ])
+      expect(() => parseRoutedAskLiveRun({ ...completed, explanation: changed })).toThrow();
   });
 });

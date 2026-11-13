@@ -153,8 +153,13 @@ export function AskRunRecord({
                   <dd>{explanation.toolReceiptId}</dd>
                   <dt>{t('explanationId')}</dt>
                   <dd>{explanation.explanationId}</dd>
-                  <dt>{t('privacyEvidence')}</dt>
-                  <dd>{explanation.privacyEvidenceId}</dd>
+                  {/* Only records written through the retired gateway carry this evidence. */}
+                  {explanation.privacyEvidenceId === null ? null : (
+                    <>
+                      <dt>{t('privacyEvidence')}</dt>
+                      <dd>{explanation.privacyEvidenceId}</dd>
+                    </>
+                  )}
                 </dl>
               ) : null}
             </div>

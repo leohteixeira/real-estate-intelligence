@@ -224,12 +224,30 @@ this record. Before any corresponding real operation, the owner must record the 
 identity and role, operation/data received, purpose, access, region/subprocessors, contract and
 deletion/backup commitments, and applicable transfer evidence. Unknown destinations remain gates.
 
-The planned separate AI service has no database, broker or object-storage credentials. Ingestion
-uses no model in the MVP. No collected personal content is authorized for a provider by this
-inventory. Future user-text/model processing needs a revised operation inventory and independent
-basis/recipient assessment. [ADR 0014](../../specs/adrs/0014-zero-data-retention-for-user-text-routes.md)
-requires verified Zero Data Retention before transmission on every user-text route, including
-fallbacks; that route guarantee is not the legal basis for collection or proof of supplier terms.
+The separate AI service has no database, broker or object-storage credentials. Ingestion uses no
+model. No collected personal content is authorized for a provider by this inventory.
+
+The public Ask feature does send visitor-supplied text to a model provider
+([ADR 0029](../../specs/adrs/0029-direct-anthropic-provider-for-ask.md), which supersedes
+[ADR 0014](../../specs/adrs/0014-zero-data-retention-for-user-text-routes.md)):
+
+- **Recipient:** Anthropic, through its Messages API, called directly by the AI service with the
+  owner's API key. No intermediary gateway and no second model provider is used.
+- **What is sent:** for intent classification, the text of the visitor's question and fixed
+  instructions; for the explanation, fixed instructions and the figures computed for that answer
+  (asking price, area and price per square metre), without the question. Thread history, run
+  identifiers, grants, cookies and visitor identity are not sent.
+- **Terms and retention:** requests are made under Anthropic's standard commercial API terms. The
+  product performs no zero-data-retention verification and makes no claim about the provider's
+  retention period. Earlier records that required verified Zero Data Retention before transmission
+  no longer describe this route.
+- **Safeguards:** the public notice states the transmission and asks visitors not to include
+  personal data; the question is free text, so personal data a visitor types anyway is transmitted
+  as written. Logs and traces exclude prompts, responses and credentials.
+- **Still unverified:** the provider's legal identity and role, processing region, subprocessors,
+  contract, deletion commitments and any international-transfer mechanism are not recorded here.
+  The owner must record them; this inventory does not establish a legal basis or the adequacy of
+  the recipient.
 
 ## Access, security and restoration obligations
 

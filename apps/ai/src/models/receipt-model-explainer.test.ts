@@ -4,9 +4,8 @@ import { explanationFacts } from '@rei/domain';
 import type { LanguageModelRequest } from './language-model.port';
 import { ModelExplanationFailure } from './language-model.port';
 import { ReceiptModelExplainer } from './receipt-model-explainer';
-import { acknowledged, modelReceipt as receipt, modelTransportFixture } from './model-test.fixture';
+import { generated, modelReceipt as receipt, modelTransportFixture } from './model-test.fixture';
 import { modelExplanationSettings as settings } from './model-explanation.settings';
-import { assertGatewayPrivacy, verifyGatewayAcknowledgement } from './gateway-privacy.verifier';
 import type { ModelExplanationTransport } from './model-explanation.port';
 const context = {
   version: 1 as const,
@@ -17,9 +16,10 @@ const context = {
   checkpointGrant: 's'.repeat(43),
   locale: 'en' as const,
 };
+const facts = explanationFacts(receipt, 'en').join(' ');
 describe('receipt-bound model orchestration', () => {
-  it('treats malformed receipt transport as definitive without spending or fallback', async () => {
-    const generate = vi.fn(async () => acknowledged(settings.primary));
+  it('treats malformed receipt transport as definitive without spending', async () => {
+    const generate = vi.fn(async () => generated(facts));
     await expect(
       new ReceiptModelExplainer(
         { generate },
@@ -33,13 +33,10 @@ describe('receipt-bound model orchestration', () => {
     async (locale) => {
       const transport = modelTransportFixture(),
         golden = [...explanationFacts(receipt, locale)].reverse().join(' ');
-      const generate = vi.fn(async (request: LanguageModelRequest) =>
-        acknowledged(
-          request.model,
-          request.prompt === settings.probeText ? 'ready' : golden,
-          request.prompt === settings.probeText ? 1 : 60,
-        ),
-      );
+      const generate = vi.fn(async (request: LanguageModelRequest) => {
+        void request;
+        return generated(golden, 60);
+      });
       const model = new ReceiptModelExplainer({ generate }, transport);
       const result = await model.explain(
         receipt,
@@ -48,11 +45,26 @@ describe('receipt-bound model orchestration', () => {
         Date.now() + 10000,
       );
       expect(result.text).toBe(golden);
-      expect(result.authorship).toBe('model-written');
-      expect(transport.operations).toEqual(['get', 'reserve', 'reserve', 'accept']);
-      expect(transport.reserved).toBe(240);
-      expect(generate).toHaveBeenCalledTimes(2);
-      const prompt = generate.mock.calls[1]![0].prompt;
+      expect(result).toMatchObject({
+        authorship: 'model-written',
+        model: 'claude-haiku-5-5',
+        route: 'anthropic-direct',
+        privacyEvidenceId: null,
+        outputTokens: 60,
+      });
+      // One reservation and one provider request: there is no probe and no second model.
+      expect(transport.operations).toEqual(['get', 'reserve', 'accept']);
+      expect(transport.reserved).toBe(224);
+      expect(generate).toHaveBeenCalledOnce();
+      const request = generate.mock.calls[0]![0];
+      expect(request).toEqual({
+        model: 'claude-haiku-5-5',
+        route: 'anthropic-direct',
+        prompt: request.prompt,
+        maxOutputTokens: 224,
+      });
+      // Only versioned instructions and computed receipt facts cross the provider boundary.
+      for (const fact of explanationFacts(receipt, locale)) expect(request.prompt).toContain(fact);
       for (const privateValue of [
         context.runId,
         context.eventId,
@@ -61,8 +73,7 @@ describe('receipt-bound model orchestration', () => {
         context.checkpointGrant,
         'private question',
       ])
-        expect(prompt).not.toContain(privateValue);
-      expect(generate.mock.calls.every(([request]) => request.zeroDataRetention)).toBe(true);
+        expect(request.prompt).not.toContain(privateValue);
       expect(
         await model.explain(
           { ...receipt, executionId: receipt.runId },
@@ -71,11 +82,11 @@ describe('receipt-bound model orchestration', () => {
           Date.now() + 10000,
         ),
       ).toEqual(result);
-      expect(generate).toHaveBeenCalledTimes(2);
+      expect(generate).toHaveBeenCalledOnce();
     },
   );
-  it.each(['policy', 'authentication', 'rejected', 'budget', 'cancelled'] as const)(
-    'does not fallback or retry %s',
+  it.each(['policy', 'authentication', 'rejected', 'budget', 'cancelled', 'exhausted'] as const)(
+    'does not retry or look for a retained explanation after %s',
     async (kind) => {
       const transport = modelTransportFixture(),
         generate = vi.fn(async () => {
@@ -90,153 +101,159 @@ describe('receipt-bound model orchestration', () => {
         ),
       ).rejects.toMatchObject({ kind });
       expect(generate).toHaveBeenCalledOnce();
+      expect(transport.operations).toEqual(['get', 'reserve']);
       expect(transport.accepted).toBeNull();
     },
   );
-  it('allows only transient secondary fallback under the same reservations and privacy gate', async () => {
+  it('retries a transient failure once on the same model under a fresh reservation and never names another model', async () => {
     const transport = modelTransportFixture();
+    let attempts = 0;
     const generate = vi.fn(async (request: LanguageModelRequest) => {
-      if (request.model === settings.primary) throw new ModelExplanationFailure('transient');
-      return acknowledged(
-        request.model,
-        request.prompt === settings.probeText ? 'ready' : explanationFacts(receipt, 'en').join(' '),
-      );
+      void request;
+      if (++attempts === 1) throw new ModelExplanationFailure('transient');
+      return generated(facts);
     });
+    const fallback = channel('nestjs:resilience:fallback');
+    const receive = vi.fn<(message: unknown) => void>();
+    fallback.subscribe(receive);
+    try {
+      const result = await new ReceiptModelExplainer({ generate }, transport).explain(
+        receipt,
+        context,
+        new AbortController().signal,
+        Date.now() + 10000,
+      );
+      expect(result.model).toBe(settings.model);
+      expect(generate.mock.calls.map(([request]) => request.model)).toEqual([
+        settings.model,
+        settings.model,
+      ]);
+      expect(transport.operations).toEqual(['get', 'reserve', 'reserve', 'accept']);
+      expect(transport.reserved).toBe(448);
+      expect(receive).not.toHaveBeenCalled();
+    } finally {
+      fallback.unsubscribe(receive);
+    }
+  });
+  it('fails with the transient outcome after the bounded attempts when nothing was retained', async () => {
+    const transport = modelTransportFixture(),
+      generate = vi.fn(async () => {
+        throw new ModelExplanationFailure('transient');
+      });
+    await expect(
+      new ReceiptModelExplainer({ generate }, transport).explain(
+        receipt,
+        context,
+        new AbortController().signal,
+        Date.now() + 10000,
+      ),
+    ).rejects.toMatchObject({ kind: 'transient' });
+    expect(generate).toHaveBeenCalledTimes(settings.retry.attempts);
+    // The closing read is the lost-acceptance check; it finds nothing and spends nothing.
+    expect(transport.operations).toEqual(['get', 'reserve', 'reserve', 'get']);
+    expect(transport.accepted).toBeNull();
+  });
+  it('recovers the retained explanation when the acceptance response is lost, without another request', async () => {
+    const stored = modelTransportFixture();
+    let lost = false;
+    const transport: ModelExplanationTransport = {
+      async execute(request, grant, signal, deadline) {
+        const response = await stored.execute(request, grant, signal, deadline);
+        if (request.operation === 'accept' && !lost) {
+          lost = true;
+          throw new ModelExplanationFailure('transient');
+        }
+        return response;
+      },
+    };
+    const generate = vi.fn(async () => generated(facts, 60));
     const result = await new ReceiptModelExplainer({ generate }, transport).explain(
       receipt,
       context,
       new AbortController().signal,
       Date.now() + 10000,
     );
-    expect(result.model).toBe(settings.secondary);
-    expect(generate.mock.calls.map(([request]) => request.model)).toEqual([
-      settings.primary,
-      settings.primary,
-      settings.secondary,
-      settings.secondary,
-    ]);
-    expect(transport.reserved).toBe(272);
+    expect(result).toEqual(stored.accepted);
+    expect(generate).toHaveBeenCalledOnce();
+    expect(stored.operations).toEqual(['get', 'reserve', 'accept', 'get']);
+    expect(stored.reserved).toBe(224);
   });
-  it.each([
-    undefined,
-    {},
-    {
-      gateway: {
-        routing: {
-          planningReasoning:
-            'ZDR requested: 1 attempts → 0 ZDR attempts. ZDR execution order: anthropic(system)',
-        },
+  it('refuses a retained explanation that does not match the receipt during recovery', async () => {
+    const stored = modelTransportFixture();
+    const transport: ModelExplanationTransport = {
+      async execute(request, grant, signal, deadline) {
+        const response = await stored.execute(request, grant, signal, deadline);
+        if (request.operation !== 'accept') return response;
+        stored.accepted = { ...stored.accepted!, text: 'The price will rise.' };
+        throw new ModelExplanationFailure('transient');
       },
-    },
-    { gateway: { routing: { planningReasoning: 'ready' } } },
-  ])('rejects unknown probe metadata before any facts (%j)', async (metadata) => {
-    const generate = vi.fn(async () => ({ ...acknowledged(settings.primary), metadata }));
+    };
     await expect(
-      new ReceiptModelExplainer({ generate }, modelTransportFixture()).explain(
+      new ReceiptModelExplainer({ generate: async () => generated(facts, 60) }, transport).explain(
         receipt,
         context,
         new AbortController().signal,
         Date.now() + 10000,
       ),
-    ).rejects.toMatchObject({ kind: 'policy' });
-    expect(generate).toHaveBeenCalledOnce();
-    expect(generate.mock.calls[0]).toBeDefined();
+    ).rejects.toMatchObject({ kind: 'rejected' });
   });
   it.each([
-    { fault: 'wrong provider route', field: 'route', value: 'direct-provider' },
-    { fault: 'wrong provider model', field: 'model', value: settings.secondary },
-    {
-      fault: 'control warnings',
-      field: 'warnings',
-      value: [{ type: 'unsupported-setting', setting: 'zeroDataRetention' }],
-    },
-    { fault: 'malformed provider route', field: 'route', value: null },
-    { fault: 'malformed provider model', field: 'model', value: 42 },
-  ])(
-    'refuses $fault during the public probe without facts, fallback or acceptance',
-    async ({ field, value }) => {
-      const transport = modelTransportFixture();
-      const generate = vi.fn(async (request: LanguageModelRequest) => {
-        const result = acknowledged(request.model);
-        // Deliberate runtime corruption tests the boundary without fabricating a typed client.
-        expect(Reflect.set(result, field, value)).toBe(true);
-        expect(result).toHaveProperty(field, value);
-        return result;
-      });
-      const fallback = channel('nestjs:resilience:fallback');
-      const receive = vi.fn<(message: unknown) => void>();
-      fallback.subscribe(receive);
-      try {
-        await expect(
-          new ReceiptModelExplainer({ generate }, transport).explain(
-            receipt,
-            context,
-            new AbortController().signal,
-            Date.now() + 10000,
-          ),
-        ).rejects.toMatchObject({ kind: 'policy' });
-        expect(generate).toHaveBeenCalledOnce();
-        expect(generate.mock.calls[0]?.[0]).toEqual({
-          model: settings.primary,
-          route: settings.route,
-          prompt: settings.probeText,
-          maxOutputTokens: settings.probeTokens,
-          zeroDataRetention: true,
-        });
-        expect(receive).not.toHaveBeenCalled();
-        expect(transport.operations).toEqual(['get', 'reserve']);
-        expect(transport.reserved).toBe(settings.probeTokens);
-        expect(transport.accepted).toBeNull();
-      } finally {
-        fallback.unsubscribe(receive);
-      }
-    },
-  );
-  it('refuses evidence expiring during the second reservation before facts generation or fallback', async () => {
-    let now = 100;
-    const deadlineAt = now + settings.evidenceTtlMs + 10000;
+    { fault: 'another route', field: 'route', value: 'vercel-ai-gateway' },
+    { fault: 'another model', field: 'model', value: 'claude-opus-5-5' },
+    { fault: 'malformed route', field: 'route', value: null },
+    { fault: 'malformed model', field: 'model', value: 42 },
+  ])('refuses a result reporting $fault without retry or acceptance', async ({ field, value }) => {
+    const transport = modelTransportFixture();
+    const generate = vi.fn(async () => {
+      const result = generated(facts);
+      // Deliberate runtime corruption tests the boundary without fabricating a typed client.
+      expect(Reflect.set(result, field, value)).toBe(true);
+      return result;
+    });
+    await expect(
+      new ReceiptModelExplainer({ generate }, transport).explain(
+        receipt,
+        context,
+        new AbortController().signal,
+        Date.now() + 10000,
+      ),
+    ).rejects.toMatchObject({ kind: 'rejected' });
+    expect(generate).toHaveBeenCalledOnce();
+    expect(transport.operations).toEqual(['get', 'reserve']);
+    expect(transport.reserved).toBe(settings.explanationTokens);
+    expect(transport.accepted).toBeNull();
+  });
+  it.each([
+    { fault: 'another model', field: 'model', value: 'claude-opus-5-5' },
+    { fault: 'another purpose', field: 'purpose', value: 'privacy-probe' },
+    { fault: 'another bound', field: 'maxOutputTokens', value: 16 },
+    { fault: 'another attempt key', field: 'attemptKey', value: 'k'.repeat(32) },
+  ])('refuses a reservation answering with $fault before any request', async ({ field, value }) => {
     const stored = modelTransportFixture();
     const transport: ModelExplanationTransport = {
       async execute(request, grant, signal, deadline) {
         const response = await stored.execute(request, grant, signal, deadline);
-        if (request.operation === 'reserve' && request.purpose === 'explanation')
-          now += settings.evidenceTtlMs;
-        return response;
+        return response.operation === 'reserve'
+          ? { ...response, reservation: { ...response.reservation, [field]: value } }
+          : response;
       },
     };
-    const generate = vi.fn(async (request: LanguageModelRequest) => acknowledged(request.model));
-    const fallback = channel('nestjs:resilience:fallback');
-    const receive = vi.fn<(message: unknown) => void>();
-    fallback.subscribe(receive);
-    try {
-      await expect(
-        new ReceiptModelExplainer({ generate }, transport, () => now).explain(
-          receipt,
-          context,
-          new AbortController().signal,
-          deadlineAt,
-        ),
-      ).rejects.toMatchObject({ kind: 'policy' });
-      expect(now).toBe(100 + settings.evidenceTtlMs);
-      expect(now).toBeLessThan(deadlineAt);
-      expect(generate).toHaveBeenCalledOnce();
-      expect(generate.mock.calls[0]?.[0].prompt).toBe(settings.probeText);
-      expect(generate.mock.calls[0]?.[0].model).toBe(settings.primary);
-      expect(receive).not.toHaveBeenCalled();
-      expect(stored.operations).toEqual(['get', 'reserve', 'reserve']);
-      expect(stored.reserved).toBe(settings.probeTokens + settings.explanationTokens);
-      expect(stored.accepted).toBeNull();
-    } finally {
-      fallback.unsubscribe(receive);
-    }
+    const generate = vi.fn(async () => generated(facts));
+    await expect(
+      new ReceiptModelExplainer({ generate }, transport).explain(
+        receipt,
+        context,
+        new AbortController().signal,
+        Date.now() + 10000,
+      ),
+    ).rejects.toMatchObject({ kind: 'rejected' });
+    expect(generate).not.toHaveBeenCalled();
   });
   it.each(['wrong figure', 'The price will rise.', 'Cheap.', 'x'.repeat(2049)])(
     'refuses invented or oversized complete output without repair (%s)',
     async (text) => {
       const transport = modelTransportFixture(),
-        generate = vi.fn(async (request: LanguageModelRequest) =>
-          acknowledged(request.model, request.prompt === settings.probeText ? 'ready' : text),
-        );
+        generate = vi.fn(async () => generated(text));
       await expect(
         new ReceiptModelExplainer({ generate }, transport).explain(
           receipt,
@@ -246,21 +263,13 @@ describe('receipt-bound model orchestration', () => {
         ),
       ).rejects.toMatchObject({ kind: 'rejected' });
       expect(transport.accepted).toBeNull();
-      expect(generate).toHaveBeenCalledTimes(2);
+      expect(generate).toHaveBeenCalledOnce();
     },
   );
   it.each([0, -1, 225, Number.NaN, undefined])(
     'rejects malformed or unbounded usage %s',
     async (outputTokens) => {
-      const generate = vi.fn(async (request: LanguageModelRequest) => ({
-        ...acknowledged(
-          request.model,
-          request.prompt === settings.probeText
-            ? 'ready'
-            : explanationFacts(receipt, 'en').join(' '),
-        ),
-        outputTokens,
-      }));
+      const generate = vi.fn(async () => ({ ...generated(facts), outputTokens }));
       await expect(
         new ReceiptModelExplainer({ generate }, modelTransportFixture()).explain(
           receipt,
@@ -271,7 +280,7 @@ describe('receipt-bound model orchestration', () => {
       ).rejects.toMatchObject({ kind: 'rejected' });
     },
   );
-  it('cancellation before/during probe never falls back or sends facts', async () => {
+  it('cancellation before or during the request never retries or sends facts again', async () => {
     const controller = new AbortController(),
       generate = vi.fn(async () => {
         controller.abort();
@@ -300,53 +309,21 @@ describe('receipt-bound model orchestration', () => {
   });
   it('never replenishes uncertain reservations across repeated execution', async () => {
     const transport = modelTransportFixture(),
-      generate = vi.fn(async (request: LanguageModelRequest) => {
-        if (request.prompt !== settings.probeText) throw new ModelExplanationFailure('transient');
-        return acknowledged(request.model);
+      generate = vi.fn(async () => {
+        throw new ModelExplanationFailure('transient');
       }),
       model = new ReceiptModelExplainer({ generate }, transport);
-    await expect(
-      model.explain(receipt, context, new AbortController().signal, Date.now() + 10000),
-    ).rejects.toMatchObject({ kind: 'transient' });
+    // Two executions spend four 224-token reservations; the fifth would exceed the 1000 budget.
+    for (let i = 0; i < 2; i++)
+      await expect(
+        model.explain(receipt, context, new AbortController().signal, Date.now() + 10000),
+      ).rejects.toMatchObject({ kind: 'transient' });
     for (let i = 0; i < 2; i++)
       await expect(
         model.explain(receipt, context, new AbortController().signal, Date.now() + 10000),
       ).rejects.toMatchObject({ kind: 'budget' });
-    expect(transport.reserved).toBeLessThanOrEqual(1000);
+    expect(transport.reserved).toBe(896);
     expect(transport.accepted).toBeNull();
-    expect(generate).toHaveBeenCalledTimes(8);
-  });
-  it('refuses stale, future, wrong model/route/privacy evidence and warnings', () => {
-    const proof = {
-      id: 'p'.repeat(32),
-      model: settings.primary,
-      route: settings.route,
-      policy: 'gateway-zdr-routing-v1' as const,
-      verifiedAt: 100,
-      expiresAt: 30100,
-    };
-    expect(() => assertGatewayPrivacy(proof, settings.primary, 101)).not.toThrow();
-    const wrongRoute = { ...proof };
-    expect(Reflect.set(wrongRoute, 'route', 'direct-provider')).toBe(true);
-    expect(() => assertGatewayPrivacy(wrongRoute, settings.primary, 101)).toThrow(
-      ModelExplanationFailure,
-    );
-    for (const [value, model, now] of [
-      [proof, settings.primary, 30100],
-      [proof, settings.primary, 99],
-      [proof, settings.secondary, 101],
-      [{ ...proof, expiresAt: 30101 }, settings.primary, 101],
-      [{ ...proof, id: 'bad' }, settings.primary, 101],
-    ] as const)
-      expect(() => assertGatewayPrivacy(value, model, now)).toThrow(ModelExplanationFailure);
-    expect(() =>
-      verifyGatewayAcknowledgement(
-        { ...acknowledged(settings.primary), warnings: ['unknown control'] },
-        settings.primary,
-      ),
-    ).toThrow(ModelExplanationFailure);
-    expect(() =>
-      verifyGatewayAcknowledgement(acknowledged(settings.secondary), settings.primary),
-    ).toThrow(ModelExplanationFailure);
+    expect(generate).toHaveBeenCalledTimes(4);
   });
 });

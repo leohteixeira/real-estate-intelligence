@@ -14,8 +14,15 @@ The separate `price-explanation-v1` graph visits `validatedInputs`, `priceTool`,
 durable SSE expose `explanation: null` before successful completion and on failed/expired runs.
 A completed run carries the immutable model-written artifact: full text, same-run Market receipt
 ID, explanation/reservation IDs, actual model and route, locale, prompt/grammar versions,
-privacy-evidence ID, measured output tokens and acceptance time. Historical modes have no
+`privacyEvidenceId`, measured output tokens and acceptance time. Historical modes have no
 explanation field and retain their exact two-node `price-v1` evidence.
+
+`route` is a closed discriminator. New artifacts carry `route: 'anthropic-direct'`,
+`model: 'claude-haiku-5-5'` and `privacyEvidenceId: null`. Artifacts written before
+[ADR 0029](../../specs/adrs/0029-direct-anthropic-provider-for-ask.md) keep
+`route: 'vercel-ai-gateway'`, their original model name and their non-null evidence ID, and stay
+readable through inspect, thread and SSE without rewriting. The Ask screen shows a privacy-evidence
+row only for those retained records.
 
 `price-explanation-facts-v1` accepts exactly the asking-price, area and price-per-square-meter
 sentences, each once, in any order, separated by one space. For BRL 785,000.00 and 68 m², English
@@ -26,41 +33,50 @@ The returned model text is never repaired or replaced with a synthesized answer.
 
 ## Provider, privacy and limits
 
-Only AI receives `AI_GATEWAY_API_KEY`. Its vendor-free `LanguageModel` adapter uses pinned
-`ai`/`@ai-sdk/gateway`, primary `anthropic/claude-haiku-5.5` and transient-only secondary
-`deepseek/deepseek-v4-flash-0731`, exclusively through Vercel AI Gateway. Every request sets
-`zeroDataRetention: true`, `maxRetries: 0`, bounded output and cancellation; payload telemetry is
-disabled. The model prompt contains versioned instructions and this receipt's facts, never the
-original question, thread history, run identity or grants.
+Only AI receives `ANTHROPIC_API_KEY`. Its vendor-free `LanguageModel` adapter calls the Anthropic
+Messages API directly through the pinned official `@anthropic-ai/sdk`, with the single model
+`claude-haiku-5-5`. There is no secondary model and no intermediary gateway. One client factory
+pins the API origin and the key, so ambient `ANTHROPIC_BASE_URL` or `ANTHROPIC_AUTH_TOKEN` cannot
+reroute a request. Every request sets `maxRetries: 0`, disabled thinking, bounded output and
+cancellation; SDK logging is off. The model prompt contains versioned instructions and this
+receipt's facts, never the original question, thread history, run identity or grants.
 
-A fixed public-text probe must obtain authenticated gateway routing acknowledgement before facts
-are transmitted. Evidence is bound to the actual model/route and expires after 30 seconds. Unknown,
-missing, stale, contradictory acknowledgement or warnings fail closed without secondary fallback.
-This checks the [documented ZDR routing acknowledgement](https://vercel.com/docs/ai-gateway/security-and-compliance/zdr),
-not an independent retention attestation. Offline tests make no real provider calls.
+Requests are processed under Anthropic's standard commercial API terms. The product performs no
+zero-data-retention verification and retains no privacy evidence for new artifacts: no retention
+period or contractual claim is asserted by this contract. Without a key the adapter fails closed
+with a typed `policy` refusal and the run finishes without an explanation. A provider safety
+refusal is `policy`; truncated, empty or otherwise incomplete output is `rejected`. Offline tests
+make no real provider calls: they inject a `fetch` implementation into the SDK client.
+
+Provider failures map to the closed vocabulary before leaving the adapter: 401/403 are
+`authentication`; 400/404/422 and other definitive client errors are `rejected`; 408, 429, 5xx,
+529, connection failures and attempt timeouts are `transient`; HTTP 402 or an Anthropic
+`billing_error` is `exhausted`. `Retry-After` (seconds or HTTP date) is preserved as bounded
+advice. Provider messages, bodies and headers never cross the port.
 
 The scoped `POST /api/v1/internal/ask/runs/:id/model-explanation` supports strict `get`, `reserve`
 and `accept` envelopes under the fresh checkpoint grant. API/SQL fence run, execution, lease,
-thread and receipt identity. Each outbound probe reserves 16 output tokens; generation reserves 224.
+thread and receipt identity. A reservation names `purpose: 'explanation'`, the direct model and
+route and 224 output tokens; the retired gateway literals are rejected for new reservations.
 Aggregate reservations cannot exceed 1,000 per run and are never refunded after uncertainty.
-Named resilience policies apply fallback, bulkhead, route-specific breaker, transient retry,
-per-physical-request limiter and a 3.5-second attempt timeout, in that order. Each failed public
-probe or facts phase gets at most two physical requests, with a fresh persisted reservation before
-each one; successful phases and acceptance are never repeated by this policy. Retry uses full
-jitter from a 100 ms exponential base capped at one second. Valid `Retry-After` is honored only
-when both it and a complete attempt fit the original deadline; advice over 30 seconds suppresses
-retry. A rolling ten-second allowance admits about 10% retries with two low-traffic retry slots
-per model. Attempts and fallback still share the 1,000-token persisted run limit.
+Named resilience policies apply bulkhead, circuit breaker, transient retry, per-physical-request
+limiter and a 3.5-second attempt timeout, in that order. A generation gets at most two physical
+requests, with a fresh persisted reservation before each one; acceptance is never repeated by
+this policy. Retry uses full jitter from a 100 ms exponential base capped at one second. Valid
+`Retry-After` is honored only when both it and a complete attempt fit the original deadline;
+advice over 30 seconds suppresses retry. A rolling ten-second allowance admits about 10% retries
+with two low-traffic retry slots. Every attempt shares the 1,000-token persisted run limit.
 
 The original deadline and caller cancellation cover receipt recovery, queue admission, backoff,
 reservation and HTTP, including clients that ignore cancellation. Expiration never yields a model
-answer or fallback. Attempt timeout remains transient while the original deadline allows work.
-Cancellation/policy/authentication/fidelity/budget refusals do not retry or fallback. Structured
-exhausted quota immediately opens only its model/route circuit and prevents current-call secondary
-spend. Local rate admission and definitive refusals do not record transient breaker outcomes.
-Successful outbound phases taking at least 2.5 seconds contribute one slow breaker outcome while
-returning their actual output. Accepted evidence persists before saver ACK; reclaim reuses it with
-a rebound Market receipt and unchanged reservations. Exactly-once provider network delivery is not promised.
+answer. Attempt timeout remains transient while the original deadline allows work.
+Cancellation/policy/authentication/fidelity/budget refusals do not retry. Exhausted billing
+immediately opens the circuit. Local rate admission and definitive refusals do not record
+transient breaker outcomes. Successful generations taking at least 2.5 seconds contribute one slow
+breaker outcome while returning their actual output. Accepted evidence persists before saver ACK;
+after a transient failure the explainer reads the retained artifact once, so a lost acceptance
+response returns the stored explanation instead of failing. Reclaim reuses it with a rebound
+Market receipt and unchanged reservations. Exactly-once provider network delivery is not promised.
 
 ## Combined routed explanation (D-102)
 
@@ -74,7 +90,7 @@ confirmation can edit validated operands and resumes the retained decision acros
 
 Combined snapshots and SSE always include `explanation`; it is null until a completed price.
 Recognized unavailable intents return their typed unavailable result with null explanation and
-make no generation attempt. Model acceptance, original deadlines, privacy evidence, grammar,
+make no generation attempt. Model acceptance, original deadlines, grammar,
 immutable receipt binding and the conservative 1,000-token reservation limit are shared with the
 existing explained mode. Reclaim rebinds execution authority and reuses accepted artifacts.
 Historical mode documents, evidence and graph partitions keep their original meaning.
@@ -90,3 +106,12 @@ The 2026-10-26 native run passed the full campaign, including actual exported an
 the complete export scan after a real SQL error. The mounted fixture resolves its preload and
 AppModule from the same `dist`, so the normal Nest lifecycle flushes the single SDK on restart.
 This evidence covers synthetic provider behavior; live model quality and billing remain untested.
+
+On 2026-11-13 the campaign passed again on the direct Anthropic implementation (ADR 0029). The
+fixture gives the real SDK client an in-process `fetch`, so `AnthropicIntentDecider` runs
+unchanged. Exported attempts name `claude-haiku-5-5`, `anthropic` and `anthropic-direct` with
+token usage and no cost or privacy-evidence attribute. Its populated pre-6008 phase applies the
+additive admission migration 6009 first, as the routed campaign does, and pauses a run on a
+`gateway-jev-v1` decision; after migrations 6008 and 6010 that run resumes with the retained
+decision unchanged, and a new explained run completes on the direct route. Gateway-era explanation
+rows are upgraded in the model-explanation campaign instead. No live provider was contacted.

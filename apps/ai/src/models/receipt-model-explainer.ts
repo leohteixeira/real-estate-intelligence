@@ -3,7 +3,6 @@ import { randomBytes } from 'node:crypto';
 import {
   BulkheadPolicy,
   CircuitBreakerPolicy,
-  FallbackPolicy,
   OutboundRateLimitPolicy,
   ResiliencePolicy,
   TimeoutPolicy,
@@ -29,27 +28,22 @@ import {
   type LanguageModel,
   type LanguageModelResult,
 } from './language-model.port';
-import {
-  assertGatewayPrivacy,
-  verifyGatewayAcknowledgement,
-  type GatewayPrivacyEvidence,
-} from './gateway-privacy.verifier';
 import type {
   ModelExplainer,
   ModelExplanationContext,
   ModelExplanationTransport,
 } from './model-explanation.port';
 import { modelExplanationSettings as settings } from './model-explanation.settings';
-import { eligibleModelFallback, modelFailure, recordModelFailure } from './model-failure';
+import { modelFailure, recordModelFailure } from './model-failure';
 import { modelAttemptSpan } from './model-telemetry';
 
-/** Persistent reservations precede every outbound attempt, including public privacy probes. */
+/** A persistent token reservation precedes every outbound attempt to the provider. */
 export class ReceiptModelExplainer implements ModelExplainer {
   readonly #bulkhead: BulkheadPolicy;
-  readonly #breakers: ReadonlyMap<string, CircuitBreakerPolicy>;
+  readonly #breaker: CircuitBreakerPolicy;
   readonly #limiter: OutboundRateLimitPolicy;
   readonly #timeout: TimeoutPolicy;
-  readonly #retry: ReadonlyMap<string, AiRetryAllowance>;
+  readonly #retry: AiRetryAllowance;
   readonly #physicalFailures = new WeakSet<object>();
   public constructor(
     private readonly model: LanguageModel,
@@ -58,26 +52,16 @@ export class ReceiptModelExplainer implements ModelExplainer {
     random: () => number = Math.random,
   ) {
     this.#bulkhead = new BulkheadPolicy({ name: settings.policies.bulkhead, ...settings.bulkhead });
-    this.#breakers = new Map(
-      [settings.primary, settings.secondary].map((model) => [
-        `${settings.route}:${model}`,
-        new CircuitBreakerPolicy({
-          name: `${settings.policies.circuitBreaker}.${settings.route}.${model}`,
-          ...settings.breaker,
-          recordIf: (error) =>
-            error instanceof SlowModelAttempt ||
-            (error instanceof ModelExplanationFailure &&
-              recordModelFailure(error) &&
-              this.#physicalFailures.has(error)),
-        }),
-      ]),
-    );
-    this.#retry = new Map(
-      [settings.primary, settings.secondary].map((model) => [
-        model,
-        new AiRetryAllowance(settings.retry, now, random),
-      ]),
-    );
+    this.#breaker = new CircuitBreakerPolicy({
+      name: settings.policies.circuitBreaker,
+      ...settings.breaker,
+      recordIf: (error) =>
+        error instanceof SlowModelAttempt ||
+        (error instanceof ModelExplanationFailure &&
+          recordModelFailure(error) &&
+          this.#physicalFailures.has(error)),
+    });
+    this.#retry = new AiRetryAllowance(settings.retry, now, random);
     this.#limiter = new OutboundRateLimitPolicy({
       name: settings.policies.rateLimit,
       ...settings.rateLimit,
@@ -120,42 +104,28 @@ export class ReceiptModelExplainer implements ModelExplainer {
         throw new ModelExplanationFailure('rejected');
       return existing.explanation;
     }
-    const fallback = new FallbackPolicy<ModelExplanation>(
-      async (_error, { signal: admitted }) => {
-        this.live(admitted, deadlineAt);
-        // A lost acceptance response is ambiguous: recover before any fallback spend.
-        const recovered = await this.execute(
-          { ...this.identity(context), operation: 'get' },
-          context,
-          admitted,
-          deadlineAt,
-        );
-        if (recovered.operation !== 'get') throw new ModelExplanationFailure('rejected');
-        if (recovered.explanation) {
-          if (!validModelExplanation(recovered.explanation, receipt, context.locale))
-            throw new ModelExplanationFailure('rejected');
-          return recovered.explanation;
-        }
-        return this.#bulkhead.execute(
-          ({ signal: secondary }) =>
-            this.generate(settings.secondary, receipt, context, secondary, deadlineAt),
-          { signal: admitted, source: 'ReceiptModelExplainer' },
-        );
-      },
-      { name: settings.policies.fallback, handleIf: eligibleModelFallback },
-    );
     try {
-      return await fallback.execute(
-        ({ signal: admitted }) =>
-          this.#bulkhead.execute(
-            ({ signal: primary }) =>
-              this.generate(settings.primary, receipt, context, primary, deadlineAt),
-            { signal: admitted, source: 'ReceiptModelExplainer' },
-          ),
+      return await this.#bulkhead.execute(
+        ({ signal: admitted }) => this.generate(receipt, context, admitted, deadlineAt),
         { signal, source: 'ReceiptModelExplainer' },
       );
     } catch (error) {
-      throw modelFailure(error, signal);
+      const failure = modelFailure(error, signal);
+      if (failure.kind !== 'transient') throw failure;
+      // A lost acceptance response is ambiguous: the explanation may already be retained.
+      const recovered = await this.execute(
+        { ...this.identity(context), operation: 'get' },
+        context,
+        signal,
+        deadlineAt,
+      ).catch((recovery: unknown) => {
+        throw modelFailure(recovery, signal);
+      });
+      if (recovered.operation !== 'get') throw new ModelExplanationFailure('rejected');
+      if (!recovered.explanation) throw failure;
+      if (!validModelExplanation(recovered.explanation, receipt, context.locale))
+        throw new ModelExplanationFailure('rejected');
+      return recovered.explanation;
     }
   }
   private identity(context: ModelExplanationContext) {
@@ -192,9 +162,6 @@ export class ReceiptModelExplainer implements ModelExplainer {
     }
   }
   private async reserve(
-    model: string,
-    purpose: 'privacy-probe' | 'explanation',
-    maxOutputTokens: number,
     context: ModelExplanationContext,
     signal: AbortSignal,
     deadlineAt: number,
@@ -205,10 +172,10 @@ export class ReceiptModelExplainer implements ModelExplainer {
         ...this.identity(context),
         operation: 'reserve',
         attemptKey,
-        purpose,
-        model,
+        purpose: 'explanation',
+        model: settings.model,
         route: settings.route,
-        maxOutputTokens,
+        maxOutputTokens: settings.explanationTokens,
       },
       context,
       signal,
@@ -217,29 +184,22 @@ export class ReceiptModelExplainer implements ModelExplainer {
     if (
       response.operation !== 'reserve' ||
       response.reservation.attemptKey !== attemptKey ||
-      response.reservation.model !== model ||
-      response.reservation.purpose !== purpose ||
+      response.reservation.model !== settings.model ||
+      response.reservation.purpose !== 'explanation' ||
       response.reservation.route !== settings.route ||
-      response.reservation.maxOutputTokens !== maxOutputTokens
+      response.reservation.maxOutputTokens !== settings.explanationTokens
     )
       throw new ModelExplanationFailure('rejected');
     return response.reservation;
   }
   private async outbound(
-    model: string,
     prompt: string,
-    maxOutputTokens: number,
     context: ModelExplanationContext,
     signal: AbortSignal,
     deadlineAt: number,
-    purpose: 'privacy-probe' | 'explanation',
-    privacy?: GatewayPrivacyEvidence,
   ): Promise<{ result: LanguageModelResult; reservation: ModelAttemptReservation }> {
-    const breaker = this.#breakers.get(`${settings.route}:${model}`);
-    const allowance = this.#retry.get(model);
-    if (!breaker || !allowance) throw new ModelExplanationFailure('policy');
-    allowance.recordCall();
-    const retry = allowance.policy(
+    this.#retry.recordCall();
+    const retry = this.#retry.policy(
       settings.policies.retry,
       signal,
       deadlineAt,
@@ -251,63 +211,49 @@ export class ReceiptModelExplainer implements ModelExplainer {
       (error) => (error instanceof ModelExplanationFailure ? error.retryAfterMs : undefined),
     );
     try {
-      return await breaker.execute(
+      return await this.#breaker.execute(
         async ({ signal: logical }) => {
           const started = this.now();
           const outcome = await ResiliencePolicy.wrap(retry, this.#limiter).execute(
             async ({ signal: admitted }) => {
               this.live(admitted, deadlineAt);
-              if (privacy) assertGatewayPrivacy(privacy, model, this.now());
-              const reservation = await this.reserve(
-                model,
-                purpose,
-                maxOutputTokens,
-                context,
-                admitted,
-                deadlineAt,
-              );
+              const reservation = await this.reserve(context, admitted, deadlineAt);
               this.live(admitted, deadlineAt);
-              if (privacy) assertGatewayPrivacy(privacy, model, this.now());
-              const result = await modelAttemptSpan(
-                model,
-                purpose,
-                privacy ? this.now() - privacy.verifiedAt : 0,
-                async () => {
-                  try {
-                    return await this.#timeout.execute(
-                      ({ signal: timed }) =>
-                        this.model.generate(
-                          {
-                            model,
-                            route: settings.route,
-                            prompt,
-                            maxOutputTokens,
-                            zeroDataRetention: true,
-                          },
-                          timed,
-                        ),
-                      { signal: admitted, source: 'LanguageModel' },
-                    );
-                  } catch (error) {
-                    this.live(admitted, deadlineAt);
-                    const failure = modelFailure(error, admitted);
-                    this.#physicalFailures.add(failure);
-                    if (failure.kind === 'exhausted') breaker.trip();
-                    throw failure;
-                  }
-                },
-              );
+              const result = await modelAttemptSpan(settings.model, async () => {
+                try {
+                  return await this.#timeout.execute(
+                    ({ signal: timed }) =>
+                      this.model.generate(
+                        {
+                          model: settings.model,
+                          route: settings.route,
+                          prompt,
+                          maxOutputTokens: settings.explanationTokens,
+                        },
+                        timed,
+                      ),
+                    { signal: admitted, source: 'LanguageModel' },
+                  );
+                } catch (error) {
+                  this.live(admitted, deadlineAt);
+                  const failure = modelFailure(error, admitted);
+                  this.#physicalFailures.add(failure);
+                  if (failure.kind === 'exhausted') this.#breaker.trip();
+                  throw failure;
+                }
+              });
               this.live(admitted, deadlineAt);
               if (
                 !Number.isSafeInteger(result.outputTokens) ||
                 result.outputTokens === undefined ||
                 result.outputTokens <= 0 ||
-                result.outputTokens > maxOutputTokens ||
+                result.outputTokens > settings.explanationTokens ||
                 typeof result.text !== 'string' ||
-                result.text.length > 2048
+                result.text.length > 2048 ||
+                result.model !== settings.model ||
+                result.route !== settings.route
               )
                 throw new ModelExplanationFailure('rejected');
-              verifyGatewayAcknowledgement(result, model);
               return { result, reservation };
             },
             { signal: logical, source: 'LanguageModel' },
@@ -326,43 +272,15 @@ export class ReceiptModelExplainer implements ModelExplainer {
     }
   }
   private async generate(
-    model: string,
     receipt: PriceToolReceipt,
     context: ModelExplanationContext,
     signal: AbortSignal,
     deadlineAt: number,
   ): Promise<ModelExplanation> {
-    await this.outbound(
-      model,
-      settings.probeText,
-      settings.probeTokens,
-      context,
-      signal,
-      deadlineAt,
-      'privacy-probe',
-    );
-    const verifiedAt = this.now();
-    const privacy: GatewayPrivacyEvidence = {
-      id: randomBytes(24).toString('base64url'),
-      model,
-      route: settings.route,
-      policy: 'gateway-zdr-routing-v1',
-      verifiedAt,
-      expiresAt: verifiedAt + settings.evidenceTtlMs,
-    };
-    assertGatewayPrivacy(privacy, model, this.now());
-    // Only versioned instructions and facts from this receipt cross the provider boundary.
+    // Only versioned instructions and facts from this receipt cross the provider boundary; the
+    // visitor's question is never part of this request.
     const prompt = `${MODEL_EXPLANATION_PROMPT}\n${MODEL_EXPLANATION_GRAMMAR}\nReturn exactly the three following factual sentences, each once, in any order, separated by one space. Return no other text.\n${explanationFacts(receipt, context.locale).join('\n')}`;
-    const { result, reservation } = await this.outbound(
-      model,
-      prompt,
-      settings.explanationTokens,
-      context,
-      signal,
-      deadlineAt,
-      'explanation',
-      privacy,
-    );
+    const { result, reservation } = await this.outbound(prompt, context, signal, deadlineAt);
     if (!validExplanationText(result.text, receipt, context.locale))
       throw new ModelExplanationFailure('rejected');
     const explanation = parseModelExplanation({
@@ -378,9 +296,9 @@ export class ReceiptModelExplainer implements ModelExplainer {
       grammarVersion: MODEL_EXPLANATION_GRAMMAR,
       locale: context.locale,
       text: result.text,
-      model,
+      model: settings.model,
       route: settings.route,
-      privacyEvidenceId: privacy.id,
+      privacyEvidenceId: null,
       outputTokens: result.outputTokens,
       acceptedAt: new Date(this.now()).toISOString(),
     });

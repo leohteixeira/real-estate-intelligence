@@ -1,8 +1,5 @@
+import type Anthropic from '@anthropic-ai/sdk';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { randomBytes } from 'node:crypto';
-import { experimental_decide as decide } from 'ai';
-import { createGateway } from '@ai-sdk/gateway';
-import { gatewayFailure } from './gateway-failure';
 import {
   askIntents,
   parseIntentDecision,
@@ -10,11 +7,20 @@ import {
   type IntentDecision,
 } from '@rei/contracts';
 import {
-  verifyGatewayAcknowledgement,
-  gatewayCostUsd,
-  assertGatewayPrivacy,
-  type GatewayPrivacyEvidence,
-} from './gateway-privacy.verifier';
+  anthropicClient,
+  completedText,
+  sameAnthropicModel,
+  type AnthropicFetch,
+} from './anthropic-client';
+import { anthropicFailure } from './anthropic-failure';
+import {
+  INTENT_CLASSIFIER_MAX_TOKENS,
+  INTENT_CLASSIFIER_MODEL,
+  INTENT_CLASSIFIER_PROMPT,
+  INTENT_CLASSIFIER_SCHEMA,
+  INTENT_CLASSIFIER_SOURCE,
+  intentClassifierInput,
+} from './intent-classifier.prompt';
 import { ModelExplanationFailure } from './language-model.port';
 import { modelExplanationSettings } from './model-explanation.settings';
 
@@ -28,18 +34,7 @@ export interface IntentDecider {
     deadlineAt: number,
   ): Promise<IntentDecision>;
 }
-export const intentCriteria = Object.freeze({
-  price_per_square_meter:
-    'Calculate asking price per square meter from a stated price and area; cálculo de preço por metro quadrado.',
-  listing_search: 'Find or search property listings matching criteria; buscar anúncios ou imóveis.',
-  property_history:
-    'History or changes for a particular property or listing; histórico de um imóvel.',
-  region_statistics:
-    'Aggregate market statistics for a region; estatísticas, média ou mediana de uma região.',
-  comparables: 'Find comparable properties or compare properties; imóveis comparáveis.',
-  unsupported:
-    'Anything outside these real estate capabilities, or no actionable real estate intent.',
-});
+export { intentCriteria } from './intent-classifier.prompt';
 export function heuristicDecision(query: string): IntentDecision {
   const text = query.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
   const matches: AskIntent[] = [];
@@ -78,13 +73,31 @@ export interface IntentAttemptPolicy {
     deadlineAt: number,
   ): Promise<T>;
 }
-/** Each SDK invocation sends once. A public probe precedes user-bearing classification. */
-export class GatewayIntentDecider implements IntentDecider {
+/** Bounded usage of one physical classification request; never its text. */
+export interface IntentAttemptMeasurement {
+  readonly latencyMs: number;
+  readonly inputTokens: number | null;
+  readonly outputTokens: number | null;
+}
+function tokenCount(usage: unknown, field: 'input_tokens' | 'output_tokens'): number | null {
+  if (typeof usage !== 'object' || usage === null || !(field in usage)) return null;
+  const value = (usage as Record<string, unknown>)[field];
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+/**
+ * One Messages API request classifies the visitor question with a closed structured output.
+ * The reported probability is the model's own stated confidence, not a calibrated measurement;
+ * the remaining mass is spread evenly so the retained distribution keeps its closed shape.
+ */
+export class AnthropicIntentDecider implements IntentDecider {
+  readonly #client: Anthropic | undefined;
   public constructor(
-    private readonly apiKey: string | undefined,
-    private readonly sdkDecide: typeof decide = decide,
-    private readonly gatewayFactory: typeof createGateway = createGateway,
-  ) {}
+    apiKey: string | undefined,
+    fetch?: AnthropicFetch,
+    private readonly observe: (attempt: IntentAttemptMeasurement) => void = () => undefined,
+  ) {
+    this.#client = apiKey ? anthropicClient(apiKey, fetch) : undefined;
+  }
   public async decide(
     query: string,
     _locale: 'en' | 'pt-BR',
@@ -96,7 +109,8 @@ export class GatewayIntentDecider implements IntentDecider {
     signal.throwIfAborted();
     if (!Number.isFinite(deadlineAt) || deadlineAt <= Date.now())
       throw new ModelExplanationFailure('cancelled');
-    if (!this.apiKey) throw new ModelExplanationFailure('policy');
+    const client = this.#client;
+    if (!client) throw new ModelExplanationFailure('policy');
     const bounded = AbortSignal.any([
       signal,
       AbortSignal.timeout(
@@ -110,138 +124,126 @@ export class GatewayIntentDecider implements IntentDecider {
         ),
       ),
     ]);
-    const model = 'typesafe-ai/jev';
-    const questions = {
-      intent: {
-        type: 'choice' as const,
-        instructions: 'Choose exactly one real estate intent; do not infer operands.',
-        criteria: intentCriteria,
-      },
-    };
-    const gateway = this.gatewayFactory({ apiKey: this.apiKey }).evaluation(model);
-    // The pinned Gateway evaluation alias predates AI SDK's normalized text parts.
-    // Project only our text-only capability into its typed doEvaluate contract.
-    const call = (state: string, attemptSignal: AbortSignal) =>
-      this.sdkDecide({
-        model: {
-          specificationVersion: 'v4',
-          provider: gateway.provider,
-          modelId: model,
-          supportedQuestionTypes: ['choice'],
-          doDecide: async (options) => {
-            const text = options.state
-              .map((part) => {
-                if (part.type !== 'text') throw new ModelExplanationFailure('rejected');
-                return part.text;
-              })
-              .join('');
-            const result = await gateway.doEvaluate({
-              state: text,
-              questions,
-              abortSignal: options.abortSignal,
-              headers: options.headers,
-              providerOptions: options.providerOptions,
-            });
-            // Reject before the SDK warning logger can emit provider-supplied payloads.
-            if (result.warnings.length) throw new ModelExplanationFailure('policy');
-            return result;
-          },
-        },
-        state,
-        questions,
-        maxRetries: 0,
-        abortSignal: attemptSignal,
-        providerOptions: { gateway: { zeroDataRetention: true } },
-        telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
-      });
-    const physicalCall = (state: string, privacy?: GatewayPrivacyEvidence) => {
-      const work = async (attemptSignal: AbortSignal) => {
-        if (privacy) assertGatewayPrivacy(privacy, model, Date.now());
-        if (bounded.aborted || Date.now() >= deadlineAt)
-          throw new ModelExplanationFailure('cancelled');
-        try {
-          return await trace.getTracer('rei.ai.intent-decision').startActiveSpan(
-            'ask.decision.attempt',
-            {
-              attributes: {
-                'rei.ai.model': model,
-                'rei.ai.provider': 'vercel-ai-gateway',
-                'rei.ai.route': 'vercel-ai-gateway',
-                'rei.ai.attempt.purpose': privacy ? 'decision' : 'privacy-probe',
-                'rei.ai.usage': 'unavailable',
-                'rei.ai.cost': 'unavailable',
-              },
-            },
-            async (span) => {
-              const started = performance.now();
-              try {
-                const result = await call(state, attemptSignal);
-                const cost = gatewayCostUsd(result.providerMetadata);
-                if (cost !== null)
-                  span.setAttributes({ 'rei.ai.cost': 'available', 'rei.ai.cost_usd': cost });
-                span.setStatus({ code: SpanStatusCode.OK });
-                return result;
-              } catch (error) {
-                span.setStatus({ code: SpanStatusCode.ERROR });
-                throw error;
-              } finally {
-                span.setAttribute('rei.ai.duration_ms', Math.max(0, performance.now() - started));
-                span.end();
-              }
-            },
-          );
-        } catch (error) {
-          throw gatewayFailure(error, attemptSignal);
-        }
-      };
-      return attempts ? attempts.execute(work, bounded, deadlineAt) : work(bounded);
-    };
-    const acknowledgement = (result: Awaited<ReturnType<typeof call>>) => ({
-      model: result.response.modelId,
-      route: 'vercel-ai-gateway' as const,
-      metadata: result.providerMetadata,
-      warnings: result.warnings ?? [],
-    });
-    try {
-      const probe = await physicalCall(
-        'Public privacy capability probe: determine the intent of the fixed sentence "hello".',
-      );
-      bounded.throwIfAborted();
-      verifyGatewayAcknowledgement(acknowledgement(probe), model);
-      const verifiedAt = Date.now();
-      const evidence: GatewayPrivacyEvidence = {
-        id: randomBytes(18).toString('base64url'),
-        model,
-        route: 'vercel-ai-gateway',
-        policy: 'gateway-zdr-routing-v1',
-        verifiedAt,
-        expiresAt: verifiedAt + modelExplanationSettings.evidenceTtlMs,
-      };
-      assertGatewayPrivacy(evidence, model, Date.now());
-      bounded.throwIfAborted();
-      const result = await physicalCall(query, evidence);
-      bounded.throwIfAborted();
-      verifyGatewayAcknowledgement(acknowledgement(result), model);
-      const answer = result.answers.intent;
+    const work = async (attemptSignal: AbortSignal): Promise<unknown> => {
+      if (bounded.aborted || Date.now() >= deadlineAt)
+        throw new ModelExplanationFailure('cancelled');
       try {
-        return parseIntentDecision({
-          intent: answer.choice,
-          probability: answer.probabilities?.[answer.choice],
-          probabilities: answer.probabilities,
-          source: 'gateway-jev-v1',
-          degraded: false,
-          taxonomyVersion: 'ask-intents-v1',
-          privacyEvidenceId: evidence.id,
-        });
-      } catch {
-        throw new ModelExplanationFailure('rejected');
+        return await trace.getTracer('rei.ai.intent-decision').startActiveSpan(
+          'ask.decision.attempt',
+          {
+            attributes: {
+              'rei.ai.model': INTENT_CLASSIFIER_MODEL,
+              'rei.ai.provider': modelExplanationSettings.provider,
+              'rei.ai.route': modelExplanationSettings.route,
+              'rei.ai.attempt.purpose': 'decision',
+              'rei.ai.usage': 'unavailable',
+              'rei.ai.cost': 'unavailable',
+            },
+          },
+          async (span) => {
+            const started = performance.now();
+            let usage: unknown;
+            try {
+              const message: unknown = await client.messages.create(
+                {
+                  model: INTENT_CLASSIFIER_MODEL,
+                  max_tokens: INTENT_CLASSIFIER_MAX_TOKENS,
+                  // A short label within a 3.5-second attempt: no reasoning tokens.
+                  thinking: { type: 'disabled' },
+                  output_config: {
+                    effort: 'low',
+                    format: { type: 'json_schema', schema: INTENT_CLASSIFIER_SCHEMA },
+                  },
+                  system: INTENT_CLASSIFIER_PROMPT,
+                  messages: [{ role: 'user', content: intentClassifierInput(query) }],
+                },
+                { signal: attemptSignal, maxRetries: 0 },
+              );
+              if (typeof message === 'object' && message !== null && 'usage' in message)
+                usage = message.usage;
+              const inputTokens = tokenCount(usage, 'input_tokens');
+              const outputTokens = tokenCount(usage, 'output_tokens');
+              if (inputTokens !== null && outputTokens !== null)
+                span.setAttributes({
+                  'rei.ai.usage': 'available',
+                  'rei.ai.input_tokens': inputTokens,
+                  'rei.ai.output_tokens': outputTokens,
+                });
+              span.setStatus({ code: SpanStatusCode.OK });
+              return message;
+            } catch (error) {
+              span.setStatus({ code: SpanStatusCode.ERROR });
+              throw error;
+            } finally {
+              const latencyMs = Math.max(0, performance.now() - started);
+              span.setAttribute('rei.ai.duration_ms', latencyMs);
+              span.end();
+              this.observe({
+                latencyMs,
+                inputTokens: tokenCount(usage, 'input_tokens'),
+                outputTokens: tokenCount(usage, 'output_tokens'),
+              });
+            }
+          },
+        );
+      } catch (error) {
+        throw anthropicFailure(error, attemptSignal);
       }
+    };
+    try {
+      const message = await (attempts
+        ? attempts.execute(work, bounded, deadlineAt)
+        : work(bounded));
+      bounded.throwIfAborted();
+      return classified(message);
     } catch (error) {
       if (signal.aborted || Date.now() >= deadlineAt)
         throw new ModelExplanationFailure('cancelled');
       if (bounded.aborted) throw new ModelExplanationFailure('transient');
-      throw gatewayFailure(error, signal);
+      throw anthropicFailure(error, signal);
     }
+  }
+}
+
+/** Convert the vendor message to the canonical decision; nonconforming output is definitive. */
+function classified(message: unknown): IntentDecision {
+  if (typeof message !== 'object' || message === null)
+    throw new ModelExplanationFailure('rejected');
+  // A safety refusal is the provider declining the request, not a malformed label.
+  if ('stop_reason' in message && message.stop_reason === 'refusal')
+    throw new ModelExplanationFailure('policy');
+  const text = completedText(message);
+  if (
+    text === undefined ||
+    !('model' in message) ||
+    !sameAnthropicModel(INTENT_CLASSIFIER_MODEL, message.model)
+  )
+    throw new ModelExplanationFailure('rejected');
+  try {
+    const answer: unknown = JSON.parse(text);
+    if (
+      typeof answer !== 'object' ||
+      answer === null ||
+      Object.keys(answer).length !== 2 ||
+      !('intent' in answer) ||
+      !('probability' in answer) ||
+      typeof answer.probability !== 'number'
+    )
+      throw new ModelExplanationFailure('rejected');
+    const { intent, probability } = answer;
+    return parseIntentDecision({
+      intent,
+      probability,
+      probabilities: Object.fromEntries(
+        askIntents.map((label) => [label, label === intent ? probability : (1 - probability) / 5]),
+      ),
+      source: INTENT_CLASSIFIER_SOURCE,
+      degraded: false,
+      taxonomyVersion: 'ask-intents-v1',
+      privacyEvidenceId: null,
+    });
+  } catch {
+    throw new ModelExplanationFailure('rejected');
   }
 }
 /** Degradation changes provenance, never the confidence threshold or cancellation contract. */

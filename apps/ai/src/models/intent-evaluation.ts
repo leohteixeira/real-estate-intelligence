@@ -4,10 +4,11 @@ import type { IntentDecider } from './intent-decider';
 import { ModelExplanationFailure } from './language-model.port';
 
 export type IntentEvaluationCase = (typeof askIntentEvaluationV1)[number];
+/** One physical provider request. The Messages API reports token usage, not a price. */
 export interface PhysicalMeasurement {
-  phase: 'privacy' | 'classification';
   latencyMs: number;
-  costUsd: number | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
 }
 export type EvaluationDecision = IntentDecider['decide'];
 export type EvaluationFailure = ModelExplanationFailure['kind'] | 'unknown';
@@ -18,23 +19,23 @@ export interface EvaluationRow {
   confidenceCorrect: boolean;
   probability: number | null;
   confident: boolean;
-  privacyVerified: boolean;
   failure: EvaluationFailure | null;
   latencyMs: number;
   calls: readonly PhysicalMeasurement[];
 }
-export { gatewayCostUsd } from './gateway-privacy.verifier';
-function costCoverage(calls: readonly PhysicalMeasurement[]) {
-  const observed = calls.filter((call) => call.costUsd !== null);
-  const sum = observed.reduce((total, call) => total + call.costUsd!, 0);
-  // Overflow cannot become a misleading numeric total either.
-  const observedUsd = observed.length && Number.isFinite(sum) ? sum : null;
+function usageCoverage(calls: readonly PhysicalMeasurement[]) {
+  const observed = calls.filter((call) => call.inputTokens !== null && call.outputTokens !== null);
+  const total = (field: 'inputTokens' | 'outputTokens') => {
+    const sum = observed.reduce((tokens, call) => tokens + call[field]!, 0);
+    // A partial or overflowing total cannot become a misleading complete figure.
+    return observed.length === calls.length && Number.isSafeInteger(sum) ? sum : null;
+  };
   return {
     calls: calls.length,
     observed: observed.length,
     unavailable: calls.length - observed.length,
-    observedUsd,
-    totalUsd: calls.length === 0 ? 0 : observed.length === calls.length ? observedUsd : null,
+    inputTokens: total('inputTokens'),
+    outputTokens: total('outputTokens'),
   };
 }
 export function summarizeIntentEvaluation(rows: readonly EvaluationRow[]) {
@@ -63,11 +64,7 @@ export function summarizeIntentEvaluation(rows: readonly EvaluationRow[]) {
       mean: rows.length ? latencies.reduce((sum, value) => sum + value, 0) / rows.length : null,
       p95: latencies[Math.ceil(latencies.length * 0.95) - 1] ?? null,
     },
-    costUsd: {
-      ...costCoverage(calls),
-      privacy: costCoverage(calls.filter((call) => call.phase === 'privacy')),
-      classification: costCoverage(calls.filter((call) => call.phase === 'classification')),
-    },
+    usage: usageCoverage(calls),
   };
 }
 /** Sequential by construction. Failed and incorrect cases remain in every case denominator. */
@@ -102,8 +99,6 @@ export async function evaluateIntents(
         decision !== undefined && decision.probability >= 0.85 === fixture.confident,
       probability: decision?.probability ?? null,
       confident: decision !== undefined && decision.probability >= 0.85,
-      privacyVerified:
-        decision?.privacyEvidenceId !== undefined && decision.privacyEvidenceId !== null,
       failure,
       latencyMs: now() - started,
       calls: calls().map((call) => ({ ...call })),

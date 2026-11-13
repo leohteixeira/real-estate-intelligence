@@ -9,12 +9,12 @@ import {
 } from '@nestjs/resilience';
 import type { IntentDecision } from '@rei/contracts';
 import { AiRetryAllowance, withinAiDeadline } from '../shared/ai-resilience';
-import { GatewayIntentDecider, heuristicDecision, type IntentDecider } from './intent-decider';
+import { AnthropicIntentDecider, heuristicDecision, type IntentDecider } from './intent-decider';
 import { ModelExplanationFailure } from './language-model.port';
 import { modelFailure, recordModelFailure } from './model-failure';
 import { intentResilienceSettings as settings } from './intent-resilience.settings';
 
-/** One decision breaker outcome; probe and classification each consume physical admission. */
+/** One decision breaker outcome; every physical classification attempt consumes admission. */
 export class ResilientIntentDecider implements IntentDecider {
   readonly #bulkhead = new BulkheadPolicy({
     name: settings.policies.bulkhead,
@@ -36,7 +36,7 @@ export class ResilientIntentDecider implements IntentDecider {
   readonly #retry: AiRetryAllowance;
   readonly #physicalFailures = new WeakSet<ModelExplanationFailure>();
   public constructor(
-    private readonly adapter: GatewayIntentDecider,
+    private readonly adapter: AnthropicIntentDecider,
     private readonly now: () => number = Date.now,
     random: () => number = Math.random,
   ) {

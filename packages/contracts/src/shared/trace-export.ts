@@ -10,8 +10,6 @@ const numbers = new Set([
   'rei.ai.output_tokens',
   'rei.ai.input_tokens',
   'rei.ai.duration_ms',
-  'rei.ai.cost_usd',
-  'rei.ai.privacy.evidence_age_ms',
   'rei.collection.observed_count',
   'rei.collection.parsed_count',
   'rei.collection.changed_count',
@@ -37,7 +35,8 @@ const vocabulary: Readonly<Record<string, readonly string[]>> = {
     'comparables',
     'unsupported',
   ],
-  'rei.ask.decision_source': ['gateway-jev-v1', 'heuristic-v1'],
+  // A retained historical gateway receipt can still be resumed by a confirmation.
+  'rei.ask.decision_source': ['claude-haiku-v1', 'gateway-jev-v1', 'heuristic-v1'],
   'rei.ask.outcome': [
     'completed',
     'failed',
@@ -80,28 +79,15 @@ const vocabulary: Readonly<Record<string, readonly string[]>> = {
     'price-tool.transient-retry',
     'price-tool.rate-limit',
     'price-tool.attempt-timeout',
-    ...[
-      'eligible-fallback',
-      'bulkhead',
-      'circuit-breaker',
-      'transient-retry',
-      'rate-limit',
-      'attempt-timeout',
-    ].map((policy) => `model-explanation.${policy}`),
-    ...['anthropic/claude-haiku-5.5', 'deepseek/deepseek-v4-flash-0731'].map(
-      (model) => `model-explanation.circuit-breaker.vercel-ai-gateway.${model}`,
+    ...['bulkhead', 'circuit-breaker', 'transient-retry', 'rate-limit', 'attempt-timeout'].map(
+      (policy) => `model-explanation.${policy}`,
     ),
   ],
   'rei.ask.checkpoint_operation': ['get', 'list', 'put', 'put-writes'],
-  'rei.ai.model': [
-    'typesafe-ai/jev',
-    'anthropic/claude-haiku-5.5',
-    'deepseek/deepseek-v4-flash-0731',
-    'unapproved',
-  ],
-  'rei.ai.provider': ['vercel-ai-gateway'],
-  'rei.ai.route': ['vercel-ai-gateway'],
-  'rei.ai.attempt.purpose': ['privacy-probe', 'decision', 'explanation'],
+  'rei.ai.model': ['claude-haiku-5-5', 'unapproved'],
+  'rei.ai.provider': ['anthropic'],
+  'rei.ai.route': ['anthropic-direct'],
+  'rei.ai.attempt.purpose': ['decision', 'explanation'],
   'rei.ai.failure.kind': [
     'policy',
     'rejected',
@@ -112,7 +98,7 @@ const vocabulary: Readonly<Record<string, readonly string[]>> = {
     'transient',
   ],
   'rei.ai.usage': ['available', 'unavailable'],
-  'rei.ai.cost': ['available', 'unavailable'],
+  'rei.ai.cost': ['unavailable'],
   'dependency.name': ['model-explanation', 'intent-decision', 'intent', 'checkpoint', 'price-tool'],
   'resilience.event.type': [
     'retry',

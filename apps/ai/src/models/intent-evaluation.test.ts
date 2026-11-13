@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { askIntents, parseIntentDecision } from '@rei/contracts';
 import { askIntentEvaluationV1 } from './fixtures/ask-intents-v1';
-import { evaluateIntents, gatewayCostUsd, type PhysicalMeasurement } from './intent-evaluation';
+import { evaluateIntents, type PhysicalMeasurement } from './intent-evaluation';
 import { heuristicDecision } from './intent-decider';
 import { ModelExplanationFailure } from './language-model.port';
 
 describe('ask-intents-v1 offline measured comparison', () => {
-  it('compares fake Jev and the existing heuristic on every public PT/EN case', async () => {
+  it('compares a fake classifier and the existing heuristic on every public PT/EN case', async () => {
     let index = 0;
     let clock = 0;
-    const fakeJev = await evaluateIntents(
+    const fakeClassifier = await evaluateIntents(
       askIntentEvaluationV1,
       async () => {
         const row = askIntentEvaluationV1[index++]!;
@@ -25,15 +25,12 @@ describe('ask-intents-v1 offline measured comparison', () => {
               label === row.intent ? probability : (1 - probability) / 5,
             ]),
           ),
-          source: 'gateway-jev-v1',
+          source: 'claude-haiku-v1',
           degraded: false,
-          privacyEvidenceId: 'public-evaluation-evidence',
+          privacyEvidenceId: null,
         });
       },
-      () => [
-        { phase: 'privacy', latencyMs: 2, costUsd: 0.001 },
-        { phase: 'classification', latencyMs: 10, costUsd: 0.003 },
-      ],
+      () => [{ latencyMs: 10, inputTokens: 400, outputTokens: 20 }],
       () => clock,
     );
     const heuristic = await evaluateIntents(
@@ -45,7 +42,7 @@ describe('ask-intents-v1 offline measured comparison', () => {
       undefined,
       () => clock,
     );
-    expect(fakeJev.summary).toMatchObject({
+    expect(fakeClassifier.summary).toMatchObject({
       cases: 14,
       succeeded: 14,
       failed: 0,
@@ -53,21 +50,23 @@ describe('ask-intents-v1 offline measured comparison', () => {
       confidence: { confident: 10, expectationAccuracy: 1, confidentAccuracy: 1 },
       latencyMs: { total: 168, mean: 12, p95: 12 },
     });
-    expect(fakeJev.summary.costUsd.totalUsd).toBeCloseTo(0.056);
-    expect(fakeJev.summary.costUsd.privacy).toMatchObject({
+    expect(fakeClassifier.summary.usage).toEqual({
       calls: 14,
       observed: 14,
       unavailable: 0,
+      inputTokens: 5600,
+      outputTokens: 280,
     });
-    expect(fakeJev.summary.costUsd.privacy.totalUsd).toBeCloseTo(0.014);
     expect(heuristic.summary).toMatchObject({
       accuracy: 1,
       confidence: { expectationAccuracy: 1 },
       latencyMs: { total: 14, mean: 1, p95: 1 },
-      costUsd: { calls: 0, totalUsd: 0 },
+      usage: { calls: 0, observed: 0, unavailable: 0, inputTokens: 0, outputTokens: 0 },
     });
-    expect(fakeJev.summary.confidence.meanProbability).toBeCloseTo((10 * 0.95 + 4 * 0.7) / 14);
-    expect(new Set(fakeJev.rows.map((row) => row.caseId)).size).toBe(14);
+    expect(fakeClassifier.summary.confidence.meanProbability).toBeCloseTo(
+      (10 * 0.95 + 4 * 0.7) / 14,
+    );
+    expect(new Set(fakeClassifier.rows.map((row) => row.caseId)).size).toBe(14);
   });
   it('retains wrong, typed failed and invalid decisions in accuracy and confidence denominators', async () => {
     let index = 0;
@@ -106,40 +105,33 @@ describe('ask-intents-v1 offline measured comparison', () => {
       confidence: { meanProbability: null },
     });
   });
-  it.each([
-    undefined,
-    null,
-    {},
-    { gateway: null },
-    { gateway: { cost: '0.1' } },
-    { gateway: { cost: -1 } },
-    { gateway: { cost: NaN } },
-    { gateway: { cost: Infinity } },
-  ])('rejects absent or malformed cost evidence', (value) => {
-    expect(gatewayCostUsd(value)).toBeNull();
-  });
-  it.each([0, 0.0123])('accepts numeric finite nonnegative cost %s only', (cost) => {
-    expect(gatewayCostUsd({ gateway: { cost, arbitrary: 'private' } })).toBe(cost);
-  });
-  it('reports partial cost coverage and empty datasets without inventing spend', async () => {
+  it('reports partial usage coverage and empty datasets without inventing totals', async () => {
     const calls: PhysicalMeasurement[] = [
-      { phase: 'privacy', latencyMs: 1, costUsd: null },
-      { phase: 'classification', latencyMs: 2, costUsd: 0.01 },
+      { latencyMs: 1, inputTokens: null, outputTokens: null },
+      { latencyMs: 2, inputTokens: 400, outputTokens: 20 },
+      { latencyMs: 3, inputTokens: 400, outputTokens: null },
     ];
     const result = await evaluateIntents(
       askIntentEvaluationV1.slice(0, 1),
       async (query) => heuristicDecision(query),
       () => calls,
     );
-    expect(result.summary.costUsd).toMatchObject({
-      calls: 2,
+    expect(result.summary.usage).toEqual({
+      calls: 3,
       observed: 1,
-      unavailable: 1,
-      observedUsd: 0.01,
-      totalUsd: null,
-      privacy: { observedUsd: null, totalUsd: null },
-      classification: { totalUsd: 0.01 },
+      unavailable: 2,
+      inputTokens: null,
+      outputTokens: null,
     });
+    const overflowing = await evaluateIntents(
+      askIntentEvaluationV1.slice(0, 1),
+      async (query) => heuristicDecision(query),
+      () => [
+        { latencyMs: 1, inputTokens: Number.MAX_SAFE_INTEGER, outputTokens: 1 },
+        { latencyMs: 1, inputTokens: 1, outputTokens: 1 },
+      ],
+    );
+    expect(overflowing.summary.usage).toMatchObject({ inputTokens: null, outputTokens: 2 });
     const empty = await evaluateIntents([], async () => heuristicDecision('hello'));
     expect(empty.summary).toMatchObject({
       cases: 0,

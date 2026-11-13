@@ -37,9 +37,9 @@ const explanation: ModelExplanation = {
   grammarVersion: 'price-explanation-facts-v1',
   locale: 'en',
   text: 'The asking price divided by area is the returned deterministic value.',
-  model: 'anthropic/claude-haiku-5.5',
-  route: 'vercel-ai-gateway',
-  privacyEvidenceId: 'public-privacy-evidence-id',
+  model: 'claude-haiku-5-5',
+  route: 'anthropic-direct',
+  privacyEvidenceId: null,
   outputTokens: 30,
   acceptedAt: completed.updatedAt,
 };
@@ -188,6 +188,9 @@ it('submits once, shows exact server result and model provenance, switches local
   expect(await screen.findByText(text.modelWritten)).toBeVisible();
   expect(screen.getByText(explanation.text)).toBeVisible();
   expect(screen.getByText(explanation.model)).toBeVisible();
+  expect(screen.getByText('anthropic-direct')).toBeVisible();
+  // A direct record carries no privacy evidence, so no empty row is rendered for it.
+  expect(screen.queryByText(text.privacyEvidence)).not.toBeInTheDocument();
   expect(screen.getByText(explanation.toolReceiptId)).toBeVisible();
   expect(document.querySelector('.fig__value')).toHaveTextContent('R$ 10,000.00');
   const create = test.request.mock.calls.find(([url]) => url.endsWith('/api/v1/runs'))!;

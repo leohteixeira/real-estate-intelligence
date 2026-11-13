@@ -73,42 +73,61 @@ including the explicit retained terminal. The same protocol works after an API r
 from an already consumed terminal returns an empty completed stream. Malformed, foreign and future
 cursors are rejected; transport failure closes transport without inventing a product terminal.
 
-Gateway Jev receives fixed closed criteria through the installed AI SDK decision capability.
-The pinned Gateway evaluation alias takes a text state while the AI SDK normalizes text parts;
-a narrow typed bridge projects only text into `doEvaluate`. No provider types cross the
-application port. A fixed public probe must provide the existing Gateway ZDR routing
-acknowledgement before visitor text is transmitted. Provider warnings are rejected before SDK
-warning logging. SDK retries and payload telemetry are disabled. Production composes named
-fallback, bulkhead, logical breaker, transient retry, physical limiter and attempt timeout
-policies. The public probe and user classification consume separate limiter tokens; only the
-failed phase repeats, and user-bearing retries recheck the original privacy evidence. Each phase
-allows at most three attempts with full jitter (100 ms exponential base, one-second cap), subject
-to a shared ten-second rolling retry allowance of about 10% with two low-traffic slots. Valid
-`Retry-After` must fit the remaining deadline plus a complete 3.5-second attempt; advice over
-30 seconds suppresses retry. The original deadline includes queueing and backoff. Caller abort
-or original-deadline expiry stops all attempts and cannot produce a heuristic answer. One failed
-decision records one transient breaker outcome after retry; successful decisions taking at least
-2.5 seconds contribute one slow outcome while returning the actual decision. Definitive refusals
-and local admission pressure are excluded. Identifiable exhausted quota opens only Jev's circuit
-immediately.
+A Claude Haiku classifier (`claude-haiku-5-5`) decides the intent through one direct Anthropic
+Messages API request made with the pinned official `@anthropic-ai/sdk`
+([ADR 0029](../specs/adrs/0029-direct-anthropic-provider-for-ask.md)). The versioned prompt
+`ask-intent-classifier-prompt-v1` lives in `apps/ai/src/models/intent-classifier.prompt.ts`
+beside its fixed closed criteria and its closed structured-output schema: exactly `intent`
+(one of the six labels) and `probability` (a number), with no additional properties. The visitor's
+question is the only variable part of the request and is sent as delimited text to label; thread
+history, run identity and grants are never sent. No provider types cross the application port.
+
+The question text is transmitted to Anthropic under Anthropic's standard commercial API terms.
+There is no pre-transmission probe, no zero-data-retention verification and no privacy evidence:
+a decision written by the classifier has `source: 'claude-haiku-v1'`, `degraded: false` and
+`privacyEvidenceId: null`. Receipts written before ADR 0029 keep `source: 'gateway-jev-v1'` with
+their original evidence ID and stay valid and readable; no new receipt can use that source with
+a null evidence ID or the new source with one.
+
+`probability` is the classifier's own stated confidence that the product should act on the chosen
+label without asking first. It is not derived from token likelihoods and is not calibrated. The
+prompt instructs the classifier to report 0.85 or above only when the question clearly asks for
+exactly one supported capability, and below 0.85 for multi-capability or unsupported questions.
+The retained distribution gives the chosen label that probability and spreads the remainder evenly
+over the other five labels, so the selected-label probability always comes from the distribution
+and the existing closed validation applies unchanged. An unknown label, a probability outside
+0 to 1, extra fields, an unexpected model, truncated output or non-JSON output is rejected and is
+never repaired.
+
+SDK retries and SDK logging are disabled. Production composes named local-degradation fallback,
+bulkhead, logical breaker, transient retry, physical limiter and attempt timeout policies. The
+classification allows at most three attempts with full jitter (100 ms exponential base, one-second
+cap), subject to a shared ten-second rolling retry allowance of about 10% with two low-traffic
+slots. Valid `Retry-After` must fit the remaining deadline plus a complete 3.5-second attempt;
+advice over 30 seconds suppresses retry. The original deadline includes queueing and backoff.
+Caller abort or original-deadline expiry stops all attempts and cannot produce a heuristic answer.
+One failed decision records one transient breaker outcome after retry; successful decisions taking
+at least 2.5 seconds contribute one slow outcome while returning the actual decision. Definitive
+refusals and local admission pressure are excluded. Exhausted billing (HTTP 402 or an Anthropic
+`billing_error`) opens the classifier circuit immediately.
 Policy events project named categorical fields only, excluding provider messages and raw headers.
-Selected-label probability comes from its distribution, independently of any provider
-confidence. Invalid distributions and caller cancellation are rejected. Unavailable private
-routing falls back to deterministic PT/EN `heuristic-v1`, with explicit degraded provenance and
-the same confidence gate.
+A missing key, authentication failure, provider safety refusal, exhausted billing, open circuit or
+exhausted transient retry falls back to deterministic PT/EN `heuristic-v1`, with explicit degraded
+provenance and the same confidence gate. Nonconforming classifier output and caller cancellation
+are not degraded: they fail the decision.
 
 The offline evaluation uses the 14 public PT/EN rows and safe case IDs in
-`apps/ai/src/models/fixtures/ask-intents-v1.ts`. The measured fake Jev comparison and the existing
-heuristic run without credentials or network as part of `pnpm test`. They verify accuracy,
-selected-label probability, the 0.85 confidence gate, elapsed latency and cost arithmetic.
-Incorrect and failed decisions stay in the case denominator; mean probability covers successful
-decisions only. Confidence expectation accuracy compares the gate with each fixture's label;
-it does not claim probability calibration or live model quality.
+`apps/ai/src/models/fixtures/ask-intents-v1.ts`. The measured fake classifier comparison and the
+existing heuristic run without credentials or network as part of `pnpm test`. They verify
+accuracy, selected-label probability, the 0.85 confidence gate, elapsed latency and token-usage
+arithmetic. Incorrect and failed decisions stay in the case denominator; mean probability covers
+successful decisions only. Confidence expectation accuracy compares the gate with each fixture's
+label; it does not claim probability calibration or live model quality.
 
 The optional probe uses exactly the first two fixed synthetic price cases, sequentially through
-`GatewayIntentDecider`, with its original deadlines, privacy check and zero SDK retries. No
-heuristic fallback conceals a provider failure. The default command succeeds without a build,
-key or provider initialization:
+`AnthropicIntentDecider`, with its original deadlines and zero SDK retries. No heuristic fallback
+conceals a provider failure. The default command succeeds without a build, key or provider
+initialization:
 
 ```sh
 pnpm --filter @rei/ai probe:intent
@@ -116,41 +135,38 @@ pnpm run build
 pnpm --filter @rei/ai probe:intent --live
 ```
 
-Supply `AI_GATEWAY_API_KEY` through the process environment; no environment file is loaded.
+Supply `ANTHROPIC_API_KEY` through the process environment; no environment file is loaded.
 Explicit live execution without a key exits unsuccessfully before loading provider code. The
-JSON result contains only dataset/model identifiers, safe case IDs/locales, correctness,
-confidence, typed failures, privacy verification, latency in milliseconds and cost scalars.
-The probe exits unsuccessfully for provider/privacy failure or incorrect classification.
+JSON result contains only dataset/model/prompt-version identifiers, safe case IDs/locales,
+correctness, confidence, typed failures, latency in milliseconds and token counts.
+The probe exits unsuccessfully for provider failure or incorrect classification.
 Default tests and CI never enable it. Root strict type checking includes the intent probe and
 all integration probes.
 
-Cost evidence accepts only finite, nonnegative numeric `providerMetadata.gateway.cost` in USD;
-absent, string, negative or nonfinite values are unavailable. Every attempted SDK call is counted,
-including each privacy probe and failed call. Per-phase and overall coverage show attempted,
-observed and unavailable counts. `observedUsd` sums only supplied valid evidence; `totalUsd` is
-null unless every call has cost evidence. Zero provider calls (the heuristic) have zero provider
-spend. No billing or catalog requests, inferred token prices or generated explanation calls are
-made. Raw metadata, response bodies, errors, credentials and query text are never reported.
-Latency is elapsed wall time measured with a monotonic clock; offline fake timings verify
-arithmetic and are not provider benchmarks.
+Usage evidence accepts only nonnegative safe-integer `usage.input_tokens` and
+`usage.output_tokens` from the Messages API response; anything else is unavailable. Every
+attempted request is counted, including failed ones. Coverage shows attempted, observed and
+unavailable counts; token totals are null unless every call reported usage. The Messages API does
+not return a price, so no monetary cost is reported and none is inferred from token prices. Zero
+provider calls (the heuristic) have zero usage. Raw response bodies, errors, credentials and query
+text are never reported. Latency is elapsed wall time measured with a monotonic clock; offline
+fake timings verify arithmetic and are not provider benchmarks.
 
 The reusable `price-explanation-facts-v1` corpus in
 `packages/domain/src/ask/fixtures/price-explanation-facts-v1.ts` retains every exact-fact
 permutation and adversarial PT/EN outcome. Existing decision and graph tests retain invalid
 output and below/exact/above-threshold proofs. `receipt-model-explainer.test.ts`,
-`receipt-model-resilience.test.ts` and `ai-policy-matrix.test.ts` retain explanation fidelity,
-privacy and typed failure-policy evidence. The unchanged `ask-intent-decision`, `ask-checkpoints`,
-`ask-model-explanation` and `ask-delivery` integration campaigns retain real-service evidence for
-confirmation, checkpoints, restart, receipt acceptance and idempotency. This evaluation-only
-change does not rerun the persistence campaigns.
+`receipt-model-resilience.test.ts`, `anthropic-language-model.adapter.test.ts` and
+`ai-policy-matrix.test.ts` retain explanation fidelity, provider failure mapping and typed
+failure-policy evidence. The `ask-intent-decision`, `ask-checkpoints`, `ask-model-explanation`
+and `ask-delivery` integration campaigns retain real-service evidence for confirmation,
+checkpoints, restart, receipt acceptance and idempotency.
 
-The single authorized live run on 2026-10-26 exited unsuccessfully: both fixed cases returned
-`policy` during the privacy phase, so neither classification ran. The two privacy calls took
-1,152.74 ms overall (576.37 ms mean; 925.79 ms nearest-rank p95), with cost unavailable for both.
-The report retained both failures in its denominator and marked the probe as failed. Live
-classification accuracy and confidence remain unmeasured, and total spend remains unavailable.
-Offline fake accuracy is not evidence of live accuracy. The implementation plan records the
-verification commands; no live retry or persistence campaign was performed.
+No live run has been made against the direct classifier: live classification accuracy, stated
+confidence, latency and token usage remain unmeasured, and offline fake accuracy is not evidence
+of live accuracy. The single authorized live run on 2026-10-26 predates ADR 0029 and exercised the
+retired gateway route; both fixed cases failed in its privacy phase before any classification, so
+it carries no evidence about the current classifier.
 
 Migration `6007_ask_unavailable_intents.sql` replaces only the routed-document predicate. Existing
 price, historical tracer and prepared contracts remain unchanged. Durable reads and SSE replay the
@@ -184,3 +200,6 @@ On 2026-10-26 the full native campaign passed: PT/EN completion and SSE, retaine
 confirmation across restart, accepted-artifact reclaim with unchanged reservations, unavailable
 intent without generation, stale/cancelled authority and partition refusal, populated historical
 upgrade, actual exported parent edges and the whole-export sensitive-value scan after SQL failure.
+It passed again on 2026-11-13 on the direct Anthropic classifier, with the fixture's in-process
+`fetch` behind the real SDK client and a retained `gateway-jev-v1` decision resumed after
+migration 6010; see [the explanation contract](api/ask-model-explanation.md).

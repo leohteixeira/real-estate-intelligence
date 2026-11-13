@@ -72,13 +72,25 @@ are observed; dependent stories still establish their business journeys through 
   reuses these services where adequate and starts only dependencies needed for the current step.
 - Obtain API/worker `ASK_DISPATCH_SECRET` and AI/worker `AI_INTERNAL_TOKEN` from the operator's
   secret store. Internal authority must match across the named services. Generate the AI token
-  using 32–128 URL-safe characters. Supply the approved `AI_GATEWAY_API_KEY` only to AI at runtime
-  from the secret store. Preserve the existing fail-closed ZDR route evidence and budget gates;
-  configuring a key does not prove a model call or ZDR. Keep real-source registers disabled.
+  using 32–128 URL-safe characters. Supply `ANTHROPIC_API_KEY` only to AI at runtime from the
+  secret store ([ADR 0029](../../specs/adrs/0029-direct-anthropic-provider-for-ask.md)). AI calls
+  the Anthropic Messages API directly; the retired `AI_GATEWAY_API_KEY` is no longer read by any
+  service and must be removed from the application settings. Preserve the persisted token budget
+  gates; configuring a key does not prove a model call. Requests are processed under Anthropic's
+  standard commercial API terms and no zero-data-retention verification is performed. Keep
+  real-source registers disabled.
 - Public Ask admission defaults to `ASK_VISITOR_DAILY_LIMIT=20` and
   `ASK_GLOBAL_DAILY_LIMIT=100`, both positive safe integers. These apply in every environment;
   there is no trusted-caller or production bypass. Migration 6009 adds nullable visitor digests
   and an admission index without rewriting historical documents. Deploy it before the new API.
+  Migration 6010 widens the closed Ask provider vocabulary for the direct Anthropic route without
+  rewriting stored documents; retained gateway-era runs, attempts, explanations and decisions keep
+  their original bytes and stay valid. It replaces three CHECK constraints, so it briefly takes
+  `ACCESS EXCLUSIVE` locks on `ask.run`, `ask.model_explanation` and `ask.model_attempt` and
+  revalidates their rows; the documented deployment already stops API and worker first. Apply it
+  before the new API and AI, and activate the API, AI and web images of one release together: the
+  new API refuses reservations that name the retired gateway route, so an older AI image cannot
+  explain against it, and an older API or web image cannot parse a direct-route record.
   The API purpose-separates visitor-cookie signing from dispatch using the same protected secret.
   Rotating that secret invalidates visitor cookies as well as existing dispatch proofs; the global
   daily ledger remains effective. Production cookies use Secure/HttpOnly/SameSite=Strict at
@@ -92,7 +104,7 @@ The production file requires all five image identities and every dependency cred
 can validate. In registry mode those identities are manifest digests; in manual mode they are local
 Docker image ID hashes, as described below. The API and worker have database/broker access,
 the worker alone has storage and snapshot keys. AI receives its scoped execution token,
-approved gateway key and API URL. Web
+Anthropic API key and API URL. Web
 receives no secrets. Keys are runtime settings and never image build arguments.
 Application processes retain the existing OpenTelemetry preload in their image commands.
 
@@ -212,12 +224,14 @@ sudo ./infra/portfolio rei-config
 root-owned with mode 0600. It refuses to generate replacement keys when dedicated volumes already
 exist without their configuration. Privately populate `real-estate-intelligence.conf` with
 `REI_RELEASE_COMMIT` (full gated release SHA on `feat/phase-1`), the five manifest digests from
-Actions and the approved
-runtime gateway key. Preserve the generated snapshot key. Existing approved loaders may populate
-the gateway key without exposing its source or value. Runtime keys never enter image builds.
+Actions and the runtime
+`ANTHROPIC_API_KEY`. Preserve the generated snapshot key. Existing approved loaders may populate
+the Anthropic key without exposing its source or value. Runtime keys never enter image builds.
+Remove any retained `AI_GATEWAY_API_KEY` line: Compose no longer passes it to a container and it
+does not satisfy the required key.
 
 Required settings are `REI_IMAGE_REPOSITORY`, the five `REI_*_DIGEST` values, `DATABASE_URL`,
-`RABBITMQ_URL`, `ASK_DISPATCH_SECRET`, `AI_INTERNAL_TOKEN`, `AI_GATEWAY_API_KEY`, `OBJECT_STORE_ENDPOINT`,
+`RABBITMQ_URL`, `ASK_DISPATCH_SECRET`, `AI_INTERNAL_TOKEN`, `ANTHROPIC_API_KEY`, `OBJECT_STORE_ENDPOINT`,
 `OBJECT_STORE_REGION`, `OBJECT_STORE_BUCKET`, `OBJECT_STORE_ACCESS_KEY_ID`,
 `OBJECT_STORE_SECRET_ACCESS_KEY`, `SNAPSHOT_ENCRYPTION_KEY_ID` and
 `SNAPSHOT_ENCRYPTION_KEY_BASE64`. Dependencies use their provisioned Docker DNS names or approved
@@ -360,6 +374,21 @@ publish and consumer. Capture a sanitized Tempo permalink/export and row evidenc
 image digests and UTC time. A local trace or four unrelated spans does not satisfy this production
 criterion. Do not run real collection or model requests to produce the proof.
 
+### Direct Anthropic provider (ADR 0029)
+
+After a release that carries migration 6010, confirm with the operator's secure SQL client that
+`schema_migrations` contains `6010_ask_anthropic_direct`, and with `docker inspect` that only the
+AI container has the environment name `ANTHROPIC_API_KEY` and that no container has
+`AI_GATEWAY_API_KEY`; never print the values. A model request is a billed call and needs explicit
+authorization. When authorized, one public routed explained question must finish with decision
+source `claude-haiku-v1`, explanation route `anthropic-direct`, model `claude-haiku-5-5` and no
+privacy-evidence row. The developer-only `pnpm --filter @rei/ai check:keys` reads the repository's
+local environment file and is not a production check. A decision that still
+reports `heuristic-v1` and `degraded` means the classifier call failed and the local rule answered:
+inspect the `ask.decision.attempt` span outcome and the `intent.*` policy events before accepting.
+Open a run completed before the release to confirm its retained gateway route, model and
+privacy-evidence ID are still shown.
+
 ## Roll back and retain evidence
 
 On failed public readiness or missing trace evidence, stop the release and retain sanitized logs,
@@ -367,7 +396,10 @@ HTTP statuses, UTC times and trace IDs. Restore the previous release mode, full 
 five identities from the release ledger (local Docker image IDs for manual; manifest digests for registry),
 retain the corresponding local images, and validate with `config --quiet`; stop API/worker writes
 and start the compatible prior
-application images. Applied migrations are not automatically reversed. Check prior image/schema
+application images. Applied migrations are not automatically reversed. Migration 6010 only widens
+predicates, so a prior release keeps writing valid gateway-shaped rows against it; however the
+prior API and web cannot parse runs already completed on the direct route, and the prior AI needs
+its `AI_GATEWAY_API_KEY` restored. Check prior image/schema
 compatibility before restart; if incompatible, use the verified pre-release backup through the
 verified recovery procedure, accepting and recording its recovery-point data loss.
 For incompatible schemas, keep current writers stopped and restore into a separately provisioned

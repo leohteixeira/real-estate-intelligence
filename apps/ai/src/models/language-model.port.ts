@@ -1,19 +1,16 @@
-/** Vendor-free single-attempt capability. Only facts or fixed public probe text reach this port. */
+/** Vendor-free single-attempt capability. Only versioned instructions and receipt facts reach it. */
 export const LANGUAGE_MODEL = Symbol('LANGUAGE_MODEL');
 export interface LanguageModelRequest {
   readonly model: string;
-  readonly route: 'vercel-ai-gateway';
+  readonly route: 'anthropic-direct';
   readonly prompt: string;
   readonly maxOutputTokens: number;
-  readonly zeroDataRetention: true;
 }
 export interface LanguageModelResult {
   readonly text: string;
   readonly outputTokens: number | undefined;
   readonly model: string;
-  readonly route: 'vercel-ai-gateway';
-  readonly metadata: unknown;
-  readonly warnings: readonly unknown[];
+  readonly route: 'anthropic-direct';
 }
 export interface LanguageModel {
   generate(request: LanguageModelRequest, signal: AbortSignal): Promise<LanguageModelResult>;

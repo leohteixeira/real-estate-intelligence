@@ -145,7 +145,7 @@ function assertChain(exported: ExportSpan[], traceId: string, runId: string) {
   expect(gate.attrs).toMatchObject({
     'rei.ask.intent': 'price_per_square_meter',
     'rei.ask.confidence': 0.85,
-    'rei.ask.decision_source': 'gateway-jev-v1',
+    'rei.ask.decision_source': 'claude-haiku-v1',
     'rei.ask.degraded': false,
     'rei.ask.confirmed': false,
   });
@@ -153,25 +153,31 @@ function assertChain(exported: ExportSpan[], traceId: string, runId: string) {
   const physical = chain.filter((span) =>
     ['ask.decision.attempt', 'ask.model.attempt'].includes(span.name),
   );
-  expect(physical.filter((span) => span.name === 'ask.decision.attempt')).toHaveLength(2);
-  expect(physical.filter((span) => span.name === 'ask.model.attempt')).toHaveLength(2);
+  // One provider request per capability: no probe precedes either of them.
+  expect(physical.filter((span) => span.name === 'ask.decision.attempt')).toHaveLength(1);
+  expect(physical.filter((span) => span.name === 'ask.model.attempt')).toHaveLength(1);
   for (const attempt of physical) {
     expect(attempt.attrs).toMatchObject({
-      'rei.ai.provider': 'vercel-ai-gateway',
-      'rei.ai.route': 'vercel-ai-gateway',
+      'rei.ai.model': 'claude-haiku-5-5',
+      'rei.ai.provider': 'anthropic',
+      'rei.ai.route': 'anthropic-direct',
+      'rei.ai.usage': 'available',
       'rei.ai.cost': 'unavailable',
     });
     expect(Number(attempt.attrs['rei.ai.duration_ms'])).toBeGreaterThanOrEqual(0);
-    expect(attempt.attrs['rei.ai.model']).toBe(
-      attempt.name === 'ask.decision.attempt' ? 'typesafe-ai/jev' : 'anthropic/claude-haiku-5.5',
-    );
+    expect(Number(attempt.attrs['rei.ai.output_tokens'])).toBeGreaterThan(0);
+    expect(attempt.attrs).not.toHaveProperty('rei.ai.cost_usd');
+    expect(attempt.attrs).not.toHaveProperty('rei.ai.privacy.evidence_age_ms');
     if (attempt.name === 'ask.decision.attempt') {
       ancestor(attempt, 'ask.decision');
-      expect(attempt.attrs['rei.ai.usage']).toBe('unavailable');
+      expect(attempt.attrs).toMatchObject({
+        'rei.ai.attempt.purpose': 'decision',
+        'rei.ai.input_tokens': 320,
+        'rei.ai.output_tokens': 18,
+      });
     } else {
       ancestor(attempt, 'ask.graph.modelExplanation');
-      expect(attempt.attrs['rei.ai.usage']).toBe('available');
-      expect(Number(attempt.attrs['rei.ai.output_tokens'])).toBeGreaterThan(0);
+      expect(attempt.attrs['rei.ai.attempt.purpose']).toBe('explanation');
     }
   }
 }
@@ -199,7 +205,7 @@ test('one private exported trace covers native combined runs, confirmation, reco
     MINIO_ROOT_USER: 'rei_trace',
     MINIO_ROOT_PASSWORD: secret(),
     AI_INTERNAL_TOKEN: token,
-    AI_GATEWAY_API_KEY: '',
+    ANTHROPIC_API_KEY: '',
     ASK_DISPATCH_SECRET: dispatch,
     SNAPSHOT_ENCRYPTION_KEY_ID: 'trace-fixture-v1',
     SNAPSHOT_ENCRYPTION_KEY_BASE64: randomBytes(32).toString('base64'),
@@ -309,6 +315,15 @@ test('one private exported trace covers native combined runs, confirmation, reco
         await db.query(await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'));
         await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [file.slice(0, -4)]);
       }
+      // Independent additive admission metadata is required by current creation; keep the
+      // populated pre-6008 partition and provider-vocabulary upgrade proof unchanged.
+      const admissionMigration = '6009_ask_demo_quotas.sql';
+      await db.query(
+        await readFile(new URL(`../migrations/${admissionMigration}`, import.meta.url), 'utf8'),
+      );
+      await db.query('INSERT INTO schema_migrations(version) VALUES($1)', [
+        admissionMigration.slice(0, -4),
+      ]);
       const collector = `${fixture.project}-capture`;
       await fixture.execute('docker', [
         'run',
@@ -362,13 +377,28 @@ test('one private exported trace covers native combined runs, confirmation, reco
       await health();
       await command(['up', '--detach', '--no-deps', 'worker']);
       const historical: string[] = [];
-      for (const mode of ['structured-price-v1', 'text-price-v1', 'text-price-explanation-v1']) {
+      // Model-free modes run natively on the pre-6008 schema. A model explanation cannot: that
+      // schema only knows the retired gateway vocabulary, which current code no longer writes
+      // (the gateway-era explanation upgrade is proven in ask-model-explanation).
+      for (const mode of ['structured-price-v1', 'text-price-v1']) {
         const old = await create(mode);
         await wait(old.id, 'completed');
         historical.push(old.id);
       }
-      const oldRouted = await create('routed-text-v1', 'en', ' uncertain');
-      await wait(oldRouted.id, 'awaiting_confirmation');
+      // A run paused on a gateway-era decision must survive the provider change and resume.
+      const oldRouted = await create(
+        'routed-text-v1',
+        'en',
+        ' uncertain rei-historical-gateway-decision',
+      );
+      const oldPause = await wait(oldRouted.id, 'awaiting_confirmation');
+      if (oldPause.basis !== 'routed-text-v1' || !oldPause.decision)
+        throw new Error('Expected old pause.');
+      expect(oldPause.decision).toMatchObject({
+        source: 'gateway-jev-v1',
+        degraded: false,
+        privacyEvidenceId: 'historical-gateway-evidence-0001',
+      });
       historical.push(oldRouted.id);
       await command(['stop', 'worker']);
       const digest = () =>
@@ -378,7 +408,7 @@ test('one private exported trace covers native combined runs, confirmation, reco
       (SELECT string_agg(to_jsonb(c)::text,'' ORDER BY run_id,sequence) FROM ask.graph_checkpoint c WHERE run_id=ANY($1::uuid[])) ||
       (SELECT string_agg(to_jsonb(w)::text,'' ORDER BY run_id,checkpoint_id,task_id,write_index) FROM ask.graph_pending_write w WHERE run_id=ANY($1::uuid[])) ||
       (SELECT string_agg(to_jsonb(t)::text,'' ORDER BY run_id) FROM ask.tool_receipt t WHERE run_id=ANY($1::uuid[])) ||
-      (SELECT string_agg(to_jsonb(m)::text,'' ORDER BY run_id) FROM ask.model_explanation m WHERE run_id=ANY($1::uuid[]))) AS rows`,
+      (SELECT string_agg(to_jsonb(d)::text,'' ORDER BY run_id) FROM ask.decision_receipt d WHERE run_id=ANY($1::uuid[]))) AS rows`,
           [historical],
         );
       const before = await digest();
@@ -389,11 +419,12 @@ test('one private exported trace covers native combined runs, confirmation, reco
         await db.query<{ graph_version: string }>(
           'SELECT DISTINCT graph_version FROM ask.graph_checkpoint ORDER BY graph_version',
         ),
-      ).toEqual([
-        { graph_version: 'intent-routing-v1' },
-        { graph_version: 'price-explanation-v1' },
-        { graph_version: 'price-v1' },
-      ]);
+      ).toEqual([{ graph_version: 'intent-routing-v1' }, { graph_version: 'price-v1' }]);
+      expect(
+        await db.query<{ version: string }>(
+          "SELECT version FROM schema_migrations WHERE version='6010_ask_anthropic_direct'",
+        ),
+      ).toEqual([{ version: '6010_ask_anthropic_direct' }]);
       const oldPaused = await read(oldRouted.id);
       if (oldPaused.basis !== 'routed-text-v1' || !oldPaused.decision)
         throw new Error('Expected old pause.');
@@ -413,7 +444,18 @@ test('one private exported trace covers native combined runs, confirmation, reco
       await command(['start', 'worker']);
       expect(await wait(oldRouted.id, 'completed')).toMatchObject({
         basis: 'routed-text-v1',
+        decision: oldPause.decision,
         result: { minorUnits: 785000 },
+      });
+      // The retained single-purpose explanation mode still runs, now on the direct route.
+      const explained = await create('text-price-explanation-v1');
+      expect(await wait(explained.id, 'completed')).toMatchObject({
+        basis: 'text-price-explanation-v1',
+        explanation: {
+          model: 'claude-haiku-5-5',
+          route: 'anthropic-direct',
+          privacyEvidenceId: null,
+        },
       });
       const native: Array<{ id: string; trace: string }> = [];
       for (const locale of ['en', 'pt-BR'] as const) {
@@ -425,8 +467,15 @@ test('one private exported trace covers native combined runs, confirmation, reco
         native.push(created);
         const completed = combined(await wait(created.id, 'completed'));
         expect(completed).toMatchObject({
+          decision: { source: 'claude-haiku-v1', degraded: false, privacyEvidenceId: null },
           result: { minorUnits: 1154412, inputs },
-          explanation: { authorship: 'model-written', locale },
+          explanation: {
+            authorship: 'model-written',
+            locale,
+            model: 'claude-haiku-5-5',
+            route: 'anthropic-direct',
+            privacyEvidenceId: null,
+          },
         });
         expect(completed.explanation?.text).not.toContain('rei-private-query-sentinel');
         const stream = await requestHttp(`${api}/api/v1/runs/${created.id}/events`, {
@@ -469,9 +518,7 @@ test('one private exported trace covers native combined runs, confirmation, reco
         explanation: { authorship: 'model-written' },
       });
       expect(await (await requestHttp(`${ai}/fixture/attempts`)).json()).toEqual({
-        decisionProbes: 0,
         decisions: 0,
-        probes: 1,
         generations: 1,
       });
       const unavailable = await create('routed-text-explanation-v1', 'en', ' listing search');
@@ -544,7 +591,7 @@ test('one private exported trace covers native combined runs, confirmation, reco
           'SELECT sum(max_output_tokens)::integer AS total,count(*)::integer AS count FROM ask.model_attempt WHERE run_id=$1',
           [recovery.id],
         );
-      expect(await budget()).toEqual([{ total: 240, count: 2 }]);
+      expect(await budget()).toEqual([{ total: 224, count: 1 }]);
       await db.query(
         'DROP TRIGGER fixture_reject_accepted_checkpoint ON ask.graph_checkpoint; DROP FUNCTION ask.fixture_reject_accepted_checkpoint()',
       );
@@ -583,8 +630,8 @@ test('one private exported trace covers native combined runs, confirmation, reco
             operation: 'reserve',
             attemptKey: secret(),
             purpose: 'explanation',
-            model: 'anthropic/claude-haiku-5.5',
-            route: 'vercel-ai-gateway',
+            model: 'claude-haiku-5-5',
+            route: 'anthropic-direct',
             maxOutputTokens: 224,
           },
         },
@@ -600,11 +647,9 @@ test('one private exported trace covers native combined runs, confirmation, reco
         throw new Error('Expected recovered explanation.');
       expect(recovered.explanation).toEqual(accepted[0]!.document);
       expect(recovered.receipt.executionId).toBe(replacement.executionId);
-      expect(await budget()).toEqual([{ total: 240, count: 2 }]);
+      expect(await budget()).toEqual([{ total: 224, count: 1 }]);
       expect(await (await requestHttp(`${ai}/fixture/attempts`)).json()).toEqual({
-        decisionProbes: 0,
         decisions: 0,
-        probes: 0,
         generations: 0,
       });
       const complete = (executionId: string) =>
@@ -683,8 +728,8 @@ test('one private exported trace covers native combined runs, confirmation, reco
                     operation: 'reserve',
                     attemptKey: secret(),
                     purpose: 'explanation',
-                    model: 'anthropic/claude-haiku-5.5',
-                    route: 'vercel-ai-gateway',
+                    model: 'claude-haiku-5-5',
+                    route: 'anthropic-direct',
                     maxOutputTokens: 224,
                   },
           },
@@ -753,7 +798,7 @@ test('one private exported trace covers native combined runs, confirmation, reco
             span.attrs['rei.ask.outcome'] === 'price-calculated',
         )?.attrs['rei.ask.queue_duration_ms'],
       ).toBe(0);
-      expect(lowSpans.filter((span) => span.name === 'ask.decision.attempt')).toHaveLength(2);
+      expect(lowSpans.filter((span) => span.name === 'ask.decision.attempt')).toHaveLength(1);
       expect(
         lowSpans.some(
           (span) =>
@@ -786,6 +831,20 @@ test('one private exported trace covers native combined runs, confirmation, reco
             span.trace === recovery.trace && span.name === 'ask.checkpoint' && span.status === 2,
         ),
       ).toBe(true);
+      // The resumed gateway-era run exports its retained decision source and no provider attempt.
+      expect(
+        exported.some(
+          (span) =>
+            span.name === 'ask.graph.confidenceGate' &&
+            span.attrs['rei.ask.run_id'] === oldRouted.id &&
+            span.attrs['rei.ask.confirmed'] === true &&
+            span.attrs['rei.ask.decision_source'] === 'gateway-jev-v1',
+        ),
+      ).toBe(true);
+      // No exported value names the retired gateway route, models or probe purpose.
+      for (const span of exported)
+        for (const value of Object.values(span.attrs))
+          expect(String(value)).not.toMatch(/vercel|typesafe-ai|deepseek|privacy-probe/);
       const serialized = JSON.stringify(payload);
       for (const sentinel of sentinels) expect(serialized.includes(sentinel)).toBe(false);
       for (const value of [

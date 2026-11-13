@@ -157,8 +157,9 @@ execution retains `fixedDecision → priceTool`. Text snapshots use `basis: "tex
 decision `source: "validated-text-v1"`. The validation node is not a model decision or confidence
 claim. A thread containing both kinds reports `basis: "mixed-price-v1"`; each run keeps its own
 basis. Both branches share the same fixed Market tool, fenced grants, receipt, durable SSE and
-authorization. Prepared examples stay separate and non-live. Jev, confidence gates, explanations,
-editable confirmations and UI are not part of text admission. Demo quotas apply to text admission.
+authorization. Prepared examples stay separate and non-live. Model classification, confidence
+gates, explanations, editable confirmations and UI are not part of text admission. Demo quotas
+apply to text admission.
 
 ### Durable execution
 

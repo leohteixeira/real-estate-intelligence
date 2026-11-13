@@ -202,7 +202,7 @@ try {
         const explanation = await page.locator('.ask-live .ask-explanation').textContent();
         if (
           !explanation?.includes('Explanation, written by a model') ||
-          !explanation.includes('vercel-ai-gateway')
+          !explanation.includes('anthropic-direct')
         )
           throw new Error('Accepted real model explanation/provenance is absent.');
       } else {

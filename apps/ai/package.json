@@ -12,7 +12,7 @@
     "probe:intent": "node scripts/probe-intent-decision.ts"
   },
   "dependencies": {
-    "@ai-sdk/gateway": "4.0.94",
+    "@anthropic-ai/sdk": "0.132.1",
     "@langchain/core": "1.2.17",
     "@langchain/langgraph": "1.4.21",
     "@langchain/langgraph-checkpoint": "1.1.6",
@@ -28,13 +28,11 @@
     "@opentelemetry/sdk-trace-base": "2.10.0",
     "@rei/contracts": "workspace:*",
     "@rei/domain": "workspace:*",
-    "ai": "7.0.137",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@anthropic-ai/sdk": "0.132.1",
     "@nestjs/cli": "12.0.8",
     "@nestjs/schematics": "12.0.6",
     "@nestjs/testing": "12.1.2",

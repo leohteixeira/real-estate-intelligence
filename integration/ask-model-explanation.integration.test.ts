@@ -12,6 +12,7 @@ import {
   parseExplainedAskAccepted,
   parseExplainedAskRefused,
   parseExplainedExecutionEvidence,
+  parseModelExplanation,
   parseModelExplanationResponse,
   parseStructuredExecutionEvidence,
   parsePriceToolReceipt,
@@ -28,7 +29,7 @@ import {
   PostgresGraphCheckpointRepository,
 } from '../packages/infrastructure/dist/index.js';
 import { explanationFacts, AskRunRequested } from '../packages/domain/dist/index.js';
-import { PricePerSquareMeterService } from '../packages/application/dist/index.js';
+import { AskRunService, PricePerSquareMeterService } from '../packages/application/dist/index.js';
 import { compilePriceGraph } from '../apps/ai/dist/graph/price-per-square-meter.graph.js';
 import {
   durablePriceInput,
@@ -68,7 +69,7 @@ async function restartOwnedModelProcess(context: FixtureContext) {
 async function expectNoModelCalls(context: FixtureContext) {
   const response = await requestHttp(`${context.ai}/fixture/model-attempts`);
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ probes: 0, generations: 0 });
+  expect(await response.json()).toEqual({ generations: 0 });
 }
 async function owned(
   scenario: string,
@@ -96,7 +97,7 @@ async function owned(
     MINIO_ROOT_USER: 'rei_model',
     MINIO_ROOT_PASSWORD: secret(),
     AI_INTERNAL_TOKEN: token,
-    AI_GATEWAY_API_KEY: '',
+    ANTHROPIC_API_KEY: '',
     ASK_DISPATCH_SECRET: dispatch,
     SNAPSHOT_ENCRYPTION_KEY_ID: 'model-fixture-v1',
     SNAPSHOT_ENCRYPTION_KEY_BASE64: randomBytes(32).toString('base64'),
@@ -272,7 +273,7 @@ async function claim(context: FixtureContext, runId: string): Promise<ExplainedE
     throw new Error('Explained claim required.');
   return result.input;
 }
-test.each(['approved', 'fallback', 'invented', 'privacy', 'authentication', 'usage'] as const)(
+test.each(['approved', 'retry', 'invented', 'refusal', 'authentication', 'usage'] as const)(
   'real PG/API/worker/AI explained campaign: %s',
   async (scenario) =>
     owned(scenario, async (context) => {
@@ -327,7 +328,7 @@ test.each(['approved', 'fallback', 'invented', 'privacy', 'authentication', 'usa
         await vi.waitFor(
           async () =>
             expect((await snapshot(context, accepted.runId)).state).toBe(
-              ['approved', 'fallback'].includes(scenario) ? 'completed' : 'failed',
+              ['approved', 'retry'].includes(scenario) ? 'completed' : 'failed',
             ),
           { timeout: 30000, interval: 100 },
         );
@@ -338,11 +339,18 @@ test.each(['approved', 'fallback', 'invented', 'privacy', 'authentication', 'usa
           [run.id],
         );
         expect(attempts[0]!.total).toBeLessThanOrEqual(1000);
-        expect(attempts[0]).toEqual({
-          total:
-            scenario === 'fallback' ? 256 : ['approved', 'invented'].includes(scenario) ? 240 : 16,
-          count: scenario === 'fallback' ? 3 : ['approved', 'invented'].includes(scenario) ? 2 : 1,
-        });
+        // One 224-token reservation per provider request; only a transient failure adds a second.
+        expect(attempts[0]).toEqual(
+          scenario === 'retry' ? { total: 448, count: 2 } : { total: 224, count: 1 },
+        );
+        expect(
+          await context.database.query<{ route: string; model: string; purpose: string }>(
+            "SELECT DISTINCT document->>'route' AS route,document->>'model' AS model,document->>'purpose' AS purpose FROM ask.model_attempt WHERE run_id=$1",
+            [run.id],
+          ),
+        ).toEqual([
+          { route: 'anthropic-direct', model: 'claude-haiku-5-5', purpose: 'explanation' },
+        ]);
         const receipts = await context.database.query<{ document: unknown }>(
           'SELECT document FROM ask.tool_receipt WHERE run_id=$1',
           [run.id],
@@ -369,11 +377,11 @@ test.each(['approved', 'fallback', 'invented', 'privacy', 'authentication', 'usa
           expect(run.result?.minorUnits).toBe(1154412);
           expect(artifacts).toEqual([{ document: run.explanation }]);
           expect(run.explanation?.authorship).toBe('model-written');
-          expect(run.explanation?.model).toBe(
-            scenario === 'fallback'
-              ? 'deepseek/deepseek-v4-flash-0731'
-              : 'anthropic/claude-haiku-5.5',
-          );
+          expect(run.explanation).toMatchObject({
+            model: 'claude-haiku-5-5',
+            route: 'anthropic-direct',
+            privacyEvidenceId: null,
+          });
           expect(run.explanation?.text).toBe(
             [...explanationFacts(receipt, run.locale)].reverse().join(' '),
           );
@@ -418,7 +426,11 @@ test('real concurrent SQL reservations preserve 1,000-token budget across reclai
   owned('approved', async (context) => {
     const created = await create(context),
       input = await claim(context, created.accepted.runId);
-    const reserve = (request: ExplainedExecutionRequest, maxOutputTokens = 200) =>
+    const reserve = (
+      request: ExplainedExecutionRequest,
+      maxOutputTokens = 200,
+      provider: Record<string, string> = {},
+    ) =>
       requestHttp(`${context.api}/api/v1/internal/ask/runs/${request.runId}/model-explanation`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${request.checkpointGrant}` },
@@ -431,11 +443,28 @@ test('real concurrent SQL reservations preserve 1,000-token budget across reclai
           operation: 'reserve',
           attemptKey: secret(),
           purpose: 'explanation',
-          model: 'anthropic/claude-haiku-5.5',
-          route: 'vercel-ai-gateway',
+          model: 'claude-haiku-5-5',
+          route: 'anthropic-direct',
           maxOutputTokens,
+          ...provider,
         },
       });
+    // The retired gateway vocabulary and mixed shapes can no longer reserve budget.
+    const retired: Record<string, string>[] = [
+      { model: 'anthropic/claude-haiku-5.5', route: 'vercel-ai-gateway' },
+      { model: 'deepseek/deepseek-v4-flash-0731', route: 'vercel-ai-gateway' },
+      { purpose: 'privacy-probe', model: 'anthropic/claude-haiku-5.5', route: 'vercel-ai-gateway' },
+      { purpose: 'privacy-probe' },
+      { model: 'anthropic/claude-haiku-5.5' },
+      { route: 'vercel-ai-gateway' },
+    ];
+    for (const provider of retired) expect((await reserve(input, 16, provider)).status).toBe(400);
+    expect(
+      await context.database.query<{ count: number }>(
+        'SELECT count(*)::integer AS count FROM ask.model_attempt WHERE run_id=$1',
+        [input.runId],
+      ),
+    ).toEqual([{ count: 0 }]);
     const results = await Promise.all(Array.from({ length: 6 }, () => reserve(input)));
     expect(results.map((response) => response.status).sort()).toEqual([
       200, 200, 200, 200, 200, 400,
@@ -563,7 +592,7 @@ test('explained admission preserves three pending, SQL FIFO and honest queue exp
       ),
     ).toEqual([{ lifetime: 120 }, { lifetime: 120 }, { lifetime: 120 }]);
   }));
-test('real cancelled probe neither generates user facts nor retries or falls back', async () =>
+test('real cancelled request accepts no output and is not retried', async () =>
   owned('cancelled', async (context) => {
     const created = await create(context),
       input = await claim(context, created.accepted.runId);
@@ -592,7 +621,7 @@ test('real cancelled probe neither generates user facts nor retries or falls bac
         "SELECT document->>'model' AS model,document->>'purpose' AS purpose,max_output_tokens AS total FROM ask.model_attempt WHERE run_id=$1",
         [input.runId],
       ),
-    ).toEqual([{ model: 'anthropic/claude-haiku-5.5', purpose: 'privacy-probe', total: 16 }]);
+    ).toEqual([{ model: 'claude-haiku-5-5', purpose: 'explanation', total: 224 }]);
     expect(
       await context.database.query<{ count: number }>(
         'SELECT count(*)::integer AS count FROM ask.model_explanation WHERE run_id=$1',
@@ -601,7 +630,7 @@ test('real cancelled probe neither generates user facts nor retries or falls bac
     ).toEqual([{ count: 0 }]);
     expect((await snapshot(context, input.runId)).state).toBe('running');
   }));
-test('real caller cancellation during generation retains conservative spend without retry or fallback', async () =>
+test('real caller cancellation during generation retains conservative spend without retry', async () =>
   owned('wait-generation', async (context) => {
     const created = await create(context),
       input = await claim(context, created.accepted.runId),
@@ -622,14 +651,14 @@ test('real caller cancellation during generation retains conservative spend with
             'SELECT COALESCE(sum(max_output_tokens),0)::integer AS total,count(*)::integer AS count FROM ask.model_attempt WHERE run_id=$1',
             [input.runId],
           ),
-        ).toEqual([{ total: 240, count: 2 }]),
+        ).toEqual([{ total: 224, count: 1 }]),
       { timeout: 3000, interval: 25 },
     );
     await vi.waitFor(
       async () => {
         const response = await requestHttp(`${context.ai}/fixture/model-attempts`);
         expect(response.status).toBe(200);
-        expect(await response.json()).toEqual({ probes: 1, generations: 1 });
+        expect(await response.json()).toEqual({ generations: 1 });
       },
       { timeout: 3000, interval: 25 },
     );
@@ -640,10 +669,7 @@ test('real caller cancellation during generation retains conservative spend with
         "SELECT document->>'model' AS model,document->>'purpose' AS purpose FROM ask.model_attempt WHERE run_id=$1 ORDER BY created_at,id",
         [input.runId],
       ),
-    ).toEqual([
-      { model: 'anthropic/claude-haiku-5.5', purpose: 'privacy-probe' },
-      { model: 'anthropic/claude-haiku-5.5', purpose: 'explanation' },
-    ]);
+    ).toEqual([{ model: 'claude-haiku-5-5', purpose: 'explanation' }]);
     expect(
       await context.database.query<{ count: number }>(
         'SELECT count(*)::integer AS count FROM ask.model_explanation WHERE run_id=$1',
@@ -660,7 +686,7 @@ test('real caller cancellation during generation retains conservative spend with
         'SELECT sum(max_output_tokens)::integer AS total FROM ask.model_attempt WHERE run_id=$1',
         [input.runId],
       ),
-    ).toEqual([{ total: 240 }]);
+    ).toEqual([{ total: 224 }]);
   }));
 test('completed graph before terminal commit reuses accepted explanation on fresh claim and fences reservations', async () =>
   owned('approved', async (context) => {
@@ -716,8 +742,8 @@ test('completed graph before terminal commit reuses accepted explanation on fres
           operation: 'reserve',
           attemptKey: secret(),
           purpose: 'explanation',
-          model: 'anthropic/claude-haiku-5.5',
-          route: 'vercel-ai-gateway',
+          model: 'claude-haiku-5-5',
+          route: 'anthropic-direct',
           maxOutputTokens: 1000,
         },
       },
@@ -797,7 +823,7 @@ test('accepted artifact survives a real PostgreSQL checkpoint ACK failure and fr
       'SELECT sum(max_output_tokens)::integer AS total,count(*)::integer AS count FROM ask.model_attempt WHERE run_id=$1',
       [input.runId],
     );
-    expect(budget).toEqual([{ total: 240, count: 2 }]);
+    expect(budget).toEqual([{ total: 224, count: 1 }]);
     await context.database.query(
       'DROP TRIGGER fixture_reject_accepted_checkpoint ON ask.graph_checkpoint; DROP FUNCTION ask.fixture_reject_accepted_checkpoint()',
     );
@@ -1148,6 +1174,365 @@ test('genuine populated pre-6005 graph bytes survive upgrade, old recovery and a
       before = await digest(database);
       expect(before[0]!.checkpoints).toMatch(/^[a-f0-9]{32}$/);
       expect(before[0]!.pending).toMatch(/^[a-f0-9]{32}$/);
+    },
+  );
+});
+
+test('gateway-era evidence written before 6010 survives the direct-provider migration and stays readable beside direct runs', async () => {
+  const upgrade = '6010_ask_anthropic_direct';
+  let historical: { runId: string; threadId: string; document: unknown } | undefined;
+  let before: unknown;
+  // Every retained byte of the historical run, in the tables whose predicates 6010 rewrites.
+  const retained = (database: DatabaseConnection, runId: string) =>
+    database.query<{ run: unknown; events: unknown; attempts: unknown; explanation: unknown }>(
+      `SELECT (SELECT to_jsonb(r) - 'updated_at' FROM ask.run r WHERE r.id=$1) AS run,
+        (SELECT jsonb_agg(e.document ORDER BY e.sequence) FROM ask.run_event e WHERE e.run_id=$1) AS events,
+        (SELECT jsonb_agg(to_jsonb(a) ORDER BY a.created_at,a.id) FROM ask.model_attempt a WHERE a.run_id=$1) AS attempts,
+        (SELECT to_jsonb(m) FROM ask.model_explanation m WHERE m.run_id=$1) AS explanation`,
+      [runId],
+    );
+  await owned(
+    'approved',
+    async (context) => {
+      if (!historical) throw new Error('Historical gateway run required.');
+      const headers = { Authorization: `Bearer ${context.capability}` };
+      expect(
+        await context.database.query<{ version: string }>(
+          'SELECT version FROM schema_migrations WHERE version=$1',
+          [upgrade],
+        ),
+      ).toEqual([{ version: upgrade }]);
+      // The migration revalidated these rows under the widened predicates and rewrote nothing.
+      expect(await retained(context.database, historical.runId)).toEqual(before);
+      const old = await snapshot(context, historical.runId);
+      expect(old).toEqual(historical.document);
+      if (old.basis !== 'text-price-explanation-v1') throw new Error('Explained run required.');
+      expect(old.explanation).toMatchObject({
+        model: 'anthropic/claude-haiku-5.5',
+        route: 'vercel-ai-gateway',
+        privacyEvidenceId: 'historical-privacy-evidence-0001',
+      });
+      const stream = await requestHttp(`${context.api}/api/v1/runs/${old.id}/events`, { headers });
+      expect(stream.status).toBe(200);
+      const events = (await stream.text())
+        .split(/\r?\n\r?\n/)
+        .filter((part) => part.trim() && !part.startsWith(':'))
+        .map((part) =>
+          parseAskLiveEvent(
+            JSON.parse(
+              part
+                .split(/\r?\n/)
+                .find((line) => line.startsWith('data:'))!
+                .slice(5),
+            ),
+          ),
+        );
+      expect(events.at(-1)?.run).toEqual(old);
+      // A direct run in the same thread is written with the new vocabulary beside the old one.
+      const next = await create(context, 'en', historical.threadId);
+      await context.fixture.up(['worker']);
+      await vi.waitFor(
+        async () => expect((await snapshot(context, next.accepted.runId)).state).toBe('completed'),
+        { timeout: 30000, interval: 100 },
+      );
+      const direct = await snapshot(context, next.accepted.runId);
+      if (direct.basis !== 'text-price-explanation-v1') throw new Error('Explained run required.');
+      expect(direct.explanation).toMatchObject({
+        model: 'claude-haiku-5-5',
+        route: 'anthropic-direct',
+        privacyEvidenceId: null,
+      });
+      const thread = await requestHttp(`${context.api}/api/v1/threads/${historical.threadId}`, {
+        headers,
+      });
+      expect(thread.status).toBe(200);
+      expect(parseAskLiveThread(await thread.json()).runs.map((run) => run.id)).toEqual([
+        old.id,
+        direct.id,
+      ]);
+      expect(
+        await context.database.query<{
+          relation: string;
+          route: string;
+          model: string;
+          purpose: string | null;
+          evidence: string | null;
+        }>(
+          `SELECT 'attempt' AS relation,document->>'route' AS route,document->>'model' AS model,document->>'purpose' AS purpose,NULL AS evidence FROM ask.model_attempt
+           UNION ALL SELECT 'explanation',document->>'route',document->>'model',NULL,document->>'privacyEvidenceId' FROM ask.model_explanation
+           UNION ALL SELECT 'run',document->'explanation'->>'route',document->'explanation'->>'model',NULL,document->'explanation'->>'privacyEvidenceId' FROM ask.run
+           ORDER BY 1,2,4`,
+        ),
+      ).toEqual([
+        {
+          relation: 'attempt',
+          route: 'anthropic-direct',
+          model: 'claude-haiku-5-5',
+          purpose: 'explanation',
+          evidence: null,
+        },
+        {
+          relation: 'attempt',
+          route: 'vercel-ai-gateway',
+          model: 'anthropic/claude-haiku-5.5',
+          purpose: 'explanation',
+          evidence: null,
+        },
+        {
+          relation: 'attempt',
+          route: 'vercel-ai-gateway',
+          model: 'anthropic/claude-haiku-5.5',
+          purpose: 'privacy-probe',
+          evidence: null,
+        },
+        {
+          relation: 'explanation',
+          route: 'anthropic-direct',
+          model: 'claude-haiku-5-5',
+          purpose: null,
+          evidence: null,
+        },
+        {
+          relation: 'explanation',
+          route: 'vercel-ai-gateway',
+          model: 'anthropic/claude-haiku-5.5',
+          purpose: null,
+          evidence: 'historical-privacy-evidence-0001',
+        },
+        {
+          relation: 'run',
+          route: 'anthropic-direct',
+          model: 'claude-haiku-5-5',
+          purpose: null,
+          evidence: null,
+        },
+        {
+          relation: 'run',
+          route: 'vercel-ai-gateway',
+          model: 'anthropic/claude-haiku-5.5',
+          purpose: null,
+          evidence: 'historical-privacy-evidence-0001',
+        },
+      ]);
+      // With the immutability triggers out of the way, the CHECK predicates alone decide. Each
+      // statement runs in its own rolled-back transaction, so no retained byte changes.
+      const attempt = async (statement: string, parameters: unknown[]) => {
+        const client = await context.database.leaseClient();
+        try {
+          await client.query('BEGIN');
+          await client.query('SET LOCAL session_replication_role = replica');
+          await client.query(statement, parameters);
+        } finally {
+          await client.query('ROLLBACK');
+          client.release();
+        }
+      };
+      const patchEvidence = (relation: 'model_attempt' | 'model_explanation') =>
+        `UPDATE ask.${relation} SET document=document || $2::jsonb WHERE run_id=$1`;
+      const patchRun =
+        "UPDATE ask.run SET document=jsonb_set(document,'{explanation}',(document->'explanation') || $2::jsonb) WHERE id=$1";
+      // Control: an identity rewrite passes, so a refusal below comes from a predicate.
+      for (const runId of [old.id, direct.id]) {
+        await attempt(patchEvidence('model_attempt'), [runId, '{}']);
+        await attempt(patchEvidence('model_explanation'), [runId, '{}']);
+        await attempt(patchRun, [runId, '{}']);
+      }
+      for (const [statement, runId, patch] of [
+        [patchEvidence('model_attempt'), direct.id, { purpose: 'privacy-probe' }],
+        [patchEvidence('model_attempt'), direct.id, { model: 'anthropic/claude-haiku-5.5' }],
+        [patchEvidence('model_attempt'), direct.id, { route: 'another-route' }],
+        [patchEvidence('model_attempt'), old.id, { model: 'claude-haiku-5-5' }],
+        [
+          patchEvidence('model_explanation'),
+          direct.id,
+          { privacyEvidenceId: 'invented-evidence-1' },
+        ],
+        [patchEvidence('model_explanation'), direct.id, { model: 'anthropic/claude-haiku-5.5' }],
+        [patchEvidence('model_explanation'), old.id, { model: 'claude-haiku-5-5' }],
+        [patchEvidence('model_explanation'), old.id, { route: 'another-route' }],
+        [patchRun, direct.id, { privacyEvidenceId: 'invented-evidence-1' }],
+        [patchRun, direct.id, { model: 'anthropic/claude-haiku-5.5' }],
+        [patchRun, old.id, { route: 'another-route' }],
+      ] as const)
+        await expect(attempt(statement, [runId, JSON.stringify(patch)])).rejects.toThrow(
+          /check constraint/,
+        );
+      expect(await retained(context.database, historical.runId)).toEqual(before);
+    },
+    async (database, capability) => {
+      await database.query(
+        'CREATE TABLE schema_migrations(version text PRIMARY KEY,applied_at timestamptz NOT NULL DEFAULT now())',
+      );
+      const files = (await readdir(new URL('../migrations/', import.meta.url)))
+        .filter((file) => /^\d{4}_[a-z0-9_]+\.sql$/.test(file))
+        .sort();
+      expect(files).toContain(`${upgrade}.sql`);
+      for (const file of files.filter((file) => file < '6010')) {
+        const client = await database.leaseClient();
+        try {
+          await client.query('BEGIN');
+          await client.query(
+            await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'),
+          );
+          await client.query('INSERT INTO schema_migrations(version) VALUES($1)', [
+            file.replace(/\.sql$/, ''),
+          ]);
+          await client.query('COMMIT');
+        } catch (error) {
+          await client.query('ROLLBACK');
+          throw error;
+        } finally {
+          client.release();
+        }
+      }
+      // Admission, claim, tool receipt and terminal commit go through the real persistence code on
+      // the pre-6010 schema. Only the two model evidence inserts are issued here, because the
+      // current repository can no longer write the retired vocabulary; they are the repository's
+      // own statements with the gateway documents, under the live fences and 6009 predicates.
+      const market = new PricePerSquareMeterService();
+      const facade = new AskRunService(
+        new PostgresAskRunRepository(
+          database,
+          new PostgresTransactionRunner(database),
+          new PostgresOutbox(database),
+        ),
+        market,
+      );
+      const admitted = await facade.createText(
+        {
+          mode: 'text-price-explanation-v1',
+          threadId: null,
+          placeId: null,
+          locale: 'en',
+          query: 'What is the price per square meter for BRL 785,000.00 and 68 square meters?',
+        },
+        capability,
+        secret(),
+        { visitorDigest: 'a'.repeat(64) },
+      );
+      if (admitted.kind !== 'accepted') throw new Error('Expected historical admission.');
+      const run = admitted.run;
+      const event = (
+        await database.query<{ event_id: string }>(
+          'SELECT requested_event_id::text AS event_id FROM ask.run WHERE id=$1',
+          [run.id],
+        )
+      )[0]!;
+      const identity = {
+        version: 1 as const,
+        eventId: event.event_id,
+        runId: run.id,
+        threadId: run.threadId,
+      };
+      const claimed = await facade.claim(identity);
+      if (claimed.disposition !== 'claimed' || claimed.input.step !== 'text-price-explanation-v1')
+        throw new Error('Expected historical explained claim.');
+      const input = claimed.input;
+      const receipt = await facade.tool(
+        {
+          ...identity,
+          executionId: input.executionId,
+          operation: 'price-per-square-meter',
+          inputs: input.inputs,
+        },
+        input.toolGrant,
+        (at) => market.pricePerSquareMeter(input.inputs, at),
+      );
+      const reserve = async (purpose: 'privacy-probe' | 'explanation', maxOutputTokens: number) => {
+        const row = (
+          await database.query<{ id: string; total: number }>(
+            'SELECT uuidv7()::text AS id,(SELECT COALESCE(sum(max_output_tokens),0)::integer FROM ask.model_attempt WHERE run_id=$1)+$2::integer AS total',
+            [run.id, maxOutputTokens],
+          )
+        )[0]!;
+        const response = parseModelExplanationResponse({
+          operation: 'reserve',
+          reservation: {
+            reservationId: row.id,
+            attemptKey: secret(),
+            purpose,
+            model: 'anthropic/claude-haiku-5.5',
+            route: 'vercel-ai-gateway',
+            maxOutputTokens,
+            reservedTotal: row.total,
+          },
+        });
+        if (response.operation !== 'reserve') throw new Error('Expected reservation.');
+        await database.query(
+          'INSERT INTO ask.model_attempt(run_id,id,attempt_key,execution_id,max_output_tokens,document) VALUES ($1,$2,$3,$4,$5,$6)',
+          [
+            run.id,
+            response.reservation.reservationId,
+            response.reservation.attemptKey,
+            input.executionId,
+            maxOutputTokens,
+            response.reservation,
+          ],
+        );
+        return response.reservation;
+      };
+      await reserve('privacy-probe', 16);
+      const reservation = await reserve('explanation', 224);
+      const explanation = parseModelExplanation({
+        ...identity,
+        explanationId: reservation.reservationId,
+        toolReceiptId: receipt.receiptId,
+        reservationId: reservation.reservationId,
+        authorship: 'model-written',
+        promptVersion: 'price-explanation-prompt-v1',
+        grammarVersion: 'price-explanation-facts-v1',
+        locale: 'en',
+        text: explanationFacts(receipt, 'en').join(' '),
+        model: 'anthropic/claude-haiku-5.5',
+        route: 'vercel-ai-gateway',
+        privacyEvidenceId: 'historical-privacy-evidence-0001',
+        outputTokens: 64,
+        acceptedAt: new Date().toISOString(),
+      });
+      await database.query(
+        'INSERT INTO ask.model_explanation(run_id,id,tool_receipt_id,reservation_id,document) VALUES ($1,$2,$3,$4,$5)',
+        [
+          run.id,
+          explanation.explanationId,
+          receipt.receiptId,
+          reservation.reservationId,
+          explanation,
+        ],
+      );
+      // The 6009 predicates still refuse the direct vocabulary: this is the pre-upgrade schema.
+      await expect(
+        database.query(
+          'INSERT INTO ask.model_attempt(run_id,id,attempt_key,execution_id,max_output_tokens,document) VALUES ($1,uuidv7(),$2,$3,16,$4)',
+          [
+            run.id,
+            secret(),
+            input.executionId,
+            { purpose: 'explanation', model: 'claude-haiku-5-5', route: 'anthropic-direct' },
+          ],
+        ),
+      ).rejects.toThrow();
+      const completed = await facade.complete({
+        ...identity,
+        executionId: input.executionId,
+        evidence: parseExplainedExecutionEvidence({
+          ...identity,
+          executionId: input.executionId,
+          step: 'text-price-explanation-v1',
+          outcome: 'price-calculated',
+          visitedNodes: ['validatedInputs', 'priceTool', 'modelExplanation'],
+          receipt,
+          explanation,
+        }),
+        failure: null,
+      });
+      expect(completed.state).toBe('completed');
+      historical = { runId: run.id, threadId: run.threadId, document: completed };
+      before = await retained(database, run.id);
+      expect(before).toEqual([
+        expect.objectContaining({
+          explanation: expect.objectContaining({ document: explanation }),
+        }),
+      ]);
     },
   );
 });

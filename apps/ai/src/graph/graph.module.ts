@@ -1,4 +1,8 @@
-import { GatewayIntentDecider, INTENT_DECIDER, type IntentDecider } from '../models/intent-decider';
+import {
+  AnthropicIntentDecider,
+  INTENT_DECIDER,
+  type IntentDecider,
+} from '../models/intent-decider';
 import { ResilientIntentDecider } from '../models/resilient-intent-decider';
 import { AiDependencyPolicyTelemetry } from '../shared/ai-policy.telemetry';
 import { HttpIntentDecisionAdapter } from '../models/http-intent-decision.adapter';
@@ -14,7 +18,7 @@ import { readConfig } from '../config';
 import { PRICE_TOOL, type PricePerSquareMeterTool } from '../tools/price-per-square-meter.port';
 import { ToolsModule } from '../tools/tools.module';
 import { LANGUAGE_MODEL, type LanguageModel } from '../models/language-model.port';
-import { GatewayLanguageModelAdapter } from '../models/gateway-language-model.adapter';
+import { AnthropicLanguageModelAdapter } from '../models/anthropic-language-model.adapter';
 import { ReceiptModelExplainer } from '../models/receipt-model-explainer';
 import { HttpModelExplanationAdapter } from '../models/http-model-explanation.adapter';
 import { ModelExplanationFailure } from '../models/language-model.port';
@@ -29,11 +33,13 @@ import { ModelPolicyTelemetry } from '../models/model-telemetry';
     {
       provide: INTENT_DECIDER,
       useFactory: () =>
-        new ResilientIntentDecider(new GatewayIntentDecider(readConfig(process.env).gatewayApiKey)),
+        new ResilientIntentDecider(
+          new AnthropicIntentDecider(readConfig(process.env).anthropicApiKey),
+        ),
     },
     {
       provide: LANGUAGE_MODEL,
-      useFactory: () => new GatewayLanguageModelAdapter(readConfig(process.env).gatewayApiKey),
+      useFactory: () => new AnthropicLanguageModelAdapter(readConfig(process.env).anthropicApiKey),
     },
     {
       provide: PRICE_GRAPH,

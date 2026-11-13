@@ -1,78 +1,86 @@
 import '../../apps/ai/node_modules/reflect-metadata/Reflect.js';
 import { Test } from '../../apps/ai/node_modules/@nestjs/testing/index.js';
 import type { NestExpressApplication } from '../../apps/ai/node_modules/@nestjs/platform-express/index.js';
-import { createGateway } from '../../apps/ai/node_modules/@ai-sdk/gateway/dist/index.js';
-import { experimental_decide as decide } from '../../apps/ai/node_modules/ai/dist/index.js';
 import { AppModule } from '../../apps/ai/dist/app.module.js';
-import { INTENT_DECIDER, GatewayIntentDecider } from '../../apps/ai/dist/models/intent-decider.js';
+import {
+  INTENT_DECIDER,
+  AnthropicIntentDecider,
+  type IntentDecider,
+} from '../../apps/ai/dist/models/intent-decider.js';
 import {
   LANGUAGE_MODEL,
   type LanguageModel,
 } from '../../apps/ai/dist/models/language-model.port.js';
-import { askIntents } from '../../packages/contracts/dist/index.js';
+import { askIntents, parseIntentDecision } from '../../packages/contracts/dist/index.js';
 import { configureExecutionHttp } from '../../apps/ai/dist/execution/execution.http.js';
 import { readConfig } from '../../apps/ai/dist/config.js';
-const attempts = { decisionProbes: 0, decisions: 0, probes: 0, generations: 0 };
-const metadata = {
-  gateway: {
-    routing: {
-      planningReasoning:
-        'ZDR requested: 1 attempts → 1 ZDR attempts. ZDR execution order: anthropic(system)',
-    },
+const attempts = { decisions: 0, generations: 0 };
+// The real adapter and the real pinned SDK; only the SDK's documented fetch option is replaced.
+const provider = new AnthropicIntentDecider(
+  'rei-private-provider-key-sentinel',
+  async (_url, init) => {
+    const body: unknown = JSON.parse(String(init?.body));
+    const message =
+      typeof body === 'object' &&
+      body !== null &&
+      'messages' in body &&
+      Array.isArray(body.messages)
+        ? (body.messages as unknown[])[0]
+        : undefined;
+    if (
+      typeof message !== 'object' ||
+      message === null ||
+      !('content' in message) ||
+      typeof message.content !== 'string'
+    )
+      throw new Error('Invalid fixture request.');
+    attempts.decisions++;
+    const intent = message.content.includes('listing search')
+      ? 'listing_search'
+      : 'price_per_square_meter';
+    const probability = message.content.includes('uncertain') ? 0.84 : 0.85;
+    return Response.json({
+      id: 'msg_trace_fixture',
+      type: 'message',
+      role: 'assistant',
+      model: 'claude-haiku-5-5',
+      content: [{ type: 'text', text: JSON.stringify({ intent, probability }) }],
+      stop_reason: 'end_turn',
+      stop_sequence: null,
+      usage: { input_tokens: 320, output_tokens: 18 },
+      fixturePrivateMetadata: { text: 'rei-private-provider-response-sentinel' },
+    });
   },
-  fixturePrivateMetadata: { text: 'rei-private-provider-response-sentinel' },
-};
-const decider = new GatewayIntentDecider('rei-private-provider-key-sentinel', decide, (options) =>
-  createGateway({
-    ...options,
-    fetch: async (_url, init) => {
-      const body: unknown = JSON.parse(String(init?.body));
-      if (
-        typeof body !== 'object' ||
-        body === null ||
-        !('state' in body) ||
-        typeof body.state !== 'string'
-      )
-        throw new Error('Invalid fixture request.');
-      const probe = body.state.startsWith('Public privacy capability probe:');
-      if (probe) attempts.decisionProbes++;
-      else attempts.decisions++;
-      const intent = body.state.includes('listing search')
-        ? 'listing_search'
-        : 'price_per_square_meter';
-      const probability = body.state.includes('uncertain') ? 0.84 : 0.85;
-      return Response.json({
-        answers: {
-          intent: {
-            type: 'choice',
-            choice: intent,
-            probabilities: Object.fromEntries(
-              askIntents.map((label) => [
-                label,
-                label === intent ? probability : (1 - probability) / 5,
-              ]),
-            ),
-          },
-        },
-        providerMetadata: metadata,
-        warnings: [],
-      });
-    },
-  }),
 );
+// A run paused before the provider change keeps its gateway-era decision. The marker lets the
+// upgrade test store such a decision through the real API before the direct-provider migration.
+const decider: IntentDecider = {
+  async decide(query, locale, signal, deadlineAt) {
+    if (!query.includes('rei-historical-gateway-decision'))
+      return provider.decide(query, locale, signal, deadlineAt);
+    signal.throwIfAborted();
+    return parseIntentDecision({
+      intent: 'price_per_square_meter',
+      probability: 0.84,
+      probabilities: Object.fromEntries(
+        askIntents.map((label) => [label, label === 'price_per_square_meter' ? 0.84 : 0.032]),
+      ),
+      source: 'gateway-jev-v1',
+      degraded: false,
+      taxonomyVersion: 'ask-intents-v1',
+      privacyEvidenceId: 'historical-gateway-evidence-0001',
+    });
+  },
+};
 const scripted: LanguageModel = {
   async generate(request, signal) {
     signal.throwIfAborted();
-    const probe = request.prompt === 'Return the single public word: ready.';
-    if (probe) attempts.probes++;
-    else attempts.generations++;
+    attempts.generations++;
     return {
-      text: probe ? 'ready' : request.prompt.split('\n').slice(-3).reverse().join(' '),
-      outputTokens: probe ? 1 : 64,
+      text: request.prompt.split('\n').slice(-3).reverse().join(' '),
+      outputTokens: 64,
       model: request.model,
       route: request.route,
-      warnings: [],
-      metadata,
     };
   },
 };
