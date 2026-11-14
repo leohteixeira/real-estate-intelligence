@@ -19,7 +19,7 @@ import {
   type AskState,
 } from '../packages/contracts/dist/index.js';
 import { DatabaseConnection } from '../packages/infrastructure/dist/index.js';
-import { allocatePorts, ComposeFixture, preserveCleanup } from './support/fixture.ts';
+import { preserveCleanup } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 import { allowOwnedEndpoint, finishNetwork, guardNetwork } from './support/network.ts';
 import {
@@ -30,6 +30,7 @@ import {
 import { runAskCampaign } from './support/ask-campaign.ts';
 import { runAskAttempt } from './support/ask-attempt.ts';
 import { checkAccessibility } from './support/accessibility.ts';
+import { accessibilityStack } from './support/accessibility-stack.ts';
 import { settlePropertyCaptureStart } from './support/property-capture.ts';
 import {
   readProperty,
@@ -44,6 +45,7 @@ import {
   preparedListingId,
 } from './support/listing-reads.ts';
 import { readSearch, checkSearchRows, searchParameters } from './support/search-reads.ts';
+import { privacySourceName } from './support/privacy-reads.ts';
 import { holdAccessibilityRead } from './support/accessibility-fault.ts';
 import {
   accessibilityBoundaries,
@@ -76,6 +78,10 @@ import { accessibilitySteps, type AccessibilityCheckpoint } from './support/acce
 
 const placeId = 'sao-paulo-bela-vista';
 describe('accessibility owned production partition:', () => {
+  // Every partition is read-only by its own SQL readback, so this worker's partitions share one
+  // owned stack; each still opens a fresh browser profile and database connection.
+  const stack = accessibilityStack();
+  afterAll(() => stack.release());
   async function runAccessibilityPartition(
     partition: string,
     checkpoint: AccessibilityCheckpoint = async (_name, work) => work(),
@@ -134,19 +140,19 @@ describe('accessibility owned production partition:', () => {
       `Feature: Delivered MVP accessibility\n\n${accessibilityScenarios.map((scenario) => `  Scenario: ${scenario.id} ${scenario.title}\n    Given ${scenario.given}\n    When ${scenario.when}\n    Then ${scenario.then}\n`).join('\n')}`,
       { flag: 'wx' },
     );
-    const project = `rei-web-accessibility-${randomUUID()}`;
+    const project = stack.project;
     const campaign = {
       runId,
       partition,
       project,
+      stack: { sharedAcrossPartitions: true, teardownReceipt: stack.receipt },
       status: 'running',
       startedUtc: new Date().toISOString(),
       stackTornDownUtc: null as string | null,
       scope: 'D-070 delivered anonymous MVP, no certification claim',
       boundaries: accessibilityBoundaries,
     };
-    let fixture: ComposeFixture | undefined,
-      context: BrowserContext | undefined,
+    let context: BrowserContext | undefined,
       page: Page | undefined,
       connection: DatabaseConnection | undefined;
     let foreign: Awaited<ReturnType<typeof askDockerInventory>> | undefined;
@@ -735,27 +741,10 @@ describe('accessibility owned production partition:', () => {
         try {
           await attempt('A11Y-006', 'setup', async () => {
             foreign = await askDockerInventory();
-            const [postgres, api, web] = await allocatePorts(3);
-            base = `http://127.0.0.1:${web}`;
+            const owned = await stack.acquire(runId);
+            base = owned.base;
             onOwnedBase(base);
-            const settings = {
-              NODE_ENV: 'test',
-              POSTGRES_DB: 'rei_accessibility',
-              POSTGRES_USER: 'rei_accessibility',
-              POSTGRES_PASSWORD: 'controlled-accessibility-fixture',
-              POSTGRES_PORT: String(postgres),
-              API_PORT: String(api),
-              WEB_PORT: String(web),
-              OTEL_EXPORTER_OTLP_ENDPOINT: '',
-              VITE_PRIVACY_CONTROLLER_NAME: '',
-              VITE_PRIVACY_CONTACT_EMAIL: '',
-            };
-            fixture = new ComposeFixture(project, settings, { preparedSearch: true });
-            await fixture.up(['--build', 'postgres', 'migrations', 'api', 'web']);
-            const database = new URL(`postgres://127.0.0.1:${postgres}/${settings.POSTGRES_DB}`);
-            database.username = settings.POSTGRES_USER;
-            database.password = settings.POSTGRES_PASSWORD;
-            connection = new DatabaseConnection(database.toString());
+            connection = new DatabaseConnection(owned.databaseUrl);
             before = await askDatabaseState(connection);
             version = await accessibilityVersion(project, base);
             await json('version.json', version);
@@ -1973,7 +1962,7 @@ describe('accessibility owned production partition:', () => {
                       await (await requestHttp(base + screen.api)).json(),
                     );
                     expect(await view.locator('.privacy-source h3').allTextContents()).toEqual(
-                      sources.sources.map((source) => source.displayLabel),
+                      sources.sources.map((source) => privacySourceName(source, locale)),
                     );
                     for (const [index, source] of sources.sources.entries())
                       expect(baseline[index]).toContain(source.sourceId);
@@ -2257,9 +2246,8 @@ describe('accessibility owned production partition:', () => {
           async () => context?.close(),
           async () => connection?.close(),
         ],
-        down: async () => {
-          if (fixture) await fixture.down();
-        },
+        // The stack outlives this partition; only the profile and connection above are owned here.
+        down: async () => undefined,
         verifyForeignResources: async () => {
           if (foreign) {
             const after = await askDockerInventory();
@@ -2268,7 +2256,14 @@ describe('accessibility owned production partition:', () => {
           }
         },
         report: async (receipt) => {
-          await json('teardown.json', { project, ...receipt });
+          // No removal is claimed here: the shared stack leaves its own receipt when it goes.
+          campaign.stackTornDownUtc = null;
+          await json('teardown.json', {
+            project,
+            partitionResourcesReleased: receipt.ownedResourcesRemoved,
+            foreignResourcesPreserved: receipt.foreignResourcesPreserved,
+            stackTeardownReceipt: stack.receipt,
+          });
           await json('campaign.json', campaign);
           const ledger = 'results/attempts.jsonl';
           manifest.push({
