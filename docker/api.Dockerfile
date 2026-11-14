@@ -20,7 +20,12 @@ RUN pnpm --filter "@rei/api..." build \
 FROM node:24.19.0-alpine AS runtime
 WORKDIR /app
 
-ENV NODE_ENV=production
+# The PostgreSQL pool may hold ten connection attempts, and each one can block a libuv thread in
+# getaddrinfo for the resolver timeout while the database host does not resolve. With the default
+# four threads every other lookup queues behind them, so readiness reported a reachable broker as
+# unavailable during a database outage. Keep this above the pool size in DatabaseConnection.
+ENV NODE_ENV=production \
+    UV_THREADPOOL_SIZE=16
 
 COPY --from=build /out ./
 
