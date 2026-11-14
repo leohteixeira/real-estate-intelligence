@@ -31,12 +31,21 @@ import {
   AskRunRequested,
   ASK_STRUCTURED_CONSUMER,
   ASK_RUN_REQUESTED_TYPE,
+  askExecutionBudget,
 } from '../packages/domain/dist/index.js';
 import { allocatePorts, ComposeFixture, preserveCleanup, cleanupAll } from './support/fixture.ts';
 import { requestHttp } from './support/http.ts';
 import { captureAskDiagnostics } from './support/ask-diagnostics.ts';
 
 const secret = () => randomBytes(32).toString('base64url');
+/**
+ * Longest a delivery can take to reach the dead-letter queue while the API stays unreachable: the
+ * attempt already executing ends within the claimed-work budget, then each of the four remaining
+ * deliveries waits the one-second redelivery delay and spends at most the five-second claim call.
+ * Where a stopped container refuses connections the queue fills in a few seconds; where its
+ * address only times out, every one of those waits runs to its end.
+ */
+const outageExhaustionMs = askExecutionBudget.claimedWorkMs + 4 * (1_000 + 5_000);
 const body: StructuredAskCreate = {
   mode: 'structured-price-v1',
   threadId: null,
@@ -379,7 +388,15 @@ test.each(['api', 'worker', 'ai'] as const)(
                     await vi.waitFor(
                       async () =>
                         expect((await channel.checkQueue(deadLetter)).messageCount).toBe(1),
-                      { timeout: 30000, interval: 100 },
+                      { timeout: outageExhaustionMs, interval: 100 },
+                    );
+                    process.stderr.write(
+                      `${JSON.stringify({
+                        checkpointOutage: {
+                          service,
+                          killToDeadLetterMs: Date.now() - restartStartedAt,
+                        },
+                      })}\n`,
                     );
                     const message = await channel.get(deadLetter, { noAck: false });
                     if (!message) throw new Error('Expected original bounded-outage message.');
