@@ -128,7 +128,7 @@ test('shared Placa components use parsed owned data and labelled edge cases in b
           )
           .toBe(200);
         const browser = await chromium.launch({
-          executablePath: '/usr/bin/chromium',
+          executablePath: chromium.executablePath(),
           chromiumSandbox: true,
         });
         await preserveCleanup(
