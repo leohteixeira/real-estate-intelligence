@@ -774,6 +774,35 @@ describe('collection dependency resilience', () => {
   });
 });
 
+describe('whole-call deadline timing', () => {
+  afterEach(() => vi.useRealTimers());
+  it('never reports exhaustion before the wall clock reaches the deadline', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+    // A timer due against stale event-loop time fires while the wall clock still shows budget.
+    let lag = 3;
+    const now = (): number => Date.now() - lag;
+    const wrapped = new ResilientRawSnapshotStore(
+      { store: async () => new Promise(() => undefined) },
+      rawSnapshotStoreResilienceSettings,
+      now,
+      () => 0,
+    );
+    const deadlineAt = now() + 100;
+    let settledAt: number | undefined;
+    const result = failureKind(wrapped.store(input, signal(), deadlineAt)).then((kind) => {
+      settledAt = now();
+      return kind;
+    });
+    lag = 5;
+    await vi.advanceTimersByTimeAsync(100);
+    expect(settledAt).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(2);
+    expect(await result).toBe('exhausted');
+    expect(settledAt).toBe(deadlineAt);
+  });
+});
+
 describe('shared page and photograph admission', () => {
   afterEach(() => vi.useRealTimers());
   it('charges photo attempts to the same per-source page limiter', async () => {
