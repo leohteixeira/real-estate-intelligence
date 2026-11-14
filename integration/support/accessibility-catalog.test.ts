@@ -155,7 +155,8 @@ test('the catalog covers seven operational families and preserves externally own
     '/search',
   ]);
   const nginx = await readFile(new URL('../../docker/web-nginx.conf', import.meta.url), 'utf8');
-  const rootHandler = /location\s*=\s*\/\s*\{([^}]+)\}/.exec(nginx)?.[1]?.trim();
+  // The image substitutes __PUBLIC_BASE__ at build time; `/` is the root-based fixture value.
+  const rootHandler = /location\s*=\s*__PUBLIC_BASE__\s*\{([^}]+)\}/.exec(nginx)?.[1]?.trim();
   expect(rootHandler).toBe(
     `return ${accessibilityEntryContract.root.status} ${accessibilityEntryContract.root.location};`,
   );

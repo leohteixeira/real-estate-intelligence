@@ -70,6 +70,10 @@ test('locations preserves its complete real-service campaign', async () => {
       if (Object.is(parser, parseReductionsResponse)) {
         expect(body.metadata.fixtureVersion).toBe('persisted-synthetic-reductions-v1');
         expect(body.metadata.dataMode).toBe('synthetic-stub');
+      } else if (Object.is(parser, parseSearchResponse)) {
+        // Search reads persisted Properties, so its metadata carries the live read time.
+        expect(body.metadata.fixtureVersion).toBe('persisted-synthetic-search-v1');
+        expect(body.metadata.dataMode).toBe('synthetic-stub');
       } else expect(body.metadata).toStrictEqual(SYNTHETIC_READ_METADATA);
       return body as ReturnType<T>;
     }

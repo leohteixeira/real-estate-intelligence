@@ -221,9 +221,13 @@ The session retains its latest snapshot, cursor and serialized frame. An exact l
 is suppressed; changed duplicates, older events, gaps and changed identity/evidence fail closed.
 The server's continuation contract is strictly after the cursor. Snapshot values are copies, and
 confirmation may legitimately transition back to queued. Only explicit completed, failed,
-cancelled or expired SSE envelopes make the session terminal. Premature EOF allows at most one
-automatic continuation; malformed envelopes are not retried. Reads and next-frame waits use the
-shared ten-second deadlines and bounded UTF-8/SSE framing. Refusals preserve their HTTP status in
+cancelled or expired SSE envelopes make the session terminal. A prepared stream allows at most
+one automatic continuation after premature EOF. A live stream continues from its cursor for as
+long as each connection shows life, meaning a newly admitted envelope or a server heartbeat
+comment, and gives up after two consecutive connections that showed none; malformed envelopes are
+not retried. Reads and next-frame waits use the shared ten-second deadlines and bounded UTF-8/SSE
+framing; a complete heartbeat comment renews the next-frame wait, an incomplete frame does not.
+Continuation and retry only read the admitted run. Refusals preserve their HTTP status in
 `ApiReadError` with a fixed safe message and validated request ID; response bodies are not exposed.
 
 The focused native command is `pnpm run test:integration:ask-headless` after workspace build and

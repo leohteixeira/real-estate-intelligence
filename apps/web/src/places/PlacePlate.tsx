@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { destinationPath } from '../shell/public-routes';
 import type { PublicDestination } from '../shell/public-routes';
 import type { ReactNode } from 'react';
+import { placeName } from './locale';
 
 export function PlacePlate({
   place,
@@ -14,9 +15,10 @@ export function PlacePlate({
   readonly destination?: PublicDestination;
   readonly children?: ReactNode;
 }) {
-  const { t } = useTranslation('place');
+  const { t, i18n } = useTranslation('place');
   const city = place.breadcrumbs.find((item) => item.kind === 'city');
   const zone = place.breadcrumbs.find((item) => item.kind === 'zone');
+  const plateCity = city ?? place.breadcrumbs.at(-1);
   const zoneKey = zone?.id.split('-').at(-1);
   return (
     <header className="shell place-head">
@@ -26,10 +28,12 @@ export function PlacePlate({
             .filter((crumb) => crumb.id !== place.id)
             .map((crumb) => (
               <li key={crumb.id}>
-                <Link to={destinationPath(destination, crumb.id)}>{crumb.name.ptBR}</Link>
+                <Link to={destinationPath(destination, crumb.id)}>
+                  {placeName(crumb.name, i18n.language)}
+                </Link>
               </li>
             ))}
-          <li aria-current="page">{place.name.ptBR}</li>
+          <li aria-current="page">{placeName(place.name, i18n.language)}</li>
         </ol>
       </nav>
       <div className="place-head__content">
@@ -38,12 +42,12 @@ export function PlacePlate({
         >
           <div className="plate__in">
             <div className="plate__over">
-              <span>{city?.name.ptBR ?? place.breadcrumbs.at(-1)?.name.ptBR}</span>
+              <span>{plateCity ? placeName(plateCity.name, i18n.language) : null}</span>
               <span>{t(place.kind)}</span>
             </div>
-            <h1 className="plate__name">{place.name.ptBR}</h1>
+            <h1 className="plate__name">{placeName(place.name, i18n.language)}</h1>
             <div className="plate__strip">
-              <span>{zone?.name.ptBR ?? t(place.kind)}</span>
+              <span>{zone ? placeName(zone.name, i18n.language) : t(place.kind)}</span>
               <span className="place-plate__synthetic">{t('synthetic')}</span>
             </div>
           </div>

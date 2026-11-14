@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { presentationUrl } from './presentation-url';
 export function PresentationRedirect() {
-  const destination = presentationUrl(window.location.hash);
+  const { i18n } = useTranslation();
+  const destination = presentationUrl(window.location.hash, i18n.language);
   useEffect(() => {
     window.location.replace(destination);
   }, [destination]);

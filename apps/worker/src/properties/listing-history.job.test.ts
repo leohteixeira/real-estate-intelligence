@@ -43,7 +43,7 @@ describe('ListingHistoryJob bounded cancellation', () => {
     );
     job.start();
     await vi.advanceTimersByTimeAsync(300);
-    expect(warn).toHaveBeenCalledWith('Listing history reconciliation failed');
+    expect(warn).toHaveBeenCalledWith('Listing history reconciliation failed (Error)');
     expect(execute).toHaveBeenCalledTimes(2);
     await job.stop();
     await expect(job.runCycle(new AbortController().signal)).resolves.toBeUndefined();

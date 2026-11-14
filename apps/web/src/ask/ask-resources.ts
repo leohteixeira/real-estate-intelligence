@@ -23,8 +23,11 @@ export const askPortuguese = {
   invalidOperands:
     'Informe preço positivo em BRL com até duas casas decimais e área positiva de até 1.000.000 m², sem separador de milhar.',
   confirmLive: 'Confirmar proposta e valores',
+  confirmIntent: 'Confirmar proposta',
+  proposalUnavailable:
+    'Esta demonstração calcula apenas preço por m². Se você confirmar, a execução registra a intenção e termina sem cálculo; não há valores para informar.',
   cancelLive: 'Cancelar execução ao vivo',
-  deadline: 'Prazo de confirmação (UTC)',
+  deadline: 'Confirme até',
   liveConfirmedInputs: 'Entradas aceitas na confirmação',
   liveConfirmedBoundary:
     'Confirmação explícita recebida do servidor. As entradas originais continuam preservadas.',
@@ -33,7 +36,10 @@ export const askPortuguese = {
   live_confirmation_expired:
     'O servidor encerrou a execução porque o prazo da confirmação expirou.',
   live_queue_expired: 'O servidor encerrou a execução porque o prazo da fila expirou.',
-  live_execution_unavailable: 'O servidor encerrou a execução sem um resultado disponível.',
+  live_execution_unavailable:
+    'O servidor encerrou esta execução sem resultado: ela não terminou a tempo ou um serviço necessário estava indisponível. Você pode enviar a pergunta de novo.',
+  liveMissingOperands:
+    'A pergunta foi interpretada como cálculo de preço por m², mas o servidor não encontrou nela um preço pedido em BRL e uma área em m². Nada foi calculado. Pergunte de novo com os dois valores, por exemplo: “R$ 785.000,00 e 68 m²”.',
   liveUnavailable: 'A intenção reconhecida não está disponível.',
   modelWritten: 'Explicação, escrita por um modelo',
   liveExplanationAbsent: 'Nenhuma explicação de modelo foi retornada para este estado.',
@@ -67,7 +73,6 @@ export const askPortuguese = {
   boundary: 'Acompanhe um exemplo preparado de execução.',
   medianLink: 'Ver a mediana do lugar',
   draftTitle: 'Rascunho da pergunta',
-  notExecuted: 'Apenas um rascunho. Esta pergunta não foi enviada nem executada.',
   draftPlaceholder: 'Escreva em inglês ou português',
   follow: 'Acompanhar o exemplo preparado',
   followHint: 'O exemplo tem sua própria pergunta. Acompanhar não envia seu rascunho.',
@@ -193,8 +198,11 @@ export const askEnglish: { readonly [K in keyof typeof askPortuguese]: string } 
   invalidOperands:
     'Enter a positive BRL price with up to two decimal places and a positive area up to 1,000,000 m², without thousands separators.',
   confirmLive: 'Confirm proposal and values',
+  confirmIntent: 'Confirm proposal',
+  proposalUnavailable:
+    'This demo calculates price per m² only. If you confirm, the run records the intent and ends without a calculation; there are no values to enter.',
   cancelLive: 'Cancel live run',
-  deadline: 'Confirmation deadline (UTC)',
+  deadline: 'Confirm by',
   liveConfirmedInputs: 'Accepted confirmation inputs',
   liveConfirmedBoundary:
     'Explicit confirmation received from the server. Original inputs remain preserved.',
@@ -202,7 +210,10 @@ export const askEnglish: { readonly [K in keyof typeof askPortuguese]: string } 
   live_visitor_cancelled: 'The server confirmed cancellation of this run.',
   live_confirmation_expired: 'The server ended the run because the confirmation deadline expired.',
   live_queue_expired: 'The server ended the run because the queue deadline expired.',
-  live_execution_unavailable: 'The server ended the run without an available result.',
+  live_execution_unavailable:
+    'The server ended this run without a result: it did not finish in time or a required service was unavailable. You can submit the question again.',
+  liveMissingOperands:
+    'The question was read as a price per m² calculation, but the server did not find both an asking price in BRL and an area in m² in it. Nothing was calculated. Ask again with both values, for example: “BRL 785,000.00 and 68 m²”.',
   liveUnavailable: 'The recognized intent is unavailable.',
   modelWritten: 'Explanation, written by a model',
   liveExplanationAbsent: 'No model explanation was returned for this state.',
@@ -234,7 +245,6 @@ export const askEnglish: { readonly [K in keyof typeof askPortuguese]: string } 
   boundary: 'Follow a prepared run example.',
   medianLink: 'View the place median',
   draftTitle: 'Question draft',
-  notExecuted: 'Draft only. This question has not been submitted or executed.',
   draftPlaceholder: 'Write in English or Portuguese',
   follow: 'Follow the prepared example',
   followHint: 'The example has its own question. Following does not submit your draft.',

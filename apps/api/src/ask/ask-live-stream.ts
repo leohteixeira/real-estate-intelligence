@@ -2,6 +2,11 @@ import type { MessageEvent } from '@nestjs/common';
 import type { AskLiveFacade } from '@rei/application';
 import { parseAskLiveEvent, type AskLiveEvent } from '@rei/contracts';
 import { Observable } from 'rxjs';
+/**
+ * A queued, running or paused run can stay silent for minutes. Without a periodic sign of life the
+ * client's next-frame deadline cannot tell a slow run from a dead connection.
+ */
+export const askLiveStreamSettings = Object.freeze({ heartbeatIntervalMs: 4_000 });
 /** One outstanding cancellable SQL read. Transport errors end transport without inventing history. */
 export function askLiveStream(
   live: AskLiveFacade,
@@ -10,10 +15,18 @@ export function askLiveStream(
   after: number,
   initial: readonly AskLiveEvent[],
   alreadyTerminal: boolean,
+  heartbeat?: () => void,
 ): Observable<MessageEvent> {
   return new Observable((subscriber) => {
     const controller = new AbortController();
     let timer: NodeJS.Timeout | undefined;
+    const beat = heartbeat
+      ? setInterval(() => {
+          if (!subscriber.closed) heartbeat();
+        }, askLiveStreamSettings.heartbeatIntervalMs)
+      : undefined;
+    // Completion and unsubscription both run this teardown.
+    subscriber.add(() => clearInterval(beat));
     let sequence = after;
     const emit = (frames: readonly AskLiveEvent[]): boolean => {
       for (const untrusted of frames) {

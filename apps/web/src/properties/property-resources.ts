@@ -34,7 +34,12 @@ export const propertyPortuguese = {
   neighborhoodUnavailable: 'Comparação com a mediana do bairro não disponível neste contrato.',
   unitNote: 'Localizado até o trecho de rua. Números de unidade nunca são exibidos.',
   history: 'Histórico do preço pedido',
+  minimumReduction: 'Menor preço pedido: {{previous}} → {{current}} ({{percentage}})',
+  minimumReductionBasis:
+    'É o menor preço pedido entre os anúncios deste imóvel. Ele também cai quando um anúncio mais barato aparece ou volta, sem que nenhum anúncio mude de preço.',
   changes: '{{count}} alterações de preço',
+  historyBasis:
+    'Alterações de preço de cada anúncio, na sua própria fonte. O preço pedido atual é o menor entre os anúncios ativos; a diferença entre fontes não é uma alteração de preço.',
   noChanges: 'Nenhuma alteração de preço informada.',
   changed: 'Preço alterado',
   firstSeen: 'Anunciado pela primeira vez',
@@ -157,7 +162,12 @@ export const propertyEnglish: Record<keyof typeof propertyPortuguese, string> = 
   neighborhoodUnavailable: 'Neighborhood median comparison is unavailable in this contract.',
   unitNote: 'Located to the street block. Unit numbers are never displayed.',
   history: 'Asking price history',
+  minimumReduction: 'Lowest asking price: {{previous}} → {{current}} ({{percentage}})',
+  minimumReductionBasis:
+    'This is the lowest asking price among this property’s listings. It also drops when a cheaper listing appears or returns, with no listing changing its price.',
   changes: '{{count}} price changes',
+  historyBasis:
+    'Price changes of each listing, in its own source. The current asking price is the lowest among active listings; a difference between sources is not a price change.',
   noChanges: 'No price changes reported.',
   changed: 'Price changed',
   firstSeen: 'First listed',

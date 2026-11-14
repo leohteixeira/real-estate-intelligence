@@ -15,6 +15,7 @@ import { isPlaceId, PlaceReadError } from '../places/place-client';
 import { LoadErrorState } from '../shared/SystemStates';
 import { PublicNavigation } from './PublicNavigation';
 import { defaultPlaceId, destinationPath, publicRoutes } from './public-routes';
+import { placeName } from '../places/locale';
 
 export function AppShell({ documentMode = false }: { readonly documentMode?: boolean }) {
   const { t, i18n } = useTranslation('shell');
@@ -71,10 +72,19 @@ export function AppShell({ documentMode = false }: { readonly documentMode?: boo
     ...placesQuery(),
     enabled: !documentMode && !detailMatch && (match === null || isPlaceId(match.params.placeId)),
   });
+  const screenTitle = documentMode
+    ? 'privacy'
+    : listingMatch
+      ? 'listingTitle'
+      : propertyMatch
+        ? 'propertyTitle'
+        : filtersOpen && destination === 'search'
+          ? 'filtersTitle'
+          : destination;
   useEffect(() => {
     document.documentElement.lang = i18n.language;
-    document.title = `${t(documentMode ? 'privacy' : destination)} · Real Estate Intelligence`;
-  }, [destination, documentMode, i18n.language, t]);
+    document.title = `${t(screenTitle)} · Real Estate Intelligence`;
+  }, [screenTitle, i18n.language, t]);
   return (
     <div
       className={`rei place-app${detailMatch ? ' property-app' : ''}${listingMatch ? ' listing-app' : ''}`}
@@ -123,7 +133,7 @@ export function AppShell({ documentMode = false }: { readonly documentMode?: boo
               .filter((place) => place.kind === 'neighborhood')
               .map((place) => (
                 <NavLink key={place.id} to={destinationPath(destination, place.id)}>
-                  {place.name.ptBR}
+                  {placeName(place.name, i18n.language)}
                 </NavLink>
               ))}
             {places.isError ? (

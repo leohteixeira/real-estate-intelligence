@@ -140,7 +140,12 @@ it.each(
             figure.state === 'available'
               ? previous.figures.medianAskingPricePerSquareMeter.sources
               : [],
-          value: key === 'listingsPerProperty' ? 2 : figure.value,
+          value:
+            key === 'listingsPerProperty'
+              ? 2
+              : key === 'medianTimeOnMarketDays'
+                ? 408.29
+                : figure.value,
           freshness: { status: 'untracked', latestCollectionCompletedAt: null, ageSeconds: 0 },
         },
       ]),
@@ -174,6 +179,15 @@ it.each(
   expect(
     within(secondary).getAllByText(locale === 'en' ? 'Collected events' : 'Eventos coletados'),
   ).toHaveLength(5);
+  // A fractional backend day count is shown in whole days, and the live figure states its basis
+  // because property rows count their days up to the last collection instead.
+  const days = container.querySelector<HTMLElement>('.place-days')!;
+  expect(days.querySelector('.fig__value')).toHaveTextContent(
+    locale === 'en' ? /^408 days$/ : /^408 dias$/,
+  );
+  expect(days).toHaveTextContent(
+    locale === 'en' ? 'From first collection to today' : 'Da primeira coleta até hoje',
+  );
   expect(
     within(secondary).queryByText(locale === 'en' ? 'Prepared example' : 'Exemplo preparado'),
   ).not.toBeInTheDocument();
@@ -198,8 +212,8 @@ it.each(
   if (persisted) {
     expect(container.querySelector('.place-counts')).toHaveTextContent(
       locale === 'en'
-        ? '1 properties · 2 active listings · 1 sources'
-        : '1 imóveis · 2 anúncios ativos · 1 fontes',
+        ? '1 property · 2 active listings · 1 source'
+        : '1 imóvel · 2 anúncios ativos · 1 fonte',
     );
     const panel = container.querySelector<HTMLElement>('.place-neighbours')!;
     expect(
@@ -275,7 +289,9 @@ it.each(['pt-BR', 'en'] as const)(
           : '2.000 imóveis · 2.500 anúncios ativos · 5 fontes',
       ),
     ).toBeVisible();
-    expect(screen.getByRole('region', { name: /Centro/ })).toBeVisible();
+    expect(
+      screen.getByRole('region', { name: locale === 'en' ? /Central zone/ : /Centro/ }),
+    ).toBeVisible();
     expect(
       screen.getByRole('heading', {
         name: locale === 'en' ? 'Median time on market' : 'Tempo mediano de anúncio',
@@ -346,6 +362,7 @@ it('keeps genuine zero movement and days, unavailable values and an absent count
   });
   await screen.findAllByText('0.0%');
   expect(container.querySelector('.place-days')).toHaveTextContent('0 days');
+  expect(container.querySelector('.place-days')).not.toHaveTextContent('first collection');
   expect(container.querySelector('.place-ratio')).toHaveTextContent('1.25');
   cleanup();
   mount('en', brasil.id, (path: string) => {
@@ -356,7 +373,7 @@ it('keeps genuine zero movement and days, unavailable values and an absent count
     if (path.endsWith('/neighbours')) return { ...neighboursFixture(brasil), items: [] };
     return overviewFixture(path, brasil);
   });
-  await screen.findByRole('heading', { name: 'Brasil' });
+  await screen.findByRole('heading', { name: 'Brazil' });
   expect(screen.queryByRole('region', { name: /Parent median/ })).not.toBeInTheDocument();
 });
 it('converts percentage points only for display without altering counts', async () => {
@@ -471,9 +488,10 @@ it('retains persisted history if property enrichment fails and retries only the 
   );
   failing = false;
   await userEvent.click(within(panel).getByRole('button', { name: 'Try again' }));
+  // The row describes one property and must open it, not the place's search list.
   expect(await within(panel).findByRole('link', { name: /Apartment/ })).toHaveAttribute(
     'href',
-    `/search/${bela.id}`,
+    `/properties/${propertyId}`,
   );
   expect(request.mock.calls.filter(([path]) => path.includes('largest-reductions'))).toHaveLength(
     1,
@@ -490,9 +508,8 @@ it('forwards a trimmed escaped draft only to matching Ask state without writes o
   await userEvent.type(question, '  <img src=x> São Paulo 🏘  ');
   await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByText('<img src=x> São Paulo 🏘')).toBeVisible();
-  expect(
-    screen.getByText('Draft only. This question has not been submitted or executed.'),
-  ).toBeVisible();
+  expect(screen.getByText(/^Submit a question for a real run\./)).toBeVisible();
+  expect(screen.queryByText(/has not been submitted or executed/)).not.toBeInTheDocument();
   expect(screen.getByLabelText('URL')).toHaveTextContent(`/ask/${bela.id}`);
   expect(screen.getByLabelText('URL')).not.toHaveTextContent('img');
   expect(document.querySelector('img')).toBeNull();

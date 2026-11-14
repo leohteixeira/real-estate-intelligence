@@ -89,7 +89,8 @@ export function projectInitialProperty(
     source: {
       sourceId: provenance.sourceId,
       sourceListingId: provenance.sourceListingId,
-      label: 'Owned synthetic source',
+      // The facade replaces this with the registered attribution of the source.
+      label: provenance.sourceId,
       url: provenance.sourceUrl,
     },
     position: 1,

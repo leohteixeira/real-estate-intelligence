@@ -50,7 +50,7 @@ describe('DatabaseConnection', () => {
 
     expect(poolMock.options).toMatchObject({
       connectionString: 'postgres://app:secret@db:5432/app',
-      connectionTimeoutMillis: 2_000,
+      connectionTimeoutMillis: 2_500,
       idleTimeoutMillis: 30_000,
       query_timeout: 2_500,
       statement_timeout: 2_500,
@@ -60,6 +60,44 @@ describe('DatabaseConnection', () => {
     expect(onIdleClientError).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'failed postgres://redacted:redacted@db:5432/app' }),
     );
+  });
+
+  it('lets a queued request wait for a lease at least as long as one statement may run', () => {
+    // With the former fixed 2 s checkout bound, a read queued behind ten leases running
+    // statements of up to 5 s failed with a 500 although every lease would have been returned.
+    new DatabaseConnection('postgres://db/app');
+    expect(poolMock.options).toMatchObject({
+      connectionTimeoutMillis: 5_000,
+      statement_timeout: 5_000,
+      max: 10,
+    });
+    new DatabaseConnection('postgres://db/app', () => {}, 500);
+    expect(poolMock.options).toMatchObject({ connectionTimeoutMillis: 2_000 });
+  });
+
+  it('names the code-less driver timeouts so a failure log can tell them apart', async () => {
+    const connection = new DatabaseConnection('postgres://db/app');
+    poolMock.query.mockRejectedValueOnce(new Error('timeout exceeded when trying to connect'));
+    await expect(connection.query('SELECT 1')).rejects.toMatchObject({
+      name: 'DatabasePoolTimeoutError',
+    });
+    poolMock.query.mockRejectedValueOnce(new Error('Query read timeout'));
+    await expect(connection.query('SELECT 1')).rejects.toMatchObject({
+      name: 'DatabaseQueryTimeoutError',
+    });
+    poolMock.connect.mockRejectedValueOnce(new Error('timeout exceeded when trying to connect'));
+    await expect(connection.leaseClient()).rejects.toMatchObject({
+      name: 'DatabasePoolTimeoutError',
+    });
+    poolMock.connect.mockResolvedValueOnce({
+      query: vi.fn().mockRejectedValue(new Error('Query read timeout')),
+      release: vi.fn(),
+    });
+    await expect((await connection.leaseClient()).query('SELECT 1')).rejects.toMatchObject({
+      name: 'DatabaseQueryTimeoutError',
+    });
+    poolMock.query.mockRejectedValueOnce(new Error('relation "listing" does not exist'));
+    await expect(connection.query('SELECT 1')).rejects.toMatchObject({ name: 'Error' });
   });
 
   it('returns query rows and keeps the caller parameters immutable', async () => {

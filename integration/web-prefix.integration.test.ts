@@ -30,9 +30,10 @@ for (const prefix of ['', '/real-estate-intelligence']) {
     await preserveCleanup(
       async () => {
         for (const service of ['migrations', 'api', 'web']) {
+          // Prepared Search runs the API build stage, which only the prefix preparation builds.
           const image =
-            service === 'web' && prefix
-              ? 'rei-prefix-images-web'
+            service === 'api' || (service === 'web' && prefix)
+              ? `rei-prefix-images-${service}`
               : `rei-readiness-images-${service}`;
           await execa('docker', ['image', 'tag', image, `${project}-${service}`]);
         }

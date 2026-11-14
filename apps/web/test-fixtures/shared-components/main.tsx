@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { I18nextProvider } from 'react-i18next';
+import { BrowserRouter } from 'react-router';
 import { parsePlaceMarketResponse, parseSearchResponse } from '@rei/contracts';
 import type { PropertySummary } from '@rei/contracts';
 import { createLocale } from '../../src/places/locale';
@@ -60,7 +61,7 @@ const edges: readonly PropertySummary[] = [
       : null,
     place: {
       ...property.place,
-      name: { ptBR: 'TrechoCanônico'.repeat(25), en: 'Never translate this' },
+      name: { ptBR: 'TrechoCanônico'.repeat(25), en: 'TrechoCanônico'.repeat(25) },
     },
   },
 ];
@@ -68,62 +69,67 @@ const root = document.getElementById('root');
 if (!root) throw new Error('Missing component fixture root');
 createRoot(root).render(
   <I18nextProvider i18n={createLocale(locale)}>
-    <main className="rei">
-      <h1>{locale === 'en' ? 'Shared component evidence' : 'Evidências dos componentes'}</h1>
-      <section aria-label={locale === 'en' ? 'Parsed owned API data' : 'Dados da API própria'}>
-        <Figure
-          label={locale === 'en' ? 'Median asking price per m²' : 'Mediana do preço pedido por m²'}
-          priceKind="asking"
-          minorUnits={median.value.minorUnits}
-          unit="/m²"
-          evidence={median}
-          synthetic
-        />
-        <PropertyRow property={property} href="#owned-property" />
-      </section>
-      <section aria-labelledby="edges">
-        <h2 id="edges">
-          {locale === 'en'
-            ? 'Constructed component edge cases'
-            : 'Casos construídos para componentes'}
-        </h2>
-        {edges.map((edge) => (
-          <PropertyRow key={edge.id} property={edge} href="#owned-property" />
-        ))}
-        {(['fresh', 'stale', 'untracked'] as const).map((status) => (
+    {/* PropertyRow renders a router link, so the fixture supplies the router context. */}
+    <BrowserRouter>
+      <main className="rei">
+        <h1>{locale === 'en' ? 'Shared component evidence' : 'Evidências dos componentes'}</h1>
+        <section aria-label={locale === 'en' ? 'Parsed owned API data' : 'Dados da API própria'}>
           <Figure
-            key={status}
-            label={locale === 'en' ? 'Constructed evidence' : 'Evidência construída'}
+            label={
+              locale === 'en' ? 'Median asking price per m²' : 'Mediana do preço pedido por m²'
+            }
             priceKind="asking"
-            minorUnits={999999999999}
+            minorUnits={median.value.minorUnits}
             unit="/m²"
-            evidence={{
-              ...median,
-              freshness: { ...median.freshness, status },
-              sources: [
-                ...median.sources,
-                {
-                  id: 'long-component-source',
-                  label: 'FonteCanônica'.repeat(25),
-                  url: '#owned-source',
-                  collectedAt: median.computedAt,
-                },
-              ],
-            }}
+            evidence={median}
             synthetic
-            method={{ href: '#owned-method', label: locale === 'en' ? 'Method' : 'Método' }}
           />
-        ))}
-      </section>
-      <section id="owned-property" tabIndex={-1}>
-        <h2>{locale === 'en' ? 'Owned property destination' : 'Destino próprio do imóvel'}</h2>
-      </section>
-      <section id="owned-source">
-        <h2>{locale === 'en' ? 'Owned source destination' : 'Destino próprio da fonte'}</h2>
-      </section>
-      <section id="owned-method">
-        <h2>{locale === 'en' ? 'Owned method destination' : 'Destino próprio do método'}</h2>
-      </section>
-    </main>
+          <PropertyRow property={property} href="#owned-property" />
+        </section>
+        <section aria-labelledby="edges">
+          <h2 id="edges">
+            {locale === 'en'
+              ? 'Constructed component edge cases'
+              : 'Casos construídos para componentes'}
+          </h2>
+          {edges.map((edge) => (
+            <PropertyRow key={edge.id} property={edge} href="#owned-property" />
+          ))}
+          {(['fresh', 'stale', 'untracked'] as const).map((status) => (
+            <Figure
+              key={status}
+              label={locale === 'en' ? 'Constructed evidence' : 'Evidência construída'}
+              priceKind="asking"
+              minorUnits={999999999999}
+              unit="/m²"
+              evidence={{
+                ...median,
+                freshness: { ...median.freshness, status },
+                sources: [
+                  ...median.sources,
+                  {
+                    id: 'long-component-source',
+                    label: 'FonteCanônica'.repeat(25),
+                    url: '#owned-source',
+                    collectedAt: median.computedAt,
+                  },
+                ],
+              }}
+              synthetic
+              method={{ href: '#owned-method', label: locale === 'en' ? 'Method' : 'Método' }}
+            />
+          ))}
+        </section>
+        <section id="owned-property" tabIndex={-1}>
+          <h2>{locale === 'en' ? 'Owned property destination' : 'Destino próprio do imóvel'}</h2>
+        </section>
+        <section id="owned-source">
+          <h2>{locale === 'en' ? 'Owned source destination' : 'Destino próprio da fonte'}</h2>
+        </section>
+        <section id="owned-method">
+          <h2>{locale === 'en' ? 'Owned method destination' : 'Destino próprio do método'}</h2>
+        </section>
+      </main>
+    </BrowserRouter>
   </I18nextProvider>,
 );

@@ -109,6 +109,7 @@ describe('ordered admission and atomic queued expiry', () => {
             execution_id: identity.eventId,
           },
         ],
+        [],
         [{ id: run.id }],
         [],
         [{ id: identity.eventId }],
@@ -119,7 +120,15 @@ describe('ordered admission and atomic queued expiry', () => {
       async (repository, query) => {
         const claimed = await repository.claim(identity);
         expect(claimed.disposition).toBe('claimed');
-        expect(query.mock.calls.some(([sql]) => sql.includes('queue_expires_at<='))).toBe(false);
+        // The run deadline is checked first; inside it an expired lease is simply reclaimed.
+        expect(
+          query.mock.calls.filter(([sql]) =>
+            sql.includes("state='running' AND claim_expires_at<="),
+          ),
+        ).toHaveLength(1);
+        expect(
+          query.mock.calls.some(([sql]) => sql.startsWith("UPDATE ask.run SET state='failed'")),
+        ).toBe(false);
         expect(query.mock.calls.some(([sql]) => sql.startsWith('INSERT INTO ask.run_event'))).toBe(
           false,
         );
@@ -214,6 +223,161 @@ describe('ordered admission and atomic queued expiry', () => {
           expect.objectContaining({ type: 'ask.run.expired', aggregateId: run.id }),
         ]);
         expect(release).toHaveBeenCalledOnce();
+      },
+    );
+  });
+  it.each(['structured-price-v1', 'routed-text-explanation-v1'] as const)(
+    'fails an overdue %s run whose lease expired exactly once, instead of reclaiming it forever',
+    async (basis) => {
+      const at = new Date('2026-10-11T00:02:31.000Z');
+      const started = run.createdAt;
+      const running = parseAskLiveRun(
+        basis === 'structured-price-v1'
+          ? {
+              ...run,
+              state: 'running',
+              decision: {
+                source: 'fixed-structured-v1',
+                intent: 'price_per_square_meter',
+                decidedAt: started,
+              },
+              steps: [{ sequence: 1, phase: 'calculating', at: started }],
+            }
+          : {
+              ...run,
+              basis,
+              state: 'running',
+              originalInputs: null,
+              confirmation: null,
+              confirmationDeadline: null,
+              explanation: null,
+              steps: [{ sequence: 1, phase: 'routing', at: started }],
+            },
+      );
+      const row = {
+        ...stored,
+        document: running,
+        requested_event_id: identity.eventId,
+        execution_id: identity.eventId,
+      };
+      await fixture(
+        [[], [], [row], [{ at }], [], [{ sequence: 2 }], [], [{ id: identity.eventId }], [], []],
+        async (repository, query, outbox) => {
+          const terminal = await repository.claim(identity);
+          expect(terminal.disposition).toBe('terminal');
+          if (terminal.disposition !== 'terminal') throw new Error('Expected failed terminal.');
+          expect(terminal.run).toMatchObject({
+            state: 'failed',
+            result: null,
+            terminal: { state: 'failed', reason: 'execution_unavailable', at: at.toISOString() },
+            steps: [{ sequence: 1 }, { sequence: 2, phase: 'failed', at: at.toISOString() }],
+          });
+          const eligibility = query.mock.calls.find(([sql]) =>
+            sql.includes('clock_timestamp() AS at'),
+          );
+          expect(eligibility?.[0]).toContain(
+            "state='running' AND claim_expires_at<=clock_timestamp()",
+          );
+          expect(eligibility?.[0]).toContain("interval '120000 milliseconds'");
+          expect(
+            query.mock.calls.some(([sql]) => sql.startsWith("UPDATE ask.run SET state='running'")),
+          ).toBe(false);
+          expect(outbox.append).toHaveBeenCalledWith(expect.anything(), [
+            expect.objectContaining({ type: 'ask.run.failed', aggregateId: run.id }),
+          ]);
+          expect(
+            query.mock.calls.filter(([sql]) => sql.startsWith('INSERT INTO platform.inbox')),
+          ).toHaveLength(1);
+          // Redelivery after the commit: the terminal row answers without another transition.
+          query.mockReset();
+          for (const result of [[], [], [{ ...row, document: terminal.run }], [], []])
+            query.mockResolvedValueOnce(result);
+          const replay = await repository.claim(identity);
+          expect(replay).toMatchObject({ disposition: 'terminal', run: { state: 'failed' } });
+          expect(query.mock.calls.some(([sql]) => /^UPDATE|^INSERT INTO ask/.test(sql))).toBe(
+            false,
+          );
+          expect(outbox.append).toHaveBeenCalledOnce();
+        },
+      );
+    },
+  );
+  it('fails a confirmed run that was never claimed again and keeps a paused one for its own deadline', async () => {
+    const at = new Date('2026-10-11T00:05:00.000Z');
+    const candidate = { id: run.id, thread_id: run.threadId, admission_sequence: '7' };
+    const decision = {
+      intent: 'listing_search',
+      probability: 0.6,
+      probabilities: {
+        price_per_square_meter: 0.1,
+        listing_search: 0.6,
+        property_history: 0.1,
+        region_statistics: 0.1,
+        comparables: 0.05,
+        unsupported: 0.05,
+      },
+      source: 'heuristic-v1',
+      degraded: true,
+      taxonomyVersion: 'ask-intents-v1',
+      privacyEvidenceId: null,
+      receiptId: '0199c8f2-2394-7ba0-8f9e-286378779215',
+      acceptedAt: '2026-10-11T00:00:01.000Z',
+    };
+    const confirmed = parseAskLiveRun({
+      ...run,
+      basis: 'routed-text-explanation-v1',
+      state: 'queued',
+      updatedAt: '2026-10-11T00:00:03.000Z',
+      originalInputs: null,
+      decision,
+      confirmation: {
+        decisionReceiptId: decision.receiptId,
+        inputs: null,
+        at: '2026-10-11T00:00:03.000Z',
+      },
+      confirmationDeadline: '2026-10-11T00:10:02.000Z',
+      explanation: null,
+      steps: [
+        { sequence: 1, phase: 'routing', at: run.createdAt },
+        { sequence: 2, phase: 'awaiting_confirmation', at: '2026-10-11T00:00:02.000Z' },
+        { sequence: 3, phase: 'confirmed', at: '2026-10-11T00:00:03.000Z' },
+      ],
+    });
+    await fixture(
+      [
+        [],
+        [candidate],
+        [],
+        [],
+        [{ locked: true }],
+        [{ ...stored, document: confirmed, requested_event_id: identity.eventId }],
+        [{ at }],
+        [],
+        [{ sequence: 6 }],
+        [],
+        [{ id: identity.eventId }],
+        [],
+        [],
+      ],
+      async (repository, query, outbox) => {
+        expect(await repository.expireQueued(1)).toBe(1);
+        const scan = query.mock.calls.find(([sql]) => sql.includes('ORDER BY CASE'))![0];
+        expect(scan).toContain("state='queued' AND document->'decision'<>'null'::jsonb");
+        expect(scan).toContain("(document->'confirmation'->>'at')::timestamptz+interval");
+        expect(scan).toContain("state='awaiting_confirmation' AND confirmation_deadline<=");
+        const update = query.mock.calls.find(([sql]) =>
+          sql.startsWith('UPDATE ask.run SET state='),
+        );
+        expect(update?.[0]).toBe("UPDATE ask.run SET state='failed',document=$2 WHERE id=$1");
+        expect(update?.[1]?.[1]).toMatchObject({
+          state: 'failed',
+          decision,
+          confirmation: { decisionReceiptId: decision.receiptId, inputs: null },
+          terminal: { state: 'failed', reason: 'execution_unavailable', at: at.toISOString() },
+        });
+        expect(outbox.append).toHaveBeenCalledWith(expect.anything(), [
+          expect.objectContaining({ type: 'ask.run.failed' }),
+        ]);
       },
     );
   });

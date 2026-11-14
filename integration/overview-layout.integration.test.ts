@@ -37,7 +37,12 @@ it('lays out all seven default figures compactly without reducing type or clippi
           `<p class="place-origin">${origin}</p><details class="place-figure-evidence"><summary>${copy.figureEvidence} · ${count}</summary><p class="place-origin">${copy.prepared}</p><div class="prov place-provenance"><span>2026-10-12 12:00 UTC</span><a href="https://synthetic.invalid/one">Full canonical source</a></div></details>`;
         const secondary = [
           [copy.movement, '+3.1%', '', '2,000'],
-          [copy.days, `90 <small>${copy.daysUnit}</small>`, '', '2,000'],
+          [
+            copy.days,
+            `90 <small>${copy.daysUnit}</small>`,
+            `<p class="small">${copy.daysBasis}</p>`,
+            '2,000',
+          ],
           [
             copy.reductions30,
             `250 <small>${copy.listingsUnit}</small>`,

@@ -191,6 +191,10 @@ median - 1) * 100`, using the same safe centavo rounding as the headline median.
   observation across all retained states of all currently assigned members, including removed
   members. Return the median nonnegative elapsed days to evaluation, including fractional days.
   Reappearance does not reset age. This is observed duration, never source publication age.
+  Clients display it in whole days. It is not `PropertySummary.timeOnMarketDays`, which counts whole
+  days of listing exposure up to the property's latest retained date rather than to this
+  evaluation; the UI labels the figure "from first collection to today" and each property row
+  "at last collection".
   `recordCount` counts represented properties; source evidence comes from their earliest observations.
 - **Thirty-day reductions:** among all currently active member listings of those properties, count
   each listing once if a retained `properties.listing.price-changed` event confirms

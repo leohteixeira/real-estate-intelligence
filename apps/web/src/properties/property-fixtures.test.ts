@@ -109,7 +109,7 @@ export function propertyDetailFixture(): PropertyResponse {
         ...propertyFixture.property.summary,
         place: {
           ...propertyFixture.property.summary.place,
-          name: { ptBR: 'Rua Cenário Um', en: 'Never translate' },
+          name: { ptBR: 'Rua Cenário Um', en: 'Scenario One Street' },
         },
         breadcrumbs: bela.breadcrumbs.concat({ id: bela.id, kind: bela.kind, name: bela.name }),
         areaSquareMeters: 82,

@@ -52,7 +52,9 @@ export async function checkProperty(
   expect(await page.locator('.property-head h1').textContent()).toBe(
     street?.type === 'attribute-agreement' && typeof street.value === 'string'
       ? street.value
-      : summary.place.name.ptBR,
+      : locale === 'en'
+        ? summary.place.name.en
+        : summary.place.name.ptBR,
   );
   const price = page.locator('.property-prices');
   const normalize = (value: string | null) => value?.replace(/\u00a0/g, ' ');
@@ -86,6 +88,23 @@ export async function checkProperty(
     preparedEvidence.reasons.length,
   );
   expect(await page.locator('.property-price-events > li').count()).toBe(priceChanges.length);
+  // The property-minimum figure appears exactly when the contract reports one, as the panel does.
+  const minimum = expected.property.minimumReduction;
+  const minimumFigure = page.locator('.property-history .property-minimum-reduction');
+  expect(await minimumFigure.count()).toBe(minimum ? 1 : 0);
+  if (minimum)
+    expect(normalize(await minimumFigure.textContent())).toBe(
+      `${locale === 'en' ? 'Lowest asking price' : 'Menor preço pedido'}: ${propertyMoney(minimum.previousMinorUnits, locale)} → ${propertyMoney(minimum.currentMinorUnits, locale)} (${new Intl.NumberFormat(
+        locale,
+        {
+          style: 'percent',
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        },
+      )
+        .format(-minimum.reductionPercent / 100)
+        .replace(/-/g, '−')})`,
+    );
   if (preparedEvidence.reasons.length)
     await page.locator('.property-reason-details > summary').click();
   for (const [index, reason] of preparedEvidence.reasons.entries()) {

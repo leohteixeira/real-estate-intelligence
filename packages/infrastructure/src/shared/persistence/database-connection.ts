@@ -12,6 +12,19 @@ export interface DatabaseClient {
 }
 
 /**
+ * `pg` reports its pool-checkout and client-read bounds as plain, code-less `Error`s. A stable
+ * name lets a failure log tell an exhausted pool from a slow statement without logging messages.
+ */
+function nameDriverTimeout<TError>(error: TError): TError {
+  if (error instanceof Error) {
+    if (error.message === 'timeout exceeded when trying to connect')
+      error.name = 'DatabasePoolTimeoutError';
+    else if (error.message === 'Query read timeout') error.name = 'DatabaseQueryTimeoutError';
+  }
+  return error;
+}
+
+/**
  * Owns the PostgreSQL connection pool.
  *
  * The `pg` types stay inside this class on purpose: if the applications
@@ -33,8 +46,10 @@ export class DatabaseConnection {
   ) {
     this.#pool = new Pool({
       connectionString,
-      // A readiness probe must fail fast rather than queue behind a dead server.
-      connectionTimeoutMillis: 2_000,
+      // This bound also covers waiting for a free lease. A request queued behind ten leases that
+      // may each legitimately run for the statement timeout must not fail sooner than they can
+      // finish; the readiness probe keeps failing fast through its own abort signal.
+      connectionTimeoutMillis: Math.max(2_000, queryTimeoutMs),
       idleTimeoutMillis: 30_000,
       query_timeout: queryTimeoutMs,
       statement_timeout: queryTimeoutMs,
@@ -60,7 +75,7 @@ export class DatabaseConnection {
       const result = await this.#pool.query<TRow>(statement, [...parameters]);
       return result.rows;
     } catch (error) {
-      throw redactConnectionError(error);
+      throw redactConnectionError(nameDriverTimeout(error));
     }
   }
 
@@ -96,7 +111,7 @@ export class DatabaseConnection {
         );
         throw reason();
       }
-      throw redactConnectionError(error);
+      throw redactConnectionError(nameDriverTimeout(error));
     } finally {
       removeCheckoutAbort();
     }
@@ -118,7 +133,7 @@ export class DatabaseConnection {
       return result.rows;
     } catch (error) {
       if (signal.aborted) throw reason();
-      throw redactConnectionError(error);
+      throw redactConnectionError(nameDriverTimeout(error));
     } finally {
       signal.removeEventListener('abort', onAbort);
       if (!destroyed) client.release();
@@ -134,13 +149,17 @@ export class DatabaseConnection {
           statement: string,
           parameters: readonly unknown[] = [],
         ): Promise<readonly TRow[]> => {
-          const result = await client.query<TRow>(statement, [...parameters]);
-          return result.rows;
+          try {
+            const result = await client.query<TRow>(statement, [...parameters]);
+            return result.rows;
+          } catch (error) {
+            throw nameDriverTimeout(error);
+          }
         },
         release: (destroy = false) => client.release(destroy),
       };
     } catch (error) {
-      throw redactConnectionError(error);
+      throw redactConnectionError(nameDriverTimeout(error));
     }
   }
 

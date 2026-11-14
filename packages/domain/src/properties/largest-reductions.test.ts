@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { rankLargestReductions, type ReductionCandidate } from './largest-reductions.js';
+import {
+  latestReduction,
+  rankLargestReductions,
+  type ReductionCandidate,
+} from './largest-reductions.js';
 
 const date = (day: number) => `2026-10-${String(day).padStart(2, '0')}T12:00:00.000Z`;
 function candidate(id: string, prices: readonly [number, number, number][]): ReductionCandidate {
@@ -26,6 +30,31 @@ function candidate(id: string, prices: readonly [number, number, number][]): Red
   };
 }
 describe('persisted largest reductions rule', () => {
+  it('reports one property reduction with the operands and percentage of its ranked row', () => {
+    const row = candidate('a', [
+      [4, 126_000_000, 124_000_000],
+      [6, 124_000_000, 130_000_000],
+      [8, 67_000_000, 65_500_000],
+      [9, 65_500_000, 65_500_000],
+    ]);
+    const ranked = rankLargestReductions([row], date(10))[0]!;
+    const own = latestReduction(row.priceChanges)!;
+    expect(own).toMatchObject({
+      effectiveAt: date(8),
+      previousMinorUnits: 67_000_000,
+      currentMinorUnits: 65_500_000,
+      reductionPercent: (1_500_000 / 67_000_000) * 100,
+    });
+    for (const key of [
+      'effectiveAt',
+      'previousMinorUnits',
+      'currentMinorUnits',
+      'reductionPercent',
+    ] as const)
+      expect(own[key]).toBe(ranked[key]);
+    expect(latestReduction(candidate('b', [[8, 100, 110]]).priceChanges)).toBeNull();
+    expect(latestReduction([])).toBeNull();
+  });
   it('selects latest dated negative effect, retaining it after a rise or removal', () => {
     const row = candidate('a', [
       [4, 100, 50],

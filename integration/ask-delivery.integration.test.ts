@@ -734,8 +734,10 @@ test('queued expiry skips busy threads and atomically rolls back outbox/inbox fa
     } finally {
       vi.useRealTimers();
     }
+    // Past its lifetime a claimed run is left alone only while that claim is live. Keep the claim
+    // live for the whole fault section below, independently of how long the faults take.
     await context.database.query(
-      "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) UPDATE ask.run SET admitted_at=observed.at-interval '121 seconds',queue_expires_at=observed.at-interval '1 second' FROM observed WHERE id=$1 AND state='running'",
+      "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) UPDATE ask.run SET admitted_at=observed.at-interval '121 seconds',queue_expires_at=observed.at-interval '1 second',claim_expires_at=observed.at+interval '10 minutes' FROM observed WHERE id=$1 AND state='running'",
       [beforeDeadline.runId],
     );
     expect(
@@ -831,6 +833,33 @@ test('queued expiry skips busy threads and atomically rolls back outbox/inbox fa
     expect(await repository.expireQueued(100)).toBe(1);
     expect(await repository.expireQueued(100)).toBe(0);
     expect((await repository.run(beforeDeadline.runId, context.capability))?.state).toBe('running');
+    // Once the claim lapses, the overdue run ends as one honest failure instead of staying
+    // "running" forever: one terminal frame, one outbox event, one inbox marker, no result.
+    await context.database.query(
+      "UPDATE ask.run SET claim_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1 AND state='running'",
+      [beforeDeadline.runId],
+    );
+    expect(await repository.expireQueued(100)).toBe(1);
+    expect(await repository.expireQueued(100)).toBe(0);
+    const overdue = await repository.run(beforeDeadline.runId, context.capability);
+    expect(overdue?.state).toBe('failed');
+    expect(overdue?.terminal?.reason).toBe('execution_unavailable');
+    expect(overdue?.result).toBeNull();
+    expect(overdue?.steps.at(-1)?.phase).toBe('failed');
+    expect(
+      await context.database.query<{ frames: number; terminals: number; inbox: number }>(
+        "SELECT (SELECT count(*)::integer FROM ask.run_event WHERE run_id=$1 AND document->'terminal'='true'::jsonb) AS frames,(SELECT count(*)::integer FROM platform.outbox WHERE aggregate_id=$1 AND event_type='ask.run.failed') AS terminals,(SELECT count(*)::integer FROM platform.inbox WHERE consumer_name=$2 AND event_id=$3) AS inbox",
+        [
+          beforeDeadline.runId,
+          ASK_STRUCTURED_CONSUMER,
+          (await identity(context, beforeDeadline.runId)).eventId,
+        ],
+      ),
+    ).toEqual([{ frames: 1, terminals: 1, inbox: 1 }]);
+    // Redelivery of the original request finds the terminal and issues no authority.
+    expect(
+      (await repository.claim(await identity(context, beforeDeadline.runId))).disposition,
+    ).toBe('terminal');
     await context.fixture.up(['api']);
     expect((await snapshot(context, faulted.runId)).state).toBe('expired');
     expect((await terminalFrames(context, faulted.runId)).map((frame) => frame.sequence)).toEqual([
@@ -962,6 +991,23 @@ test('five genuine run-scoped failures reach the durable DLQ while other threads
           )[0]!.count,
         ).toBe(0);
         await context.fixture.up(['worker']);
+        expect(
+          (await channel.checkQueue(`${ASK_STRUCTURED_CONSUMER}.dead-letter`)).messageCount,
+        ).toBe(1);
+        // The dead letter is still not replayed, but its run no longer stays "running" forever:
+        // past the run lifetime and with no live claim, API maintenance ends it as failed.
+        await context.database.query(
+          "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) UPDATE ask.run SET admitted_at=observed.at-interval '121 seconds',queue_expires_at=observed.at-interval '1 second',claim_expires_at=observed.at-interval '1 second' FROM observed WHERE id=$1 AND state='running'",
+          [failed.runId],
+        );
+        await vi.waitFor(
+          async () => expect((await snapshot(context, failed.runId)).state).toBe('failed'),
+          { timeout: 10000, interval: 100 },
+        );
+        const ended = await snapshot(context, failed.runId);
+        expect(ended.terminal?.reason).toBe('execution_unavailable');
+        expect(ended.result).toBeNull();
+        expect((await terminalFrames(context, failed.runId)).at(-1)?.event).toBe('ask.failed');
         expect(
           (await channel.checkQueue(`${ASK_STRUCTURED_CONSUMER}.dead-letter`)).messageCount,
         ).toBe(1);

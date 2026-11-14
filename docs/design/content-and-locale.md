@@ -34,6 +34,11 @@ Screens are authored in Brazilian Portuguese, the primary and default locale. En
 second locale, reached through the switch in the shell. `PlaceEN.dc.html` shows one screen in
 English.
 
+An entry address may carry a language hint: `?lang=en`, `?lang=pt-BR` or `?lang=pt` on any
+application route. A valid hint becomes the stored preference (`rei.locale` in `localStorage`) and
+is removed from the address; any other value is ignored. The product-name link opens the portfolio
+presentation in the current interface language (`/en/` or `/pt/`).
+
 The repository itself stays in English: code, identifiers, comments and documentation. Only the
 copy a user reads is written in Portuguese first.
 
@@ -54,7 +59,10 @@ copy a user reads is written in Portuguese first.
 
 Rules for both locales:
 
-- Place names, street names and source names are never translated.
+- The interface never translates a name itself. A place name follows the interface language
+  because the API carries both (`name.en` and `name.ptBR`). Street names and source names are shown
+  as published; the only bundled names are those of the repository-owned synthetic sources on the
+  privacy notice, keyed by their source identifier.
 - Labels may wrap to two lines. No label is truncated with an ellipsis.
 - The plate name wraps and stays balanced; it is never shrunk to fit.
 - Tab labels are single words in both languages.

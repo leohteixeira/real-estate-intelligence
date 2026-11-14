@@ -100,7 +100,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const requestId = getRequestId(request) ?? randomUUID();
 
     if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error({ event: 'api.unexpected_failure', requestId });
+      // The class and driver code identify the cause (pool exhaustion, statement timeout, a
+      // defect) without logging a message, which may carry request values or credentials.
+      this.logger.error({
+        event: 'api.unexpected_failure',
+        requestId,
+        ...failureIdentity(exception),
+      });
     }
 
     response.setHeader(REQUEST_ID_HEADER, requestId);
@@ -115,6 +121,20 @@ export class ApiExceptionFilter implements ExceptionFilter {
       },
     });
   }
+}
+
+const SAFE_IDENTITY = /^[A-Za-z0-9_]{1,64}$/;
+
+function failureIdentity(exception: unknown): { errorName: string; errorCode?: string } {
+  const name = exception instanceof Error ? exception.name : typeof exception;
+  const code =
+    typeof exception === 'object' && exception !== null && 'code' in exception
+      ? exception.code
+      : undefined;
+  return {
+    errorName: SAFE_IDENTITY.test(name) ? name : 'Error',
+    ...(typeof code === 'string' && SAFE_IDENTITY.test(code) ? { errorCode: code } : {}),
+  };
 }
 
 function isHttpErrorStatus(status: number | undefined): status is number {

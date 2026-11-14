@@ -1,15 +1,19 @@
 import type { ListingDetail, PropertyResponse } from '@rei/contracts';
+import { placeName } from '../places/locale';
 
 export const evidenceAnchor = (listingId: string) => `property-listing-${listingId}`;
-export function propertyStreet(response: PropertyResponse): string {
+export function propertyStreet(response: PropertyResponse, language: string): string {
   if (response.property.preparedEvidence.kind === 'deterministic-rule')
-    return response.property.listings[0]?.street ?? response.property.summary.place.name.ptBR;
+    return (
+      response.property.listings[0]?.street ??
+      placeName(response.property.summary.place.name, language)
+    );
   const street = response.property.preparedEvidence.reasons.find(
     (reason) => reason.type === 'attribute-agreement' && reason.field === 'street',
   );
   return street?.type === 'attribute-agreement' && typeof street.value === 'string'
     ? street.value
-    : response.property.summary.place.name.ptBR;
+    : placeName(response.property.summary.place.name, language);
 }
 
 /** Reveal native ancestors before the browser's ordinary hash navigation/focus. */

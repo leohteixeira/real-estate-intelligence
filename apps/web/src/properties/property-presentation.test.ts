@@ -11,16 +11,16 @@ import {
 describe('Property shared presentation coordinates', () => {
   it('uses an explicitly reported street reason or the canonical block without guessing from a listing', () => {
     const response = propertyDetailFixture();
-    expect(propertyStreet(response)).toBe('Rua Cenário Um');
-    expect(
-      propertyStreet({
-        ...response,
-        property: {
-          ...response.property,
-          preparedEvidence: { ...response.property.preparedEvidence, reasons: [] },
-        },
-      }),
-    ).toBe(response.property.summary.place.name.ptBR);
+    expect(propertyStreet(response, 'pt-BR')).toBe('Rua Cenário Um');
+    const unreported = {
+      ...response,
+      property: {
+        ...response.property,
+        preparedEvidence: { ...response.property.preparedEvidence, reasons: [] },
+      },
+    };
+    expect(propertyStreet(unreported, 'pt-BR')).toBe(response.property.summary.place.name.ptBR);
+    expect(propertyStreet(unreported, 'en')).toBe(response.property.summary.place.name.en);
   });
   it('positions month labels, lifeline endpoints and event ticks on one continuous date scale', () => {
     const response = propertyDetailFixture();

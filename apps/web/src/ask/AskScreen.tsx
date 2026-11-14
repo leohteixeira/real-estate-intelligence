@@ -42,11 +42,17 @@ interface Authority {
   readonly session: AskSession;
 }
 const client = createAskClient();
-function ValidAskScreen({ id }: { readonly id: string }) {
+function ValidAskScreen({
+  id,
+  draft,
+  setDraft,
+}: {
+  readonly id: string;
+  readonly draft: string;
+  readonly setDraft: (value: string) => void;
+}) {
   const { t, i18n } = useTranslation('ask');
   const { t: placeText } = useTranslation('place');
-  const state: unknown = useLocation().state;
-  const [draft, setDraft] = useState(() => incomingDraft(state, id));
   const live = useLiveAsk(id);
   const [mode, setMode] = useState<'live' | 'prepared'>('live');
   const [run, setRun] = useState<AskRun>();
@@ -201,7 +207,7 @@ function ValidAskScreen({ id }: { readonly id: string }) {
               required
             />
             <p id="ask-draft-hint" className="small">
-              {t(live.submitted === undefined ? 'notExecuted' : 'submitHint')}
+              {t('submitHint')}
             </p>
             <button
               type="submit"
@@ -398,8 +404,13 @@ function ValidAskScreen({ id }: { readonly id: string }) {
 export function AskScreen() {
   const { placeId } = useParams();
   const { t } = useTranslation('place');
+  const state: unknown = useLocation().state;
+  // Owned above the per-place screen: switching place resets the run, never the visitor's draft.
+  const [draft, setDraft] = useState(() =>
+    isPlaceId(placeId) ? incomingDraft(state, placeId) : '',
+  );
   return isPlaceId(placeId) ? (
-    <ValidAskScreen key={placeId} id={placeId} />
+    <ValidAskScreen key={placeId} id={placeId} draft={draft} setDraft={setDraft} />
   ) : (
     <main className="place-state" role="alert">
       <h1>{t('invalidPlace')}</h1>

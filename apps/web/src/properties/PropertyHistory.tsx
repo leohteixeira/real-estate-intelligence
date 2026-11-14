@@ -18,13 +18,24 @@ export function PropertyHistory({ response }: { readonly response: PropertyRespo
     end = Math.max(start + 1, Date.parse(response.metadata.asOf));
   const x = (date: string) => 8 + ((Date.parse(date) - start) / (end - start)) * 304;
   const y = (value: number) => 102 - ((value - low) / Math.max(1, high - low)) * 94;
-  const path =
-    changes
-      .map(
-        (change, index) =>
-          `${index === 0 ? `M${x(change.effectiveAt)},${y(change.previousMinorUnits)}` : `H${x(change.effectiveAt)}`}V${y(change.currentMinorUnits)}`,
-      )
-      .join(' ') + ' H312';
+  // Each listing has its own price line: joining two sources' prices would draw a change that
+  // no listing made.
+  const series = new Map<string, typeof changes>();
+  for (const change of changes) {
+    const key = `${change.provenance.sourceId}\u0000${change.provenance.sourceListingId}`;
+    series.set(key, [...(series.get(key) ?? []), change]);
+  }
+  const paths = [...series].map(([key, own]) => ({
+    key,
+    d:
+      own
+        .map(
+          (change, index) =>
+            `${index === 0 ? `M${x(change.effectiveAt)},${y(change.previousMinorUnits)}` : `H${x(change.effectiveAt)}`}V${y(change.currentMinorUnits)}`,
+        )
+        .join(' ') + ' H312',
+  }));
+  const minimum = response.property.minimumReduction;
   return (
     <section className="panel property-history" aria-labelledby="property-history-title">
       <div className="sec">
@@ -32,6 +43,22 @@ export function PropertyHistory({ response }: { readonly response: PropertyRespo
         <span className="small muted">{t('changes', { count: changes.length })}</span>
       </div>
       <div className="property-panel-body">
+        {minimum ? (
+          // The backend figure the place reductions panel reports, formatted the same way.
+          <>
+            <p className="property-minimum-reduction">
+              <strong>
+                {t('minimumReduction', {
+                  previous: formatExactMoney(minimum.previousMinorUnits, locale),
+                  current: formatExactMoney(minimum.currentMinorUnits, locale),
+                  percentage: formatPercentage(-minimum.reductionPercent / 100, locale),
+                })}
+              </strong>
+            </p>
+            <p className="small">{t('minimumReductionBasis')}</p>
+          </>
+        ) : null}
+        <p className="small">{t('historyBasis')}</p>
         {changes.length ? (
           <div className="property-chart">
             <div className="property-chart-values small">
@@ -50,10 +77,12 @@ export function PropertyHistory({ response }: { readonly response: PropertyRespo
                 .join('. ')}
             >
               <path d="M8 8H312M8 55H312M8 102H312" className="property-chart-grid" />
-              <path d={path} className="property-chart-line" />
+              {paths.map((line) => (
+                <path key={line.key} d={line.d} className="property-chart-line" />
+              ))}
               {changes.map((change) => (
                 <circle
-                  key={`${change.effectiveAt}:${change.provenance.sourceId}`}
+                  key={`${change.effectiveAt}:${change.provenance.snapshotId}`}
                   cx={x(change.effectiveAt)}
                   cy={y(change.currentMinorUnits)}
                   r="4"

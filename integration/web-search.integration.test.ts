@@ -1,5 +1,7 @@
 import { mkdir, writeFile, appendFile, readFile, readdir } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { execa } from 'execa';
 import { chromium } from 'playwright';
 import { expect, test } from 'vitest';
 import { parsePlaceResponse, PROPERTY_SORTS } from '../packages/contracts/dist/index.js';
@@ -129,10 +131,11 @@ test('Search and Filters follow prepared public contracts through the real proxy
       'Eight distinct semantic scenarios and requested locale/viewport captures pass with owned teardown',
     stackTornDownUtc: null as string | null,
   };
-  const head = (await readFile(new URL('../.git/HEAD', import.meta.url), 'utf8')).trim();
-  const commit = head.startsWith('ref: ')
-    ? (await readFile(new URL(`../.git/${head.slice(5)}`, import.meta.url), 'utf8')).trim()
-    : head;
+  const commit = (
+    await execa('git', ['rev-parse', 'HEAD'], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+    })
+  ).stdout;
   const assets = new URL('../apps/web/dist/assets/', import.meta.url);
   const assetHash = createHash('sha256');
   for (const file of (await readdir(assets)).filter((name) => /\.(?:js|css)$/.test(name)).sort()) {
@@ -471,7 +474,10 @@ test('Search and Filters follow prepared public contracts through the real proxy
               .toBe(locale === 'en' ? 'Show 5 properties' : 'Mostrar 5 imóveis');
             await page.locator('#minArea').fill(locale === 'en' ? '1,234' : '1.234');
             await page.locator('#minAskingPrice').fill(locale === 'en' ? '1.234' : '1,234');
-            await expect.poll(() => page.locator('#draft-error').isVisible()).toBe(true);
+            // A value that is not a number is reported on its own field, not as a reversed range.
+            await expect.poll(() => page.locator('#minAskingPrice-error').isVisible()).toBe(true);
+            expect(await page.locator('#draft-error').count()).toBe(0);
+            expect(await page.locator('#minArea').getAttribute('aria-invalid')).toBe('false');
             await page
               .locator('.rail')
               .getByRole('button', { name: locale === 'en' ? 'Português' : 'English', exact: true })
@@ -479,7 +485,7 @@ test('Search and Filters follow prepared public contracts through the real proxy
             expect(await page.locator('#minArea').inputValue()).toBe(
               locale === 'en' ? '1.234' : '1,234',
             );
-            expect(await page.locator('#draft-error').isVisible()).toBe(true);
+            expect(await page.locator('#minAskingPrice-error').isVisible()).toBe(true);
             expect(
               await page.locator('.search-filters__actions button[type="submit"]').isDisabled(),
             ).toBe(true);
@@ -551,7 +557,7 @@ test('Search and Filters follow prepared public contracts through the real proxy
           await apply({ placeId: emptyId! });
           await expect
             .poll(() => page.locator('.search-empty').textContent())
-            .toContain('Nenhum imóvel preparado');
+            .toContain('Nenhum imóvel neste lugar atende à busca.');
           expect(await page.getByRole('button', { name: /Relaxar/ }).count()).toBe(0);
         });
         await attempt('SEARCH-007', async () => {
@@ -578,25 +584,37 @@ test('Search and Filters follow prepared public contracts through the real proxy
           const resultsFailure = page
             .locator('.system-state')
             .filter({ hasText: 'Não foi possível carregar os imóveis.' });
-          await expect.poll(() => totalFailure.getByRole('alert').count()).toBe(1);
+          // An unfiltered search takes its place total from the result itself: one read, so one
+          // failure and one retry.
           await expect.poll(() => resultsFailure.getByRole('alert').count()).toBe(1);
+          expect(await totalFailure.count()).toBe(0);
           expect(
             await page.getByRole('heading', { name: 'São Paulo', exact: true }).isVisible(),
           ).toBe(true);
+          fail = false;
+          await resultsFailure.getByRole('button', { name: 'Tentar de novo' }).click();
+          await expect.poll(() => resultsFailure.count()).toBe(0);
+          await checkSearch(page, base, { placeId: city, sort: 'longest-on-market' }, 'pt-BR');
+          // A filtered search still reads the unfiltered place total separately and retries it alone.
+          fail = true;
+          await page.goto(`${base}/search/${city}?propertyType=house`);
+          await expect.poll(() => totalFailure.getByRole('alert').count()).toBe(1);
+          await expect.poll(() => resultsFailure.getByRole('alert').count()).toBe(1);
           fail = false;
           await totalFailure.getByRole('button', { name: 'Tentar de novo' }).click();
           await expect.poll(() => totalFailure.count()).toBe(0);
           await resultsFailure.getByRole('button', { name: 'Tentar de novo' }).click();
           await expect.poll(() => resultsFailure.count()).toBe(0);
-          await checkSearch(page, base, { placeId: city, sort: 'longest-on-market' }, 'pt-BR');
+          await checkSearch(page, base, { placeId: city, propertyType: 'house' }, 'pt-BR');
           fail = true;
           await page.goto(`${base}/search/${city}?propertyType=house&view=filters`);
           await expect
-            .poll(() => page.locator('.search-filters__actions button[type="submit"]').isDisabled())
-            .toBe(true);
-          await expect
             .poll(() => page.getByRole('alert').textContent())
             .toContain('Não foi possível contar');
+          // A failed count offers a retry but never blocks applying the valid draft.
+          expect(
+            await page.locator('.search-filters__actions button[type="submit"]').isDisabled(),
+          ).toBe(false);
           expect(
             await page
               .getByRole('button', { name: 'Casa', exact: true })

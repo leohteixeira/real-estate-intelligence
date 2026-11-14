@@ -129,13 +129,9 @@ try {
           .locator('.ask-live')
           .getByText('Is the proposed intent “Listing search”?', { exact: true })
           .waitFor();
-        await page
-          .getByRole('button', { name: 'Confirm proposal and values', exact: true })
-          .waitFor();
+        await page.getByRole('button', { name: 'Confirm proposal', exact: true }).waitFor();
         await page.screenshot({ path: `${directory}/confirm-awaiting.png`, fullPage: true });
-        await page
-          .getByRole('button', { name: 'Confirm proposal and values', exact: true })
-          .click();
+        await page.getByRole('button', { name: 'Confirm proposal', exact: true }).click();
       }
       const completed = page
         .locator('.ask-live .ask-record__head .st')

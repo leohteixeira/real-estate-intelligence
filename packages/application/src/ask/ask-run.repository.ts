@@ -66,6 +66,7 @@ export interface AskRunRepository {
     grant: string,
     signal: AbortSignal,
   ): Promise<import('@rei/domain').IntentDecisionResponse>;
+  /** Ends unstarted work past its deadline as expired and overdue unclaimed work as failed. */
   expireQueued(limit: number, signal?: AbortSignal): Promise<number>;
   create(
     request: ValidatedAskCreate,

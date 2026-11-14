@@ -71,7 +71,6 @@ function fixture(
       metadata: { dataMode: 'synthetic-stub' as const, fixtureVersion: 'places', asOf: at },
       items: [city],
     })),
-    children: vi.fn(async () => null),
   };
   const clock = { now: vi.fn(() => '2026-10-25T00:00:00.000Z') };
   return {
@@ -89,8 +88,14 @@ describe('current persisted property search', () => {
       totalItems: 3,
       medianPricePerSquareMeter: 200,
       metadata: { asOf: at, fixtureVersion: 'persisted-synthetic-search-v1' },
-      placeCounts: [{ placeId: 'sao-paulo', totalItems: 3 }],
+      placeCounts: [
+        { placeId: 'sao-paulo', totalItems: 3 },
+        { placeId: 'block', totalItems: 0 },
+      ],
     });
+    // Registered places cost one scope read per root, however many places the hierarchy holds.
+    expect(f.locations.roots).toHaveBeenCalledTimes(1);
+    expect(f.locations.registeredScopeIds.mock.calls).toEqual([['sao-paulo'], ['sao-paulo']]);
     expect(first.items.map((item) => [item.id, item.belowMedianPercent])).toEqual([['a', 50]]);
     const second = await f.service.execute({
       placeId: 'sao-paulo',

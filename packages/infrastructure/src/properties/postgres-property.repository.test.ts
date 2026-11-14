@@ -45,6 +45,7 @@ describe('PostgresPropertyRepository', () => {
           event: initialEvent,
           resolved_place: property.resolved,
           state: null,
+          assignment_revision: 0,
         },
       ],
       pairs: [] as { evidence: typeof comparison; configuration: typeof currentConfiguration }[],
@@ -79,6 +80,14 @@ describe('PostgresPropertyRepository', () => {
       },
     ]);
     expect(group.priceChanges).toHaveLength(1);
+    // Any stored minimum effect selects the minimum rule; so does a revised membership.
+    expect(group.minimumRule).toBe(true);
+    const effects = snapshot.effects.splice(0);
+    expect((await repository.getCurrentGroup(property.listingId))!.minimumRule).toBe(false);
+    snapshot.members[0]!.assignment_revision = 1;
+    expect((await repository.getCurrentGroup(property.listingId))!.minimumRule).toBe(true);
+    snapshot.members[0]!.assignment_revision = 0;
+    snapshot.effects.push(...effects);
     snapshot.pairs.push(
       { evidence: comparison, configuration: currentConfiguration },
       { evidence: comparison, configuration: { ...currentConfiguration, id: 'owned-other' } },

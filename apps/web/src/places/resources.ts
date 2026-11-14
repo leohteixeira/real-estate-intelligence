@@ -45,7 +45,15 @@ export const portuguese = {
   evidenceProperties_other: '{{formattedCount}} imóveis',
   evidenceListings_one: '{{formattedCount}} anúncio',
   evidenceListings_other: '{{formattedCount}} anúncios',
-  counts: '{{properties}} imóveis · {{listings}} anúncios ativos · {{sources}} fontes',
+  countProperties_zero: '0 imóveis',
+  countProperties_one: '{{formatted}} imóvel',
+  countProperties_other: '{{formatted}} imóveis',
+  countListings_zero: '0 anúncios ativos',
+  countListings_one: '{{formatted}} anúncio ativo',
+  countListings_other: '{{formatted}} anúncios ativos',
+  countSources_zero: '0 fontes',
+  countSources_one: '{{formatted}} fonte',
+  countSources_other: '{{formatted}} fontes',
   countsOrigin:
     'Contagens preparadas, avaliadas em {{time}}. Não são a amostra contribuinte da mediana ao vivo.',
   liveCountsOrigin:
@@ -61,6 +69,7 @@ export const portuguese = {
   movement: 'Movimento do preço pedido, 6 meses',
   days: 'Tempo mediano de anúncio',
   daysUnit: 'dias',
+  daysBasis: 'Da primeira coleta até hoje',
   reductions30: 'Reduções de preço, 30 dias',
   listingsUnit: 'anúncios',
   percentageOfListings: '{{value}} dos anúncios ativos',
@@ -145,7 +154,15 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   evidenceProperties_other: '{{formattedCount}} properties',
   evidenceListings_one: '{{formattedCount}} listing',
   evidenceListings_other: '{{formattedCount}} listings',
-  counts: '{{properties}} properties · {{listings}} active listings · {{sources}} sources',
+  countProperties_zero: '0 properties',
+  countProperties_one: '{{formatted}} property',
+  countProperties_other: '{{formatted}} properties',
+  countListings_zero: '0 active listings',
+  countListings_one: '{{formatted}} active listing',
+  countListings_other: '{{formatted}} active listings',
+  countSources_zero: '0 sources',
+  countSources_one: '{{formatted}} source',
+  countSources_other: '{{formatted}} sources',
   countsOrigin:
     'Prepared counts, evaluated at {{time}}. These are not the live median’s contributing sample.',
   liveCountsOrigin:
@@ -161,6 +178,7 @@ export const english: { readonly [K in keyof typeof portuguese]: string } = {
   movement: 'Asking price movement, 6 months',
   days: 'Median time on market',
   daysUnit: 'days',
+  daysBasis: 'From first collection to today',
   reductions30: 'Price reductions, 30 days',
   listingsUnit: 'listings',
   percentageOfListings: '{{value}} of active listings',
@@ -213,6 +231,9 @@ const shellPT = {
   language: 'Idioma',
   navigation: 'Navegação principal',
   synthetic: 'Dados sintéticos',
+  propertyTitle: 'Imóvel',
+  listingTitle: 'Anúncio',
+  filtersTitle: 'Filtros de busca',
 };
 const shellEN: { readonly [K in keyof typeof shellPT]: string } = {
   skip: 'Skip to the content',
@@ -223,6 +244,9 @@ const shellEN: { readonly [K in keyof typeof shellPT]: string } = {
   language: 'Language',
   navigation: 'Main navigation',
   synthetic: 'Synthetic data',
+  propertyTitle: 'Property',
+  listingTitle: 'Listing',
+  filtersTitle: 'Search filters',
 };
 const searchPT = {
   title: 'Buscar',
@@ -293,10 +317,11 @@ const sharedPT = {
   listings_zero: '0 anúncios',
   listings_one: '{{formatted}} anúncio',
   listings_other: '{{formatted}} anúncios',
-  marketDays_zero: '0 dias no mercado',
-  marketDays_one: '{{formatted}} dia no mercado',
-  marketDays_other: '{{formatted}} dias no mercado',
+  marketDays_zero: '0 dias no mercado até a última coleta',
+  marketDays_one: '{{formatted}} dia no mercado até a última coleta',
+  marketDays_other: '{{formatted}} dias no mercado até a última coleta',
   returned: 'Voltou ao mercado',
+  firstCollected: 'Primeira coleta em {{time}}',
 } as const;
 const sharedEN: { readonly [K in keyof typeof sharedPT]: string } = {
   retry: 'Try again',
@@ -342,10 +367,11 @@ const sharedEN: { readonly [K in keyof typeof sharedPT]: string } = {
   listings_zero: '0 listings',
   listings_one: '{{formatted}} listing',
   listings_other: '{{formatted}} listings',
-  marketDays_zero: '0 days on market',
-  marketDays_one: '{{formatted}} day on market',
-  marketDays_other: '{{formatted}} days on market',
+  marketDays_zero: '0 days on market at last collection',
+  marketDays_one: '{{formatted}} day on market at last collection',
+  marketDays_other: '{{formatted}} days on market at last collection',
   returned: 'Returned to market',
+  firstCollected: 'First collected {{time}}',
 };
 
 export const resources = {

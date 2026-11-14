@@ -299,7 +299,8 @@ BRL.
 ## Layout
 
 Mobile-first. A phone screen is a single column with a 16 px gutter: the shell and its plate, then
-full-width white bands separated by hairlines, then a five-tab bar. At 960 px the tab bar becomes
+full-width white bands separated by hairlines, then a five-tab bar fixed to the bottom of the
+viewport, above the device safe area; the page reserves the bar's height. At 960 px the tab bar becomes
 a 232 px enamel side rail, the plate moves into a blue page header beside the question field, and
 content sits in panels with a 24 px gutter. Paired panels use wrapping flex rows, so they stack
 again when the window narrows.
@@ -389,7 +390,8 @@ statistic. Figures sit in bands divided by hairlines (`.figs`), not in separate 
 fresh/stale/untracked status, with the dashed Synthetic data tag when applicable. A method link
 appears only when the caller supplies a genuine destination. Source and method links have a
 minimum 44 px width and height; evidence items center vertically and wrap with long source names.
-Source names and place names remain canonical in both locales. The first source link retains its
+Source names are shown as published; place names follow the interface language, using the two
+names the API carries. The first source link retains its
 visible localized Sources prefix in its accessible name.
 
 ### Rows and tables
@@ -397,12 +399,15 @@ visible localized Sources prefix in its accessible name.
 - **Property row** (`.prow`): two columns. Left: type, bedrooms and area, then the street block.
   Right: the outlined Asking tag, asking price and price per square meter. A meta line holds the
   backend comparison, listing count and time on market. The shared `PropertyRow` is one native
-  link to a caller-supplied destination, with no nested links, a visible enamel focus outline and
+  link to a caller-supplied destination, rendered by the router so that opening it keeps the shell
+  and moves focus to the content, with no nested links, a visible enamel focus outline and
   Enamel 50 hover. It carries no photograph. Missing bedrooms, area or prices remain unavailable;
   numeric zero remains zero. Positive/negative comparison percentages use below/above words
   with blue/orange; zero says equal and null omits the comparison. Returned-to-market wording
-  replaces the days wording. Long blocks, prices and metadata wrap without ellipsis or smaller
-  type; the canonical block name is retained in both locales. Search results remain a later
+  replaces the days wording, except that a row always prints the contract value of the applied
+  sort: the days under longest-on-market and the first collection instant under most-recent. Long
+  blocks, prices and metadata wrap without ellipsis or smaller
+  type; the block name follows the interface language. Search results remain a later
   workflow; this reusable row is currently exercised through the test-only fixture.
 - **Table** (`.tbl`): fixed columns, sortable header buttons, right-aligned numbers. Hover Enamel
   50, selected Enamel 100 with the yellow square. A state change restyles the row in place.

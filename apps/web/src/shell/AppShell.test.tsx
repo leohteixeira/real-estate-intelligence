@@ -47,7 +47,7 @@ function History() {
     </>
   );
 }
-function mount(path: string) {
+function mount(...entries: string[]) {
   const request = vi.fn(
     async (input: string) => new Response(JSON.stringify(overviewFixture(input))),
   );
@@ -57,7 +57,7 @@ function mount(path: string) {
   render(
     <I18nextProvider i18n={createLocale('pt-BR')}>
       <QueryClientProvider client={cache}>
-        <MemoryRouter initialEntries={[path]}>
+        <MemoryRouter initialEntries={entries}>
           <History />
           <AppRoutes />
         </MemoryRouter>
@@ -227,5 +227,32 @@ describe('public shell', () => {
     );
     expect(request).toHaveBeenCalledTimes(reads);
     expect(screen.getAllByText('Synthetic data').length).toBeGreaterThan(1);
+  });
+  it('names the filters view in the document title and renames it on navigation and language change', async () => {
+    mount(`/search/${bela.id}`, `/search/${bela.id}?view=filters`);
+    await waitFor(() => expect(document.title).toBe('Filtros de busca · Real Estate Intelligence'));
+    await userEvent.click(
+      within(screen.getAllByRole('group', { name: 'Idioma' })[0]!).getByRole('button', {
+        name: 'English',
+      }),
+    );
+    await waitFor(() => expect(document.title).toBe('Search filters · Real Estate Intelligence'));
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() => expect(document.title).toBe('Search · Real Estate Intelligence'));
+  });
+  it('shows the English place names of the catalogue and the plate after a language change', async () => {
+    mount(`/places/${bela.id}`);
+    await screen.findByText('R$ 9.515');
+    const hierarchy = within(screen.getByRole('navigation', { name: 'Hierarquia do lugar' }));
+    expect(hierarchy.getByRole('link', { name: 'Brasil' })).toBeVisible();
+    await userEvent.click(
+      within(screen.getAllByRole('group', { name: 'Idioma' })[0]!).getByRole('button', {
+        name: 'English',
+      }),
+    );
+    const english = within(await screen.findByRole('navigation', { name: 'Place hierarchy' }));
+    expect(english.getByRole('link', { name: 'Brazil' })).toBeVisible();
+    expect(english.getByRole('link', { name: 'Central zone' })).toBeVisible();
+    expect(english.queryByRole('link', { name: 'Brasil' })).not.toBeInTheDocument();
   });
 });

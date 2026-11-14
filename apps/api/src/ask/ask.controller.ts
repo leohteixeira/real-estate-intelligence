@@ -159,7 +159,11 @@ export class AskController {
           throw new BadRequestException();
         const after = cursor === undefined ? 0 : Number(suffix);
         const frames = await liveAuthorized(() => this.live!.events(id, grant, after));
-        return askLiveStream(this.live, id, grant, after, frames, run.terminal !== null);
+        const response = request.res;
+        // An SSE comment: every conforming client ignores it, so the event contract is unchanged.
+        return askLiveStream(this.live, id, grant, after, frames, run.terminal !== null, () => {
+          if (response?.headersSent && !response.writableEnded) response.write(': heartbeat\n\n');
+        });
       }
     }
     const frames = present(await authorized(() => this.ask.preview(id, grant, cursor)));

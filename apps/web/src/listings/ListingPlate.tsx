@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { formatExactMoney, formatMedian, formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
+import { placeName } from '../places/locale';
 
 export function ListingPlate({
   listing,
@@ -27,13 +28,13 @@ export function ListingPlate({
             <summary>
               {summary.breadcrumbs
                 .filter((place) => ['zone', 'neighborhood', 'block'].includes(place.kind))
-                .map((place) => place.name.ptBR)
+                .map((place) => placeName(place.name, i18n.language))
                 .join(' · ')}
             </summary>
             <ol className="crumbs">
               {summary.breadcrumbs.map((place) => (
                 <li key={place.id}>
-                  <Link to={`/search/${place.id}`}>{place.name.ptBR}</Link>
+                  <Link to={`/search/${place.id}`}>{placeName(place.name, i18n.language)}</Link>
                 </li>
               ))}
             </ol>
@@ -58,7 +59,7 @@ export function ListingPlate({
             </div>
             <h1 className="plate__name">{listing.street}</h1>
             <div className="plate__strip">
-              <span>{zone?.name.ptBR ?? t('neighborhood')}</span>
+              <span>{zone ? placeName(zone.name, i18n.language) : t('neighborhood')}</span>
               <span>{listing.publishedNeighborhood}</span>
             </div>
           </div>

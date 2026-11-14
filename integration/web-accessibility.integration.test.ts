@@ -362,7 +362,8 @@ describe('accessibility owned production partition:', () => {
         region !== '#place-overview' &&
         (await page!.locator('#place-overview').count())
       ) {
-        await page!.locator('.place-secondary').waitFor();
+        // The secondary figures come from the same market read that feeds the median.
+        if (region !== '.place-median') await page!.locator('.place-secondary').waitFor();
         if (region !== '.place-series')
           await page!.locator('.place-chart__months time').first().waitFor();
         if (region !== '.place-neighbours')
@@ -1769,7 +1770,7 @@ describe('accessibility owned production partition:', () => {
                   `/search/${placeId}?minArea=invalid`,
                   locale,
                   width,
-                  'main[role="alert"]',
+                  'main [role="alert"]',
                 );
                 await audit(`search-invalid-query-${locale}-${width}`, 'A11Y-003', locale, width);
                 await enter(`/search/${placeId}?view=filters`, locale, width, '#minArea');

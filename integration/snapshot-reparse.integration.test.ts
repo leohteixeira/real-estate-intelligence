@@ -122,7 +122,10 @@ test('snapshot-reparse preserves its complete real-service campaign', async () =
         .split('\n')
         .find((line: string | string[]) => line.includes('"status":"completed"'));
       expect(line, 'Actual CLI did not return a completed durable result.').toBeTruthy();
-      return JSON.parse(line!.slice(line!.indexOf('{'))) as SnapshotReparseResult;
+      // The Nest console logger colours the line unless NO_COLOR is set; keep only the JSON.
+      return JSON.parse(
+        line!.slice(line!.indexOf('{'), line!.lastIndexOf('}') + 1),
+      ) as SnapshotReparseResult;
     };
     const requireInfrastructure = createRequire(
       new URL('../packages/infrastructure/package.json', import.meta.url),

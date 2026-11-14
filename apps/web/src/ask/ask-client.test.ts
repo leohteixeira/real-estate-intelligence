@@ -224,7 +224,7 @@ describe('Ask authenticated JSON and finite SSE', () => {
     await rejected;
     expect(body.locked).toBe(false);
   });
-  it('does not let incomplete frames and comment trickle extend next-frame deadlines', async () => {
+  it('lets a complete heartbeat comment, but no incomplete frame, extend the next-frame deadline', async () => {
     vi.useFakeTimers();
     const cancel = vi.fn();
     let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
@@ -245,12 +245,20 @@ describe('Ask authenticated JSON and finite SSE', () => {
       new AbortController().signal,
       vi.fn(),
     );
-    const failed = expect(work).rejects.toMatchObject({ status: 408 });
+    let settled = false;
+    const failed = expect(
+      work.finally(() => {
+        settled = true;
+      }),
+    ).rejects.toMatchObject({ status: 408 });
     await vi.advanceTimersByTimeAsync(4000);
-    controller!.enqueue(new TextEncoder().encode(': still here\n\ndata: {'));
+    controller!.enqueue(new TextEncoder().encode(': heartbeat\n\ndata: {'));
     await vi.advanceTimersByTimeAsync(4000);
-    controller!.enqueue(new TextEncoder().encode(' '));
-    await vi.advanceTimersByTimeAsync(2000);
+    // Neither bytes of an unfinished frame nor a comment inside it are a sign of life.
+    controller!.enqueue(new TextEncoder().encode(' \n: inside a frame\n'));
+    await vi.advanceTimersByTimeAsync(5999);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
     await failed;
     expect(cancel).toHaveBeenCalledOnce();
     expect(body.locked).toBe(false);

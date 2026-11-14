@@ -26,7 +26,12 @@ export class EventStreamDecoder<T extends StreamEnvelope> {
   private event: string | undefined;
   private data: string[] = [];
 
-  push(chunk: Uint8Array, onFrame?: (frame: AdmittedFrame<T>) => void): AdmittedFrame<T>[] {
+  /** `onHeartbeat` reports a complete comment line received between frames, never a partial one. */
+  push(
+    chunk: Uint8Array,
+    onFrame?: (frame: AdmittedFrame<T>) => void,
+    onHeartbeat?: () => void,
+  ): AdmittedFrame<T>[] {
     try {
       if (chunk.byteLength > askStreamPolicy.maxBufferedBytes) throw new ApiReadError(502);
       const frames: AdmittedFrame<T>[] = [];
@@ -49,7 +54,7 @@ export class EventStreamDecoder<T extends StreamEnvelope> {
         // Reserve an optional LF before a blank CR commits the frame. Other CRLF
         // separators count their LF when it arrives, including in another chunk.
         if (byte === 13 && text === '\r') this.count(1);
-        this.acceptLine(text.slice(0, -1), frames, onFrame);
+        this.acceptLine(text.slice(0, -1), frames, onFrame, onHeartbeat);
         this.skipLf = byte === 13;
         start = index + 1;
       }
@@ -92,6 +97,7 @@ export class EventStreamDecoder<T extends StreamEnvelope> {
     line: string,
     frames: AdmittedFrame<T>[],
     onFrame?: (frame: AdmittedFrame<T>) => void,
+    onHeartbeat?: () => void,
   ): void {
     if (!line) {
       if (this.data.length) {
@@ -108,7 +114,9 @@ export class EventStreamDecoder<T extends StreamEnvelope> {
       this.event = undefined;
       this.data = [];
       this.bytes = 0;
-    } else if (!line.startsWith(':')) {
+    } else if (line.startsWith(':')) {
+      if (!this.data.length && this.id === undefined && this.event === undefined) onHeartbeat?.();
+    } else {
       const colon = line.indexOf(':');
       const field = colon < 0 ? line : line.slice(0, colon);
       const value = colon < 0 ? '' : line.slice(colon + 1).replace(/^ /, '');

@@ -188,7 +188,11 @@ describe('configureApi', () => {
     });
     expect(JSON.stringify(body)).not.toContain('DATABASE_URL');
     expect(JSON.stringify(body)).not.toContain('/workspace/internal.ts');
-    expect(logError).toHaveBeenCalledWith({ event: 'api.unexpected_failure', requestId });
+    expect(logError).toHaveBeenCalledWith({
+      event: 'api.unexpected_failure',
+      requestId,
+      errorName: 'Error',
+    });
     expect(JSON.stringify(logError.mock.calls)).not.toContain('DATABASE_URL');
     expect(JSON.stringify(logError.mock.calls)).not.toContain('/workspace/internal.ts');
   });
@@ -205,7 +209,11 @@ describe('configureApi', () => {
       message: 'An unexpected error occurred.',
       requestId,
     });
-    expect(logError).toHaveBeenCalledWith({ event: 'api.unexpected_failure', requestId });
+    expect(logError).toHaveBeenCalledWith({
+      event: 'api.unexpected_failure',
+      requestId,
+      errorName: 'InternalServerErrorException',
+    });
     expect(JSON.stringify(logError.mock.calls)).not.toContain('secret provider payload');
   });
 });

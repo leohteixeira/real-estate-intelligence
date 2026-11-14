@@ -44,7 +44,8 @@ up to 50 runs with a five-second deadline, retaining unexpired active lineage an
 the latest eight terminal turns, including completed, failed and queue-expired runs. An expired
 turn consumes one terminal position but owns no checkpoint or pending writes; it can therefore
 reduce the number of retained checkpoint-owning turns below eight. Running heads remain active
-even after their original queue deadline or execution lease expires.
+after their original queue deadline while an execution claim is live; past the 120-second run
+lifetime a running head whose lease expired becomes a `failed` terminal turn.
 Expiry/pruning markers prevent an empty reset;
 business runs, events, receipts and replay fences are preserved. AI uses sync
 durability and null-input resume; actual saved node evidence survives replacement.
