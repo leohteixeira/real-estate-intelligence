@@ -103,16 +103,21 @@ export class CollectionDependencyPolicies {
     signal.addEventListener('abort', cancel, { once: true });
     if (signal.aborted) cancel();
     const remaining = deadlineAt - this.now();
-    const timer =
-      Number.isFinite(remaining) && remaining > 0
-        ? setTimeout(
-            () =>
-              controller.abort(
-                new ExternalFailure({ kind: 'exhausted', operation: this.settings.dependency }),
-              ),
-            remaining,
-          )
-        : undefined;
+    let timer: NodeJS.Timeout | undefined;
+    // A timer is due against the event loop's cached time and may fire a few milliseconds before
+    // the wall-clock deadline. Reporting exhaustion early would let a caller that still reads
+    // budget on its own clock start work it can no longer finish, so wait out the remainder.
+    const expire = (): void => {
+      const left = deadlineAt - this.now();
+      if (left > 0) {
+        timer = setTimeout(expire, left);
+        return;
+      }
+      controller.abort(
+        new ExternalFailure({ kind: 'exhausted', operation: this.settings.dependency }),
+      );
+    };
+    if (Number.isFinite(remaining) && remaining > 0) timer = setTimeout(expire, remaining);
     if (remaining <= 0)
       controller.abort(
         new ExternalFailure({ kind: 'exhausted', operation: this.settings.dependency }),
