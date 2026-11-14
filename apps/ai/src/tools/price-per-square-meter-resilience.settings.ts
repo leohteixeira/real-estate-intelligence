@@ -17,7 +17,6 @@ export const priceToolResilienceSettings = Object.freeze({
     budgetRatio: 0.1,
     lowTrafficRetryReserve: 2,
   },
-  graphDeadlineMs: 4500,
   bulkhead: { maxConcurrent: 3, maxQueue: 6, queueTimeout: 500 },
   circuitBreaker: {
     failureRateThreshold: 50,

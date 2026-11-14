@@ -9,6 +9,7 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { parseRunExecutionRequest } from '@rei/contracts';
+import { askExecutionBudget } from '@rei/domain';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { ExecutionService } from './execution.service';
 import { readConfig } from '../config';
@@ -43,7 +44,9 @@ export class ExecutionController {
         AbortSignal.any([
           disconnected.signal,
           AbortSignal.timeout(
-            input.step !== 'foundation' ? (readConfig(process.env).tracerDeadlineMs ?? 4500) : 2000,
+            input.step !== 'foundation'
+              ? (readConfig(process.env).tracerDeadlineMs ?? askExecutionBudget.graphDeadlineMs)
+              : 2000,
           ),
         ]),
       );

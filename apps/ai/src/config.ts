@@ -1,3 +1,4 @@
+import { askExecutionBudget } from '@rei/domain';
 import { z } from 'zod';
 
 export interface AiConfig {
@@ -42,7 +43,9 @@ export function readConfig(env: NodeJS.ProcessEnv): AiConfig {
   const rawDeadline = env.ASK_TRACER_DEADLINE_MS;
   if (
     rawDeadline !== undefined &&
-    (!/^[0-9]+$/.test(rawDeadline) || Number(rawDeadline) < 100 || Number(rawDeadline) > 10000)
+    (!/^[0-9]+$/.test(rawDeadline) ||
+      Number(rawDeadline) < 100 ||
+      Number(rawDeadline) > askExecutionBudget.graphDeadlineMs)
   )
     throw new Error('Invalid AI tracer deadline.');
   const execution = {

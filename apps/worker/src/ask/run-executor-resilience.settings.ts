@@ -16,11 +16,15 @@ export const runExecutorResilienceSettings = Object.freeze({
     windowMs: 10000,
     openDurationMs: 30000,
     halfOpenMaxCalls: 1,
-    slowCallThresholdMs: 4000,
+    slowCallThresholdMs: 20000,
   }),
   retry: Object.freeze({ attempts: 1 }),
   rateLimit: Object.freeze({ limit: 10, intervalMs: 1000, maxWaitMs: 0 }),
-  attemptTimeoutMs: 5000,
+  /**
+   * Covers the AI graph deadline (`askExecutionBudget.graphDeadlineMs`) plus transport, and leaves
+   * the completion call its own five-second attempt inside `askExecutionBudget.claimedWorkMs`.
+   */
+  attemptTimeoutMs: 22000,
   commandDeadlineMs: 10000,
   cleanupTimeoutMs: 2000,
 });

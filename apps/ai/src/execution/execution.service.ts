@@ -1,7 +1,7 @@
 import { trace } from '@opentelemetry/api';
 import { priceNodeSpan } from '../graph/price-telemetry';
 import { Command } from '@langchain/langgraph';
-import type { RoutedPriceExecutionInput } from '@rei/domain';
+import { askExecutionBudget, type RoutedPriceExecutionInput } from '@rei/domain';
 import {
   BadRequestException,
   Inject,
@@ -116,7 +116,8 @@ export class ExecutionService {
       const invocation = this.priceFactory.create(
         input,
         signal,
-        Date.now() + (readConfig(process.env).tracerDeadlineMs ?? 4500),
+        Date.now() +
+          (readConfig(process.env).tracerDeadlineMs ?? askExecutionBudget.graphDeadlineMs),
       );
       const config = {
         configurable: { thread_id: input.threadId },
@@ -211,7 +212,7 @@ export class ExecutionService {
     const invocation = this.priceFactory.createRouted(
       input,
       signal,
-      Date.now() + (readConfig(process.env).tracerDeadlineMs ?? 4500),
+      Date.now() + (readConfig(process.env).tracerDeadlineMs ?? askExecutionBudget.graphDeadlineMs),
     );
     const config = {
       configurable: { thread_id: input.threadId },

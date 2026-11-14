@@ -176,8 +176,27 @@ mandatory publication and confirmation, retaining its current failure attempt. I
 source only after confirmation; an uncertain transfer retires that channel generation with the
 source unsettled. Deferrals do not consume the normal five-genuine-failure DLQ budget. A DLQ entry
 is not replayed automatically: its running head blocks successors only until the run lifetime
-below ends it, while other threads progress. Active execution and commit retain their independent
-ten-second budget.
+below ends it, while other threads progress.
+
+One claimed execution has nested budgets, named in `askExecutionBudget` (`@rei/domain`) and the
+worker's executor settings. Each fits inside the next:
+
+| Budget                                  | Value | Owner                                   |
+| --------------------------------------- | ----: | --------------------------------------- |
+| Claim call                              |   5 s | worker, before the lease starts         |
+| AI graph deadline (`graphDeadlineMs`)   |  20 s | AI service, per execution request       |
+| Executor attempt timeout                |  22 s | worker policy around the AI call        |
+| Execution plus commit (`claimedWorkMs`) |  27 s | worker, measured from the granted claim |
+| Fenced claim lease (`claimLeaseMs`)     |  30 s | API SQL clock                           |
+| Run lifetime                            | 120 s | API SQL clock                           |
+
+The graph deadline covers the model calls, the price tool and every checkpoint write of an ordinary
+question, so it completes inside one claim. The executor timeout adds two seconds of transport
+margin; the remaining five seconds are one completion attempt. Because the worker stops at 27
+seconds, a timed-out execution leaves at most about ten seconds of idle lease before redelivery
+reclaims it, and three full leases still fit the run lifetime. `ASK_TRACER_DEADLINE_MS` may lower
+the graph deadline (100 to 20000 ms); it cannot raise it past the worker's attempt timeout. A
+failure that returns early still waits for its lease to lapse, because only expiry releases a claim.
 
 Each queued run has a fixed 120-second deadline measured from one PostgreSQL admission observation.
 At or after that database-time deadline, the API expires unexecuted work under the same thread
@@ -218,7 +237,7 @@ and no execution authority, tool receipt or graph lineage. Its terminal event us
 no calculation or decision is invented.
 
 Transient transport failure, controlled cancellation and exhausted executor policies, including
-the five-second attempt timeout inside the ten-second consumer budget, do not submit a failed
+the 22-second attempt timeout inside the 27-second claimed-work budget, do not submit a failed
 completion or acknowledge delivery.
 They preserve the retained claim and receipt for fenced recovery through broker redelivery, until
 the run lifetime above ends a run whose recovery never succeeded.

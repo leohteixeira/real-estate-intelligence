@@ -1,4 +1,4 @@
-import { askRequestedIdentity } from '@rei/domain';
+import { askExecutionBudget, askRequestedIdentity } from '@rei/domain';
 import type { EventEnvelope } from '../shared/outbox.js';
 import { isExternalFailure } from '../shared/external-failure.js';
 import type { RunExecutor } from './run-executor.port.js';
@@ -24,7 +24,7 @@ export class ConsumeAskRunRequest {
     signal.throwIfAborted();
     if (claim.disposition === 'busy') return { disposition: 'deferred' };
     if (claim.disposition === 'terminal') return;
-    deadlineAt = Math.min(deadlineAt, Date.now() + 10_000);
+    deadlineAt = Math.min(deadlineAt, Date.now() + askExecutionBudget.claimedWorkMs);
     let evidence;
     try {
       evidence = await this.executor.execute(claim.input, signal, deadlineAt);

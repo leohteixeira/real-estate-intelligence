@@ -7,6 +7,10 @@ describe('readConfig', () => {
     expect(
       readConfig({ API_BASE_URL: 'http://api.internal:8200', ASK_TRACER_DEADLINE_MS: '4500' }),
     ).toEqual({ port: 4111, apiBaseUrl: 'http://api.internal:8200', tracerDeadlineMs: 4500 });
+    expect(readConfig({ ASK_TRACER_DEADLINE_MS: '20000' })).toEqual({
+      port: 4111,
+      tracerDeadlineMs: 20000,
+    });
     for (const API_BASE_URL of [
       'file:///tmp/tool',
       'https://user:secret@api.internal',
@@ -15,7 +19,7 @@ describe('readConfig', () => {
       'invalid',
     ])
       expect(() => readConfig({ API_BASE_URL })).toThrow('Invalid AI tool configuration.');
-    for (const ASK_TRACER_DEADLINE_MS of ['99', '10001', '-1', 'Infinity', '', '4500x'])
+    for (const ASK_TRACER_DEADLINE_MS of ['99', '20001', '-1', 'Infinity', '', '4500x'])
       expect(() => readConfig({ ASK_TRACER_DEADLINE_MS })).toThrow('Invalid AI tracer deadline.');
   });
   it('uses port 4111 when AI_PORT is absent', () => {

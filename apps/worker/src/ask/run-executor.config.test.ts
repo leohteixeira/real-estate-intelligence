@@ -23,14 +23,14 @@ describe('worker execution config and policy', () => {
       intervalMs: 1000,
       maxWaitMs: 0,
     });
-    expect(runExecutorResilienceSettings.attemptTimeoutMs).toBe(5000);
+    expect(runExecutorResilienceSettings.attemptTimeoutMs).toBe(22000);
     expect(runExecutorResilienceSettings.circuitBreaker).toEqual({
       failureRateThreshold: 50,
       minimumCalls: 20,
       windowMs: 10000,
       openDurationMs: 30000,
       halfOpenMaxCalls: 1,
-      slowCallThresholdMs: 4000,
+      slowCallThresholdMs: 20000,
     });
   });
   it('disables optional execution while explicit invocation fails closed', () => {

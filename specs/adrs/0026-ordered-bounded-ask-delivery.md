@@ -131,6 +131,27 @@ maintenance pass and thread fence; no state, reason, schema or configuration was
 claim is never interrupted, and lease reclaim inside the lifetime is unchanged. The transition
 commits frame, outbox and inbox marker once, so redelivery cannot repeat it.
 
+### Amendment: execution budgets nested in the lease
+
+On the production host every routed question needed two to four claims and one run reached the
+lifetime unfinished. The AI graph had 4.5 seconds and the worker 5 seconds per attempt inside a
+10-second budget, less than two model calls plus synchronous checkpoint writes take on a contended
+host. A failed attempt then left its 30-second lease to lapse while redeliveries were deferred as
+busy, so each extra attempt cost about 30 seconds.
+
+The budgets are now derived from the lease instead of being independent: a 20-second AI graph
+deadline, a 22-second worker attempt timeout, 27 seconds for execution plus completion measured
+from the granted claim, the unchanged 30-second lease and the unchanged 120-second lifetime. An
+ordinary question finishes in one claim; a timed-out one is reclaimed about ten seconds after the
+graph deadline at the latest; three full leases still fit the lifetime. The values live in
+`askExecutionBudget` and the executor settings, and unit tests assert their ordering.
+
+No state, endpoint, schema or configuration was added. Lease fencing, idempotent completion,
+deferral without spending attempts and the five-failure dead-letter bound of ADR 0017 are
+unchanged: failed attempts remain at least one lease apart, so at most four fit a lifetime. An
+explicit claim release for attempts that fail early was not added; such an attempt still waits for
+lease expiry, which the lifetime bounds.
+
 Prove concurrent fourth-request refusal and keyed replay at capacity through public HTTP. Publish
 existing requested identities in reverse order through real RabbitMQ and prove numeric FIFO and
 independent-thread progress with production prefetch, plus a prefetch-one case. Observe more than

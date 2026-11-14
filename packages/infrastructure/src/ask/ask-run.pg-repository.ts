@@ -29,6 +29,7 @@ import {
 import {
   AskRunRequested,
   askDeliveryPolicy,
+  askExecutionBudget,
   ASK_STRUCTURED_CONSUMER,
   DomainEvent,
   parseUuidV7,
@@ -556,7 +557,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
               }),
         });
       const claims = await client.query<{ expires_at: Date }>(
-        `UPDATE ask.run SET state='running',execution_id=$2,claim_expires_at=clock_timestamp()+interval '30 seconds',grant_digest=$3,document=$4,checkpoint_grant_digest=$5 WHERE id=$1 RETURNING claim_expires_at AS expires_at`,
+        `UPDATE ask.run SET state='running',execution_id=$2,claim_expires_at=clock_timestamp()+interval '${askExecutionBudget.claimLeaseMs} milliseconds',grant_digest=$3,document=$4,checkpoint_grant_digest=$5 WHERE id=$1 RETURNING claim_expires_at AS expires_at`,
         [run.id, executionId, askDigest(grant), run, askDigest(checkpointGrant)],
       );
       if (row.execution_id === null) await this.append(client, run);

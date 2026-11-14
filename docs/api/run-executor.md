@@ -81,9 +81,11 @@ The worker orders named policies as fallback, bulkhead, circuit breaker, retry, 
 limit and attempt timeout. Fallback fails closed. Retry allows one attempt, including transient
 failures: repeated invocation has no durable idempotency guarantee. Defaults admit three concurrent
 calls and six queued calls (one-second admission wait), allow ten attempts per second with no rate
-wait, and cap an attempt at five seconds. The breaker opens for 30 seconds after at least twenty
-calls in ten seconds with a 50% failure rate; calls crossing four seconds also count as slow.
-The AI caps graph execution at two seconds and propagates disconnect cancellation.
+wait, and cap an attempt at 22 seconds. The breaker opens for 30 seconds after at least twenty
+calls in ten seconds with a 50% failure rate; calls crossing 20 seconds also count as slow.
+The AI caps the foundation graph at two seconds and a priced Ask graph at 20 seconds, and
+propagates disconnect cancellation. [Ask tracer](ask-tracer.md#durable-execution) lists how these
+budgets nest inside the claim lease.
 
 ## Explicit worker command
 
