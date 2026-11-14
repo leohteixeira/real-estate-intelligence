@@ -225,7 +225,18 @@ test('RunExecutor E2E: production worker command resolves Nest port and traverse
       env: fixture.environment,
       timeout: 240000,
     });
-    const command = [...compose, 'run', '--rm', '--no-deps', '-T', 'run-execution-command'];
+    // Newer Compose releases report container creation on stderr; the command's own stderr is
+    // the evidence here, so orchestration progress is silenced rather than parsed around.
+    const command = [
+      ...compose,
+      '--progress',
+      'quiet',
+      'run',
+      '--rm',
+      '--no-deps',
+      '-T',
+      'run-execution-command',
+    ];
     const run = await fixture.execute('docker', command, {
       env: fixture.environment,
       input: JSON.stringify(input),

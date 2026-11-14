@@ -90,6 +90,43 @@ test('readiness reports independent database/broker outages and recovers through
           'name',
         )
       ).stdout.trim();
+    // Credential-free evidence for a recovery that never arrives: whether the API container
+    // resolves and reaches each dependency, and what the broker itself reports.
+    const recovered = async (database: boolean, broker: boolean) => {
+      try {
+        await vi.waitFor(() => check(database, broker), { timeout: 30_000, interval: 200 });
+      } catch (error) {
+        const probe = await compose(
+          'exec',
+          '-T',
+          'api',
+          'node',
+          '-e',
+          `const dns=require('node:dns').promises,net=require('node:net');(async()=>{const out={};for(const host of ['rabbitmq','postgres']){const started=Date.now();try{out[host]={resolved:(await dns.lookup(host)).address!==undefined}}catch(error){out[host]={code:error.code}}out[host].lookupMs=Date.now()-started}const started=Date.now();out.amqpSocket=await new Promise((resolve)=>{const socket=net.connect({host:'rabbitmq',port:5672,timeout:3000});socket.on('connect',()=>{socket.destroy();resolve('connected')});socket.on('timeout',()=>{socket.destroy();resolve('timeout')});socket.on('error',(error)=>resolve(error.code))});out.amqpSocketMs=Date.now()-started;console.log(JSON.stringify(out))})()`,
+        ).then(
+          (result) => result.stdout.trim(),
+          (failure: unknown) => `probe failed: ${String(failure).slice(0, 200)}`,
+        );
+        const listeners = await compose(
+          'exec',
+          '-T',
+          'rabbitmq',
+          'rabbitmq-diagnostics',
+          '-q',
+          'check_port_connectivity',
+        ).then(
+          () => 'listeners accept connections',
+          () => 'listeners refuse connections',
+        );
+        const hostHandshake = await new RabbitMqAvailabilityProbe(
+          `amqp://${user}:${password}@127.0.0.1:${rabbit}/${user}`,
+        ).isAvailable(AbortSignal.timeout(2_000));
+        console.error(
+          `${phase}: API container view ${probe}; broker ${listeners}; authenticated host handshake ${String(hostHandshake)}`,
+        );
+        throw error;
+      }
+    };
     const queuesBefore = await topology();
     await check(true, true);
     for (const url of [
@@ -116,7 +153,7 @@ test('readiness reports independent database/broker outages and recovers through
       phase = 'database recovering';
       await compose('unpause', 'postgres');
     }
-    await vi.waitFor(() => check(true, true), { timeout: 30_000, interval: 200 });
+    await recovered(true, true);
     phase = 'broker paused';
     await compose('pause', 'rabbitmq');
     try {
@@ -125,7 +162,7 @@ test('readiness reports independent database/broker outages and recovers through
       phase = 'broker recovering';
       await compose('unpause', 'rabbitmq');
     }
-    await vi.waitFor(() => check(true, true), { timeout: 30_000, interval: 200 });
+    await recovered(true, true);
     phase = 'broker stopped';
     await compose('stop', 'rabbitmq');
     await check(true, false);
@@ -135,11 +172,11 @@ test('readiness reports independent database/broker outages and recovers through
     phase = 'broker restarted with database stopped';
     await compose('start', 'rabbitmq');
     await waitHealthy('rabbitmq');
-    await vi.waitFor(() => check(false, true), { timeout: 30_000, interval: 200 });
+    await recovered(false, true);
     phase = 'both restarted';
     await compose('start', 'postgres');
     await waitHealthy('postgres');
-    await vi.waitFor(() => check(true, true), { timeout: 30_000, interval: 200 });
+    await recovered(true, true);
     expect((await compose('ps', '-q', 'api')).stdout.trim()).toBe(apiId);
     expect(await topology()).toBe(queuesBefore);
   });

@@ -468,7 +468,9 @@ test('Ask follows a real prepared completed run through owned HTTP, SSE and Chro
               kept,
           )
           .toBe(true);
-        expect(await page.locator('.ask-record').count()).toBe(0);
+        // The URL changes before React commits the remounted screen; the kept draft exists in
+        // both renders, so observe the committed place rather than the outgoing one.
+        await expect.poll(() => page.locator('.ask-record').count()).toBe(0);
       });
       await attempt('ASK-003', async (folder) => {
         for (const failure of ['503', '404', 'malformed']) {

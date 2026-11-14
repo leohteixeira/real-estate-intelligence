@@ -15,6 +15,7 @@ import { checkAccessibility } from './support/accessibility.ts';
 import { settlePropertyCaptureStart } from './support/property-capture.ts';
 import { copySurfaceEvidence } from './support/search-campaign.ts';
 import { preparedPropertyId, readProperty } from './support/property-reads.ts';
+import { privacySourceName } from './support/privacy-reads.ts';
 
 const scenarios = [
   [
@@ -347,21 +348,13 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
       });
       page = await context.newPage();
       const view = page;
-      // The four repository-owned synthetic sources carry bundled Portuguese names; English shows
-      // the attribution published by the API.
-      const portugueseSourceNames: Readonly<Record<string, string>> = {
-        'synthetic-data': 'Amostra sintética identificada',
-        'synthetic-portal-aurora': 'Dados sintéticos — Aurora',
-        'synthetic-portal-brisa': 'Dados sintéticos — Brisa',
-        'synthetic-portal-cobalto': 'Dados sintéticos — Cobalto',
-      };
       const sourceVisible = () =>
         expect
           .poll(async () => {
             const english = (await view.locator('html').getAttribute('lang')) === 'en';
             const shown = await view.locator('.privacy-source h3').allTextContents();
             const expected = oracle.sources.map((s) =>
-              english ? s.displayLabel : (portugueseSourceNames[s.sourceId] ?? s.displayLabel),
+              privacySourceName(s, english ? 'en' : 'pt-BR'),
             );
             return shown.join('\n') === expected.join('\n') ? 'attributed' : shown;
           })

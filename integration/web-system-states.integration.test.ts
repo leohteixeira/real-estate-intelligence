@@ -120,7 +120,7 @@ test('constructed system states retain owned API evidence and working recovery i
           )
           .toBe(200);
         const browser = await chromium.launch({
-          executablePath: '/usr/bin/chromium',
+          executablePath: chromium.executablePath(),
           chromiumSandbox: true,
         });
         await preserveCleanup(
