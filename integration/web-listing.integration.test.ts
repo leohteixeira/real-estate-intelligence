@@ -593,7 +593,12 @@ test('Listing follows rights, provenance, context and exact navigation through o
           await page.getByRole('button', { name: 'Tentar de novo' }).click();
           await checkListing(page, canonical, property, 'pt-BR');
           await page.getByRole('link', { name: 'Voltar ao imóvel' }).click();
-          await expect.poll(() => page.locator('.property-head').count()).toBe(1);
+          // The Listing plate carries `.property-head` too. Wait for the Property plate itself:
+          // going back before the Property page commits leaves the Listing mounted, so nothing
+          // remounts and no stale refetch is observed.
+          await expect
+            .poll(() => page.locator('.property-head:not(.listing-head)').count())
+            .toBe(1);
           const browserBefore = await page.evaluate(() => Date.now());
           await page.clock.setFixedTime(new Date(browserBefore + 31_000));
           const browserAfter = await page.evaluate(() => Date.now());
