@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { PropertySourceLink } from './PropertySourceLink';
+import { sourceName } from '../shared/api-labels';
+import { listingSourceName } from './property-presentation';
 
 export function PropertyFeatures({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
@@ -47,8 +49,7 @@ export function PropertyFeatures({ response }: { readonly response: PropertyResp
                     {row.values.map((value) => (
                       <li key={value.listingId}>
                         <PropertySourceLink listingId={value.listingId}>
-                          {property.listings.find((listing) => listing.id === value.listingId)
-                            ?.source.label ?? value.sourceId}
+                          {listingSourceName(response, value.listingId, i18n) ?? value.sourceId}
                         </PropertySourceLink>
                         :{' '}
                         {value.value === null
@@ -93,14 +94,14 @@ export function PropertyFeatures({ response }: { readonly response: PropertyResp
                 {t('reporters')}:{' '}
                 {property.listings
                   .filter((listing) => feature.listingIds.includes(listing.id))
-                  .map((listing) => listing.source.label)
+                  .map((listing) => sourceName(listing.source, i18n))
                   .join(' · ') || t('unknown')}
               </p>
               <p>
                 {t('nonReporters')}:{' '}
                 {property.listings
                   .filter((listing) => !feature.listingIds.includes(listing.id))
-                  .map((listing) => listing.source.label)
+                  .map((listing) => sourceName(listing.source, i18n))
                   .join(' · ') || '—'}
               </p>
               <p className="prov">{t('absentReport')}</p>

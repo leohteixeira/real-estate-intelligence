@@ -5,6 +5,7 @@ import { formatComputedAt, formatExactMoney } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { removedIntervals, timeAxis } from './property-presentation';
 import { PropertySourceLink } from './PropertySourceLink';
+import { sourceName } from '../shared/api-labels';
 
 export function PropertyLifelines({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
@@ -40,12 +41,12 @@ export function PropertyLifelines({ response }: { readonly response: PropertyRes
             return (
               <Fragment key={listing.id}>
                 <PropertySourceLink listingId={listing.id}>
-                  {listing.source.label}
+                  {sourceName(listing.source, i18n)}
                 </PropertySourceLink>
                 <div
                   className="life__track"
                   role="img"
-                  aria-label={`${listing.source.label}: ${narration}`}
+                  aria-label={`${sourceName(listing.source, i18n)}: ${narration}`}
                 >
                   {listing.lifeline.map((interval) => (
                     <i
@@ -135,7 +136,7 @@ export function PropertyLifelines({ response }: { readonly response: PropertyRes
           </p>
           {listings.map((listing) => (
             <div className="property-listing-history" key={listing.id}>
-              <h3>{listing.source.label}</h3>
+              <h3>{sourceName(listing.source, i18n)}</h3>
               <ol className="rows">
                 {listing.history.map((event, index) => (
                   <li key={`${event.effectiveAt}:${event.type}:${index}`}>

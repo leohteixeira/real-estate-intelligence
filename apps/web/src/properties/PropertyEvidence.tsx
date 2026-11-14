@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { formatProbability, formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { PropertySourceLink } from './PropertySourceLink';
+import { evidenceLabel } from '../shared/api-labels';
+import { listingSourceName } from './property-presentation';
 
 export function PropertyEvidence({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
@@ -74,7 +76,7 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
                       {reason.values
                         .map(
                           (value) =>
-                            `${response.property.listings.find((listing) => listing.id === value.listingId)?.source.label ?? value.listingId}: ${value.neighborhood}`,
+                            `${listingSourceName(response, value.listingId, i18n) ?? value.listingId}: ${value.neighborhood}`,
                         )
                         .join(' · ')}
                     </p>
@@ -88,7 +90,7 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
           <summary>{t('reasonDetails')}</summary>
           <p className="prov">
             {t(evidence.kind === 'prepared-fixture' ? 'rawEvidenceLabel' : 'ruleEvidenceLabel')}:{' '}
-            {evidence.label}
+            {evidenceLabel(evidence.label, i18n.language)}
           </p>
           <ol>
             {evidence.reasons.map((reason, index) => {
@@ -111,8 +113,7 @@ export function PropertyEvidence({ response }: { readonly response: PropertyResp
                     {ids.map((id) => (
                       <li key={id}>
                         <PropertySourceLink listingId={id}>
-                          {response.property.listings.find((listing) => listing.id === id)?.source
-                            .label ?? id}
+                          {listingSourceName(response, id, i18n) ?? id}
                         </PropertySourceLink>
                       </li>
                     ))}

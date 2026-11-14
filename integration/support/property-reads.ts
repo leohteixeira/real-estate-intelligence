@@ -2,6 +2,7 @@ import type { Page } from 'playwright';
 import { expect } from 'vitest';
 import { parsePropertyResponse } from '../../packages/contracts/dist/index.js';
 import type { PropertyResponse } from '../../packages/contracts/dist/index.js';
+import { displayedSourceName } from './api-labels.ts';
 import { requestHttp } from './http.ts';
 
 export const preparedPropertyId = (suffix: number) =>
@@ -66,8 +67,9 @@ export async function checkProperty(
         summary.askingPrice.minorUnits % 100 !== 0,
       ),
     );
+    const asking = listings.find((listing) => listing.id === summary.askingPrice?.listingId);
     expect(await price.locator('.property-price-provenance a').textContent()).toBe(
-      listings.find((listing) => listing.id === summary.askingPrice?.listingId)?.source.label,
+      asking && displayedSourceName(asking.source, locale),
     );
     expect(await price.textContent()).toContain(
       propertyDate(summary.askingPrice.provenance.observedAt, locale),
@@ -126,8 +128,9 @@ export async function checkProperty(
     if (reason.type === 'published-neighborhood-disagreement')
       for (const value of reason.values) {
         expect(await row.textContent()).toContain(value.neighborhood);
+        const member = listings.find((listing) => listing.id === value.listingId);
         expect(await row.textContent()).toContain(
-          listings.find((listing) => listing.id === value.listingId)?.source.label,
+          member && displayedSourceName(member.source, locale),
         );
       }
     if (reason.type === 'attribute-agreement' && typeof reason.value === 'number')
@@ -152,7 +155,7 @@ export async function checkProperty(
     const disclosure = page.locator('.property-source-disclosure').filter({ has: evidence });
     await disclosure.locator(':scope > summary').click();
     expect(await evidence.isVisible()).toBe(true);
-    expect(await evidence.textContent()).toContain(listing.source.label);
+    expect(await evidence.textContent()).toContain(displayedSourceName(listing.source, locale));
     expect(await evidence.textContent()).toContain(propertyDate(listing.firstCollectedAt, locale));
     expect(await evidence.textContent()).toContain(propertyDate(listing.lastCollectedAt, locale));
     expect(await evidence.textContent()).toContain(String(listing.collectionCount));
@@ -161,8 +164,8 @@ export async function checkProperty(
         .getByRole('link', {
           name:
             locale === 'en'
-              ? `Inspect listing at ${listing.source.label}`
-              : `Inspecionar anúncio na ${listing.source.label}`,
+              ? `Inspect listing at ${displayedSourceName(listing.source, locale)}`
+              : `Inspecionar anúncio na ${displayedSourceName(listing.source, locale)}`,
         })
         .getAttribute('href'),
     ).toMatch(new RegExp(`^/listings/${listing.id}(?:\\?|$)`));
@@ -180,10 +183,10 @@ export async function checkProperty(
     const nonReporters = listings.filter((listing) => !feature.listingIds.includes(listing.id));
     const details = page.locator('.property-feature-source').nth(index);
     expect(await details.locator('p').nth(0).textContent()).toContain(
-      reporters.map((listing) => listing.source.label).join(' · '),
+      reporters.map((listing) => displayedSourceName(listing.source, locale)).join(' · '),
     );
     expect(await details.locator('p').nth(1).textContent()).toContain(
-      nonReporters.map((listing) => listing.source.label).join(' · ') || '—',
+      nonReporters.map((listing) => displayedSourceName(listing.source, locale)).join(' · ') || '—',
     );
   }
   await page.locator('.property-feature-details > summary').click();

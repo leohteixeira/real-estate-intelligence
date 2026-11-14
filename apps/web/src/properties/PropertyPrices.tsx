@@ -34,7 +34,7 @@ export function PropertyPrices({ response }: { readonly response: PropertyRespon
           {asking ? (
             <>
               <PropertySourceLink listingId={asking.listingId}>
-                {sourceLabel(response, asking.provenance.sourceId)}
+                {sourceLabel(response, asking.provenance.sourceId, i18n)}
               </PropertySourceLink>
               <span>
                 {t('observed', { date: formatComputedAt(asking.provenance.observedAt, locale) })}

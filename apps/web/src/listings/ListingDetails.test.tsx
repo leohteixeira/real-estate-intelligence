@@ -105,6 +105,50 @@ function mount(
 
 describe('Listing public surface', () => {
   it.each([
+    [
+      'pt-BR',
+      'Dados sintéticos — Aurora',
+      'Anúncio sintético persistido; regras determinísticas de identidade',
+    ],
+    ['en', 'Synthetic data — Aurora', 'Persisted synthetic listing; deterministic identity rules'],
+  ] as const)(
+    'shows repository-owned labels and effective dates in the %s interface language',
+    async (locale, source, evidence) => {
+      const fixture = listingFixture();
+      const response = parseListingResponse({
+        ...fixture,
+        listing: {
+          ...fixture.listing,
+          fixtureLabel: 'Persisted synthetic listing; deterministic identity rules',
+          source: {
+            ...fixture.listing.source,
+            sourceId: 'synthetic-portal-aurora',
+            label: 'Synthetic data — Aurora',
+          },
+        },
+      });
+      mount(response, { locale });
+      await screen.findByRole('heading', { name: response.listing.street });
+      const facts = screen.getByRole('region', {
+        name: locale === 'en' ? 'Provenance' : 'Proveniência',
+      });
+      expect(within(facts).getByText(source)).toBeVisible();
+      expect(facts.querySelector('details')).toHaveTextContent(evidence);
+      const values = screen.getByRole('region', {
+        name: locale === 'en' ? 'Values in this listing' : 'Valores neste anúncio',
+      });
+      const since = new Date(response.listing.fieldEffectiveAt.attributes);
+      const expected = new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'pt-BR', {
+        dateStyle: locale === 'en' ? 'medium' : 'short',
+        timeZone: 'UTC',
+      }).format(since);
+      expect(expected).toMatch(
+        locale === 'en' ? /^\d{1,2} [A-Z][a-z]{2} \d{4}$/ : /^\d{2}\/\d{2}\/\d{4}$/,
+      );
+      expect(within(values).getAllByText(expected).length).toBeGreaterThan(0);
+    },
+  );
+  it.each([
     ['pt-BR', 'Prepared synthetic fixture (supplementary description-denied branch)'],
     ['en', 'Prepared synthetic fixture (supplementary description-denied branch)'],
     ['pt-BR', 'Persisted synthetic evidence'],

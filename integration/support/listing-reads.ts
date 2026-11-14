@@ -2,6 +2,7 @@ import type { Page } from 'playwright';
 import { expect } from 'vitest';
 import { parseListingResponse } from '../../packages/contracts/dist/index.js';
 import type { ListingResponse, PropertyResponse } from '../../packages/contracts/dist/index.js';
+import { displayedEvidenceLabel, displayedSourceName } from './api-labels.ts';
 import { requestHttp } from './http.ts';
 import { propertyMoney, readProperty } from './property-reads.ts';
 
@@ -68,7 +69,7 @@ export async function checkListing(
   await formula.locator('summary').click();
   const facts = page.locator('.listing-provenance');
   for (const fact of [
-    listing.source.label,
+    displayedSourceName(listing.source, locale),
     listing.provenance.runId,
     listingDate(listing.firstCollectedAt, locale),
     listingDate(listing.lastCollectedAt, locale),
@@ -96,7 +97,7 @@ export async function checkListing(
   await facts.locator('details > summary').click();
   for (const fact of [
     listing.id,
-    listing.fixtureLabel,
+    displayedEvidenceLabel(listing.fixtureLabel, locale),
     listing.provenance.snapshotId,
     listing.provenance.contentHash,
   ])
@@ -110,7 +111,7 @@ export async function checkListing(
       })
       .locator('+ dd')
       .textContent(),
-  ).toBe(listing.fixtureLabel);
+  ).toBe(displayedEvidenceLabel(listing.fixtureLabel, locale));
   expect(await facts.locator('details > .prov').textContent()).toContain(
     locale === 'en' ? 'prepared from persisted' : 'preparada de persistida',
   );

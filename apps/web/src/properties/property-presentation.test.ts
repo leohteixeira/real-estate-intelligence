@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { createLocale } from '../places/locale';
 import { propertyDetailFixture } from './property-fixtures.test';
 import {
   evidenceAnchor,
+  listingSourceName,
   propertyStreet,
   removedIntervals,
   sourceLabel,
@@ -64,8 +66,31 @@ describe('Property shared presentation coordinates', () => {
       ),
     ).toEqual([{ from: april, to: response.metadata.asOf }]);
     expect(removedIntervals(listing, response.metadata.asOf)).toEqual([]);
-    expect(sourceLabel(response, 'aurora')).toBe('Aurora');
-    expect(sourceLabel(response, 'unregistered')).toBe('unregistered');
+    const locale = createLocale('pt-BR');
+    expect(sourceLabel(response, 'aurora', locale)).toBe('Aurora');
+    expect(sourceLabel(response, 'unregistered', locale)).toBe('unregistered');
+    const owned = {
+      ...response,
+      property: {
+        ...response.property,
+        listings: [
+          {
+            ...listing,
+            source: {
+              ...listing.source,
+              sourceId: 'synthetic-portal-aurora',
+              label: 'Synthetic data — Aurora',
+            },
+          },
+        ],
+      },
+    };
+    expect(sourceLabel(owned, 'synthetic-portal-aurora', locale)).toBe('Dados sintéticos — Aurora');
+    expect(listingSourceName(owned, listing.id, locale)).toBe('Dados sintéticos — Aurora');
+    expect(listingSourceName(owned, listing.id, createLocale('en'))).toBe(
+      'Synthetic data — Aurora',
+    );
+    expect(listingSourceName(owned, 'absent', locale)).toBeUndefined();
     expect(evidenceAnchor(listing.id)).toBe(`property-listing-${listing.id}`);
   });
 });

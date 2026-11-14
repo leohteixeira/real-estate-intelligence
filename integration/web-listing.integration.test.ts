@@ -11,6 +11,7 @@ import {
   preserveCleanup,
 } from './support/fixture.ts';
 import { copySurfaceEvidence, runSearchCampaign } from './support/search-campaign.ts';
+import { displayedEvidenceLabel, displayedSourceName } from './support/api-labels.ts';
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
 import { settlePropertyCaptureStart } from './support/property-capture.ts';
@@ -489,7 +490,7 @@ test('Listing follows rights, provenance, context and exact navigation through o
             .locator(':scope > summary')
             .click();
           const entry = source.getByRole('link', {
-            name: `Inspecionar anúncio na ${canonical.listing.source.label}`,
+            name: `Inspecionar anúncio na ${displayedSourceName(canonical.listing.source, 'pt-BR')}`,
           });
           expect(await entry.getAttribute('href')).toBe(
             `/listings/${canonical.listing.id}?returnTo=${encodeURIComponent(applied)}`,
@@ -850,7 +851,9 @@ test('Listing follows rights, provenance, context and exact navigation through o
                     })
                     .locator('+ dd');
                   expect(await evidenceLabel.isVisible()).toBe(true);
-                  expect(await evidenceLabel.textContent()).toBe(canonical.listing.fixtureLabel);
+                  expect(await evidenceLabel.textContent()).toBe(
+                    displayedEvidenceLabel(canonical.listing.fixtureLabel, locale),
+                  );
                   const metadataLayout = await metadata
                     .locator('.listing-publication-identifiers')
                     .evaluate((list) => {
@@ -875,7 +878,7 @@ test('Listing follows rights, provenance, context and exact navigation through o
                     });
                   expect(metadataLayout.values.map((value) => value.text)).toEqual([
                     canonical.listing.id,
-                    canonical.listing.fixtureLabel,
+                    displayedEvidenceLabel(canonical.listing.fixtureLabel, locale),
                   ]);
                   for (const value of metadataLayout.values) {
                     expect(value.width / metadataLayout.width).toBeGreaterThanOrEqual(0.55);
@@ -896,7 +899,10 @@ test('Listing follows rights, provenance, context and exact navigation through o
                         locale,
                         width,
                         keyboardOpened: true,
-                        expectedFixtureLabel: canonical.listing.fixtureLabel,
+                        expectedFixtureLabel: displayedEvidenceLabel(
+                          canonical.listing.fixtureLabel,
+                          locale,
+                        ),
                         observedFixtureLabel: await evidenceLabel.textContent(),
                         metadataLayout,
                         caveat: await metadata.locator(':scope > .prov').textContent(),

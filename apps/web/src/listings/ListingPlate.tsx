@@ -5,6 +5,7 @@ import { Link } from 'react-router';
 import { formatExactMoney, formatMedian, formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { placeName } from '../places/locale';
+import { sourceName } from '../shared/api-labels';
 
 export function ListingPlate({
   listing,
@@ -47,7 +48,7 @@ export function ListingPlate({
         >
           <div className="plate__in">
             <div className="plate__over">
-              <span>{t('sourcePlate', { source: listing.source.label })}</span>
+              <span>{t('sourcePlate', { source: sourceName(listing.source, i18n) })}</span>
               <span>
                 {property
                   ? t('position', {
@@ -90,7 +91,7 @@ export function ListingPlate({
             <p>{t('formula', { formula: listing.pricePerSquareMeterFormula })}</p>
           </details>
           <p className="prov">
-            {listing.source.label} ·{' '}
+            {sourceName(listing.source, i18n)} ·{' '}
             <time dateTime={listing.provenance.observedAt}>
               {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale, {
                 dateStyle: 'medium',

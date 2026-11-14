@@ -11,6 +11,7 @@ import {
   preserveCleanup,
 } from './support/fixture.ts';
 import { copySurfaceEvidence, runSearchCampaign } from './support/search-campaign.ts';
+import { displayedSourceName } from './support/api-labels.ts';
 import { requestHttp } from './support/http.ts';
 import { checkAccessibility } from './support/accessibility.ts';
 import { preparedPropertyId, readProperty, checkProperty } from './support/property-reads.ts';
@@ -473,7 +474,7 @@ test('Property follows the complete public contract through owned real HTTP and 
               (listing) => listing.id === value.listingId,
             )!;
             expect(await page.locator('.property-features').textContent()).toContain(
-              `${source.source.label}: ${value.value}`,
+              `${displayedSourceName(source.source, 'pt-BR')}: ${value.value}`,
             );
           }
         });

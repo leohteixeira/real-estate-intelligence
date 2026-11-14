@@ -6,6 +6,7 @@ import { formatComputedAt } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { evidenceAnchor, revealEvidenceTarget } from './property-presentation';
 import { listingHref, validSearchReturn } from './property-navigation';
+import { sourceName } from '../shared/api-labels';
 
 export function PropertyProvenance({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
@@ -34,7 +35,7 @@ export function PropertyProvenance({ response }: { readonly response: PropertyRe
         {response.property.listings.map((listing) => (
           <details className="property-source-disclosure" key={listing.id}>
             <summary>
-              <strong>{listing.source.label}</strong>
+              <strong>{sourceName(listing.source, i18n)}</strong>
               <span className="small">
                 {t(listing.status === 'active' ? 'active' : 'removed', { count: 1 })} ·{' '}
                 {t(listing.snapshot.availability)} · {listing.collectionCount} {t('collections')}
@@ -46,11 +47,11 @@ export function PropertyProvenance({ response }: { readonly response: PropertyRe
               id={evidenceAnchor(listing.id)}
               tabIndex={-1}
             >
-              <h3>{listing.source.label}</h3>
+              <h3>{sourceName(listing.source, i18n)}</h3>
               <Link className="btn" to={listingHref(listing.id, returnTo)}>
                 {i18n.language === 'en'
-                  ? `Inspect listing at ${listing.source.label}`
-                  : `Inspecionar anúncio na ${listing.source.label}`}
+                  ? `Inspect listing at ${sourceName(listing.source, i18n)}`
+                  : `Inspecionar anúncio na ${sourceName(listing.source, i18n)}`}
               </Link>
               <p className="small">
                 {t(listing.status === 'active' ? 'active' : 'removed', { count: 1 })} ·{' '}

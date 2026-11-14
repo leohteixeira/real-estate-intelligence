@@ -1,5 +1,7 @@
 import type { ListingDetail, PropertyResponse } from '@rei/contracts';
 import { placeName } from '../places/locale';
+import type { i18n } from 'i18next';
+import { sourceName } from '../shared/api-labels';
 
 export const evidenceAnchor = (listingId: string) => `property-listing-${listingId}`;
 export function propertyStreet(response: PropertyResponse, language: string): string {
@@ -25,11 +27,25 @@ export function revealEvidenceTarget(id: string): void {
   target.focus({ preventScroll: true });
 }
 
-export function sourceLabel(response: PropertyResponse, sourceId: string): string {
-  return (
-    response.property.listings.find((listing) => listing.source.sourceId === sourceId)?.source
-      .label ?? sourceId
-  );
+export function sourceLabel(
+  response: PropertyResponse,
+  sourceId: string,
+  locale: Pick<i18n, 'exists' | 't'>,
+): string {
+  const source = response.property.listings.find(
+    (listing) => listing.source.sourceId === sourceId,
+  )?.source;
+  return source ? sourceName(source, locale) : sourceId;
+}
+
+/** Source name of one of the property's own listings, in the interface language. */
+export function listingSourceName(
+  response: PropertyResponse,
+  listingId: string,
+  locale: Pick<i18n, 'exists' | 't'>,
+): string | undefined {
+  const source = response.property.listings.find((listing) => listing.id === listingId)?.source;
+  return source && sourceName(source, locale);
 }
 
 /** Shared time coordinates are geometry only; no business value is derived here. */

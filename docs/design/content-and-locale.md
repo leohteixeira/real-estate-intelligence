@@ -61,8 +61,10 @@ Rules for both locales:
 
 - The interface never translates a name itself. A place name follows the interface language
   because the API carries both (`name.en` and `name.ptBR`). Street names and source names are shown
-  as published; the only bundled names are those of the repository-owned synthetic sources on the
-  privacy notice, keyed by their source identifier.
+  as published; the only bundled names are those of the repository-owned synthetic sources, keyed
+  by their source identifier and shared by the privacy notice, property and listing screens. The
+  fixed evidence labels the API publishes for persisted synthetic data are bundled the same way,
+  matched by their whole text; any other label is shown as received.
 - Labels may wrap to two lines. No label is truncated with an ellipsis.
 - The plate name wraps and stays balanced; it is never shrunk to fit.
 - Tab labels are single words in both languages.
@@ -76,6 +78,7 @@ Rules for both locales:
 | Exact result | `R$ 11,544.12/m²`   | `R$ 11.544,12/m²`    |
 | Percentage   | `+3.1%`, `−0.8%`    | `+3,1%`, `−0,8%`     |
 | Date         | `9 Oct 2026, 06:00` | `9 out. 2026, 06:00` |
+| Date only    | `9 Oct 2026`        | `09/10/2026`         |
 | Probability  | `0.91`              | `0,91`               |
 | Number range | `1200 – 1298`       | `1200 – 1298`        |
 

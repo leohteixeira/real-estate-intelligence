@@ -3,6 +3,7 @@ import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatComputedAt, formatExactMoney, formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
+import { evidenceLabel, sourceName } from '../shared/api-labels';
 
 export function ListingEvidence({ provenance }: { readonly provenance: ListingProvenance }) {
   const { t, i18n } = useTranslation('listing');
@@ -41,7 +42,7 @@ export function ListingFacts({ listing }: { readonly listing: ListingDetail }) {
       <div className="property-panel-body">
         <dl className="kv">
           <dt>{t('source')}</dt>
-          <dd>{listing.source.label}</dd>
+          <dd>{sourceName(listing.source, i18n)}</dd>
           <dt>{t('sourceUrlLabel')}</dt>
           <dd>
             <a href={listing.source.url} rel="noreferrer">
@@ -72,7 +73,7 @@ export function ListingFacts({ listing }: { readonly listing: ListingDetail }) {
             <dt>{t('listingId')}</dt>
             <dd>{listing.id}</dd>
             <dt>{t('fixtureLabel')}</dt>
-            <dd>{listing.fixtureLabel}</dd>
+            <dd>{evidenceLabel(listing.fixtureLabel, i18n.language)}</dd>
           </dl>
           <p className="prov">{t('fixtureCaveat')}</p>
           <ListingEvidence provenance={listing.provenance} />
@@ -140,7 +141,7 @@ export function ListingValues({ listing }: { readonly listing: ListingDetail }) 
                   <td>
                     <time dateTime={row.since} title={formatComputedAt(row.since, locale)}>
                       {new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : locale, {
-                        dateStyle: 'short',
+                        dateStyle: locale === 'en' ? 'medium' : 'short',
                         timeZone: 'UTC',
                       }).format(new Date(row.since))}
                     </time>

@@ -4,6 +4,7 @@ import { formatComputedAt, formatExactMoney, formatPercentage } from '../places/
 import type { Locale } from '../places/locale';
 import { sourceLabel } from './property-presentation';
 import { PropertySourceLink } from './PropertySourceLink';
+import { sourceName } from '../shared/api-labels';
 
 export function PropertyHistory({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
@@ -72,7 +73,7 @@ export function PropertyHistory({ response }: { readonly response: PropertyRespo
               aria-label={changes
                 .map(
                   (change) =>
-                    `${formatComputedAt(change.effectiveAt, locale)}: ${formatExactMoney(change.previousMinorUnits, locale)} → ${formatExactMoney(change.currentMinorUnits, locale)}; ${sourceLabel(response, change.provenance.sourceId)}`,
+                    `${formatComputedAt(change.effectiveAt, locale)}: ${formatExactMoney(change.previousMinorUnits, locale)} → ${formatExactMoney(change.currentMinorUnits, locale)}; ${sourceLabel(response, change.provenance.sourceId, i18n)}`,
                 )
                 .join('. ')}
             >
@@ -132,10 +133,10 @@ export function PropertyHistory({ response }: { readonly response: PropertyRespo
                 <p className="prov">
                   {listing ? (
                     <PropertySourceLink listingId={listing.id}>
-                      {listing.source.label}
+                      {sourceName(listing.source, i18n)}
                     </PropertySourceLink>
                   ) : (
-                    sourceLabel(response, change.provenance.sourceId)
+                    sourceLabel(response, change.provenance.sourceId, i18n)
                   )}{' '}
                   ·{' '}
                   {t('observed', { date: formatComputedAt(change.provenance.observedAt, locale) })}
