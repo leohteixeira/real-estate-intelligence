@@ -896,17 +896,28 @@ test('properties-ingestion preserves its complete real-service campaign', async 
             expect(value.sourceUrl).toBe(sanitizedFixture.sourceUrl);
             expect(value.collectedAt).toBe(sanitizedFixture.observedAt);
           }
-          const realShapedDetail = await get(
-            `properties/${realShapedRow!.property_id}`,
-            parsePropertyResponse,
-          );
-          const realShapedListing = (
-            await get(`listings/${realShapedRow!.listing_id}`, parseListingResponse)
-          ).listing;
-          expect(realShapedListing).toStrictEqual(
-            realShapedDetail.property.listings.find(
-              (member) => member.id === realShapedRow!.listing_id,
-            ),
+          // Identity matching runs in the worker and relabels the listing once its group exists, so
+          // reads taken across that transition legitimately differ. Wait for the matched state, which
+          // the later restart comparison also relies on, and compare a pair of reads from it.
+          let realShapedDetail!: Awaited<ReturnType<typeof parsePropertyResponse>>;
+          let realShapedListing!: Awaited<ReturnType<typeof parseListingResponse>>['listing'];
+          await vi.waitFor(
+            async () => {
+              realShapedDetail = await get(
+                `properties/${realShapedRow!.property_id}`,
+                parsePropertyResponse,
+              );
+              realShapedListing = (
+                await get(`listings/${realShapedRow!.listing_id}`, parseListingResponse)
+              ).listing;
+              expect(realShapedListing.fixtureLabel).not.toMatch(/matching pending/);
+              expect(realShapedListing).toStrictEqual(
+                realShapedDetail.property.listings.find(
+                  (member) => member.id === realShapedRow!.listing_id,
+                ),
+              );
+            },
+            { timeout: 15000, interval: 200 },
           );
           expect(realShapedListing.features).toStrictEqual([
             'pool',
