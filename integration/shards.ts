@@ -10,147 +10,197 @@
 // This file stays erasable TypeScript without imports: scripts/integration-shards.mjs loads it
 // with plain Node before anything is installed or built.
 //
-// Balance: the slowest shard decides how long CI takes, so each shard targets about five minutes
-// of campaigns. The estimates beside each shard are campaign seconds measured on hosted runners;
-// rebalance from a real run when a shard drifts above the others.
+// Balance: the slowest shard decides how long CI takes. A job spends about two minutes preparing
+// a `web-read` shard and about three preparing a `full` one, so `full` shards carry about 240 s of
+// campaigns and accessibility shards about 310 s. The numbers beside each shard are campaign
+// seconds measured on hosted runners; rebalance from a real run when a shard drifts above the
+// others. GitHub runs at most 40 jobs of one account at a time: 36 shards plus the three other
+// long jobs stay just below that, and more shards would queue instead of saving time.
 
 /** `full` builds every fixture image; `web-read` only what a read-only web stack starts. */
 type ImageProfile = 'full' | 'web-read';
 
-interface IntegrationShard {
+/** One serial Vitest invocation. At most one of the three name filters is set. */
+interface IntegrationRun {
   readonly files: readonly string[];
-  /** Vitest --testNamePattern; only the partitioned accessibility campaign is split by name. */
+  /** Vitest --testNamePattern over the partitioned accessibility campaign. */
   readonly testNamePattern?: string;
+  /** Half of a long file: the tests whose title contains this text ... */
+  readonly only?: string;
+  /** ... and, in another shard, every test whose title does not. */
+  readonly except?: string;
+}
+
+interface IntegrationShard {
+  readonly runs: readonly IntegrationRun[];
   readonly images: ImageProfile;
 }
 
-const locales = ['pt-BR', 'en'] as const;
-const widths = [390, 960, 1440] as const;
 const campaign = (name: string) => `integration/${name}.integration.test.ts`;
-const campaigns = (...names: string[]): IntegrationShard => ({
+const files = (...names: string[]): IntegrationRun => ({
   files: names.map((name) => (name.includes('/') ? name : campaign(name))),
-  images: 'full',
 });
+const only = (name: string, title: string): IntegrationRun => ({
+  files: [campaign(name)],
+  only: title,
+});
+const except = (name: string, title: string): IntegrationRun => ({
+  files: [campaign(name)],
+  except: title,
+});
+const shard = (...runs: IntegrationRun[]): IntegrationShard => ({ runs, images: 'full' });
 /** Exact partition names: the pattern is anchored on both sides of each name. */
 const accessibility = (...partitions: string[]): IntegrationShard => ({
-  files: [campaign('web-accessibility')],
-  testNamePattern: `partition: (${partitions.join('|')})( |$)`,
+  runs: [
+    {
+      files: [campaign('web-accessibility')],
+      testNamePattern: `partition: (${partitions.join('|')})( |$)`,
+    },
+  ],
   images: 'web-read',
 });
-const everyWidth = (prefix: string) => widths.map((width) => `${prefix}-${width}`);
-const bothLocales = (family: string, width: number) =>
-  locales.map((locale) => `${family}-${locale}-${width}`);
-const retained = (locale: string, width: number) =>
-  ['place', 'property', 'listing', 'privacy', 'search'].map(
-    (screen) => `retained-${locale}-${screen}-${width}`,
-  );
+const partitions = (prefix: string, ...suffixes: number[]) =>
+  suffixes.map((suffix) => `${prefix}-${suffix}`);
+/** The four read families that pair up to about 280 s per locale and width. */
+const reads = (locale: string, width: number) =>
+  ['subreads', 'variants', 'details', 'discovery'].map((family) => `${family}-${locale}-${width}`);
 
 export const integrationShards = {
-  // 421 s: seven checkpoint scenarios in one file.
-  'ask-checkpoints': campaigns('ask-checkpoints'),
-  // 345 s: thirteen model scenarios in one file.
-  'ask-model': campaigns('ask-model-explanation'),
-  // 312 s: delivery 197, text-price 80, contracts 35.
-  'ask-delivery': campaigns('ask-delivery', 'ask-text-price-run', 'ask-contracts'),
-  // 346 s: intent 144, price-run 71, run-executor 50, trace 31, headless 26, quotas 24.
-  'ask-intent': campaigns(
-    'ask-intent-decision',
-    'ask-price-run',
-    'run-executor',
-    'ask-run-trace',
-    'ask-headless',
-    'ask-demo-quotas',
+  // The two longest files are split by test title; shards.test.ts proves the halves complementary.
+  // 232 s: the saver scenario 206, resilience 26.
+  'ask-checkpoints-saver': shard(
+    only('ask-checkpoints', 'fresh Node saver'),
+    files('collection-resilience'),
   ),
-  // 306 s: ingestion 164, history 142.
-  properties: campaigns('properties-ingestion', 'properties-history'),
-  // 308 s: audit 89, resolution 86, suppression 55, median 44, figures 34.
-  'market-resolution': campaigns(
-    'audit-tracer',
-    'property-resolution',
-    'listing-suppression',
-    'market-median',
-    'market-figures',
+  // 231 s: the other six checkpoint scenarios 203, headless 28.
+  'ask-checkpoints': shard(except('ask-checkpoints', 'fresh Node saver'), files('ask-headless')),
+  // 235 s: the six explained campaigns 180, contracts 35, market contracts 20.
+  'ask-model-campaigns': shard(
+    only('ask-model-explanation', 'explained campaign'),
+    files('ask-contracts', 'market-contracts'),
   ),
-  // 298 s: thirteen short collection, snapshot, location and contract campaigns of 7 to 29 s.
-  collection: campaigns(
-    'synthetic-collection',
-    'listing-provenance',
-    'locations',
-    'image-fingerprints',
-    'properties-history-upgrade',
-    'source-register',
-    'integration/source-register-cleanup.test.ts',
-    'collection-resilience',
-    'snapshot-reparse',
-    'snapshot-lifecycle',
-    'market-contracts',
-    'properties-contracts',
-    'rabbitmq-healthcheck',
+  // 239 s: the other eight model scenarios 193, quotas 27, properties contracts 19.
+  'ask-model': shard(
+    except('ask-model-explanation', 'explained campaign'),
+    files('ask-demo-quotas', 'properties-contracts'),
   ),
-  // 309 s: place 177, listing 83, property 49.
-  'web-place': campaigns('web-place', 'web-listing', 'web-property'),
-  // 327 s: readiness 79, privacy 75, search 71, ask-states 62, ask 40.
-  'web-ask': campaigns('readiness', 'web-privacy', 'web-search', 'web-ask-states', 'web-ask'),
-  // 290 s: prefix 50, system-states 45, components 40, three scheduled or market campaigns 110,
-  // and the support tests 45.
-  'web-support': campaigns(
-    'web-prefix',
-    'web-system-states',
-    'web-components',
-    'overview-layout',
-    'resumable-collection',
-    'scheduled-collection',
-    'market-price-facts',
-    'integration/production-config.test.ts',
-    'integration/support/accessibility-browser.test.ts',
-    'integration/support/accessibility-catalog.test.ts',
-    'integration/support/accessibility-evidence.test.ts',
-    'integration/support/accessibility-fault.test.ts',
-    'integration/support/accessibility-references.test.ts',
-    'integration/support/accessibility-steps.test.ts',
-    'integration/support/ask-attempt.test.ts',
-    'integration/support/ask-campaign.test.ts',
-    'integration/support/convention.test.ts',
-    'integration/support/fixture.test.ts',
-    'integration/support/http.test.ts',
-    'integration/support/property-capture.test.ts',
-    'integration/support/search-campaign.test.ts',
-    'integration/support/shards.test.ts',
+  // 231 s: delivery 208, snapshot lifecycle 23.
+  'ask-delivery': shard(files('ask-delivery', 'snapshot-lifecycle')),
+  // 248 s: intent 167, run-executor 54, reparse 27.
+  'ask-intent': shard(files('ask-intent-decision', 'run-executor', 'snapshot-reparse')),
+  // 223 s: place 213, RabbitMQ healthcheck 10.
+  'web-place': shard(files('web-place', 'rabbitmq-healthcheck')),
+  // 226 s: ingestion 170, property 56.
+  'properties-ingestion': shard(files('properties-ingestion', 'web-property')),
+  // 234 s: history 153, text-price 81.
+  'properties-history': shard(files('properties-history', 'ask-text-price-run')),
+  // 236 s: resolution 104, audit 95, trace 37.
+  'property-resolution': shard(files('property-resolution', 'audit-tracer', 'ask-run-trace')),
+  // 236 s: listing 94, readiness 88, prefix 54.
+  'web-listing': shard(files('web-listing', 'readiness', 'web-prefix')),
+  // 229 s: search 81, privacy 75, price-run 73.
+  'web-search': shard(files('web-search', 'web-privacy', 'ask-price-run')),
+  // 222 s: ask-states 63, suppression 59, price facts 49, system states 47, two short files 4.
+  'web-states': shard(
+    files(
+      'web-ask-states',
+      'listing-suppression',
+      'market-price-facts',
+      'web-system-states',
+      'overview-layout',
+      'integration/production-config.test.ts',
+    ),
   ),
-  // The 72 accessibility partitions of one shard share one owned stack (about 35 s to start).
-  // Seconds per partition on that stack: discovery 16, keyboard 18, details 26, retained 28 to 88
-  // (each includes a genuine 30 s cache ageing), search 63, variants 88, adaptation 118,
-  // context 120, recovery 153, subreads 165, ask 181.
+  // 245 s: median 46, resumable 41, ask 41, figures 41, scheduled 40, components 36.
+  market: shard(
+    files(
+      'market-median',
+      'resumable-collection',
+      'web-ask',
+      'market-figures',
+      'scheduled-collection',
+      'web-components',
+    ),
+  ),
+  // 219 s: six collection and location campaigns of 28 to 31 s, the support tests 42.
+  collection: shard(
+    files(
+      'synthetic-collection',
+      'source-register',
+      'integration/source-register-cleanup.test.ts',
+      'locations',
+      'listing-provenance',
+      'properties-history-upgrade',
+      'image-fingerprints',
+      'integration/support/accessibility-browser.test.ts',
+      'integration/support/accessibility-catalog.test.ts',
+      'integration/support/accessibility-evidence.test.ts',
+      'integration/support/accessibility-fault.test.ts',
+      'integration/support/accessibility-references.test.ts',
+      'integration/support/accessibility-steps.test.ts',
+      'integration/support/ask-attempt.test.ts',
+      'integration/support/ask-campaign.test.ts',
+      'integration/support/convention.test.ts',
+      'integration/support/fixture.test.ts',
+      'integration/support/http.test.ts',
+      'integration/support/property-capture.test.ts',
+      'integration/support/search-campaign.test.ts',
+      'integration/support/shards.test.ts',
+    ),
+  ),
+  // The accessibility partitions of one shard share one owned stack, which takes about 38 s to
+  // start. Seconds per partition on a started stack: discovery 17, keyboard 21, details 27,
+  // search 68, variants 86, context 115, adaptation 121, recovery 150, subreads 150, ask 190;
+  // retained search 26, privacy 45, listing 61, place 77, property 84 (each but search includes a
+  // genuine 30 s cache ageing). Every shard below sums to between 250 and 295 s.
   'accessibility-ask-pt': accessibility(
     'ask-pt-BR',
-    'search',
-    'keyboard',
-    ...everyWidth('discovery-pt-BR'),
+    ...partitions('retained-pt-BR-search', 390, 960, 1440),
   ),
   'accessibility-ask-en': accessibility(
     'ask-en',
-    ...everyWidth('discovery-en'),
-    ...everyWidth('details-en'),
+    ...partitions('retained-en-search', 390, 960, 1440),
   ),
-  'accessibility-adaptation': accessibility(
+  'accessibility-faults-pt-390': accessibility('recovery-pt-BR-390', 'context-pt-BR-390'),
+  'accessibility-faults-pt-960': accessibility('recovery-pt-BR-960', 'context-pt-BR-960'),
+  'accessibility-faults-pt-1440': accessibility('recovery-pt-BR-1440', 'context-pt-BR-1440'),
+  'accessibility-faults-en-390': accessibility('recovery-en-390', 'context-en-390'),
+  'accessibility-faults-en-960': accessibility('recovery-en-960', 'context-en-960'),
+  'accessibility-faults-en-1440': accessibility('recovery-en-1440', 'context-en-1440'),
+  'accessibility-reads-pt-390': accessibility(...reads('pt-BR', 390)),
+  'accessibility-reads-pt-960': accessibility(...reads('pt-BR', 960)),
+  'accessibility-reads-pt-1440': accessibility(...reads('pt-BR', 1440)),
+  'accessibility-reads-en-390': accessibility(...reads('en', 390)),
+  'accessibility-reads-en-960': accessibility(...reads('en', 960)),
+  'accessibility-reads-en-1440': accessibility(...reads('en', 1440)),
+  'accessibility-adaptation-pt': accessibility(
     'adaptation-pt-BR',
-    'adaptation-en',
-    ...everyWidth('details-pt-BR'),
+    ...partitions('retained-pt-BR-place', 390, 960),
   ),
-  'accessibility-variants-pt': accessibility(...everyWidth('variants-pt-BR')),
-  'accessibility-variants-en': accessibility(...everyWidth('variants-en')),
-  'accessibility-recovery-390': accessibility(...bothLocales('recovery', 390)),
-  'accessibility-recovery-960': accessibility(...bothLocales('recovery', 960)),
-  'accessibility-recovery-1440': accessibility(...bothLocales('recovery', 1440)),
-  'accessibility-subreads-390': accessibility(...bothLocales('subreads', 390)),
-  'accessibility-subreads-960': accessibility(...bothLocales('subreads', 960)),
-  'accessibility-subreads-1440': accessibility(...bothLocales('subreads', 1440)),
-  'accessibility-context-pt': accessibility(...everyWidth('context-pt-BR')),
-  'accessibility-context-en': accessibility(...everyWidth('context-en')),
-  'accessibility-retained-pt-390': accessibility(...retained('pt-BR', 390)),
-  'accessibility-retained-pt-960': accessibility(...retained('pt-BR', 960)),
-  'accessibility-retained-pt-1440': accessibility(...retained('pt-BR', 1440)),
-  'accessibility-retained-en-390': accessibility(...retained('en', 390)),
-  'accessibility-retained-en-960': accessibility(...retained('en', 960)),
-  'accessibility-retained-en-1440': accessibility(...retained('en', 1440)),
+  'accessibility-adaptation-en': accessibility(
+    'adaptation-en',
+    ...partitions('retained-en-place', 390, 960),
+  ),
+  'accessibility-retained-property-pt': accessibility(
+    'keyboard',
+    ...partitions('retained-pt-BR-property', 390, 960, 1440),
+  ),
+  'accessibility-retained-property-en': accessibility(
+    ...partitions('retained-en-property', 390, 960, 1440),
+  ),
+  'accessibility-retained-listing': accessibility(
+    ...partitions('retained-pt-BR-listing', 390, 960, 1440),
+    'retained-en-listing-390',
+    'retained-pt-BR-privacy-390',
+  ),
+  'accessibility-retained-wide': accessibility(
+    ...partitions('retained-en-listing', 960, 1440),
+    'retained-pt-BR-place-1440',
+    'retained-en-place-1440',
+  ),
+  'accessibility-retained-privacy': accessibility(
+    'search',
+    ...partitions('retained-pt-BR-privacy', 960, 1440),
+    ...partitions('retained-en-privacy', 390, 960, 1440),
+  ),
 } as const satisfies Record<string, IntegrationShard>;
