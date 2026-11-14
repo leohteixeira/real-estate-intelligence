@@ -96,10 +96,33 @@ jobs:
       - run: pnpm run test:coverage
       - run: pnpm run build
 
-  integration:
-    name: Owned real-service Vitest integration
+  integration-plan:
+    name: Plan integration shards
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # integration/shards.ts is the single shard plan; the matrix is never repeated here.
+      - id: plan
+        run: printf 'matrix=%s\n' "$(node scripts/integration-shards.mjs matrix)" >> "$GITHUB_OUTPUT"
+
+  # The serial suite needs several hours on a hosted runner, so every campaign runs in exactly
+  # one shard (proved by integration/support/shards.test.ts). `publish` needs all of them.
+  integration:
+    name: Owned real-service Vitest integration (${{ matrix.shard }})
+    needs: integration-plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.integration-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v5
 
@@ -120,8 +143,25 @@ jobs:
           sandbox=$(node --input-type=module -e 'import { chromium } from "playwright"; import { dirname, join } from "node:path"; process.stdout.write(join(dirname(chromium.executablePath()), "chrome_sandbox"));')
           sudo install -o root -g root -m 4755 "$sandbox" "$RUNNER_TEMP/chrome-devel-sandbox"
           printf 'CHROME_DEVEL_SANDBOX=%s/chrome-devel-sandbox\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Prove all integration campaigns and fixture cleanup
-        run: pnpm run test:integration
+      - name: Build the workspaces and prepare the fixture images
+        run: pnpm run test:integration:prepare
+      - name: Prove this shard's integration campaigns
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: pnpm run test:integration:shard "$SHARD"
+      - name: Prove fixture cleanup
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          leftover=$(
+            docker ps --all --format 'container {{.Names}}'
+            docker volume ls --format 'volume {{.Name}}'
+            docker network ls --format 'network {{.Name}}'
+          )
+          if grep -E '^(container|volume|network) rei-' <<< "$leftover"; then
+            echo 'Owned rei- fixture resources survived their campaigns.' >&2
+            exit 1
+          fi
 
   containers:
     name: Build application images (no publishing)
