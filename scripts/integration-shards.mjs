@@ -7,7 +7,12 @@ import { integrationShards } from '../integration/shards.ts';
 const [command, name] = process.argv.slice(2);
 
 if (command === 'matrix') {
-  process.stdout.write(`${JSON.stringify({ shard: Object.keys(integrationShards) })}\n`);
+  // `images` names the fixture image profile scripts/prepare-integration-images.sh builds.
+  const include = Object.entries(integrationShards).map(([shard, { images }]) => ({
+    shard,
+    images,
+  }));
+  process.stdout.write(`${JSON.stringify({ include })}\n`);
 } else if (command === 'run' && name !== undefined && Object.hasOwn(integrationShards, name)) {
   const { files, testNamePattern } = integrationShards[name];
   const result = spawnSync(

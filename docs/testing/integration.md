@@ -15,21 +15,40 @@ cleanup/support tests. Files run serially; a campaign can deliberately exercise 
 or four parallel brokers. Test and hook deadlines are bounded, and empty discovery fails. Fixture
 probes in `integration/fixtures/` and compiled tests under `dist/` are not discovered.
 
-CI does not run that single serial command: on a hosted runner it needs several hours, far beyond
-one bounded job. The `integration` job is a matrix over the shards declared in
-`integration/shards.ts`. Each shard runs `pnpm run test:integration:prepare` (the same build and
-image preparation as the full command), then its own files serially, then fails if any owned
+CI does not run that single serial command: on a hosted runner it needs hours, far beyond one
+bounded job. The `integration` job is a matrix over the shards declared in `integration/shards.ts`.
+Each shard prepares only what it needs, runs its own files serially, then fails if any owned
 `rei-` container, volume or network survived:
 
 ```bash
-pnpm run test:integration:prepare
-pnpm run test:integration:shard web-journeys
+bash scripts/prepare-integration-images.sh full # or web-read, as the shard declares
+pnpm run build
+pnpm run test:integration:shard web-place
 ```
+
+CI runs those two preparations and the Chromium installation at the same time.
+`prepare-integration-images.sh` builds the distinct fixture images together and then lets the four
+serial `prepare-*-images.sh` scripts tag them from the build cache; the accessibility shards use the
+`web-read` profile, which builds only the migrations, prepared-search API and web images their stack
+starts. Locally, `pnpm run test:integration:prepare` keeps building one image after another.
+
+Shards never run campaigns in parallel inside one job. Many campaigns assert that the Docker
+daemon's other containers and volumes are untouched; only a job that owns its daemon can promise
+that, so more capacity means more shards, not more Vitest workers. Preparing once in an upstream
+job and handing the images to the shards was rejected for the same goal: every `up --build` in a
+campaign needs the BuildKit cache, which an exported image does not carry, and the upstream job
+would delay every shard by longer than the shard's own concurrent preparation takes.
 
 `web-accessibility` is the only campaign divided across shards, by a Vitest test-name pattern over
 its independent partitions. `integration/support/shards.test.ts` fails when a discovered file or
 an accessibility partition is not in exactly one shard, so add every new campaign to a shard.
-Rebalance shards from the measured durations recorded beside the plan.
+Rebalance shards from the measured durations recorded beside the plan: the slowest shard decides
+how long CI takes.
+
+A pull request that changes only Markdown, `_bmad-output/` or `specs/` skips the matrix, because no
+campaign reads those files; a push to `main` or `feat/phase-1` always runs it. The
+`Integration gate` job is the one result to require: it passes only when every shard succeeded, or
+when the plan itself skipped the matrix for such a prose-only pull request. `publish` needs it.
 
 For an individual campaign, build first, then select its existing focused alias:
 
@@ -262,6 +281,22 @@ required image/dependency settings fail before startup. They check immutable ima
 resource bounds, no published ports and AI/web network and credential boundaries. Existing API-only
 fixtures allocate owned ports for their automatically started broker dependency. These are local
 proofs; [the runbook](../operations/deployment.md) keeps public VPS/Tempo and remote CI evidence pending.
+
+## Accessibility partitions share one stack
+
+The 72 `web-accessibility` partitions only read. Each one proves that for itself: it opens a new
+browser profile and database connection, refuses every non-GET API request in the browser, and
+compares a digest of every table before and after. They therefore share one owned Compose stack per
+Vitest worker (`integration/support/accessibility-stack.ts`) instead of booting PostgreSQL,
+migrations, the API and the web image 72 times. The stack starts with the first partition that
+needs it and is removed after the last. No partition needs a stack of its own: none writes, and all
+use the same configuration.
+
+Each partition's `teardown.json` records that its own profile and connection were released and
+that foreign resources were preserved, and points to the stack's receipt
+(`campaigns/accessibility-stack-*/teardown.json`), which records the removal of the owned project
+and the preservation of everything that existed before it started. A partition's `campaign.json`
+no longer carries a `stackTornDownUtc`.
 
 ## Adopt the web accessibility harness
 

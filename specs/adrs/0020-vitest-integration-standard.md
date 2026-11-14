@@ -63,10 +63,13 @@ real-service requirements.
 ## Consequences
 
 Docker and sufficient time/resources are required for the complete suite; CI reserves bounded
-integration shard jobs. Shared support must continue to handle staged migrations, profiles, one-shot
-commands, faults and exact cleanup. Port allocation reduces clashes but cannot eliminate the
-allocation-to-bind race. Fresh probes remain separate processes and report inspectable results
-to Vitest; they must never import the runner. Dependency pins and frozen installs add maintenance
-work, while optional SSH acceleration build scripts remain disabled because fixtures use Docker.
+integration shard jobs, each with its own Docker daemon and one serial Vitest worker, because
+campaigns assert that foreign containers and volumes are preserved. The read-only accessibility
+partitions of one worker share one owned stack, removed with its own receipt. Shared support must
+continue to handle staged migrations, profiles, one-shot commands, faults and exact cleanup. Port
+allocation reduces clashes but cannot eliminate the allocation-to-bind race. Fresh probes remain
+separate processes and report inspectable results to Vitest; they must never import the runner.
+Dependency pins and frozen installs add maintenance work, while optional SSH acceleration build
+scripts remain disabled because fixtures use Docker.
 
 See [the execution guide](../../docs/testing/integration.md) for commands and the new-test pattern.
