@@ -73,6 +73,18 @@ Market facade, never an extraction shortcut or a fabricated terminal.
 - Reusing the structured basis for text hides provenance and makes future routing ambiguous.
 - General tool selection from text weakens the existing closed capability boundary.
 
+### Amendment: BRL separators do not depend on the interface language
+
+`R$ 785.000` asked through the English interface was read as 785 reais, and `BRL 785,000` through
+the Portuguese one likewise, because the price token was validated only against the locale's
+convention. A BRL amount has at most two decimals, so a price without a scale word is now read by
+its own separators in both locales: with both present the last is the decimal mark; a repeated
+separator, or a single one between a one-to-three-digit head and exactly three digits, groups
+thousands; any other single separator is the decimal mark. Areas and prices followed by a scale
+word keep the locale convention, where three decimals are meaningful. This corrects grammar v1
+rather than adding a version: retained runs keep the inputs persisted at their admission and are
+not re-extracted.
+
 ## Consequences and verification
 
 The parser has a documented bounded grammar, not unrestricted linguistic understanding. New

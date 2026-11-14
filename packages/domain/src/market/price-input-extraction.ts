@@ -109,6 +109,26 @@ const refused = (reason: PriceInputRefusalReason): PriceInputExtraction => ({
   reason,
 });
 
+/**
+ * A BRL amount has at most two decimal places, so its separators carry their meaning whatever the
+ * interface language: with both separators the last one is the decimal mark; one separator that
+ * repeats, or that precedes exactly three digits after a one-to-three-digit head, groups thousands
+ * (`785.000`, `785,000`, `1.250.000`); any other lone separator is the decimal mark (`785000.00`).
+ * Amounts followed by a scale word and areas keep the locale's own convention.
+ */
+function priceDecimalSeparator(token: string, locale: 'en' | 'pt-BR'): '.' | ',' {
+  const lastDot = token.lastIndexOf('.');
+  const lastComma = token.lastIndexOf(',');
+  if (lastDot < 0 && lastComma < 0) return locale === 'en' ? '.' : ',';
+  if (lastDot >= 0 && lastComma >= 0) return lastDot > lastComma ? '.' : ',';
+  const separator = lastDot >= 0 ? '.' : ',';
+  const other = separator === '.' ? ',' : '.';
+  const groupsThousands =
+    token.indexOf(separator) !== token.lastIndexOf(separator) ||
+    /^[1-9]\d{0,2}[.,]\d{3}$/.test(token);
+  return groupsThousands ? other : separator;
+}
+
 /** Bounded v1 grammar. A token is consumed whole; malformed numbers are never salvaged. */
 export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): PriceInputExtraction {
   if (query.length > 16000 || !query.trim()) return refused('missing_price');
@@ -357,10 +377,15 @@ export function extractPriceInputs(query: string, locale: 'en' | 'pt-BR'): Price
   const parse = (role: Role): number | null => {
     const candidate = candidates[role][0]!;
     if (candidate.invalidScale) return null;
-    const grouping = locale === 'en' ? ',' : '.',
-      decimal = locale === 'en' ? '.' : ',';
+    const decimal =
+      role === 'price' && candidate.scale === 1n
+        ? priceDecimalSeparator(candidate.token, locale)
+        : locale === 'en'
+          ? '.'
+          : ',';
+    const grouping = decimal === '.' ? ',' : '.';
     const pattern =
-      locale === 'en'
+      decimal === '.'
         ? /^(?:\d+|[1-9]\d{0,2}(?:,\d{3})+)(?:\.\d+)?$/
         : /^(?:\d+|[1-9]\d{0,2}(?:\.\d{3})+)(?:,\d+)?$/;
     if (!pattern.test(candidate.token)) return null;

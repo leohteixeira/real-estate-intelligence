@@ -71,6 +71,38 @@ describe('deterministic text price grammar v1', () => {
       inputs: { priceMinorUnits, currency: 'BRL', areaSquareMeters },
     });
   });
+  describe.each(['en', 'pt-BR'] as const)('BRL separators under the %s interface', (locale) => {
+    it.each([
+      ['Price per square meter for R$ 785.000 and 68 m2', 78500000],
+      ['Price per square meter for R$ 785.000,00 and 68 m2', 78500000],
+      ['Price per square meter for BRL 785,000 and 68 m2', 78500000],
+      ['Price per square meter for BRL 785,000.00 and 68 m2', 78500000],
+      ['Price 785000.00, area 68 m2', 78500000],
+      ['Preço 785000,00, área 68 m2', 78500000],
+      ['Price per square meter for R$ 1.250.000 and 68 m2', 125000000],
+      ['Price per square meter for R$ 1,250,000 and 68 m2', 125000000],
+      ['Price per square meter for R$ 1.250.000,50 and 68 m2', 125000050],
+      ['Price R$ 10.001, area 68 m2', 1000100],
+      ['Price R$ 785.5, area 68 m2', 78550],
+      ['Preço R$ 785,50, área 68 m2', 78550],
+      ['Price R$ 1234.500, area 68 m2', 123450],
+    ] as const)('reads %s as %i centavos', (query, priceMinorUnits) => {
+      expect(extractPriceInputs(query, locale)).toEqual({
+        kind: 'extracted',
+        inputs: { priceMinorUnits, currency: 'BRL', areaSquareMeters: 68 },
+      });
+    });
+  });
+  it('keeps the locale convention for scaled amounts and for areas', () => {
+    expect(extractPriceInputs('Price BRL 1.250 million, area 68.125 m2', 'en')).toEqual({
+      kind: 'extracted',
+      inputs: { priceMinorUnits: 125000000, currency: 'BRL', areaSquareMeters: 68.125 },
+    });
+    expect(extractPriceInputs('Preço R$ 1,250 milhão, área 1.200 m2', 'pt-BR')).toEqual({
+      kind: 'extracted',
+      inputs: { priceMinorUnits: 125000000, currency: 'BRL', areaSquareMeters: 1200 },
+    });
+  });
   it.each([
     ['Area 68 m2', 'en', 'missing_price'],
     ['Price BRL 785000', 'en', 'missing_area'],
@@ -105,6 +137,10 @@ describe('deterministic text price grammar v1', () => {
     ['Price 10, area 68-70 m2', 'en', 'ambiguous_area'],
     ['Price 10, area 68 to 70 m2', 'en', 'ambiguous_area'],
     ['Price 0, area 68 m2', 'en', 'invalid_price'],
+    ['Price 10.0001, area 68 m2', 'en', 'invalid_price'],
+    ['Price 785.000.00, area 68 m2', 'en', 'invalid_price'],
+    ['Preço 785,000,00, área 68 m2', 'pt-BR', 'invalid_price'],
+    ['Price 785.000,00.5, area 68 m2', 'en', 'invalid_price'],
     ['Price -10, area 68 m2', 'en', 'invalid_price'],
     ['Price +10, area 68 m2', 'en', 'invalid_price'],
     ['Price --785000, area 68 m2', 'en', 'invalid_price'],
@@ -127,9 +163,6 @@ describe('deterministic text price grammar v1', () => {
     ['Price NaN, area 68 m2', 'en', 'invalid_price'],
     ['Price Infinity, area 68 m2', 'en', 'invalid_price'],
     ['Price 7,85,000.00, area 68 m2', 'en', 'invalid_price'],
-    ['Preço 785,000.00, área 68 m2', 'pt-BR', 'invalid_price'],
-    ['Price 785.000,00, area 68 m2', 'en', 'invalid_price'],
-    ['Price 10.001, area 68 m2', 'en', 'invalid_price'],
     ['Price 90071992547410, area 68 m2', 'en', 'invalid_price'],
     ['Price 10 k million, area 68 m2', 'en', 'invalid_price'],
     ['Price 10 billion BRL, area 68 m2', 'en', 'invalid_price'],

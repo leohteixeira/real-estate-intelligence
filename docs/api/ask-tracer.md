@@ -139,7 +139,13 @@ Grammar v1 associates digit tokens with `price`/`preço`/`valor`, BRL markers (`
 `real`/`reais`), `area`/`área`, or square-metre units (`m2`, `m²`, `square meters`/`metres`,
 `metros quadrados`). Explicit price labels default to BRL. Unrelated bedroom/street/year numbers
 are ignored. EN uses comma grouping and decimal point; PT uses point grouping and decimal comma.
-Grouping must be complete. Unsigned positive digits and unambiguous `k`, `mil`, `thousand`,
+A price without a scale word is read the same way in both locales, because a BRL amount has at most
+two decimals: with both separators the last one is the decimal mark; a repeated separator, or a
+single one between a one-to-three-digit head and exactly three digits, groups thousands
+(`R$ 785.000`, `BRL 785,000` and `R$ 1.250.000` are 785,000 and 1,250,000 reais); any other single
+separator is the decimal mark (`785000.00`, `785000,50`). Areas and scaled prices keep the locale
+convention. Grouping must be complete.
+Unsigned positive digits and unambiguous `k`, `mil`, `thousand`,
 `million`/`millions`, `milhão`/`milhões` scales are supported; exact BigInt scaling precedes safe
 centavo conversion. Sub-cent prices, signs, exponents, malformed numeric fragments, repeated scales,
 multiple candidates and ranges are refused. Foreign currency codes beside a price/numeric mention
