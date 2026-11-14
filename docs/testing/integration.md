@@ -39,9 +39,12 @@ job and handing the images to the shards was rejected for the same goal: every `
 campaign needs the BuildKit cache, which an exported image does not carry, and the upstream job
 would delay every shard by longer than the shard's own concurrent preparation takes.
 
-`web-accessibility` is the only campaign divided across shards, by a Vitest test-name pattern over
-its independent partitions. `integration/support/shards.test.ts` fails when a discovered file or
-an accessibility partition is not in exactly one shard, so add every new campaign to a shard.
+`web-accessibility` is divided across shards by a Vitest test-name pattern over its independent
+partitions. The two longest files, `ask-checkpoints` and `ask-model-explanation`, are each divided
+in two by a title text: one shard runs the tests whose title contains it (`only`), another every
+test whose title does not (`except`), so the halves are complementary without listing the tests.
+`integration/support/shards.test.ts` fails when a discovered file, a half or an accessibility
+partition is not in exactly one shard, so add every new campaign to a shard.
 Rebalance shards from the measured durations recorded beside the plan: the slowest shard decides
 how long CI takes.
 
