@@ -102,24 +102,44 @@ jobs:
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
+      run: ${{ steps.plan.outputs.run }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          # A pull request is checked out as its merge commit; the first parent is the base.
+          fetch-depth: 2
 
       - uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       # integration/shards.ts is the single shard plan; the matrix is never repeated here.
+      # Only a pull request that changes nothing but prose skips the campaigns: no campaign reads
+      # Markdown, product specifications or ADRs. A push to a release branch always runs them,
+      # because `publish` must never follow campaigns that did not run.
       - id: plan
-        run: printf 'matrix=%s\n' "$(node scripts/integration-shards.mjs matrix)" >> "$GITHUB_OUTPUT"
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -Eeuo pipefail
+          printf 'matrix=%s\n' "$(node scripts/integration-shards.mjs matrix)" >> "$GITHUB_OUTPUT"
+          run=true
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            changed=$(git diff --name-only HEAD^1 HEAD)
+            if [[ -n "$changed" ]] && ! grep -qvE '\.md$|^_bmad-output/|^specs/' <<< "$changed"; then
+              run=false
+            fi
+          fi
+          printf 'run=%s\n' "$run" >> "$GITHUB_OUTPUT"
 
-  # The serial suite needs several hours on a hosted runner, so every campaign runs in exactly
-  # one shard (proved by integration/support/shards.test.ts). `publish` needs all of them.
+  # The serial suite needs hours on a hosted runner, so every campaign runs in exactly one shard
+  # (proved by integration/support/shards.test.ts). `integration-gate` needs all of them.
   integration:
     name: Owned real-service Vitest integration (${{ matrix.shard }})
     needs: integration-plan
+    if: needs.integration-plan.outputs.run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.integration-plan.outputs.matrix) }}
@@ -136,15 +156,42 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - name: Install sandboxed Chromium for the native browser campaigns
+      # The three preparations are independent, so they share the runner's four cores instead of
+      # queueing: the image builds read no host build output (.dockerignore excludes dist).
+      - name: Build the workspaces, this shard's fixture images and sandboxed Chromium together
+        env:
+          IMAGE_PROFILE: ${{ matrix.images }}
         run: |
           set -Eeuo pipefail
-          pnpm exec playwright install --with-deps chromium
+          logs="$RUNNER_TEMP/prepare"
+          mkdir -p "$logs"
+          track() {
+            local name=$1 started=$SECONDS
+            shift
+            "$@" > "$logs/$name.log" 2>&1
+            printf '%s finished in %s s\n' "$name" "$((SECONDS - started))" >> "$logs/$name.log"
+          }
+          declare -A pid
+          track chromium pnpm exec playwright install --with-deps chromium &
+          pid[chromium]=$!
+          track images bash scripts/prepare-integration-images.sh "$IMAGE_PROFILE" &
+          pid[images]=$!
+          track workspaces pnpm run build &
+          pid[workspaces]=$!
+          failed=0
+          for name in chromium images workspaces; do
+            wait "${pid[$name]}" || failed=1
+            echo "::group::$name"
+            cat "$logs/$name.log"
+            echo "::endgroup::"
+          done
+          if [[ "$failed" != 0 ]]; then
+            echo 'A preparation failed; see its group above.' >&2
+            exit 1
+          fi
           sandbox=$(node --input-type=module -e 'import { chromium } from "playwright"; import { dirname, join } from "node:path"; process.stdout.write(join(dirname(chromium.executablePath()), "chrome_sandbox"));')
           sudo install -o root -g root -m 4755 "$sandbox" "$RUNNER_TEMP/chrome-devel-sandbox"
           printf 'CHROME_DEVEL_SANDBOX=%s/chrome-devel-sandbox\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Build the workspaces and prepare the fixture images
-        run: pnpm run test:integration:prepare
       - name: Prove this shard's integration campaigns
         env:
           SHARD: ${{ matrix.shard }}
@@ -163,6 +210,29 @@ jobs:
             exit 1
           fi
 
+  # One required result for the whole matrix. A skipped matrix passes only when the plan itself
+  # decided that a prose-only pull request needs no campaign; otherwise every shard must succeed.
+  integration-gate:
+    name: Integration gate
+    if: always()
+    needs: [integration-plan, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          PLAN: ${{ needs.integration-plan.result }}
+          RUN: ${{ needs.integration-plan.outputs.run }}
+          SHARDS: ${{ needs.integration.result }}
+        run: |
+          set -Eeuo pipefail
+          echo "plan=$PLAN run=$RUN shards=$SHARDS"
+          [[ "$PLAN" == success ]]
+          if [[ "$RUN" == false ]]; then
+            [[ "$SHARDS" == skipped ]]
+          else
+            [[ "$SHARDS" == success ]]
+          fi
+
   containers:
     name: Build application images (no publishing)
     runs-on: ubuntu-latest
@@ -170,22 +240,33 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
-      - name: Build all five images serially for the checked-out commit
+      - name: Build all five images together for the checked-out commit
         env:
           REVISION: ${{ github.sha }}
         run: |
           set -Eeuo pipefail
-          for image in migrate api worker ai web; do
+          images=(migrate api worker ai web)
+          pids=()
+          for image in "${images[@]}"; do
             docker buildx build --load --file "docker/${image}.Dockerfile" \
               --build-arg VITE_PUBLIC_BASE=/real-estate-intelligence/ \
               --label "org.opencontainers.image.revision=${REVISION}" \
-              --tag "rei-${image}:${REVISION}" .
+              --tag "rei-${image}:${REVISION}" . > "$RUNNER_TEMP/${image}.log" 2>&1 &
+            pids+=("$!")
           done
+          failed=0
+          for index in "${!images[@]}"; do
+            wait "${pids[$index]}" || failed=1
+            echo "::group::${images[$index]}"
+            cat "$RUNNER_TEMP/${images[$index]}.log"
+            echo "::endgroup::"
+          done
+          [[ "$failed" == 0 ]]
 
   publish:
     name: Publish gated release images
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/phase-1')
-    needs: [secrets, format, workspace, integration, containers]
+    needs: [secrets, format, workspace, integration-gate, containers]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
