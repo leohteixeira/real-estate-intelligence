@@ -202,13 +202,26 @@ test('web place tracer follows production acquisition, proxy and browser journey
                 const series = parsePlaceMarketSeriesResponse(await seriesRead.json());
                 await expect.poll(() => page.locator('.place-series tbody tr').count()).toBe(12);
                 expect(series.points).toHaveLength(12);
-                expect(await page.locator('.place-parent').textContent()).toContain('Centro');
+                expect(await page.locator('.place-parent').textContent()).toContain(
+                  locale === 'en' ? 'Central zone' : 'Centro',
+                );
                 const { properties, activeListings, sources } = overview.counts;
                 const number = new Intl.NumberFormat(locale === 'en' ? 'en-US' : locale);
+                const counted = (count: number, one: string, other: string) =>
+                  `${number.format(count)} ${count === 1 ? one : other}`;
                 expect(await page.locator('.place-counts').textContent()).toContain(
-                  locale === 'en'
-                    ? `${number.format(properties)} properties · ${number.format(activeListings)} active listings · ${number.format(sources)} sources`
-                    : `${number.format(properties)} imóveis · ${number.format(activeListings)} anúncios ativos · ${number.format(sources)} fontes`,
+                  (locale === 'en'
+                    ? [
+                        counted(properties, 'property', 'properties'),
+                        counted(activeListings, 'active listing', 'active listings'),
+                        counted(sources, 'source', 'sources'),
+                      ]
+                    : [
+                        counted(properties, 'imóvel', 'imóveis'),
+                        counted(activeListings, 'anúncio ativo', 'anúncios ativos'),
+                        counted(sources, 'fonte', 'fontes'),
+                      ]
+                  ).join(' · '),
                 );
                 expect(await page.locator('.place-counts').textContent()).toContain(
                   locale === 'en'
@@ -243,9 +256,10 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   'Bela Vista',
                 );
                 for (const item of neighbours.items) {
-                  const neighbourLink = page
-                    .locator('.place-neighbours')
-                    .getByRole('link', { name: item.place.name.ptBR, exact: true });
+                  const neighbourLink = page.locator('.place-neighbours').getByRole('link', {
+                    name: locale === 'en' ? item.place.name.en : item.place.name.ptBR,
+                    exact: true,
+                  });
                   await expect.poll(() => neighbourLink.count()).toBe(1);
                   expect(await neighbourLink.getAttribute('href')).toBe(`/places/${item.place.id}`);
                   const row = neighbourLink.locator('..');
@@ -449,7 +463,7 @@ test('web place tracer follows production acquisition, proxy and browser journey
                   if (destination === 'search') {
                     await expect.poll(() => page.locator('.search-rows li').count()).toBe(1);
                     expect(await page.locator('.search-median').textContent()).toContain(
-                      locale === 'en' ? 'Prepared results' : 'Resultados preparados',
+                      locale === 'en' ? 'Persisted synthetic data' : 'Dados sintéticos persistidos',
                     );
                     expect(await page.locator('.search-toolbar a').getAttribute('href')).toBe(
                       `/search/${bela}?view=filters`,
@@ -463,15 +477,15 @@ test('web place tracer follows production acquisition, proxy and browser journey
                     expect(await draft.isEditable()).toBe(true);
                     expect(await page.locator('#ask-draft-hint').textContent()).toContain(
                       locale === 'en'
-                        ? 'not been submitted or executed'
-                        : 'não foi enviada nem executada',
+                        ? 'Submit a question for a real run.'
+                        : 'Envie uma pergunta para execução real.',
                     );
                     expect(await page.locator('.ask-follow').textContent()).toContain(
                       locale === 'en'
                         ? 'The example does not analyze the selected place.'
                         : 'O exemplo não analisa o lugar selecionado.',
                     );
-                    expect(await page.locator('form, .fig__value, .ask-record').count()).toBe(0);
+                    expect(await page.locator('.fig__value, .ask-record').count()).toBe(0);
                     expect(
                       await page.locator('.ask-inspection').evaluate((element) => {
                         const css = getComputedStyle(element);
@@ -828,12 +842,34 @@ test('web place tracer follows production acquisition, proxy and browser journey
               );
               expect(await history.textContent()).toContain(locale === 'en' ? '10.8%' : '10,8%');
               const row = history.locator('.prow');
-              expect(await row.getAttribute('href')).toBe(`/search/${bela}`);
+              // The row describes one property and opens it, never the place's search list.
+              const reduced = parseReductionsResponse(
+                await (
+                  await requestHttp(`${base}/api/v1/places/${bela}/largest-reductions?pageSize=3`)
+                ).json(),
+              ).items;
+              expect(reduced).toHaveLength(1);
+              const propertyPath = `/properties/${reduced[0]!.propertyId}`;
+              expect(await row.getAttribute('href')).toBe(propertyPath);
               await checkAccessibility(page, `place-persisted-reduction-390-${locale}`);
               await row.focus();
               expect(await row.evaluate((element) => element.matches(':focus-visible'))).toBe(true);
               await page.keyboard.press('Enter');
-              await expect.poll(() => page.url()).toBe(`${base}/search/${bela}`);
+              await expect.poll(() => page.url()).toBe(`${base}${propertyPath}`);
+              // The property page repeats the panel's figure: same operands, same rounding.
+              const minimum = page.locator('.property-history .property-minimum-reduction');
+              await minimum.waitFor({ state: 'visible' });
+              expect((await minimum.textContent())?.replace(/\u00a0/g, ' ')).toBe(
+                locale === 'en'
+                  ? 'Lowest asking price: R$ 785,000.00 → R$ 700,000.00 (−10.8%)'
+                  : 'Menor preço pedido: R$ 785.000,00 → R$ 700.000,00 (−10,8%)',
+              );
+              expect(
+                await page.evaluate(
+                  () =>
+                    document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+                ),
+              ).toBe(true);
             },
             () => historyContext.close(),
           );

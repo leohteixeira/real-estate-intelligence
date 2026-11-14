@@ -315,6 +315,52 @@ describe('properties closed wire contracts', () => {
       }),
     ).toBeDefined();
   });
+  it('accepts the additive property minimum reduction absent, null or closed, and nothing looser', () => {
+    const minimumReduction = {
+      effectiveAt: date,
+      previousMinorUnits: 126000000,
+      currentMinorUnits: 124000000,
+      reductionPercent: (2000000 / 126000000) * 100,
+    };
+    const withMinimum = (value: unknown) => ({
+      ...property,
+      property: { ...property.property, minimumReduction: value },
+    });
+    expect(parsePropertyResponse(property).property.minimumReduction).toBeUndefined();
+    expect(parsePropertyResponse(withMinimum(null)).property.minimumReduction).toBeNull();
+    expect(parsePropertyResponse(withMinimum(minimumReduction)).property.minimumReduction).toEqual(
+      minimumReduction,
+    );
+    // The figure has the operands and percentage bounds of a reductions row.
+    expect(
+      parseReductionsResponse({
+        ...reductions,
+        items: [{ ...reductions.items[0], ...minimumReduction }],
+      }).items[0],
+    ).toMatchObject(minimumReduction);
+    for (const invalid of [
+      undefined,
+      {},
+      [],
+      { ...minimumReduction, provenance },
+      { ...minimumReduction, reductionPercent: -1 },
+      { ...minimumReduction, reductionPercent: 101 },
+      { ...minimumReduction, previousMinorUnits: 0 },
+      { ...minimumReduction, currentMinorUnits: 1.5 },
+      { ...minimumReduction, effectiveAt: 'yesterday' },
+      { ...minimumReduction, effectiveAt: undefined },
+    ])
+      expect(() => parsePropertyResponse(withMinimum(invalid))).toThrow();
+    expect(() =>
+      parsePropertyResponse({
+        ...property,
+        property: { ...withMinimum(minimumReduction).property, unexpected: 'forbidden' },
+      }),
+    ).toThrow();
+    const missing: Record<string, unknown> = { ...withMinimum(minimumReduction).property };
+    delete missing.summary;
+    expect(() => parsePropertyResponse({ ...property, property: missing })).toThrow();
+  });
   it('rejects missing and extra fields at every nested object boundary', () => {
     function mutations(
       value: unknown,

@@ -25,7 +25,7 @@ export const property: PropertySummary = {
   place: {
     id: 'block',
     kind: 'street-block',
-    name: { ptBR: 'Rua Bela — 1200–1298', en: 'Wrong translation' },
+    name: { ptBR: 'Rua Bela — 1200–1298', en: 'Rua Bela — block 1200–1298' },
   },
   breadcrumbs: [],
   areaSquareMeters: 66,

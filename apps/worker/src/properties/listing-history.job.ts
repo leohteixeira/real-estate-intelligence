@@ -28,7 +28,11 @@ export class ListingHistoryJob {
     const controller = new AbortController();
     this.controller = controller;
     this.running = this.runCycle(controller.signal)
-      .catch(() => this.logger.warn('Listing history reconciliation failed'))
+      .catch((error: unknown) => {
+        // The class tells a cycle that outran its deadline from a rejected or defective one.
+        const name = error instanceof Error ? error.name : 'Error';
+        this.logger.warn(`Listing history reconciliation failed (${name})`);
+      })
       .finally(() => {
         this.running = undefined;
         this.controller = undefined;

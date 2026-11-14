@@ -13,6 +13,35 @@ export function readLocale(storage?: Pick<Storage, 'getItem'>): Locale {
   }
 }
 
+/**
+ * Language hint of the entry URL: `?lang=en`, `?lang=pt-BR` or `?lang=pt`. A valid hint becomes the
+ * stored preference and leaves the address, so a later explicit choice survives a reload.
+ */
+export function readEntryLocale(
+  location: Pick<Location, 'pathname' | 'search' | 'hash'> = window.location,
+  replace: (url: string) => void = (url) => {
+    window.history.replaceState(window.history.state, '', url);
+  },
+): Locale | null {
+  const parameters = new URLSearchParams(location.search);
+  const hint = parameters.get('lang');
+  if (hint === null) return null;
+  const locale = hint === 'en' ? 'en' : hint === 'pt-BR' || hint === 'pt' ? 'pt-BR' : null;
+  if (locale === null) return null;
+  parameters.delete('lang');
+  const search = parameters.toString();
+  replace(`${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
+  return locale;
+}
+
+/** Display name of a place in the interface language; the API always carries both. */
+export function placeName(
+  name: { readonly en: string; readonly ptBR: string },
+  language: string,
+): string {
+  return language === 'en' ? name.en : name.ptBR;
+}
+
 export function saveLocale(locale: Locale, storage?: Pick<Storage, 'setItem'>): void {
   try {
     (storage ?? window.localStorage).setItem(storageKey, locale);
@@ -21,7 +50,15 @@ export function saveLocale(locale: Locale, storage?: Pick<Storage, 'setItem'>): 
   }
 }
 
-export function createLocale(locale: Locale = readLocale()): i18n {
+/** Startup locale: the entry URL hint when present, otherwise the stored preference. */
+export function entryLocale(): Locale {
+  const hint = readEntryLocale();
+  if (hint === null) return readLocale();
+  saveLocale(hint);
+  return hint;
+}
+
+export function createLocale(locale: Locale = entryLocale()): i18n {
   const instance = createInstance();
   void instance.init({
     lng: locale,

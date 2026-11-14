@@ -175,14 +175,25 @@ delay, the broker transfers the original envelope persistently to the source que
 mandatory publication and confirmation, retaining its current failure attempt. It acknowledges the
 source only after confirmation; an uncertain transfer retires that channel generation with the
 source unsettled. Deferrals do not consume the normal five-genuine-failure DLQ budget. A DLQ entry
-is not replayed automatically: its recoverable running head still blocks successors while other
-threads progress. Active execution and commit retain their independent ten-second budget.
+is not replayed automatically: its running head blocks successors only until the run lifetime
+below ends it, while other threads progress. Active execution and commit retain their independent
+ten-second budget.
 
 Each queued run has a fixed 120-second deadline measured from one PostgreSQL admission observation.
 At or after that database-time deadline, the API expires unexecuted work under the same thread
 fence, including when the worker is stopped. API maintenance is nonoverlapping, runs every second,
 scans at most 100 candidates within five seconds, rotates fairly and skips busy thread locks.
 Running work never becomes queue-expired, regardless of its original queue deadline.
+
+The same 120 seconds bound started work, so a run that cannot execute does not stay `running`
+forever. Measured from admission, or from the visitor's confirmation when that is later, a run that
+is `running` without a live execution claim, or confirmed but not claimed again, becomes `failed`
+with reason `execution_unavailable`, a final `failed` step and null result. A live claim is never
+interrupted: its execution may still commit, and the bound applies once the 30-second lease lapses.
+The transition happens under the thread fence in the same maintenance pass, claim and read paths as
+queue expiry, commits the `ask.failed` frame, `ask.run.failed` outbox event and consumer inbox
+marker atomically, and is therefore applied exactly once; a later redelivery finds the terminal.
+The run stays counted in the daily quota like every other accepted failure.
 
 The AI receives an ephemeral scoped grant and traverses the actual
 `START → fixedDecision → priceTool → END` graph. Its fixed HTTP tool reaches the API's Ask tool
@@ -209,7 +220,8 @@ no calculation or decision is invented.
 Transient transport failure, controlled cancellation and exhausted executor policies, including
 the five-second attempt timeout inside the ten-second consumer budget, do not submit a failed
 completion or acknowledge delivery.
-They preserve the retained claim and receipt for fenced recovery through broker redelivery.
+They preserve the retained claim and receipt for fenced recovery through broker redelivery, until
+the run lifetime above ends a run whose recovery never succeeded.
 The graph saver resumes saved canonical state with fresh invocation authority. A completed graph
 rebinds its retained receipt through the authorized tool before submitting current execution evidence.
 
@@ -221,6 +233,10 @@ or `ask.failed` or `ask.expired` closes the stream. A same-run `Last-Event-ID` r
 retained events.
 Consumed terminal replay is an empty successful stream. Persistence survives API restarts; this
 does not claim unlimited retention.
+
+While a stream is open and has nothing to send, the API writes the SSE comment `: heartbeat`
+every four seconds. A comment carries no event, ID or cursor and conforming SSE clients ignore it;
+it only tells the reader that the connection and the run are still alive.
 
 Authorization and cursor validation precede SSE headers. Foreign authority returns 403; malformed,
 foreign-run, unsupported-version or future cursors return 400 JSON. A transport/poll failure after

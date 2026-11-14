@@ -33,50 +33,56 @@ const numericKeys = [...rangeKeys, 'minBedrooms', 'minBathrooms', 'minParkingSpa
 const allowed = [...filterGroups.flatMap((group) => [...group.keys]), 'sort', 'pageSize'];
 export type SearchState =
   | { readonly valid: true; readonly query: SearchQuery; readonly filters: boolean }
-  | { readonly valid: false };
+  /** `parameters` names the URL parameters that were refused; an invalid place names none. */
+  | { readonly valid: false; readonly parameters: readonly string[] };
+
+function validNumber(key: string, raw: string): boolean {
+  if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(raw)) return false;
+  const area = key === 'minArea' || key === 'maxArea';
+  const [whole = '0', fraction = ''] = raw.split('.');
+  const number = Number(raw);
+  const max =
+    key === 'pageSize'
+      ? 20
+      : area
+        ? 1000000
+        : key.startsWith('minB') || key === 'minParkingSpaces'
+          ? 100
+          : Number.MAX_SAFE_INTEGER;
+  return !(
+    !Number.isFinite(number) ||
+    number < (key === 'pageSize' ? 1 : area ? 0.01 : 0) ||
+    number > max ||
+    (!area && (!Number.isSafeInteger(number) || /[1-9]/.test(fraction))) ||
+    (!area && BigInt(whole) > BigInt(max)) ||
+    (area && whole === '1000000' && /[1-9]/.test(fraction))
+  );
+}
 
 /** Validates public URL syntax and units; matching and calculations stay on the server. */
 export function parseSearchState(placeId: string, search: string): SearchState {
-  if (!isPlaceId(placeId)) return { valid: false };
+  if (!isPlaceId(placeId)) return { valid: false, parameters: [] };
   const parameters = new URLSearchParams(search);
   const values: Record<string, string | number | boolean> = { placeId };
   let filters = false;
   const seen = new Set<string>();
+  const refused = new Set<string>();
   for (const [key, raw] of parameters) {
-    if (seen.has(key)) return { valid: false };
-    seen.add(key);
-    if (key === 'view') {
-      if (raw !== 'filters') return { valid: false };
-      filters = true;
+    if (seen.has(key)) {
+      refused.add(key);
       continue;
     }
-    if (!allowed.includes(key)) return { valid: false };
-    if (booleanKeys.some((item) => item === key)) {
-      if (raw !== 'true' && raw !== 'false') return { valid: false };
-      values[key] = raw === 'true';
+    seen.add(key);
+    if (key === 'view') {
+      if (raw === 'filters') filters = true;
+      else refused.add(key);
+    } else if (!allowed.includes(key)) refused.add(key);
+    else if (booleanKeys.some((item) => item === key)) {
+      if (raw === 'true' || raw === 'false') values[key] = raw === 'true';
+      else refused.add(key);
     } else if (numericKeys.includes(key)) {
-      if (!/^(?:0|[1-9]\d*)(?:\.\d+)?$/.test(raw)) return { valid: false };
-      const area = key === 'minArea' || key === 'maxArea';
-      const [whole = '0', fraction = ''] = raw.split('.');
-      const number = Number(raw);
-      const max =
-        key === 'pageSize'
-          ? 20
-          : area
-            ? 1000000
-            : key.startsWith('minB') || key === 'minParkingSpaces'
-              ? 100
-              : Number.MAX_SAFE_INTEGER;
-      if (
-        !Number.isFinite(number) ||
-        number < (key === 'pageSize' ? 1 : area ? 0.01 : 0) ||
-        number > max ||
-        (!area && (!Number.isSafeInteger(number) || /[1-9]/.test(fraction))) ||
-        (!area && BigInt(whole) > BigInt(max)) ||
-        (area && whole === '1000000' && /[1-9]/.test(fraction))
-      )
-        return { valid: false };
-      values[key] = number;
+      if (validNumber(key, raw)) values[key] = Number(raw);
+      else refused.add(key);
     } else {
       const choices =
         key === 'sort'
@@ -84,18 +90,22 @@ export function parseSearchState(placeId: string, search: string): SearchState {
           : key === 'propertyType'
             ? PROPERTY_TYPES
             : TIME_ON_MARKET_BANDS;
-      if (!choices.some((choice) => choice === raw)) return { valid: false };
-      values[key] = raw;
+      if (choices.some((choice) => choice === raw)) values[key] = raw;
+      else refused.add(key);
     }
   }
   const query = values as SearchQuery;
   for (const [min, max] of [
-    [query.minAskingPrice, query.maxAskingPrice],
-    [query.minPricePerSquareMeter, query.maxPricePerSquareMeter],
-    [query.minArea, query.maxArea],
-  ])
-    if (min !== undefined && max !== undefined && min > max) return { valid: false };
-  return { valid: true, query, filters };
+    ['minAskingPrice', 'maxAskingPrice'],
+    ['minPricePerSquareMeter', 'maxPricePerSquareMeter'],
+    ['minArea', 'maxArea'],
+  ] as const) {
+    const [low, high] = [query[min], query[max]];
+    if (low !== undefined && high !== undefined && low > high) refused.add(min).add(max);
+  }
+  return refused.size
+    ? { valid: false, parameters: [...refused] }
+    : { valid: true, query, filters };
 }
 
 export function queryParameters(query: SearchQuery): URLSearchParams {
@@ -188,24 +198,26 @@ function localizedNumber(raw: string, locale: Locale, money: boolean): string | 
   const minor = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
   return minor <= BigInt(Number.MAX_SAFE_INTEGER) ? String(minor) : null;
 }
-export function draftQuery(
-  draft: SearchDraft,
-  locale: Locale,
-): { readonly valid: true; readonly query: SearchQuery } | { readonly valid: false } {
+export type DraftState =
+  | { readonly valid: true; readonly query: SearchQuery }
+  /** `fields` are the range inputs that are not acceptable numbers on their own. */
+  | { readonly valid: false; readonly fields: readonly (typeof rangeKeys)[number][] };
+export function draftQuery(draft: SearchDraft, locale: Locale): DraftState {
   const parameters = new URLSearchParams();
+  const fields: (typeof rangeKeys)[number][] = [];
   for (const group of filterGroups) {
     for (const key of group.keys) {
       const raw = draft[key];
       if (raw === '') continue;
-      const value = rangeKeys.some((range) => range === key)
-        ? localizedNumber(raw, locale, !key.includes('Area'))
-        : raw;
-      if (value === null) return { valid: false };
-      parameters.set(key, value);
+      const range = rangeKeys.find((item) => item === key);
+      const value = range ? localizedNumber(raw, locale, !key.includes('Area')) : raw;
+      if (range && (value === null || !validNumber(key, value))) fields.push(range);
+      else parameters.set(key, value!);
     }
   }
+  if (fields.length) return { valid: false, fields };
   if (draft.base.sort !== undefined) parameters.set('sort', draft.base.sort);
   if (draft.base.pageSize !== undefined) parameters.set('pageSize', String(draft.base.pageSize));
   const parsed = parseSearchState(draft.placeId, parameters.toString());
-  return parsed.valid ? { valid: true, query: parsed.query } : parsed;
+  return parsed.valid ? { valid: true, query: parsed.query } : { valid: false, fields: [] };
 }

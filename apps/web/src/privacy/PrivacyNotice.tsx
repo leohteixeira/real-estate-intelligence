@@ -19,10 +19,14 @@ const sections = [
 ] as const;
 
 function Source({ source }: { readonly source: EnabledSourceDto }) {
-  const { t } = useTranslation('privacy');
+  const { t, i18n } = useTranslation('privacy');
+  // Repository-owned synthetic sources are known codes with bundled names; any other source keeps
+  // the attribution and licence text published by the API.
+  const nameKey = `sourceName-${source.sourceId}`;
+  const bundled = i18n.exists(nameKey, { ns: 'privacy' });
   return (
     <li className="privacy-source">
-      <h3>{source.displayLabel}</h3>
+      <h3>{bundled ? t(nameKey) : source.displayLabel}</h3>
       <p className="small">
         {t('sourceEnabled')} · {source.sourceId}
       </p>
@@ -32,9 +36,13 @@ function Source({ source }: { readonly source: EnabledSourceDto }) {
             {t('licenceLicensed')} <a href={source.licence.url}>{source.licence.label}</a>
           </>
         ) : source.licence.status === 'not-applicable' ? (
-          <>
-            {t('licenceNotApplicable')} {source.licence.label}
-          </>
+          bundled ? (
+            t('licenceSynthetic')
+          ) : (
+            <>
+              {t('licenceNotApplicable')} {source.licence.label}
+            </>
+          )
         ) : (
           t('licenceUnverified')
         )}

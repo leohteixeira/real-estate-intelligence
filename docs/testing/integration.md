@@ -15,6 +15,22 @@ cleanup/support tests. Files run serially; a campaign can deliberately exercise 
 or four parallel brokers. Test and hook deadlines are bounded, and empty discovery fails. Fixture
 probes in `integration/fixtures/` and compiled tests under `dist/` are not discovered.
 
+CI does not run that single serial command: on a hosted runner it needs several hours, far beyond
+one bounded job. The `integration` job is a matrix over the shards declared in
+`integration/shards.ts`. Each shard runs `pnpm run test:integration:prepare` (the same build and
+image preparation as the full command), then its own files serially, then fails if any owned
+`rei-` container, volume or network survived:
+
+```bash
+pnpm run test:integration:prepare
+pnpm run test:integration:shard web-journeys
+```
+
+`web-accessibility` is the only campaign divided across shards, by a Vitest test-name pattern over
+its independent partitions. `integration/support/shards.test.ts` fails when a discovered file or
+an accessibility partition is not in exactly one shard, so add every new campaign to a shard.
+Rebalance shards from the measured durations recorded beside the plan.
+
 For an individual campaign, build first, then select its existing focused alias:
 
 ```bash
@@ -107,12 +123,12 @@ snapshot; foreign projects and volumes remain outside its lifecycle.
 
 The Ask campaign checks seven prepared run snapshots and finite scripted SSE previews through public
 contract parsers, capability refusals, fixture replay, full ordered threads, edited confirmation
-inputs, absent confirmation/cancellation handlers and disabled structured admission. A distinct API
-E2E test opens a catalogue grant, reads its run/thread and reaches an explicit edited-confirmation
-terminal. Both use the production PostgreSQL/migrations/API images and compare every owned table
-count/content digest before and after: migrated Ask tables stay empty; no retained caller text,
-outbox write or live AI execution is added. See the [Ask API reference](../api/ask.md) for the
-prepared-only contract and replay limitations.
+inputs, refused confirmation/cancellation for catalogue grants and disabled structured admission.
+A distinct API E2E test opens a catalogue grant, reads its run/thread and reaches an explicit
+edited-confirmation terminal. Both use the production PostgreSQL/migrations/API images and compare
+every owned table count/content digest before and after: migrated Ask tables stay empty; no
+retained caller text, outbox write or live AI execution is added. See the
+[Ask API reference](../api/ask.md) for the prepared-only contract and replay limitations.
 
 The headless campaign (`integration/ask-headless.integration.test.ts`) imports the actual config-free
 web client. Its owned current-migration PostgreSQL/API/RabbitMQ/worker stack and scripted AI decider
@@ -168,9 +184,11 @@ unchanged. All campaign helpers, fixtures and probes are strict TypeScript.
 
 Restart cases resolve the single owned container using exact Compose project/service labels before
 signalling it and start that same container promptly. They do not change broker delivery limits or
-republish dead letters. An API outage that exceeds the existing delivery budget can still leave a
-running run with a dead-lettered delivery; successful brief restart evidence does not establish
-unlimited outage recovery. The SQL disconnect case observes actual backend disappearance and no
+republish dead letters. An API outage that exceeds the existing delivery budget can still
+dead-letter the delivery of a running run; that run then fails with `execution_unavailable` once
+its 120-second lifetime ends and its lease has lapsed, so successful brief restart evidence does
+not establish unlimited outage recovery. The SQL disconnect case observes actual backend
+disappearance and no
 committed checkpoint: socket destruction alone can leave a lock wait until the unchanged five-second
 PostgreSQL statement timeout.
 
@@ -332,8 +350,10 @@ screen-reader/daylight/zoom assessment.
 Every campaign, shared helper, fresh-process probe and `vitest.integration.config.ts` is included in
 `tsconfig.integration.json`. It extends the unchanged strict base configuration. Run
 `pnpm run typecheck` for recursive workspace checking followed by integration checking. For a
-standalone check, run `pnpm run build` first, then `pnpm run typecheck:integration`; integration
-imports compiled package declarations rather than production source.
+standalone check, run `pnpm run typecheck:integration` directly: integration imports compiled
+package, worker and AI declarations rather than production source, so the script first builds the
+`@rei/ai` and `@rei/worker` dependency closures and never depends on a previously built `dist`.
+That keeps `lint → typecheck → test → build` valid on a clean tree in CI and in the pre-push hook.
 
 `requestHttp().json()` returns unknown. Validate public responses with contract parsers, and type
 SQL projections, broker/CLI evidence and injected lifecycle methods with specific consumed shapes.
@@ -430,7 +450,9 @@ per-package runner or ESLint configuration.
 After building the workspaces, run `pnpm run test:integration:prefix`. Image preparation is serial
 and finishes before the native HTTP/browser campaign. The campaign owns separate root and
 `/real-estate-intelligence` fixtures with real PostgreSQL and RabbitMQ, matching root and prefixed
-web images and unchanged service health gates. It checks scoped readiness, direct/refresh routes,
+web images and unchanged service health gates. Both fixtures read prepared Search, so preparation
+also builds the build-stage API image (`rei-prefix-images-api`) that the prepared-Search override
+runs. It checks scoped readiness, direct/refresh routes,
 asset requests, PT/EN navigation, Search-to-Property native anchors and return links, language
 persistence and real authenticated prepared SSE over Nginx. The prefix fixture also rejects global
 `/ready`, `/api/v1` and `/index.html` exposure. No worker, model or real-source request is required.

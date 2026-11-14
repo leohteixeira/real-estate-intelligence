@@ -4,15 +4,17 @@ import type {
   LargestReductionsService,
   SearchPropertiesService,
 } from '@rei/application';
-import type {
-  ListingResponse,
-  ListingDetail,
-  Property,
-  PageQuery,
-  PropertyResponse,
-  ReductionsResponse,
-  SearchQuery,
-  SearchResponse,
+import {
+  latestReduction,
+  type ListingResponse,
+  type ListingDetail,
+  type MinimumReduction,
+  type Property,
+  type PageQuery,
+  type PropertyResponse,
+  type ReductionsResponse,
+  type SearchQuery,
+  type SearchResponse,
 } from '@rei/domain';
 import {
   projectInitialProperty,
@@ -119,7 +121,24 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
           ...first.property,
           summary,
           listings,
-          priceChanges: group.priceChanges,
+          // Each entry is one member listing's own dated asking-price change, with that listing's
+          // provenance. The current price is the lowest active listing, so a member leaving,
+          // returning or undercutting another source moves it without any price having changed;
+          // those minimum effects stay with the summary and reductions, never in this history.
+          priceChanges: members
+            .flatMap((member) => member.property.priceChanges)
+            .sort((a, b) => Date.parse(a.effectiveAt) - Date.parse(b.effectiveAt)),
+          // The reductions read ranks the same effects; without the minimum rule it ranks the
+          // requested listing's own history, exactly as that read does.
+          minimumReduction: minimumReduction(
+            group.minimumRule
+              ? group.priceChanges
+              : (
+                  members.find(
+                    (member) => member.property.listings[0]!.id === property.listingId,
+                  ) ?? first
+                ).property.priceChanges,
+          ),
           sourceAgreement: fields.map((field) => {
             const values = listings.map((listing) => ({
               listingId: listing.id,
@@ -171,7 +190,14 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
         },
       };
     }
-    return this.projectMember(property);
+    const member = await this.projectMember(property);
+    return {
+      ...member,
+      property: {
+        ...member.property,
+        minimumReduction: minimumReduction(member.property.priceChanges),
+      },
+    };
   }
 
   private async projectMember(
@@ -208,8 +234,10 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
 
   private async applyRights(listing: ListingDetail): Promise<ListingDetail> {
     const rights = await this.collection.getSourcePermissions(listing.source.sourceId);
+    // The source register owns the published name; each source keeps its own attribution.
+    const source = { ...listing.source, label: rights.displayLabel ?? listing.source.label };
     if (rights.listingTextDisplayAllowed || listing.description.permission === 'denied')
-      return structuredClone(listing);
+      return structuredClone({ ...listing, source });
     const changedAt = [
       ...new Set([
         ...listing.description.versions.slice(1).map((version) => version.effectiveAt),
@@ -220,7 +248,23 @@ export class PersistedPropertiesFacade implements PropertiesFacade {
     ].sort((a, b) => Date.parse(a) - Date.parse(b));
     return structuredClone({
       ...listing,
+      source,
       description: { permission: 'denied', changedAt, sourceUrl: listing.description.sourceUrl },
     });
   }
+}
+
+/** The figure `largestReductions` reports for this property, from the same effects and rule. */
+function minimumReduction(
+  priceChanges: Parameters<typeof latestReduction>[0],
+): MinimumReduction | null {
+  const latest = latestReduction(priceChanges);
+  return (
+    latest && {
+      effectiveAt: latest.effectiveAt,
+      previousMinorUnits: latest.previousMinorUnits,
+      currentMinorUnits: latest.currentMinorUnits,
+      reductionPercent: latest.reductionPercent,
+    }
+  );
 }

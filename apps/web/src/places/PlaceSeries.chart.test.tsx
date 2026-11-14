@@ -36,7 +36,7 @@ it.each(['pt-BR', 'en'] as const)(
       screen.getByText(locale === 'en' ? 'Place: Bela Vista' : 'Lugar: Bela Vista'),
     ).toBeVisible();
     expect(
-      screen.getByText(locale === 'en' ? 'Comparison: Centro' : 'Comparação: Centro'),
+      screen.getByText(locale === 'en' ? 'Comparison: Central zone' : 'Comparação: Centro'),
     ).toBeVisible();
     expect(container.querySelectorAll('.place-chart__subject')).toHaveLength(2);
     expect(container.querySelectorAll('.place-chart__endpoint--subject')).toHaveLength(4);

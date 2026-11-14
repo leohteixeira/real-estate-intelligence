@@ -72,8 +72,25 @@ describe('public privacy document', () => {
     'renders every section in %s, actual sources, native contents and no geographic reads',
     async (locale) => {
       const { request, container } = mount(locale);
-      expect(await screen.findByText(SYNTHETIC_ENABLED_SOURCE.displayLabel)).toBeVisible();
+      expect(
+        await screen.findByRole('heading', {
+          name:
+            locale === 'en'
+              ? SYNTHETIC_ENABLED_SOURCE.displayLabel
+              : 'Amostra sintética identificada',
+        }),
+      ).toBeVisible();
       const main = screen.getByRole('main');
+      const source = main.querySelector<HTMLElement>('.privacy-source')!;
+      expect(source).toHaveTextContent(
+        locale === 'en'
+          ? 'Licence not applicable: Synthetic data'
+          : 'Licença não aplicável: dados sintéticos',
+      );
+      if (locale === 'pt-BR') {
+        expect(source).not.toHaveTextContent(SYNTHETIC_ENABLED_SOURCE.displayLabel);
+        expect(source).not.toHaveTextContent('Synthetic data');
+      }
       expect(within(main).getAllByRole('heading', { level: 2 })).toHaveLength(9);
       const contents = within(
         screen.getByRole('navigation', {
@@ -197,5 +214,44 @@ describe('public privacy document', () => {
     const unverified = screen.getByText('Synthetic unverified branch').closest('li')!;
     expect(within(unverified).queryByRole('link')).toBeNull();
     expect(unverified).toHaveTextContent('not verified');
+  });
+  it('names the synthetic portals in Portuguese and keeps the API attribution of any other source', async () => {
+    const portal = (name: string) => ({
+      ...SYNTHETIC_ENABLED_SOURCE,
+      sourceId: `synthetic-portal-${name.toLowerCase()}`,
+      displayLabel: `Synthetic data — ${name}`,
+    });
+    mount(
+      'pt-BR',
+      async () =>
+        new Response(
+          JSON.stringify({
+            sources: [
+              portal('Aurora'),
+              portal('Brisa'),
+              portal('Cobalto'),
+              {
+                ...SYNTHETIC_ENABLED_SOURCE,
+                sourceId: 'unlisted-source',
+                displayLabel: 'Unlisted attribution',
+                licence: { status: 'not-applicable', label: 'Published reason', url: null },
+              },
+            ],
+          }),
+        ),
+    );
+    await screen.findByRole('heading', { name: 'Dados sintéticos — Aurora' });
+    expect(
+      [...document.querySelectorAll('.privacy-source h3')].map((name) => name.textContent),
+    ).toEqual([
+      'Dados sintéticos — Aurora',
+      'Dados sintéticos — Brisa',
+      'Dados sintéticos — Cobalto',
+      'Unlisted attribution',
+    ]);
+    expect(screen.getByRole('main')).not.toHaveTextContent('Synthetic data');
+    expect(screen.getByText('Unlisted attribution').closest('li')).toHaveTextContent(
+      'Licença não aplicável: Published reason',
+    );
   });
 });

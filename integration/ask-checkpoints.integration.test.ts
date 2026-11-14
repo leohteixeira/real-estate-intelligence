@@ -227,8 +227,10 @@ async function claim(context: Context, runId: string): Promise<PriceExecutionReq
   return result.input;
 }
 async function expire(context: Context, runId: string) {
+  // These cases prove lease recovery, some of them minutes after admission. Renew the fixed run
+  // lifetime together with the lapsed claim, so the run is reclaimed rather than failed as overdue.
   await context.database.query(
-    "UPDATE ask.run SET claim_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1",
+    "WITH observed AS MATERIALIZED (SELECT clock_timestamp() AS at) UPDATE ask.run SET claim_expires_at=observed.at-interval '1 second',admitted_at=observed.at,queue_expires_at=observed.at+interval '120 seconds' FROM observed WHERE id=$1",
     [runId],
   );
 }
@@ -1000,6 +1002,12 @@ test('fresh Node saver pause/reclaim, scoped replay and fixed-horizon retention 
     const active = await create(context),
       activeInput = await claim(context, active.runId);
     await probe(context, activeInput, 'pause');
+    // The retention waits below outlast the 120-second run lifetime; a live claim keeps this
+    // paused run active for them instead of letting maintenance fail it as overdue.
+    await context.database.query(
+      "UPDATE ask.run SET claim_expires_at=clock_timestamp()+interval '10 minutes' WHERE id=$1 AND state='running'",
+      [active.runId],
+    );
     const activeRows = await context.database.query<{ count: number }>(
       'SELECT count(*)::integer AS count FROM ask.graph_checkpoint WHERE run_id=$1',
       [active.runId],

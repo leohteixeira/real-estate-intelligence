@@ -7,7 +7,9 @@ import { formatComputedAt, formatExactMoney, formatPercentage } from './formatte
 import type { Locale } from './locale';
 import { propertyQuery, reductionsQuery } from './place-queries';
 import { destinationPath } from '../shell/public-routes';
+import { propertyHref } from '../properties/property-navigation';
 import { OverviewReadState } from './OverviewReadState';
+import { placeName } from './locale';
 
 function HistoricalReduction({ reduction }: { readonly reduction: Reduction }) {
   const { t, i18n } = useTranslation('place');
@@ -36,7 +38,7 @@ function HistoricalReduction({ reduction }: { readonly reduction: Reduction }) {
   );
 }
 export function PlaceReductions({ place }: { readonly place: PlaceRef }) {
-  const { t } = useTranslation('place');
+  const { t, i18n } = useTranslation('place');
   const history = useQuery(reductionsQuery(place.id));
   // The client rejects more than three rows, so at most three abortable details are in flight.
   const details = useQueries({
@@ -49,7 +51,7 @@ export function PlaceReductions({ place }: { readonly place: PlaceRef }) {
         <h2 id="reductions-label">{t('largestReductions')}</h2>
       </div>
       <Link className="place-all-properties" to={href}>
-        {t('allProperties', { name: place.name.ptBR })}
+        {t('allProperties', { name: placeName(place.name, i18n.language) })}
       </Link>
       <p className="place-panel-copy">{t('historyOrigin')}</p>
       <OverviewReadState
@@ -70,7 +72,11 @@ export function PlaceReductions({ place }: { readonly place: PlaceRef }) {
             <li key={`${item.listingId}:${item.effectiveAt}`}>
               <HistoricalReduction reduction={item} />
               {detail.data ? (
-                <PropertyRow property={detail.data.property.summary} href={href} />
+                // The row describes one property, so it opens that property rather than the list.
+                <PropertyRow
+                  property={detail.data.property.summary}
+                  href={propertyHref(item.propertyId, '')}
+                />
               ) : null}
               <OverviewReadState
                 pending={detail.isPending}

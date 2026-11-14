@@ -9,7 +9,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppRoutes } from '../routes';
 import { createLocale } from '../places/locale';
 import { createReadCache, propertyQuery } from '../places/place-queries';
-import { overviewFixture, propertyId } from '../places/overview-fixtures.test';
+import { overviewFixture, propertyId, reductionsFixture } from '../places/overview-fixtures.test';
+import { PlaceReductions } from '../places/PlaceReductions';
+import { PropertyHistory } from './PropertyHistory';
 import { propertyDetailFixture } from './property-fixtures.test';
 import type { PropertyResponse } from '@rei/contracts';
 import { parsePropertyResponse } from '@rei/contracts';
@@ -172,6 +174,12 @@ describe('Property outer surface', () => {
       const response = propertyDetailFixture();
       const { request } = mount(response, undefined, locale);
       await screen.findByRole('heading', { name: 'Rua Cenário Um' });
+      expect(document.title).toBe(
+        `${locale === 'en' ? 'Property' : 'Imóvel'} · Real Estate Intelligence`,
+      );
+      expect(document.querySelector('.crumbs [aria-current="page"]')).toHaveTextContent(
+        locale === 'en' ? 'Scenario One Street' : 'Rua Cenário Um',
+      );
       const price = within(
         screen.getByRole('region', { name: locale === 'en' ? 'Price' : 'Preço' }),
       );
@@ -394,6 +402,137 @@ describe('Property compact native evidence', () => {
     expect(within(chart as HTMLElement).getByText('R$ 840.000,00')).toBeVisible();
     expect(within(chart as HTMLElement).getByText('R$ 780.000,00')).toBeVisible();
     expect(chart.querySelector('svg text')).toBeNull();
+  });
+});
+
+describe('grouped price history', () => {
+  it.each(['pt-BR', 'en'] as const)(
+    'keeps each listing on its own price line and names its source in %s',
+    async (locale) => {
+      const fixture = propertyDetailFixture();
+      const [first, second] = fixture.property.listings;
+      const own = fixture.property.priceChanges[0]!;
+      const response = {
+        ...fixture,
+        property: {
+          ...fixture.property,
+          priceChanges: [
+            { ...own, provenance: first!.provenance },
+            {
+              ...fixture.property.priceChanges[1]!,
+              previousMinorUnits: 83000000,
+              currentMinorUnits: 82500000,
+              provenance: second!.provenance,
+            },
+          ],
+        },
+      };
+      mount(response, undefined, locale);
+      await screen.findByRole('heading', { name: 'Rua Cenário Um' });
+      const history = screen.getByRole('region', {
+        name: locale === 'en' ? 'Asking price history' : 'Histórico do preço pedido',
+      });
+      // Two sources' prices are never joined into one line that would read as a price change.
+      const lines = [...history.querySelectorAll('.property-chart-line')].map((line) =>
+        line.getAttribute('d'),
+      );
+      expect(lines).toHaveLength(2);
+      expect(lines.every((line) => line!.match(/M/g)!.length === 1)).toBe(true);
+      expect(history).toHaveTextContent(
+        locale === 'en'
+          ? 'a difference between sources is not a price change.'
+          : 'a diferença entre fontes não é uma alteração de preço.',
+      );
+      const events = [...history.querySelectorAll('.property-price-events > li')];
+      expect(events).toHaveLength(2);
+      expect(within(events[0] as HTMLElement).getByRole('link')).toHaveTextContent(
+        second!.source.label,
+      );
+      expect(within(events[1] as HTMLElement).getByRole('link')).toHaveTextContent(
+        first!.source.label,
+      );
+    },
+  );
+});
+
+describe('property minimum reduction', () => {
+  it.each(['pt-BR', 'en'] as const)(
+    'repeats the reductions panel figure above the per-listing history in %s',
+    async (locale) => {
+      const reduction = reductionsFixture.items[0]!;
+      const fixture = propertyDetailFixture();
+      // No listing changed its price: only the property minimum dropped.
+      const response = parsePropertyResponse({
+        ...fixture,
+        property: {
+          ...fixture.property,
+          priceChanges: [],
+          minimumReduction: {
+            effectiveAt: reduction.effectiveAt,
+            previousMinorUnits: reduction.previousMinorUnits,
+            currentMinorUnits: reduction.currentMinorUnits,
+            reductionPercent: reduction.reductionPercent,
+          },
+        },
+      });
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(
+          async (input: string) =>
+            new Response(
+              JSON.stringify(input.includes('/largest-reductions') ? reductionsFixture : response),
+            ),
+        ),
+      );
+      const cache = createReadCache();
+      caches.push(cache);
+      const { container } = render(
+        <I18nextProvider i18n={createLocale(locale)}>
+          <QueryClientProvider client={cache}>
+            <MemoryRouter>
+              <PlaceReductions place={reduction.place} />
+              <PropertyHistory response={response} />
+            </MemoryRouter>
+          </QueryClientProvider>
+        </I18nextProvider>,
+      );
+      await waitFor(() =>
+        expect(container.querySelector('.place-reduction-evidence')).not.toBeNull(),
+      );
+      // The panel text is the oracle: its percentage and both operands, exactly as formatted.
+      const panel = /: (\S+) · (.+) → (.+)$/.exec(
+        container.querySelector('.place-reduction-evidence p')!.textContent,
+      )!;
+      const [, percentage, previous, current] = panel;
+      expect(percentage).toBe(locale === 'en' ? '−10.3%' : '−10,3%');
+      const history = screen.getByRole('region', {
+        name: locale === 'en' ? 'Asking price history' : 'Histórico do preço pedido',
+      });
+      expect(history.querySelector('.property-minimum-reduction')).toHaveTextContent(
+        `${locale === 'en' ? 'Lowest asking price' : 'Menor preço pedido'}: ${previous} → ${current} (${percentage})`,
+        { normalizeWhitespace: false },
+      );
+      expect(history).toHaveTextContent(
+        locale === 'en'
+          ? 'This is the lowest asking price among this property’s listings.'
+          : 'É o menor preço pedido entre os anúncios deste imóvel.',
+      );
+      expect(history).toHaveTextContent(
+        locale === 'en' ? 'No price changes reported.' : 'Nenhuma alteração de preço informada.',
+      );
+    },
+  );
+  it.each([undefined, null])('adds nothing when the minimum reduction is %s', async (value) => {
+    const fixture = propertyDetailFixture();
+    mount(
+      value === null
+        ? { ...fixture, property: { ...fixture.property, minimumReduction: null } }
+        : fixture,
+    );
+    await screen.findByRole('heading', { name: 'Rua Cenário Um' });
+    const history = screen.getByRole('region', { name: 'Histórico do preço pedido' });
+    expect(history.querySelector('.property-minimum-reduction')).toBeNull();
+    expect(history).not.toHaveTextContent('Menor preço pedido');
   });
 });
 

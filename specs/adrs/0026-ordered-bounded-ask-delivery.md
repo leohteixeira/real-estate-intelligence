@@ -120,6 +120,17 @@ confirmed transfers while waiting; expiry bounds queued waiting independently of
 Public expired runs retain replayable truthful terminals without invoking AI. Maintenance adds
 bounded API SQL work and does not promise instantaneous terminal materialization at the deadline.
 
+### Amendment: bounded started work
+
+A started run whose execution kept failing was redelivered five times, dead-lettered and then left
+`running` forever, blocking its thread and showing the visitor a run that never ended. The fixed
+lifetime therefore also bounds started work: 120 seconds after admission, or after confirmation
+when that is later, a `running` run without a live claim, or a confirmed run never claimed again,
+becomes `failed` with the existing reason `execution_unavailable`. It reuses the existing terminal,
+maintenance pass and thread fence; no state, reason, schema or configuration was added. A live
+claim is never interrupted, and lease reclaim inside the lifetime is unchanged. The transition
+commits frame, outbox and inbox marker once, so redelivery cannot repeat it.
+
 Prove concurrent fourth-request refusal and keyed replay at capacity through public HTTP. Publish
 existing requested identities in reverse order through real RabbitMQ and prove numeric FIFO and
 independent-thread progress with production prefetch, plus a prefetch-one case. Observe more than

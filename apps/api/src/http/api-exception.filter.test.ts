@@ -1,6 +1,6 @@
-import { Controller, Get, HttpException, type INestApplication } from '@nestjs/common';
+import { Controller, Get, HttpException, Logger, type INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { afterAll, beforeAll, expect, it } from 'vitest';
+import { afterAll, beforeAll, expect, it, vi } from 'vitest';
 import { AskQuotaError } from '@rei/application';
 import { AskQuotaException } from './ask-quota.exception';
 import { ApiExceptionFilter } from './api-exception.filter';
@@ -16,6 +16,29 @@ class RefusalController {
   @Get('capacity')
   public capacity(): never {
     throw new AskPendingLimitException();
+  }
+
+  @Get('pool-timeout')
+  public poolTimeout(): never {
+    throw Object.assign(new Error('postgres://app:secret@db/app timed out'), {
+      name: 'DatabasePoolTimeoutError',
+    });
+  }
+
+  @Get('statement-timeout')
+  public statementTimeout(): never {
+    throw Object.assign(new Error('canceling statement for "private value"'), {
+      code: '57014',
+      detail: 'private detail',
+    });
+  }
+
+  @Get('unsafe-identity')
+  public unsafeIdentity(): never {
+    throw Object.assign(new Error('failure'), {
+      name: 'postgres://app:secret@db/app',
+      code: 'private value with spaces',
+    });
   }
 
   @Get('other')
@@ -64,3 +87,30 @@ it('preserves the strict quota refusal and reopening through the global sanitize
     reopensAt: '2026-10-27T03:00:00.000Z',
   });
 });
+
+it.each([
+  ['pool-timeout', { errorName: 'DatabasePoolTimeoutError' }],
+  ['statement-timeout', { errorName: 'Error', errorCode: '57014' }],
+  ['unsafe-identity', { errorName: 'Error' }],
+] as const)(
+  'logs only the class and driver code that identify a %s failure',
+  async (path, identity) => {
+    const logError = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    try {
+      const response = await fetch(`${origin}/${path}`);
+      expect(response.status).toBe(500);
+      const requestId = response.headers.get('x-request-id');
+      expect(await response.json()).toEqual({
+        error: { code: 'internal_error', message: 'An unexpected error occurred.', requestId },
+      });
+      expect(logError).toHaveBeenCalledWith({
+        event: 'api.unexpected_failure',
+        requestId,
+        ...identity,
+      });
+      expect(JSON.stringify(logError.mock.calls)).not.toMatch(/secret|private/);
+    } finally {
+      logError.mockRestore();
+    }
+  },
+);

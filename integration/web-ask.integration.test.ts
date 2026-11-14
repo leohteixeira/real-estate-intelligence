@@ -423,6 +423,7 @@ test('Ask follows a real prepared completed run through owned HTTP, SSE and Chro
         expect(reads.filter((path) => path === `/api/v1/runs/${example.runId}`)).toHaveLength(1);
       });
       await attempt('ASK-002', async () => {
+        let kept = '';
         for (const source of ['overview', 'property'] as const) {
           await page.goto(
             source === 'overview'
@@ -439,6 +440,7 @@ test('Ask follows a real prepared completed run through owned HTTP, SSE and Chro
           const received = await draft.inputValue();
           expect(received.length).toBeGreaterThan(0);
           await draft.fill(received + ' edited');
+          kept = received + ' edited';
           await follow();
           await completed('pt-BR');
           expect((await draft.inputValue()) === received + ' edited').toBe(true);
@@ -457,11 +459,13 @@ test('Ask follows a real prepared completed run through owned HTTP, SSE and Chro
           .getByRole('link', { name: 'Pinheiros' })
           .click();
         await page.waitForURL('**/ask/sao-paulo-pinheiros');
+        // Switching place drops the prepared record, never the visitor's unsent draft.
+        expect(kept.length).toBeGreaterThan(0);
         await expect
           .poll(
             async () =>
               (await page.getByRole('textbox', { name: 'Rascunho da pergunta' }).inputValue()) ===
-              '',
+              kept,
           )
           .toBe(true);
         expect(await page.locator('.ask-record').count()).toBe(0);

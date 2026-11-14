@@ -156,6 +156,9 @@ describe('Listing public surface', () => {
       const originalHistory = structuredClone(listing.history);
       const { request } = mount(response, { locale });
       await screen.findByText(locale === 'en' ? '1 of 3' : '1 de 3');
+      expect(document.title).toBe(
+        `${locale === 'en' ? 'Listing' : 'Anúncio'} · Real Estate Intelligence`,
+      );
       expect(screen.getByRole('heading', { name: listing.street })).toBeVisible();
       const facts = within(
         screen.getByRole('region', { name: locale === 'en' ? 'Provenance' : 'Proveniência' }),

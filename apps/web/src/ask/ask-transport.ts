@@ -162,6 +162,7 @@ export function createAskTransport(baseUrl: string) {
       parent: AbortSignal,
       parse: (value: unknown) => T,
       onFrame: (frame: AdmittedFrame<T>) => void,
+      onHeartbeat?: () => void,
     ): Promise<void> {
       const scope = deadline(parent, askTransportPolicy.nextFrameDeadlineMs);
       let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
@@ -195,7 +196,14 @@ export function createAskTransport(baseUrl: string) {
             scope.signal.throwIfAborted();
             scope.renew();
           };
-          const frames = chunk.done ? decoder.finish() : decoder.push(chunk.value, admit);
+          // A server heartbeat proves a silent run is still being served: it renews the deadline
+          // that an incomplete frame or a stalled connection cannot.
+          const alive = () => {
+            scope.signal.throwIfAborted();
+            scope.renew();
+            onHeartbeat?.();
+          };
+          const frames = chunk.done ? decoder.finish() : decoder.push(chunk.value, admit, alive);
           if (frames.some((frame) => frame.frame.terminal) || chunk.done) return;
         }
       } catch (error) {

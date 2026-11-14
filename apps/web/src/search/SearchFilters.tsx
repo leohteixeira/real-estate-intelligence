@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { PROPERTY_TYPES, TIME_ON_MARKET_BANDS } from '@rei/contracts';
 import type { PlaceDetail, SearchQuery } from '@rei/contracts';
@@ -9,19 +9,22 @@ import type { Locale } from '../places/locale';
 import { draftQuery, rangeKeys, searchHref, toDraft } from './search-state';
 import type { SearchDraft } from './search-state';
 import { hierarchyQuery, searchQuery } from './search-queries';
+import { placeName } from '../places/locale';
 
+/** A count is requested only after the draft rests: each keystroke used to cost one slow read. */
+const COUNT_DEBOUNCE_MS = 400;
 const types = ['apartment', 'house', 'studio', 'commercial', 'land'] as const;
 const historyFields = [
   { key: 'priceReduced', label: 'reduced' },
   { key: 'returnedToMarket', label: 'returned' },
   { key: 'multipleListings', label: 'multiple' },
 ] as const;
-function placePath(place: PlaceDetail): string {
+function placePath(place: PlaceDetail, language: string): string {
   return [
-    place.name.ptBR,
+    placeName(place.name, language),
     ...place.breadcrumbs
       .filter((crumb) => crumb.id !== place.id)
-      .map((crumb) => crumb.name.ptBR)
+      .map((crumb) => placeName(crumb.name, language))
       .reverse(),
   ].join(' / ');
 }
@@ -57,13 +60,24 @@ export function SearchFilters({
   const draft = editing.draft;
   const validated = draftQuery(draft, editing.locale);
   const hierarchy = useQuery(hierarchyQuery());
+  const draftKey = validated.valid ? JSON.stringify(validated.query) : null;
+  const [restedKey, setRestedKey] = useState(draftKey);
+  useEffect(() => {
+    const timer = setTimeout(() => setRestedKey(draftKey), COUNT_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [draftKey]);
+  // While the draft is still changing no count is observed, which also aborts a superseded read.
+  const rested = validated.valid && restedKey === draftKey;
   const preview = useQuery({
-    ...searchQuery(validated.valid ? validated.query : { placeId: place.id }),
-    enabled: validated.valid,
+    ...searchQuery(rested ? validated.query : { placeId: place.id }),
+    enabled: rested,
   });
   const update = (key: keyof Omit<SearchDraft, 'base'>, value: string) =>
     setEditing((current) => ({ ...current, draft: { ...current.draft, [key]: value } }));
-  const available = validated.valid && preview.isSuccess && !preview.isFetching;
+  const counting = validated.valid && (!rested || preview.isFetching);
+  const counted = rested && preview.isSuccess && !preview.isFetching;
+  // The count is a preview: when it fails, the valid draft can still be applied.
+  const applicable = validated.valid && !counting;
   const places = hierarchy.data?.items ?? [place];
   const selectedPlace = places.find((item) => item.id === draft.placeId);
   const ranges = [
@@ -71,10 +85,14 @@ export function SearchFilters({
     { label: 'perMeter', min: 'minPricePerSquareMeter', max: 'maxPricePerSquareMeter' },
     { label: 'area', min: 'minArea', max: 'maxArea' },
   ] as const;
+  // A field that is not a number is reported on that field; only two sound numbers can be reversed.
+  const invalidFields: readonly string[] = validated.valid ? [] : validated.fields;
   const invalidRanges = new Set(
     ranges
       .filter(
         (range) =>
+          !invalidFields.includes(range.min) &&
+          !invalidFields.includes(range.max) &&
           !draftQuery(
             {
               ...toDraft({ placeId: draft.placeId }, editing.locale),
@@ -86,13 +104,25 @@ export function SearchFilters({
       )
       .map((range) => range.label),
   );
+  const close = searchHref(query);
+  useEffect(() => {
+    // Escape leaves the editor exactly as the close link does. A select keeps its own Escape,
+    // which dismisses its open list.
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      if (event.target instanceof HTMLSelectElement) return;
+      void navigate(close);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [navigate, close]);
   return (
     <section className="search-filters" aria-labelledby="filters-title">
       <header className="shell search-filters__head">
         <h2 id="filters-title" tabIndex={-1}>
           {t('filters')}
         </h2>
-        <Link className="iconbtn" to={searchHref(query)} aria-label={t('close')}>
+        <Link className="iconbtn" to={close} aria-label={t('close')}>
           <svg className="i" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M6 6l12 12M18 6L6 18" />
           </svg>
@@ -102,7 +132,7 @@ export function SearchFilters({
         className="sheet search-filters__form"
         onSubmit={(event) => {
           event.preventDefault();
-          if (available && validated.valid) navigate(searchHref(validated.query));
+          if (applicable && validated.valid) navigate(searchHref(validated.query));
         }}
       >
         <div className="sheet__grab" aria-hidden="true" />
@@ -115,13 +145,15 @@ export function SearchFilters({
           >
             {places.map((item) => (
               <option key={item.id} value={item.id}>
-                {placePath(item)}
+                {placePath(item, i18n.language)}
               </option>
             ))}
           </select>
           <p className="hint">
             {selectedPlace ? (
-              <span className="search-filters__path">{placePath(selectedPlace)}</span>
+              <span className="search-filters__path">
+                {placePath(selectedPlace, i18n.language)}
+              </span>
             ) : null}
             {t('placeHint')}
           </p>
@@ -162,22 +194,42 @@ export function SearchFilters({
               {[
                 { key: range.min, label: 'minimum' },
                 { key: range.max, label: 'maximum' },
-              ].map((field) => (
-                <div className="field" key={field.key}>
-                  <label htmlFor={field.key}>{t(field.label)}</label>
-                  <input
-                    id={field.key}
-                    aria-label={`${t(range.label)} — ${t(field.label)}`}
-                    aria-invalid={invalidRanges.has(range.label)}
-                    aria-describedby={invalidRanges.has(range.label) ? 'draft-error' : undefined}
-                    inputMode="decimal"
-                    type="text"
-                    placeholder={t('any')}
-                    value={draft[field.key]}
-                    onChange={(event) => update(field.key, event.target.value)}
-                  />
-                </div>
-              ))}
+              ].map((field) => {
+                const notNumber = invalidFields.includes(field.key);
+                const reversed = invalidRanges.has(range.label);
+                return (
+                  <div className="field" key={field.key}>
+                    <label htmlFor={field.key}>{t(field.label)}</label>
+                    <input
+                      id={field.key}
+                      aria-label={`${t(range.label)} — ${t(field.label)}`}
+                      aria-invalid={notNumber || reversed}
+                      aria-describedby={
+                        notNumber ? `${field.key}-error` : reversed ? 'draft-error' : undefined
+                      }
+                      inputMode="decimal"
+                      type="text"
+                      placeholder={t('any')}
+                      value={draft[field.key]}
+                      onChange={(event) => update(field.key, event.target.value)}
+                    />
+                    {notNumber ? (
+                      <p id={`${field.key}-error`} className="search-validation" role="alert">
+                        {t('invalidNumber', {
+                          format:
+                            range.label === 'area'
+                              ? editing.locale === 'en'
+                                ? '82.5'
+                                : '82,5'
+                              : editing.locale === 'en'
+                                ? '600,000.50'
+                                : '600.000,50',
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </fieldset>
         ))}
@@ -276,14 +328,12 @@ export function SearchFilters({
             )}
           </div>
         </fieldset>
-        {!validated.valid ? (
+        {invalidRanges.size > 0 ? (
           <p id="draft-error" className="search-validation" role="alert">
-            {t('invalidDraft', {
-              format: editing.locale === 'en' ? '600,000.50 / 82.5' : '600.000,50 / 82,5',
-            })}
+            {t('invalidDraft')}
           </p>
         ) : null}
-        {validated.valid && preview.isError ? (
+        {rested && preview.isError && !preview.isFetching ? (
           <LoadErrorState
             description={t('failedPreview')}
             retry={() => {
@@ -311,10 +361,10 @@ export function SearchFilters({
           >
             {t('clear')}
           </button>
-          <button className="btn btn--primary" type="submit" disabled={!available}>
-            {available
+          <button className="btn btn--primary" type="submit" disabled={!applicable}>
+            {counted
               ? t('show', { count: preview.data.totalItems })
-              : validated.valid && preview.isFetching
+              : counting
                 ? t('countLoading')
                 : t('apply')}
           </button>

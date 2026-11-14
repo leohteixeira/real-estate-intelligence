@@ -17,6 +17,8 @@ import {
   confirmed,
   completed,
   cancelled,
+  failed,
+  running,
   runId,
   threadId,
   wire,
@@ -480,5 +482,204 @@ it('ignores late admission after a place change and never starts its obsolete st
     ),
   );
   expect(test.request.mock.calls.some(([url]) => url.endsWith('/events'))).toBe(false);
-  expect(screen.getByRole('textbox', { name: text.draftTitle })).toHaveValue('');
+  // The obsolete run is dropped; the visitor's text is not.
+  expect(screen.getByRole('textbox', { name: text.draftTitle })).toHaveValue(queued.question);
+  expect(screen.getByRole('button', { name: text.submitLive })).toBeEnabled();
+});
+const decided = (intent: 'price_per_square_meter' | 'listing_search', probability: number) => ({
+  ...paused.decision!,
+  intent,
+  probability,
+  probabilities: Object.fromEntries(
+    Object.keys(paused.decision!.probabilities).map((label) => [
+      label,
+      label === intent ? probability : (1 - probability) / 5,
+    ]),
+  ),
+});
+it('keeps an unsent draft when the visitor switches place and submits it for the new place only', async () => {
+  const test = mount();
+  const draft = await screen.findByRole('textbox', { name: text.draftTitle });
+  await userEvent.type(draft, 'Unsent question typed before switching');
+  await userEvent.click(screen.getByRole('button', { name: 'Change place' }));
+  await waitFor(() =>
+    expect(test.request.mock.calls.some(([url]) => url.includes('sao-paulo-pinheiros'))).toBe(true),
+  );
+  expect(await screen.findByRole('textbox', { name: text.draftTitle })).toHaveValue(
+    'Unsent question typed before switching',
+  );
+  expect(test.request.mock.calls.some(([url]) => url.endsWith('/api/v1/runs'))).toBe(false);
+  expect(localStorage.length + sessionStorage.length).toBe(0);
+  await userEvent.click(screen.getByRole('button', { name: text.submitLive }));
+  await waitFor(() => expect(test.streams).toHaveLength(1));
+  const creations = test.request.mock.calls.filter(([url]) => url.endsWith('/api/v1/runs'));
+  expect(creations).toHaveLength(1);
+  expect(JSON.parse(String(creations[0]![1]?.body))).toMatchObject({
+    placeId: 'sao-paulo-pinheiros',
+    query: 'Unsent question typed before switching',
+  });
+});
+it('describes the enabled submit truthfully and keeps the prepared example wording', async () => {
+  const test = mount();
+  const draft = await screen.findByRole('textbox', { name: text.draftTitle });
+  expect(screen.getByRole('button', { name: text.submitLive })).toBeDisabled();
+  await userEvent.type(draft, queued.question);
+  expect(screen.getByRole('button', { name: text.submitLive })).toBeEnabled();
+  expect(draft).toHaveAccessibleDescription(text.submitHint);
+  expect(screen.queryByText(/Draft only|has not been submitted/)).not.toBeInTheDocument();
+  expect(screen.getByText(text.followHint)).toBeVisible();
+  await act(() => test.locale.changeLanguage('pt-BR'));
+  expect(
+    screen.getByRole('textbox', { name: askPortuguese.draftTitle }),
+  ).toHaveAccessibleDescription(askPortuguese.submitHint);
+  expect(screen.queryByText(/Apenas um rascunho|não foi enviada/)).not.toBeInTheDocument();
+  expect(screen.getByText(askPortuguese.followHint)).toBeVisible();
+  expect(test.request.mock.calls.some(([url]) => url.endsWith('/api/v1/runs'))).toBe(false);
+});
+it('names the missing operands when a price question fails without them, in both languages', async () => {
+  const test = mount();
+  test.options.missingOperands = true;
+  await test.submit();
+  await test.emit(
+    parseRoutedAskLiveRun({ ...failed, decision: decided('price_per_square_meter', 0.9) }),
+    1,
+  );
+  expect(await screen.findByText(text.liveMissingOperands)).toBeVisible();
+  expect(text.liveMissingOperands).toMatch(/asking price in BRL and an area in m²/);
+  expect(screen.queryByText(text.live_execution_unavailable)).not.toBeInTheDocument();
+  await act(() => test.locale.changeLanguage('pt-BR'));
+  expect(screen.getByText(askPortuguese.liveMissingOperands)).toBeVisible();
+  expect(askPortuguese.liveMissingOperands).toMatch(/preço pedido em BRL e uma área em m²/);
+});
+it('explains a run the server could not finish without blaming a question that had its operands', async () => {
+  const test = mount();
+  await test.submit();
+  await test.emit(
+    parseRoutedAskLiveRun({ ...failed, decision: decided('price_per_square_meter', 0.9) }),
+    1,
+  );
+  expect(await screen.findByText(text.live_execution_unavailable)).toBeVisible();
+  expect(text.live_execution_unavailable).toMatch(/did not finish in time/);
+  expect(screen.queryByText(text.liveMissingOperands)).not.toBeInTheDocument();
+  expect(screen.getByText(`${text.failed} · ${text.terminal}`)).toBeVisible();
+  await act(() => test.locale.changeLanguage('pt-BR'));
+  expect(screen.getByText(askPortuguese.live_execution_unavailable)).toBeVisible();
+});
+it('asks only to confirm a non-price proposal, with a localized deadline and no operand fields', async () => {
+  const test = mount();
+  test.options.missingOperands = true;
+  await test.submit();
+  const proposal = parseRoutedAskLiveRun({ ...paused, decision: decided('listing_search', 0.6) });
+  const normal = test.request.getMockImplementation()!;
+  test.request.mockImplementation(async (url, init) =>
+    url.endsWith('/confirm')
+      ? Response.json(
+          explained(
+            parseRoutedAskLiveRun({
+              ...proposal,
+              state: 'queued',
+              updatedAt: confirmed.updatedAt,
+              confirmation: { ...confirmed.confirmation!, inputs: null },
+              steps: confirmed.steps,
+            }),
+            { question: test.records.at(-1)!.question, originalInputs: null },
+          ),
+        )
+      : normal(url, init),
+  );
+  await test.emit(proposal, 1);
+  expect(screen.getByText('Is the proposed intent “Listing search”?')).toBeVisible();
+  expect(screen.getByText(text.proposalUnavailable)).toBeVisible();
+  for (const name of [text.draftPrice, text.draftArea])
+    expect(screen.queryByRole('textbox', { name })).not.toBeInTheDocument();
+  expect(screen.queryByText(text.missingOperands, { exact: false })).not.toBeInTheDocument();
+  expect(screen.queryByText(text.liveOperands)).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: text.restoreOperands })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: text.confirmLive })).not.toBeInTheDocument();
+  const deadline = () => document.querySelector('time[datetime="2026-10-26T12:10:02.000Z"]');
+  expect(deadline()).toHaveTextContent('26 Oct 2026, 12:10 UTC');
+  expect(deadline()!.parentElement).toHaveTextContent(`${text.deadline}: 26 Oct 2026, 12:10 UTC`);
+  await act(() => test.locale.changeLanguage('pt-BR'));
+  expect(deadline()).toHaveTextContent(/^26 de out\.? de 2026,? 12:10 UTC$/);
+  expect(screen.getByText(askPortuguese.proposalUnavailable)).toBeVisible();
+  await act(() => test.locale.changeLanguage('en'));
+  await userEvent.click(screen.getByRole('button', { name: text.confirmIntent }));
+  const confirmation = test.request.mock.calls.find(([url]) => url.endsWith('/confirm'))!;
+  expect(JSON.parse(String(confirmation[1]?.body))).toEqual({
+    runId,
+    decisionReceiptId: paused.decision!.receiptId,
+    inputs: null,
+  });
+  // Once confirmed there is nothing left to answer: no fields, no action, no deadline.
+  await test.emit(
+    parseRoutedAskLiveRun({
+      ...proposal,
+      state: 'queued',
+      updatedAt: confirmed.updatedAt,
+      confirmation: { ...confirmed.confirmation!, inputs: null },
+      steps: confirmed.steps,
+    }),
+    2,
+  );
+  expect(await screen.findByRole('heading', { name: text.historicalProposal })).toBeVisible();
+  expect(screen.queryByRole('button', { name: text.confirmIntent })).not.toBeInTheDocument();
+  expect(screen.queryByRole('textbox', { name: text.draftPrice })).not.toBeInTheDocument();
+  expect(deadline()).toBeNull();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+it('shows the confirmation deadline of a price proposal as a localized time, not a raw timestamp', async () => {
+  const test = mount();
+  await test.submit();
+  await test.emit(paused, 1);
+  expect(screen.getByRole('textbox', { name: text.draftPrice })).toBeVisible();
+  expect(screen.getByRole('button', { name: text.confirmLive })).toBeVisible();
+  expect(document.querySelector('time[datetime="2026-10-26T12:10:02.000Z"]')).toHaveTextContent(
+    '26 Oct 2026, 12:10 UTC',
+  );
+  expect(screen.queryByText('2026-10-26T12:10:02.000Z')).not.toBeInTheDocument();
+});
+it('keeps a slow run shown as running while heartbeats arrive and resumes the same run after a real interruption', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  try {
+    const test = mount();
+    await test.submit();
+    await test.emit(running, 1);
+    const status = () => document.querySelector('.ask-session-status');
+    // Forty-eight silent seconds: far past the old twenty-second give-up point.
+    for (let beat = 0; beat < 12; beat++)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(4000);
+        test.streams[0]!.enqueue(new TextEncoder().encode(': heartbeat\n\n'));
+      });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(status()).toHaveTextContent(text.running);
+    expect(test.streams).toHaveLength(1);
+    // Now the connection really dies. The live one is continued from its cursor, and only two
+    // consecutive connections without any sign of life raise the alert.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(31000);
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(text.liveInterrupted);
+    expect(test.streams).toHaveLength(3);
+    expect(status()).toHaveTextContent(text.running);
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(test.streams).toHaveLength(4));
+    await test.emit(failed, 2);
+    expect(await screen.findByText(text.live_execution_unavailable)).toBeVisible();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    const reads = test.request.mock.calls.filter(([url]) => url.endsWith('/events'));
+    expect(reads.map(([, init]) => new Headers(init?.headers).get('Last-Event-ID'))).toEqual([
+      null,
+      `${runId}:v1:1`,
+      `${runId}:v1:1`,
+      `${runId}:v1:1`,
+    ]);
+    // Following and retrying only read the admitted run: one admission, one quota charge.
+    expect(test.request.mock.calls.filter(([url]) => url.endsWith('/api/v1/runs'))).toHaveLength(1);
+    expect(test.request.mock.calls.some(([url]) => new RegExp(`/runs/${runId}$`).test(url))).toBe(
+      false,
+    );
+  } finally {
+    vi.useRealTimers();
+  }
 });

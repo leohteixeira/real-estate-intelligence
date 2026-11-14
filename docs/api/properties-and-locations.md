@@ -180,7 +180,10 @@ The worker job uses `LISTING_HISTORY_BATCH_SIZE` (1–100, default 25),
 (at least 100, default 5000). Cycles do not overlap, database work receives cancellation, shutdown
 cancels active reconciliation, and OpenTelemetry records the reconciliation span and effect count.
 Each cycle runs identity resolution after listing history under the same cancellation deadline;
-unchanged persisted inputs publish no new decision or membership event.
+unchanged persisted inputs publish no new decision or membership event. An idle cycle still re-reads
+the whole catalogue, so `compose.production.yaml` sets the interval to 5000 ms: the 250 ms default
+is continuous database load that competes with API reads on a shared host. A failed cycle logs its
+error class, for example `TimeoutError` when it outran `LISTING_HISTORY_TIMEOUT_MS`.
 
 The ingestion-only `resolveFixtureAddress(address, transaction?)` forwards the verified
 Collection transaction scope into Locations. Its SQL uses the same active pool lease, after
@@ -307,7 +310,8 @@ neighborhood/market median, or switches to prepared data after failure.
 Locations supplies registered descendant IDs through its public boundary. Unknown valid scopes
 yield empty results; corrected representative geography retains source address disagreements.
 Full filtered count, median, signed deviations and registered place counts are calculated before
-pagination. A separate unfiltered search supplies the UI's current place total. Pages are stable
+pagination. A separate unfiltered search supplies the UI's current place total only for a
+filtered result; an unfiltered first page already carries it and is read once. Pages are stable
 for unchanged persisted state; a cursor is not a frozen database snapshot.
 All supplied filters combine with AND, including the three history flags. Bounds are inclusive.
 Missing attributes cannot satisfy a supplied numeric bound. No zero is fabricated for a missing
@@ -347,7 +351,8 @@ The median uses the entire matching set, never only the current page; an even-si
 rounded to the nearest centavo. `belowMedianPercent` is
 `(matchingMedian - propertyPricePerSquareMeter) / matchingMedian * 100`; negative means above median.
 An empty set has a null median. `placeCounts` counts the whole matching population for each
-registered country, state, city, zone, neighborhood and block. Static picker `propertyCount` instead
+registered country, state, city, zone, neighborhood and block; entries carry no significant order,
+so read them by `placeId`. Static picker `propertyCount` instead
 counts the full authoritative fixture, independent of search filters.
 
 Cursors bind the normalized filters, scope, sort, page size and endpoint. Preserve those fields on
@@ -430,6 +435,19 @@ wire data. They do not fetch source URLs.
   Feature rows carry `feature`, `reportingCount`, `reportingPercent`, reporting `listingIds` and
   distinct `sourceIds`. The percentage uses all grouped listings as denominator; missing reports
   never prove feature absence. Features not reported anywhere have no row.
+  For a persisted group, `priceChanges` are the member listings' own `price-changed` history
+  entries merged by effective date, each with its own listing's provenance. A change of which
+  listing holds the lowest active price (a member leaving, returning or undercutting another
+  source) is a property-minimum effect: it drives `summary.askingPrice`, the history flags and
+  reductions, but is never a `priceChanges` item, because no listing changed its price. Vila
+  Mariana therefore has no price change, and Santana reports Brisa's own 68000000 → 65500000.
+  Optional `minimumReduction` (absent or `null` when there is none; prepared fixture details omit
+  it) is that property-minimum figure: `effectiveAt`, `previousMinorUnits`, `currentMinorUnits`
+  and positive `reductionPercent` of the latest drop of the lowest asking price among the
+  property's listings. It is computed by the same rule and from the same minimum effects as the
+  property's `largest-reductions` row, so both always report the same operands and percentage:
+  Vila Mariana 126000000 → 124000000 and Santana 67000000 → 65500000. The key is additive;
+  clients must tolerate its absence.
 - `preparedEvidence` is discriminated by `kind`. The `deterministic-rule` branch contains actual
   `productionMatchScore` and `rawProbability` (null for a single member),
   `probabilityBasis: "deterministic-uncalibrated"`, `configurationId`, `configurationVersion`,
@@ -444,7 +462,9 @@ wire data. They do not fetch source URLs.
   (per-listing `neighborhood` values). Bela Vista demonstrates the published-neighborhood conflict
   alongside matching type/area/room/street and feature facts. Reasons contain no description text,
   image, contact or fingerprint data.
-- `ListingDetail`: stable identity and property ID, fixture label, source identity/label/URL,
+- `ListingDetail`: stable identity and property ID, fixture label, source identity/label/URL
+  (the label is the source register's published name, so each source is told apart; a source
+  without a registered name falls back to its identifier),
   within-property position, `active`/`removed` status, canonical place and separately preserved
   published neighborhood, street/features/nullable attributes, asking price and BRL currency,
   centavos-per-square-meter and formula, provenance, snapshot status, collection count/dates,

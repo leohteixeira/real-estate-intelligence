@@ -94,6 +94,8 @@ async function withAskFixture(work: (base: string) => Promise<void>): Promise<vo
       connection = new DatabaseConnection(url.toString());
       const before = await databaseState(connection);
       expect(before.filter((table) => table.schema === 'ask').map((table) => table.table)).toEqual([
+        'decision_attempt',
+        'decision_receipt',
         'graph_checkpoint',
         'graph_pending_write',
         'model_attempt',
@@ -304,8 +306,9 @@ test('Ask contracts: seven production API SSE journeys, authority, replay and ze
         headers: { ...headers, 'Idempotency-Key': fixture.runId },
         body: { query: 'private caller question' },
       });
-      expect(response.status).toBe(404);
-      expect(await response.json()).toMatchObject({ error: { code: 'not_found' } });
+      // Routed confirmation and cancellation exist; a prepared catalogue grant cannot use them.
+      expect(response.status).toBe(401);
+      expect(await response.json()).toMatchObject({ error: { code: 'unauthorized' } });
       expect(JSON.stringify(await response.json())).not.toContain('private caller question');
     }
     const disabled = await requestHttp(`${base}/api/v1/runs`, {

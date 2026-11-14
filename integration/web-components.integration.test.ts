@@ -175,8 +175,11 @@ test('shared Placa components use parsed owned data and labelled edge cases in b
                       }))
                       .toEqual({ rows: 5, browserErrors: [] });
                     const actual = page.locator('.prow').first();
-                    expect(await actual.textContent()).toContain(property.place.name.ptBR);
-                    expect(await actual.getAttribute('href')).toBe('#owned-property');
+                    expect(await actual.textContent()).toContain(
+                      locale === 'en' ? property.place.name.en : property.place.name.ptBR,
+                    );
+                    // A router link resolves its in-page target against the fixture path.
+                    expect(await actual.getAttribute('href')).toBe(`${entry}#owned-property`);
                     expect(await actual.locator('a').count()).toBe(0);
                     expect(await page.locator('.fig__value').first().textContent()).toBe(
                       locale === 'en' ? 'R$ 9,515 /m²' : 'R$ 9.515 /m²',

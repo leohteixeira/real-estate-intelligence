@@ -109,6 +109,8 @@ export class PostgresPropertyRepository implements PropertyRepository {
     comparisons: readonly ResolutionComparison[];
     configuration: ResolutionConfiguration;
     priceChanges: readonly import('@rei/domain').PriceChange[];
+    /** False only where the reductions read uses the listing's own history instead. */
+    minimumRule: boolean;
   } | null> {
     type MemberRow = {
       property_id: string;
@@ -117,6 +119,7 @@ export class PostgresPropertyRepository implements PropertyRepository {
       event: unknown;
       resolved_place: ResolvedPropertyPlace;
       state: ListingChronologyState | null;
+      assignment_revision: number;
     };
     type PairRow = { evidence: ResolutionComparison; configuration: ResolutionConfiguration };
     type MinimumEffect = Pick<
@@ -132,7 +135,7 @@ export class PostgresPropertyRepository implements PropertyRepository {
         effects: MinimumEffect[];
       }>(
         `WITH members AS (
-        SELECT member.property_id::text,listing.listing_id::text,listing.property_id::text AS original_property_id,fact.event,property.resolved_place,current.state,listing.source_id,listing.source_listing_id
+        SELECT member.property_id::text,listing.listing_id::text,listing.property_id::text AS original_property_id,fact.event,property.resolved_place,current.state,listing.source_id,listing.source_listing_id,member.assignment_revision
         FROM properties.listing_assignment requested JOIN properties.listing_assignment member ON member.property_id=requested.property_id
         JOIN properties.listing listing ON listing.listing_id=member.listing_id
         JOIN properties.property property ON property.property_id=listing.property_id
@@ -176,6 +179,8 @@ export class PostgresPropertyRepository implements PropertyRepository {
         )
         .map((pair) => pair.evidence),
       configuration,
+      // Same predicate as the reductions read: any minimum effect, or a revised membership.
+      minimumRule: effects.length > 0 || rows.some((row) => row.assignment_revision > 0),
       priceChanges: effects.flatMap((p) => {
         return p.previous.minimumMinorUnits !== null &&
           p.current.minimumMinorUnits !== null &&

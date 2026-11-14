@@ -140,6 +140,7 @@ describe('PostgresCollectionFacade', () => {
     const findById = vi.fn(async (sourceId: string) =>
       sourceId === 'known-source'
         ? ({
+            displayLabel: 'Known source',
             permissions: {
               collectionAllowed: true,
               imageFetchingAllowed: false,
@@ -155,6 +156,7 @@ describe('PostgresCollectionFacade', () => {
       collectionAllowed: true,
       imageFetchingAllowed: false,
       listingTextDisplayAllowed: true,
+      displayLabel: 'Known source',
     });
     await expect(facade.getSourcePermissions('missing-source')).resolves.toEqual({
       sourceId: 'missing-source',

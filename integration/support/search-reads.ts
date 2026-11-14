@@ -28,8 +28,8 @@ export async function checkSearch(
     .poll(() => page.locator('.search-count').textContent())
     .toBe(
       locale === 'en'
-        ? `${expected.totalItems} of ${total.totalItems} ${expected.totalItems === 1 ? 'property' : 'properties'}`
-        : `${expected.totalItems} de ${total.totalItems} ${expected.totalItems === 1 ? 'imóvel' : 'imóveis'}`,
+        ? `${expected.totalItems} of ${total.totalItems} ${total.totalItems === 1 ? 'property' : 'properties'}`
+        : `${expected.totalItems} de ${total.totalItems} ${total.totalItems === 1 ? 'imóvel' : 'imóveis'}`,
     );
   await checkSearchRows(page, expected, locale);
   return expected;
@@ -86,7 +86,9 @@ export async function checkSearchRows(
     await expect
       .poll(() => row.locator('.prow__t').textContent())
       .toBe(`${types[property.propertyType]} · ${bedrooms} · ${area}`);
-    expect(await row.locator('.prow__s').textContent()).toBe(property.place.name.ptBR);
+    expect(await row.locator('.prow__s').textContent()).toBe(
+      english ? property.place.name.en : property.place.name.ptBR,
+    );
     await expect
       .poll(async () => (await row.locator('.prow__p').textContent())?.replace(/\s/g, ' '))
       .toBe(

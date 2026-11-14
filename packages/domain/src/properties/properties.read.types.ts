@@ -191,6 +191,11 @@ export interface PropertyDetail {
   readonly sale: { readonly status: 'not-recorded' };
   readonly listings: readonly ListingDetail[];
   readonly priceChanges: readonly PriceChange[];
+  /**
+   * Latest drop of the lowest asking price among the property's listings: the same figure the
+   * place reductions panel reports. Absent or null when the property has no such reduction.
+   */
+  readonly minimumReduction?: MinimumReduction | null;
   readonly sourceAgreement: readonly {
     readonly field:
       | 'propertyType'
@@ -268,6 +273,12 @@ export type PreparedGroupingReason =
 export interface PropertyResponse {
   readonly metadata: FixtureMetadata;
   readonly property: PropertyDetail;
+}
+export interface MinimumReduction {
+  readonly effectiveAt: string;
+  readonly previousMinorUnits: number;
+  readonly currentMinorUnits: number;
+  readonly reductionPercent: number;
 }
 export interface Reduction {
   readonly propertyId: string;

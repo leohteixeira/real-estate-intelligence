@@ -117,7 +117,7 @@ The example file is named `env.example`, without a leading dot, because the work
 ```bash
 pnpm run lint
 pnpm run typecheck
-pnpm run typecheck:integration       # strict integration-only check after compiled packages exist
+pnpm run typecheck:integration       # strict integration-only check; builds what it imports first
 pnpm run test
 pnpm run build
 pnpm run test:coverage
@@ -219,6 +219,13 @@ operational routes, including `/places`, `/ask`, `/search`, property/listing det
 The Nginx configuration redirects only the exact `/` root (308) to the English presentation;
 API and application deep links keep their existing handlers. A client-side fallback preserves
 presentation fragments during local Vite navigation.
+
+The two sides hand the language over. A link into the application may add `?lang=en`, `?lang=pt-BR`
+or `?lang=pt` to any operational route, for example `/real-estate-intelligence/places?lang=en`; the
+application opens in that language, stores it as the visitor's preference and removes the parameter
+from the address. Without a valid hint the stored preference applies, and Portuguese is the default.
+The product-name link inside the application opens the presentation in the current interface
+language (`/en/` or `/pt/`).
 
 The original Placa typography, journey copy, city geometry, WebGL scene, motion controls and
 synthetic examples were migrated to the portfolio. The presentation distinguishes current

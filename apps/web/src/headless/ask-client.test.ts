@@ -191,6 +191,109 @@ describe('headless live HTTP and SSE client', () => {
       expect(session.run).toEqual(terminal);
     },
   );
+  it('follows a slow silent run through heartbeats for minutes without reconnecting or failing', async () => {
+    vi.useFakeTimers();
+    let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+    const body = new ReadableStream<Uint8Array>({
+      start(value) {
+        controller = value;
+      },
+    });
+    const fetcher = vi
+      .fn()
+      .mockResolvedValue(new Response(body, { headers: { 'content-type': 'text/event-stream' } }));
+    vi.stubGlobal('fetch', fetcher);
+    const session = new LiveAskSession(accepted);
+    const snapshots = vi.fn();
+    let outcome: unknown = 'pending';
+    const work = followLiveAsk(
+      createHeadlessAskClient(''),
+      session,
+      capability,
+      signal(),
+      snapshots,
+    ).then(
+      () => (outcome = 'completed'),
+      (error: unknown) => (outcome = error),
+    );
+    const send = (text: string) => controller!.enqueue(new TextEncoder().encode(text));
+    await vi.advanceTimersByTimeAsync(0);
+    send(wire(queued, 1) + wire(running, 2));
+    // Far beyond the ten-second next-frame deadline and the old twenty-second give-up point.
+    for (let second = 0; second < 180; second += 4) {
+      await vi.advanceTimersByTimeAsync(4000);
+      send(': heartbeat\n\n');
+    }
+    expect(outcome).toBe('pending');
+    expect(session.run?.state).toBe('running');
+    send(wire(failed, 3));
+    await work;
+    expect(outcome).toBe('completed');
+    expect(session.run?.terminal).toEqual(failed.terminal);
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(snapshots).toHaveBeenCalledTimes(3);
+  });
+  it('declares the stream lost only after ten silent seconds, even following earlier heartbeats', async () => {
+    vi.useFakeTimers();
+    const controllers: ReadableStreamDefaultController<Uint8Array>[] = [];
+    const fetcher = vi.fn().mockImplementation(
+      () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start(value) {
+              controllers.push(value);
+            },
+          }),
+          { headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+    vi.stubGlobal('fetch', fetcher);
+    const session = new LiveAskSession(accepted);
+    const work = followLiveAsk(createHeadlessAskClient(''), session, capability, signal(), vi.fn());
+    const lost = expect(work).rejects.toMatchObject({ status: 408 });
+    await vi.advanceTimersByTimeAsync(0);
+    controllers[0]!.enqueue(new TextEncoder().encode(wire(queued, 1) + ': heartbeat\n\n'));
+    // The first connection was alive, so its stall is a continuation; two dead ones are not.
+    await vi.advanceTimersByTimeAsync(30000);
+    await lost;
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(fetcher.mock.calls.slice(1).map((call) => (call[1] as RequestInit).headers)).toEqual([
+      expect.objectContaining({ 'Last-Event-ID': `${runId}:v1:1` }),
+      expect.objectContaining({ 'Last-Event-ID': `${runId}:v1:1` }),
+    ]);
+    expect(session.run?.state).toBe('queued');
+    expect(session.terminal).toBe(false);
+  });
+  it('continues across repeated disconnects while each connection shows new evidence or a heartbeat', async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(stream(wire(queued, 1)))
+      .mockResolvedValueOnce(stream(': heartbeat\n\n'))
+      .mockResolvedValueOnce(stream(wire(running, 2)))
+      .mockResolvedValueOnce(stream(': heartbeat\n\n'))
+      // A replay of the last admitted frame is not new evidence.
+      .mockResolvedValueOnce(stream(wire(running, 2)))
+      .mockResolvedValueOnce(stream(wire(failed, 3)));
+    vi.stubGlobal('fetch', fetcher);
+    const session = new LiveAskSession(accepted);
+    await followLiveAsk(createHeadlessAskClient(''), session, capability, signal(), vi.fn());
+    expect(fetcher).toHaveBeenCalledTimes(6);
+    expect(session.terminal).toBe(true);
+    const cursors = fetcher.mock.calls.map((call) =>
+      new Headers((call[1] as RequestInit).headers).get('Last-Event-ID'),
+    );
+    expect(cursors).toEqual([
+      null,
+      `${runId}:v1:1`,
+      `${runId}:v1:1`,
+      `${runId}:v1:2`,
+      `${runId}:v1:2`,
+      `${runId}:v1:2`,
+    ]);
+    expect(
+      fetcher.mock.calls.every((call) => String(call[0]).endsWith(`/runs/${runId}/events`)),
+    ).toBe(true);
+  });
   it('does not manufacture completion at early EOF and bounds automatic reconnects', async () => {
     const fetcher = vi.fn().mockResolvedValue(stream(''));
     vi.stubGlobal('fetch', fetcher);

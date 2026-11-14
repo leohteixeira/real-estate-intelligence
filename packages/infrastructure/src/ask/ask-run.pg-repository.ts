@@ -73,6 +73,16 @@ import {
   extractAmqpTraceContext,
 } from '../shared/telemetry/trace-context.js';
 
+/** Unstarted or paused work past its queue or confirmation deadline ends as `expired`. */
+const EXPIRED =
+  "((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp()))";
+/**
+ * Started or confirmed work gets the same lifetime, from admission or from its confirmation, to
+ * reach a terminal state. Past it, and with no live claim, the run ends as `failed`: a dead-lettered
+ * or endlessly redelivered request would otherwise stay queued or running forever.
+ */
+const OVERDUE = `(((state='running' AND claim_expires_at<=clock_timestamp()) OR (state='queued' AND document->'decision'<>'null'::jsonb)) AND GREATEST(queue_expires_at,(document->'confirmation'->>'at')::timestamptz+interval '${askDeliveryPolicy.queueLifetimeMs} milliseconds')<=clock_timestamp())`;
+const ENDED = `(${EXPIRED} OR ${OVERDUE})`;
 interface StoredRun {
   readonly document: unknown;
   readonly requested_event_id: string;
@@ -582,13 +592,14 @@ export class PostgresAskRunRepository implements AskRunRepository {
     const previous = this.identity(row, identity);
     if (previous.basis === 'routed-text-v1' || previous.basis === 'routed-text-explanation-v1')
       return this.expireRouted(tx, client, previous, identity);
-    if (previous.state !== 'queued') return null;
+    if (previous.terminal) return null;
     const eligible = await client.query<{ at: Date }>(
-      "SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp()))",
+      `SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND ${ENDED}`,
       [identity.runId],
     );
     if (!eligible[0]) return null;
     const at = eligible[0].at.toISOString();
+    if (previous.state === 'running') return this.failOverdue(tx, client, previous, identity, at);
     const run: AskLiveRun = {
       ...previous,
       state: 'expired',
@@ -607,6 +618,28 @@ export class PostgresAskRunRepository implements AskRunRepository {
     await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
     return structuredClone(run);
   }
+  /** One fenced terminal transition; the admission keeps counting towards the daily quotas. */
+  private async failOverdue(
+    tx: Transaction,
+    client: DatabaseClient,
+    previous: AskLiveRun,
+    identity: AskRequestedIdentity,
+    at: string,
+  ): Promise<AskLiveRun> {
+    const run = parseAskLiveRun({
+      ...previous,
+      state: 'failed',
+      updatedAt: at,
+      result: null,
+      terminal: { state: 'failed', reason: 'execution_unavailable', at },
+      steps: [...previous.steps, { sequence: previous.steps.length + 1, phase: 'failed', at }],
+    });
+    await client.query("UPDATE ask.run SET state='failed',document=$2 WHERE id=$1", [run.id, run]);
+    await this.append(client, run);
+    await this.outbox.append(tx, [new AskTerminalEvent(await this.uuid(client), run)]);
+    await this.inbox.record(tx, ASK_STRUCTURED_CONSUMER, parseUuidV7(identity.eventId));
+    return structuredClone(run);
+  }
   private async expireThread(
     threadId: string,
     capability: string,
@@ -620,7 +653,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
       if (!rows[0]) throw new AskLiveError('forbidden');
       this.authorize(rows[0], capability);
       return client.query<{ id: string }>(
-        "SELECT id::text FROM ask.run WHERE thread_id=$1 AND ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp())) ORDER BY admission_sequence LIMIT 100",
+        `SELECT id::text FROM ask.run WHERE thread_id=$1 AND ${ENDED} ORDER BY admission_sequence LIMIT 100`,
         [threadId],
       );
     }, signal);
@@ -646,7 +679,7 @@ export class PostgresAskRunRepository implements AskRunRepository {
     const candidates = await this.transaction(
       (_tx, client) =>
         client.query<{ id: string; thread_id: string; admission_sequence: string }>(
-          "SELECT id::text,thread_id::text,admission_sequence::text FROM ask.run WHERE ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp())) ORDER BY CASE WHEN ask.run.admission_sequence>$1::bigint THEN 0 ELSE 1 END, ask.run.admission_sequence LIMIT $2",
+          `SELECT id::text,thread_id::text,admission_sequence::text FROM ask.run WHERE ${ENDED} ORDER BY CASE WHEN ask.run.admission_sequence>$1::bigint THEN 0 ELSE 1 END, ask.run.admission_sequence LIMIT $2`,
           [this.expiryFrontier, limit],
         ),
       signal,
@@ -905,11 +938,13 @@ export class PostgresAskRunRepository implements AskRunRepository {
     identity: AskRequestedIdentity,
   ): Promise<AskLiveRun | null> {
     const eligible = await client.query<{ at: Date }>(
-      "SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND ((state='queued' AND document->'decision'='null'::jsonb AND queue_expires_at<=clock_timestamp()) OR (state='awaiting_confirmation' AND confirmation_deadline<=clock_timestamp()))",
+      `SELECT clock_timestamp() AS at FROM ask.run WHERE id=$1 AND ${ENDED}`,
       [previous.id],
     );
     if (!eligible[0]) return null;
     const at = eligible[0].at.toISOString();
+    if (previous.state === 'running' || (previous.state === 'queued' && previous.decision))
+      return this.failOverdue(tx, client, previous, identity, at);
     const run = parseAskLiveRun({
       ...previous,
       state: 'expired',

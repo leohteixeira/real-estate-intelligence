@@ -50,7 +50,7 @@ All campaigns, helpers, independent probes and the integration configuration use
 `tsconfig.integration.json` extends the unchanged strict base configuration, checks without emit,
 and uses NodeNext resolution, Node types, `allowImportingTsExtensions`, `erasableSyntaxOnly` and
 `verbatimModuleSyntax`. Root typecheck runs this gate after recursive workspace checking; standalone
-checking requires built package declarations. JSON enters as unknown and is validated with public
+checking first builds what it imports. JSON enters as unknown and is validated with public
 parsers or described by specific local evidence shapes. SDK types are genuine; minimal lifecycle
 interfaces cover only consumed injectable methods, without casting partial mocks into full clients.
 No explicit any, compiler suppressions or generic arbitrary-property JSON are permitted.
@@ -62,8 +62,8 @@ real-service requirements.
 
 ## Consequences
 
-Docker and sufficient time/resources are required for the complete suite; CI reserves a bounded
-integration job. Shared support must continue to handle staged migrations, profiles, one-shot
+Docker and sufficient time/resources are required for the complete suite; CI reserves bounded
+integration shard jobs. Shared support must continue to handle staged migrations, profiles, one-shot
 commands, faults and exact cleanup. Port allocation reduces clashes but cannot eliminate the
 allocation-to-bind race. Fresh probes remain separate processes and report inspectable results
 to Vitest; they must never import the runner. Dependency pins and frozen installs add maintenance

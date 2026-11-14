@@ -266,7 +266,7 @@ test('Listing follows rights, provenance, context and exact navigation through o
             'exec',
             ownedWeb,
             'find',
-            '/usr/share/nginx/html/assets',
+            '/srv/rei/assets',
             '-maxdepth',
             '1',
             '-type',

@@ -78,6 +78,9 @@ services:
       OBJECT_STORE_SECRET_ACCESS_KEY: ${OBJECT_STORE_SECRET_ACCESS_KEY:?Set scoped object storage credentials}
       SNAPSHOT_ENCRYPTION_KEY_ID: ${SNAPSHOT_ENCRYPTION_KEY_ID:?Provision snapshot encryption first}
       SNAPSHOT_ENCRYPTION_KEY_BASE64: ${SNAPSHOT_ENCRYPTION_KEY_BASE64:?Provision snapshot encryption first}
+      # Every cycle re-reads the whole catalogue even when idle. At the 250 ms development default
+      # that is continuous PostgreSQL and CPU load competing with API reads on the shared host.
+      LISTING_HISTORY_INTERVAL_MS: ${LISTING_HISTORY_INTERVAL_MS:-5000}
       OTEL_SERVICE_NAME: real-estate-intelligence-worker
     depends_on:
       migrations:

@@ -214,7 +214,10 @@ export async function checkListing(
     const ancestry = page.locator('.property-ancestry');
     await ancestry.locator('summary').click();
     for (const place of property.property.summary.breadcrumbs) {
-      const link = ancestry.getByRole('link', { name: place.name.ptBR, exact: true });
+      const link = ancestry.getByRole('link', {
+        name: locale === 'en' ? place.name.en : place.name.ptBR,
+        exact: true,
+      });
       expect(await link.isVisible()).toBe(true);
       expect(await link.getAttribute('href')).toBe(`/search/${place.id}`);
     }

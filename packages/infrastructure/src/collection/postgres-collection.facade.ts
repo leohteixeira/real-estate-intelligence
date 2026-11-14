@@ -275,6 +275,7 @@ export class PostgresCollectionFacade implements CollectionFacade, CollectionHis
       collectionAllowed: source?.permissions.collectionAllowed ?? false,
       imageFetchingAllowed: source?.permissions.imageFetchingAllowed ?? false,
       listingTextDisplayAllowed: source?.permissions.listingTextDisplayAllowed ?? false,
+      ...(source ? { displayLabel: source.displayLabel } : {}),
     });
   }
 

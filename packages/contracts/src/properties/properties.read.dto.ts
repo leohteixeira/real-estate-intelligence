@@ -18,6 +18,7 @@ import {
   wireString,
   wireUrl,
   wireUuid,
+  type WireValidator,
 } from '../shared/wire.js';
 import {
   PROPERTY_TYPES,
@@ -156,7 +157,15 @@ const fieldValue = (value: unknown): void => {
   )
     invalidWire();
 };
-const propertyWire = wireObject({
+const minimumReductionWire = wireNullable(
+  wireObject({
+    effectiveAt: wireDate,
+    previousMinorUnits: wireMoney,
+    currentMinorUnits: wireMoney,
+    reductionPercent: wireNumber(0, 100),
+  }),
+);
+const requiredPropertyWire = wireObject({
   summary: summaryWire,
   sale: wireObject({ status: wireEnum(['not-recorded']) }),
   listings: wireArray(listingWire),
@@ -244,6 +253,19 @@ const propertyWire = wireObject({
     }),
   }),
 });
+/** `minimumReduction` is the one additive key: absent, null or the closed reduction figure. */
+const propertyWire: WireValidator = (value) => {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Object.getPrototypeOf(value) !== Object.prototype ||
+    !Object.hasOwn(value, 'minimumReduction')
+  )
+    return requiredPropertyWire(value);
+  const { minimumReduction, ...required } = value as Record<string, unknown>;
+  minimumReductionWire(minimumReduction);
+  requiredPropertyWire(required);
+};
 const page = {
   metadata: fixtureMetadataWire,
   nextCursor: wireNullable(wireString),

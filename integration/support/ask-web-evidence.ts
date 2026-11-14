@@ -117,7 +117,7 @@ export async function askVersion(project: string, base: string) {
           'exec',
           id,
           'find',
-          '/usr/share/nginx/html/assets',
+          '/srv/rei/assets',
           '-maxdepth',
           '1',
           '-type',

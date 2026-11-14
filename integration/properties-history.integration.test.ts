@@ -543,6 +543,25 @@ test('properties-history preserves its complete real-service campaign', async ()
             [67000000, 65500000],
             [126000000, 124000000],
           ]);
+          // The property page figure is the ranked row itself, even where no listing repriced.
+          for (const item of catalogRanking.items)
+            expect(
+              (await get(`properties/${item.propertyId}`, parsePropertyResponse)).property
+                .minimumReduction,
+              item.propertyId,
+            ).toStrictEqual({
+              effectiveAt: item.effectiveAt,
+              previousMinorUnits: item.previousMinorUnits,
+              currentMinorUnits: item.currentMinorUnits,
+              reductionPercent: item.reductionPercent,
+            });
+          // Every other property, reached through any member's identity, reports no reduction.
+          const rankedProperties = new Set(catalogRanking.items.map((item) => item.propertyId));
+          for (const row of identities) {
+            const { property } = await get(`properties/${row.property_id}`, parsePropertyResponse);
+            if (!rankedProperties.has(property.summary.id))
+              expect(property.minimumReduction, row.property_id).toBeNull();
+          }
           const firstPage = await reductions('sao-paulo', '?pageSize=1');
           expect(firstPage.nextCursor).toBeTruthy();
           for (const path of [

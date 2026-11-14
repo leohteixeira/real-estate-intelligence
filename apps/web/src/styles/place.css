@@ -14,6 +14,8 @@ body:has(.lp) {
 }
 .place-app {
   min-height: 100svh;
+  /* `viewport-fit=cover` lets the page reach the display edges; keep it clear of a side notch. */
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
 }
 .public-skip {
   position: fixed;
@@ -53,6 +55,26 @@ body:has(.lp) {
 .public-tabs {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 0;
+}
+/*
+ * Below the rail breakpoint the tab bar stays at the bottom of the viewport. Its height is
+ * 69px (6 + 52 + 10 padding and row, plus the 1px rule) plus the home-indicator inset; the
+ * content and focus scrolling reserve the same space so nothing rests underneath it.
+ */
+@media (max-width: 959px) {
+  .public-tabs {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 10;
+    padding: 6px calc(4px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom))
+      calc(4px + env(safe-area-inset-left));
+  }
+  .place-main {
+    padding-bottom: calc(69px + env(safe-area-inset-bottom));
+  }
+  html:has(.public-tabs):not(:has(.search-filters)) {
+    scroll-padding-bottom: calc(69px + env(safe-area-inset-bottom));
+  }
 }
 .public-tabs a,
 .public-rail-navigation a {
@@ -215,7 +237,8 @@ body:has(.lp) {
 .place-state {
   padding: var(--s-6) var(--gutter);
 }
-.place-state h1 {
+.place-state h1,
+.place-state h2 {
   font-size: var(--text-xl);
 }
 .place-state .btn,

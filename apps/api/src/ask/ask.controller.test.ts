@@ -5,6 +5,7 @@ import { assertAskPreview } from '@rei/domain';
 import {
   parseAskAvailability,
   parseAskFixtureCatalogue,
+  parseAskLiveEvent,
   parseAskProgressEvent,
   parseAskRun,
   parseAskThread,
@@ -16,6 +17,7 @@ import { configureApi } from '../configure-api';
 import { AskModule } from './ask.module';
 import { DATABASE_CONNECTION } from '../persistence/persistence.module';
 import { askBearerCapability, askPreviewStream } from './ask.controller';
+import { askLiveStreamSettings } from './ask-live-stream';
 
 function transport(text: string): AskProgressEvent[] {
   return text
@@ -263,4 +265,81 @@ describe('AskModule actual HTTP and finite SSE', () => {
     expect(disconnect).toHaveBeenCalledOnce();
     expect(await lastValueFrom(askPreviewStream([]).pipe(toArray()))).toEqual([]);
   });
+});
+it('keeps a silent live stream open with heartbeat comments over actual HTTP', async () => {
+  const id = '0199c8f2-2394-7ba0-8f9e-286378779210',
+    at = '2026-10-11T00:00:00.000Z',
+    grant = 'c'.repeat(43);
+  const queued = parseAskLiveEvent({
+    version: 1,
+    id: `${id}:v1:1`,
+    runId: id,
+    sequence: 1,
+    event: 'ask.progress',
+    terminal: false,
+    run: {
+      basis: 'structured-price-v1',
+      id,
+      threadId: '0199c8f2-2394-7ba0-8f9e-286378779211',
+      principalId: null,
+      question: 'Calculate.',
+      locale: 'en',
+      placeId: null,
+      createdAt: at,
+      updatedAt: at,
+      state: 'queued',
+      originalInputs: { priceMinorUnits: 100, currency: 'BRL', areaSquareMeters: 2 },
+      decision: null,
+      result: null,
+      terminal: null,
+      steps: [],
+    },
+  });
+  const events = vi
+    .fn()
+    .mockImplementation((_id: string, _grant: string, after: number) =>
+      Promise.resolve(after === 0 ? [queued] : []),
+    );
+  const module = await Test.createTestingModule({ imports: [AskModule] })
+    .overrideProvider(DATABASE_CONNECTION)
+    .useValue({ close: vi.fn() })
+    .overrideProvider(ASK_LIVE_FACADE)
+    .useValue({ run: async () => queued.run, events })
+    .compile();
+  const app = module.createNestApplication();
+  configureApi(app);
+  await app.listen(0, '127.0.0.1');
+  const address = app.getHttpServer().address();
+  if (!address || typeof address === 'string') throw new Error('Missing listener.');
+  // Only the heartbeat uses an interval; real HTTP and the 100 ms poll keep their real timers.
+  vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+  const stop = new AbortController();
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/runs/${id}/events`, {
+      headers: { Authorization: `Bearer ${grant}` },
+      signal: stop.signal,
+    });
+    expect(response.headers.get('content-type')).toContain('text/event-stream');
+    const reader = response.body!.getReader(),
+      decoder = new TextDecoder();
+    let text = '';
+    const until = async (marker: string) => {
+      while (!text.includes(marker)) {
+        const chunk = await reader.read();
+        if (chunk.done) throw new Error('Stream ended early.');
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+    };
+    await until(`id: ${id}:v1:1`);
+    await until('\n\n');
+    expect(text).not.toContain(': heartbeat');
+    vi.advanceTimersByTime(askLiveStreamSettings.heartbeatIntervalMs);
+    await until(': heartbeat\n\n');
+    // The comment sits between complete frames and carries no event, id or data field.
+    expect(text.slice(text.indexOf('\n\n') + 2)).toBe(': heartbeat\n\n');
+  } finally {
+    stop.abort();
+    vi.useRealTimers();
+    await app.close();
+  }
 });

@@ -10,6 +10,8 @@ export interface CollectionSourcePermissions {
   readonly collectionAllowed: boolean;
   readonly imageFetchingAllowed: boolean;
   readonly listingTextDisplayAllowed: boolean;
+  /** Published attribution of the registered source; absent when the source is not registered. */
+  readonly displayLabel?: string;
 }
 
 export interface CollectionRunCounts {

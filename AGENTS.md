@@ -68,8 +68,8 @@ entities, no collectors, no comparables, no AI tools and no business endpoints.
 - Unit tests run with Vitest and `--dir src`, excluding compiled `dist/` tests. Integration tests
   instead use the explicit root `vitest.integration.config.ts` (D-039/D-040, ADR 0020).
 - Every integration campaign, helper and probe is TypeScript, included in strict
-  `tsconfig.integration.json` through root `typecheck`. Build first for standalone integration
-  checking; use public parsers or specific evidence shapes for unknown JSON, never explicit any,
+  `tsconfig.integration.json` through root `typecheck`. Standalone integration checking builds
+  its inputs; use public parsers or specific evidence shapes for unknown JSON, never explicit any,
   suppression directives, fabricated generic JSON or partial-runtime-client casts. Fresh Node 24
   probes must remain erasable TypeScript and must not import Vitest.
 - New integration tests belong in `integration/*.integration.test.ts` and use native Vitest

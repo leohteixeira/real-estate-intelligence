@@ -68,7 +68,9 @@ export async function exerciseOverviewReads(
     expect(await incoming.isEditable()).toBe(true);
     expect(await page.locator('.ask-composer img').count()).toBe(0);
     expect(await page.locator('#ask-draft-hint').textContent()).toContain(
-      locale === 'en' ? 'not been submitted or executed' : 'não foi enviada nem executada',
+      locale === 'en'
+        ? 'Submit a question for a real run.'
+        : 'Envie uma pergunta para execução real.',
     );
     expect(
       await page.evaluate(() => Object.keys(localStorage).filter((key) => key !== 'rei.locale')),

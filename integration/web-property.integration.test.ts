@@ -128,10 +128,11 @@ test('Property follows the complete public contract through owned real HTTP and 
       'Seven distinct semantic scenarios, six complete locale/viewport surfaces, explicit boundary captures, authored references and owned teardown',
     stackTornDownUtc: null as string | null,
   };
-  const head = (await readFile(new URL('../.git/HEAD', import.meta.url), 'utf8')).trim();
-  const commit = head.startsWith('ref: ')
-    ? (await readFile(new URL(`../.git/${head.slice(5)}`, import.meta.url), 'utf8')).trim()
-    : head;
+  const commit = (
+    await execa('git', ['rev-parse', 'HEAD'], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+    })
+  ).stdout;
   const assetHash = createHash('sha256');
   const assets = new URL('../apps/web/dist/assets/', import.meta.url);
   for (const name of (await readdir(assets)).filter((name) => /\.(js|css)$/.test(name)).sort())
@@ -275,7 +276,7 @@ test('Property follows the complete public contract through owned real HTTP and 
           await page.screenshot({
             path: new URL('final.png', folder).pathname,
             fullPage: true,
-            mask: [page.locator('.place-draft > p').first()],
+            mask: [page.locator('#ask-draft, .place-draft > p')],
           });
           await writeFile(
             new URL('environment.json', folder),
@@ -291,10 +292,11 @@ test('Property follows the complete public contract through owned real HTTP and 
                 forbidden,
                 body: await page.locator('body').evaluate((body) => {
                   const copy = body.cloneNode(true) as HTMLElement;
-                  const draft = copy.querySelector('.place-draft > p');
-                  if (draft)
+                  for (const draft of copy.querySelectorAll('#ask-draft, .place-draft > p')) {
                     draft.textContent =
                       '[Draft content redacted; unexecuted state-only handoff asserted.]';
+                    draft.removeAttribute('value');
+                  }
                   return copy.textContent?.slice(0, 20000);
                 }),
                 failure: failure instanceof Error ? failure.message : null,
@@ -498,7 +500,7 @@ test('Property follows the complete public contract through owned real HTTP and 
           expect(new URL(page.url()).search).toBe('');
           expect(await page.evaluate(() => Object.values(localStorage))).toEqual(['pt-BR']);
           expect(await page.locator('main').textContent()).toContain(
-            'não foi enviada nem executada',
+            'Envie uma pergunta para execução real.',
           );
           expect(forbidden).toEqual([]);
         });
@@ -630,7 +632,7 @@ test('Property follows the complete public contract through owned real HTTP and 
           await page.getByRole('button', { name: 'Tentar de novo' }).click();
           await checkProperty(page, canonical, 'pt-BR');
           await page.getByRole('link', { name: 'Perguntar sobre este imóvel' }).click();
-          await expect.poll(() => page.locator('.place-draft').count()).toBe(1);
+          await expect.poll(() => page.locator('#ask-draft').count()).toBe(1);
           // Only Date changes: real timers/network remain active. The cache is genuinely stale
           // on browser-history remount, exercising real retained-data refetch without a test API.
           await page.clock.setFixedTime(new Date(Date.now() + 31_000));

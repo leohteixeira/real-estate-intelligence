@@ -17,6 +17,7 @@ import type { FilterGroupId } from './search-state';
 import { diagnosticQuery, resultsQuery, searchQuery } from './search-queries';
 import { SearchFilters } from './SearchFilters';
 import { SearchMedian } from './SearchMedian';
+import { placeName } from '../places/locale';
 
 function SearchEmpty({
   query,
@@ -25,7 +26,7 @@ function SearchEmpty({
   readonly query: SearchQuery;
   readonly place: PlaceDetail;
 }) {
-  const { t } = useTranslation('search');
+  const { t, i18n } = useTranslation('search');
   const navigate = useNavigate();
   const diagnosis = useQuery(diagnosticQuery(query));
   const parent = [...place.breadcrumbs].reverse().find((crumb) => crumb.id === place.parentId);
@@ -59,7 +60,7 @@ function SearchEmpty({
         {...(parent
           ? {
               widen: {
-                label: t('widen', { name: parent.name.ptBR }),
+                label: t('widen', { name: placeName(parent.name, i18n.language) }),
                 onClick: () => navigate(searchHref({ ...query, placeId: parent.id })),
               },
             }
@@ -81,16 +82,30 @@ function SearchList({
   const navigate = useNavigate();
   const results = useInfiniteQuery(resultsQuery(query));
   const location = useLocation();
-  const total = useQuery(searchQuery({ placeId: place.id }));
+  const result = results.data?.pages[0];
+  // An unfiltered first page already carries the place total and median: reading the same
+  // `/properties?placeId=…` again for them sent two identical requests on every load.
+  const unfiltered = activeGroups(query).length === 0;
+  const totalRead = useQuery({ ...searchQuery({ placeId: place.id }), enabled: !unfiltered });
+  const total = unfiltered
+    ? result
+    : totalRead.isSuccess && !totalRead.isFetching
+      ? totalRead.data
+      : undefined;
   const neighborhood =
     place.kind === 'neighborhood'
       ? place
       : place.breadcrumbs.find((crumb) => crumb.kind === 'neighborhood');
-  const comparison = useQuery({
+  const ownComparison = unfiltered && neighborhood?.id === place.id;
+  const comparisonRead = useQuery({
     ...searchQuery({ placeId: neighborhood?.id ?? place.id }),
-    enabled: neighborhood !== undefined,
+    enabled: neighborhood !== undefined && !ownComparison,
   });
-  const result = results.data?.pages[0];
+  const comparison = ownComparison
+    ? result
+    : comparisonRead.isSuccess
+      ? comparisonRead.data
+      : undefined;
   const rows = results.data?.pages.flatMap((page) => page.items) ?? [];
   function groupLabel(id: FilterGroupId): string {
     const group = activeGroups(query).find((item) => item.id === id)!;
@@ -114,9 +129,9 @@ function SearchList({
         <div>
           <h2 className="sr">{t('title')}</h2>
           <p>{t('applied', { count: activeGroups(query).length })}</p>
-          {result && total.isSuccess && !total.isFetching ? (
+          {result && total ? (
             <p className="small search-count">
-              {t('count', { count: result.totalItems, total: total.data.totalItems })}
+              {t('count', { count: total.totalItems, shown: result.totalItems })}
             </p>
           ) : null}
         </div>
@@ -156,11 +171,11 @@ function SearchList({
           ))}
         </select>
       </div>
-      {total.isError ? (
+      {totalRead.isError ? (
         <LoadErrorState
           description={t('failedTotal')}
           retry={() => {
-            void total.refetch();
+            void totalRead.refetch();
           }}
         />
       ) : null}
@@ -180,15 +195,20 @@ function SearchList({
         <>
           <SearchMedian
             result={result}
-            {...(neighborhood && comparison.isSuccess
-              ? { comparison: { name: neighborhood.name.ptBR, result: comparison.data } }
+            {...(neighborhood && comparison
+              ? {
+                  comparison: {
+                    name: placeName(neighborhood.name, i18n.language),
+                    result: comparison,
+                  },
+                }
               : {})}
           />
-          {comparison.isError && neighborhood ? (
+          {comparisonRead.isError && neighborhood ? (
             <LoadErrorState
               description={t('failedComparison')}
               retry={() => {
-                void comparison.refetch();
+                void comparisonRead.refetch();
               }}
             />
           ) : null}
@@ -201,6 +221,7 @@ function SearchList({
                   <PropertyRow
                     property={property}
                     href={propertyHref(property.id, `${location.pathname}${location.search}`)}
+                    {...(query.sort ? { sortedBy: query.sort } : {})}
                   />
                 </li>
               ))}
@@ -236,7 +257,7 @@ function SearchList({
               <ul>
                 {rows.map((property) => (
                   <li key={property.id}>
-                    {property.place.name.ptBR} ·{' '}
+                    {placeName(property.place.name, i18n.language)} ·{' '}
                     {property.askingPrice
                       ? t('sourceDate', {
                           source: property.askingPrice.provenance.sourceId,
@@ -294,10 +315,38 @@ function ValidSearch({
     </main>
   );
 }
+/** Names what the URL got wrong and keeps the place in view, so the visitor knows where they are. */
+function InvalidSearch({
+  placeId,
+  parameters,
+}: {
+  readonly placeId: string;
+  readonly parameters: readonly string[];
+}) {
+  const { t } = useTranslation('search');
+  const place = useQuery(placeQuery(placeId));
+  const Title = place.data ? 'h2' : 'h1';
+  return (
+    <main id="search-results">
+      {place.data ? <PlacePlate place={place.data.place} destination="search" /> : null}
+      <div className="place-state" role="alert">
+        <Title>{t('invalid')}</Title>
+        {parameters.length > 0 ? (
+          <p>
+            {t('invalidParameters', { count: parameters.length, names: parameters.join(', ') })}
+          </p>
+        ) : null}
+        <p>{t('invalidHint')}</p>
+        <Link className="btn" to={searchHref({ placeId })}>
+          {t('clearFilters')}
+        </Link>
+      </div>
+    </main>
+  );
+}
 export function SearchResults() {
   const { placeId } = useParams();
   const location = useLocation();
-  const { t } = useTranslation('search');
   const { t: placeText } = useTranslation('place');
   if (!isPlaceId(placeId))
     return (
@@ -310,12 +359,6 @@ export function SearchResults() {
   return state.valid ? (
     <ValidSearch query={state.query} filters={state.filters} />
   ) : (
-    <main className="place-state" role="alert">
-      <h1>{t('invalid')}</h1>
-      <p>{t('invalidHint')}</p>
-      <Link className="btn" to={searchHref({ placeId })}>
-        {t('clearFilters')}
-      </Link>
-    </main>
+    <InvalidSearch placeId={placeId} parameters={state.parameters} />
   );
 }

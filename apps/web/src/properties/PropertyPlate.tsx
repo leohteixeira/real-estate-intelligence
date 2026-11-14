@@ -5,6 +5,7 @@ import { formatQuantity } from '../places/formatters';
 import type { Locale } from '../places/locale';
 import { propertyNeighborhood } from './property-navigation';
 import { propertyStreet } from './property-presentation';
+import { placeName } from '../places/locale';
 
 export function PropertyPlate({ response }: { readonly response: PropertyResponse }) {
   const { t, i18n } = useTranslation('property');
@@ -12,15 +13,18 @@ export function PropertyPlate({ response }: { readonly response: PropertyRespons
   const { t: placeText } = useTranslation('place');
   const locale = i18n.language as Locale;
   const summary = response.property.summary;
-  const street = propertyStreet(response);
+  const street = propertyStreet(response, i18n.language);
   const neighborhood = propertyNeighborhood(summary);
   const city = summary.breadcrumbs.find((place) => place.kind === 'city');
   const zone = summary.breadcrumbs.find((place) => place.kind === 'zone');
+  const stripPlace = zone ?? neighborhood;
   return (
     <header className="shell place-head property-head">
       <nav className="property-location" aria-label={placeText('hierarchy')}>
         {neighborhood ? (
-          <Link to={`/search/${neighborhood.id}`}>{neighborhood.name.ptBR}</Link>
+          <Link to={`/search/${neighborhood.id}`}>
+            {placeName(neighborhood.name, i18n.language)}
+          </Link>
         ) : null}
         <details className="property-ancestry">
           <summary>{t('ancestry')}</summary>
@@ -29,10 +33,10 @@ export function PropertyPlate({ response }: { readonly response: PropertyRespons
               .filter((place) => place.id !== summary.place.id)
               .map((place) => (
                 <li key={place.id}>
-                  <Link to={`/search/${place.id}`}>{place.name.ptBR}</Link>
+                  <Link to={`/search/${place.id}`}>{placeName(place.name, i18n.language)}</Link>
                 </li>
               ))}
-            <li aria-current="page">{summary.place.name.ptBR}</li>
+            <li aria-current="page">{placeName(summary.place.name, i18n.language)}</li>
           </ol>
         </details>
       </nav>
@@ -42,12 +46,18 @@ export function PropertyPlate({ response }: { readonly response: PropertyRespons
         >
           <div className="plate__in">
             <div className="plate__over">
-              <span>{[neighborhood?.name.ptBR, city?.name.ptBR].filter(Boolean).join(' · ')}</span>
+              <span>
+                {[neighborhood, city]
+                  .flatMap((place) => (place ? [placeName(place.name, i18n.language)] : []))
+                  .join(' · ')}
+              </span>
               <span>{t('title')}</span>
             </div>
             <h1 className="plate__name">{street}</h1>
             <div className="plate__strip">
-              <span>{zone?.name.ptBR ?? neighborhood?.name.ptBR ?? placeText('street-block')}</span>
+              <span>
+                {stripPlace ? placeName(stripPlace.name, i18n.language) : placeText('street-block')}
+              </span>
               <span>{placeText('synthetic')}</span>
             </div>
           </div>
@@ -76,7 +86,7 @@ export function PropertyPlate({ response }: { readonly response: PropertyRespons
                 questionDraft: t('draft', {
                   id: summary.id,
                   block: street,
-                  neighborhood: neighborhood.name.ptBR,
+                  neighborhood: placeName(neighborhood.name, i18n.language),
                 }),
               }}
             >

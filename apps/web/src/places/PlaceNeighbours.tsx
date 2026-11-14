@@ -6,6 +6,7 @@ import { formatMedian, formatPercentage } from './formatters';
 import type { Locale } from './locale';
 import { destinationPath } from '../shell/public-routes';
 import { OverviewReadState } from './OverviewReadState';
+import { placeName } from './locale';
 
 export function PlaceNeighbours({
   data,
@@ -36,7 +37,9 @@ export function PlaceNeighbours({
             <ul>
               {data.items.map((item) => (
                 <li key={item.place.id} className="place-neighbour">
-                  <Link to={destinationPath('places', item.place.id)}>{item.place.name.ptBR}</Link>
+                  <Link to={destinationPath('places', item.place.id)}>
+                    {placeName(item.place.name, i18n.language)}
+                  </Link>
                   <div className="place-neighbour__median">
                     <h3 className="fig__label" aria-label={t('median')}>
                       <span className="tag">{t('asking')}</span>
@@ -87,8 +90,8 @@ export function PlaceSchematic({
   readonly place: PlaceDetail;
   readonly neighbours: PlaceMarketNeighboursResponse | undefined;
 }) {
-  const { t } = useTranslation('place');
-  const names = neighbours?.items.map((item) => item.place.name.ptBR) ?? [];
+  const { t, i18n } = useTranslation('place');
+  const names = neighbours?.items.map((item) => placeName(item.place.name, i18n.language)) ?? [];
   return (
     <section className="panel place-schematic" aria-labelledby="map-label">
       <div className="sec">
@@ -99,7 +102,7 @@ export function PlaceSchematic({
           viewBox="0 0 358 190"
           role="img"
           aria-label={t('schematic', {
-            name: place.name.ptBR,
+            name: placeName(place.name, i18n.language),
             neighbours: names.length ? ` · ${names.join(' · ')}` : '',
           })}
         >
@@ -117,7 +120,7 @@ export function PlaceSchematic({
             />
           ))}
         </svg>
-        <p className="place-map__label">{place.name.ptBR}</p>
+        <p className="place-map__label">{placeName(place.name, i18n.language)}</p>
       </div>
       <p className="place-panel-copy">{t('schematicNote')}</p>
       {names.length ? <p className="place-panel-copy">{names.join(' · ')}</p> : null}

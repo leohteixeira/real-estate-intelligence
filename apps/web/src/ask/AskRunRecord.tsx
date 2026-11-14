@@ -29,6 +29,12 @@ export function AskRunRecord({
       ? run.confirmation.at
       : run.confirmation.confirmedAt
     : null;
+  // The server read a price question but retained no operands, so it could never calculate.
+  const missingOperands =
+    run.basis !== 'prepared-ask-example' &&
+    run.state === 'failed' &&
+    run.decision?.intent === 'price_per_square_meter' &&
+    (run.confirmation ? run.confirmation.inputs : run.originalInputs) === null;
   return (
     <article className="ask-record panel" aria-labelledby="ask-record-question">
       <div className="ask-record__head">
@@ -53,7 +59,13 @@ export function AskRunRecord({
       {run.terminal ? (
         <p className="ask-terminal-reason">
           {live
-            ? t(run.terminal.reason === null ? 'liveCompleted' : `live_${run.terminal.reason}`)
+            ? t(
+                run.terminal.reason === null
+                  ? 'liveCompleted'
+                  : missingOperands
+                    ? 'liveMissingOperands'
+                    : `live_${run.terminal.reason}`,
+              )
             : run.terminal.reason === null
               ? t('reasonCompleted')
               : t(run.terminal.reason)}

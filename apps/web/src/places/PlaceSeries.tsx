@@ -7,6 +7,7 @@ import type { Locale } from './locale';
 import { seriesQuery } from './place-queries';
 import { OverviewReadState } from './OverviewReadState';
 import { chartEndpoints, chartMonthTicks, chartPaths, chartX, chartY } from './series-presentation';
+import { placeName } from './locale';
 export function Chart({ series }: { readonly series: PlaceMarketSeriesResponse }) {
   const { t, i18n } = useTranslation('place');
   const locale = i18n.language as Locale;
@@ -39,7 +40,7 @@ export function Chart({ series }: { readonly series: PlaceMarketSeriesResponse }
             series.basis === 'event-fed-place-figures'
               ? 'liveSeriesDescription'
               : 'seriesDescription',
-            { name: series.place.name.ptBR },
+            { name: placeName(series.place.name, i18n.language) },
           )}
         >
           {ticks.map((value) => (
@@ -86,11 +87,11 @@ export function Chart({ series }: { readonly series: PlaceMarketSeriesResponse }
       <figcaption>
         <span className="tag">{t('asking')} /m²</span>
         <span className="place-chart__legend-subject">
-          {t('seriesSubject', { name: series.place.name.ptBR })}
+          {t('seriesSubject', { name: placeName(series.place.name, i18n.language) })}
         </span>
         {series.comparisonPlace ? (
           <span className="place-chart__legend-parent">
-            {t('seriesComparison', { name: series.comparisonPlace.name.ptBR })}
+            {t('seriesComparison', { name: placeName(series.comparisonPlace.name, i18n.language) })}
           </span>
         ) : null}
       </figcaption>
@@ -123,7 +124,7 @@ function MonthlyValue({ median, asOf }: { readonly median: MarketMedian; readonl
   );
 }
 export function PlaceSeries({ id }: { readonly id: string }) {
-  const { t } = useTranslation('place');
+  const { t, i18n } = useTranslation('place');
   const query = useQuery(seriesQuery(id));
   const series = query.data;
   return (
@@ -153,9 +154,9 @@ export function PlaceSeries({ id }: { readonly id: string }) {
                 <thead>
                   <tr>
                     <th scope="col">{t('month')}</th>
-                    <th scope="col">{series.place.name.ptBR}</th>
+                    <th scope="col">{placeName(series.place.name, i18n.language)}</th>
                     {series.comparisonPlace ? (
-                      <th scope="col">{series.comparisonPlace.name.ptBR}</th>
+                      <th scope="col">{placeName(series.comparisonPlace.name, i18n.language)}</th>
                     ) : null}
                   </tr>
                 </thead>

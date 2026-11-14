@@ -13,6 +13,7 @@ import { PlaceReductions } from './PlaceReductions';
 import { formatComputedAt, formatCount, formatPercentage, formatQuantity } from './formatters';
 import type { Locale } from './locale';
 import { destinationPath } from '../shell/public-routes';
+import { placeName } from './locale';
 
 function ValidPlaceOverview({ id }: { readonly id: string }) {
   const { t, i18n } = useTranslation('place');
@@ -84,11 +85,15 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
         {market.data ? (
           <div className="place-counts">
             <p>
-              {t('counts', {
-                properties: formatCount(market.data.counts.properties, locale),
-                listings: formatCount(market.data.counts.activeListings, locale),
-                sources: formatCount(market.data.counts.sources, locale),
-              })}
+              {(
+                [
+                  ['countProperties', market.data.counts.properties],
+                  ['countListings', market.data.counts.activeListings],
+                  ['countSources', market.data.counts.sources],
+                ] as const
+              )
+                .map(([key, count]) => t(key, { count, formatted: formatCount(count, locale) }))
+                .join(' · ')}
             </p>
             <p className="small">
               {t(livePlace ? 'liveCountsOrigin' : 'countsOrigin', {
@@ -141,7 +146,7 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
                 median={parent.median}
                 label={
                   <Link to={destinationPath('places', parent.place.id)}>
-                    {t('parentMedian', { name: parent.place.name.ptBR })}
+                    {t('parentMedian', { name: placeName(parent.place.name, i18n.language) })}
                   </Link>
                 }
                 labelId="parent-label"
@@ -167,10 +172,12 @@ function ValidPlaceOverview({ id }: { readonly id: string }) {
                 label={t('days')}
                 value={
                   figures.medianTimeOnMarketDays.state === 'available'
-                    ? formatQuantity(figures.medianTimeOnMarketDays.value, locale)
+                    ? // The backend figure is fractional; a day count is displayed in whole days.
+                      formatCount(figures.medianTimeOnMarketDays.value, locale)
                     : null
                 }
                 unit={t('daysUnit')}
+                extra={liveFigures ? t('daysBasis') : undefined}
                 evidence={figures.medianTimeOnMarketDays}
                 origin={liveFigures ? 'live' : 'prepared'}
               />

@@ -7,6 +7,7 @@ import {
   NormalizedListing,
   INITIAL_RESOLUTION_CONFIGURATION,
   compareResolutionInputs,
+  rankLargestReductions,
   type ListingChronologyState,
   type ResolutionInput,
 } from '@rei/domain';
@@ -66,6 +67,7 @@ describe('listing provenance and current text permissions', () => {
       states: [] as { listingId: string; state: ListingChronologyState | null }[],
       configuration: INITIAL_RESOLUTION_CONFIGURATION,
       comparisons: [comparison],
+      minimumRule: true,
       priceChanges: [
         {
           effectiveAt: at,
@@ -86,6 +88,7 @@ describe('listing provenance and current text permissions', () => {
       collectionAllowed: true,
       imageFetchingAllowed: false,
       listingTextDisplayAllowed: sourceId === first.provenance.sourceId,
+      displayLabel: `Registered ${sourceId}`,
     }));
     const history = { getState: vi.fn(async () => null) };
     const facade = new PersistedPropertiesFacade(
@@ -107,6 +110,12 @@ describe('listing provenance and current text permissions', () => {
       first.listingId,
     ]);
     expect(response.property.listings.map((listing) => listing.position)).toEqual([1, 2]);
+    // Each listing carries its own registered source name, with text allowed or denied.
+    expect(second.provenance.sourceId).not.toBe(first.provenance.sourceId);
+    expect(response.property.listings.map((listing) => listing.source.label)).toEqual([
+      `Registered ${second.provenance.sourceId}`,
+      `Registered ${first.provenance.sourceId}`,
+    ]);
     expect(response.property.summary.askingPrice!.listingId).toBe(first.listingId);
     expect(response.property.summary.activeListingCount).toBe(2);
     expect(response.property.summary.areaSquareMeters).toBeNull();
@@ -164,6 +173,196 @@ describe('listing provenance and current text permissions', () => {
     );
   });
 
+  it('builds grouped price history from each listing, never from a cross-source minimum difference', async () => {
+    const hash = (text: string) => `sha256:${createHash('sha256').update(text).digest('hex')}`;
+    const cheaper = await initialProperty();
+    const at = (day: number) => `2026-10-${String(10 + day).padStart(2, '0')}T12:00:00.000Z`;
+    const dearerEvent = new CollectionSnapshotParsed({
+      ...initialEvent,
+      eventId: fixtureId(203),
+      aggregateId: fixtureId(202),
+      payload: {
+        ...initialEvent.payload,
+        run: { runId: fixtureId(201) },
+        snapshot: { ...initialEvent.payload.snapshot, snapshotId: fixtureId(202) },
+        source: {
+          ...initialEvent.payload.source,
+          sourceId: 'synthetic-portal-aurora',
+          sourceListingId: 'OWNED-DEARER',
+        },
+        listing: {
+          ...initialEvent.payload.listing,
+          askingPriceMinorUnits: initialEvent.payload.listing.askingPriceMinorUnits + 2_000_000,
+        },
+      },
+    });
+    const dearer = new Property(fixtureId(210), fixtureId(211), dearerEvent, cheaper.resolved);
+    // The dearer source lowers its own price once; the cheaper source never changes its price,
+    // it only leaves and returns, which moves the property minimum up and down again.
+    const dearerHistory = new ListingChronology(dearer, null, hash);
+    const repriced = dearerEvent.payload.listing.askingPriceMinorUnits - 500_000;
+    dearerHistory.observe(
+      new CollectionSnapshotParsed({
+        ...dearerEvent,
+        eventId: fixtureId(223),
+        aggregateId: fixtureId(222),
+        occurredAt: at(2),
+        payload: {
+          ...dearerEvent.payload,
+          snapshot: { ...dearerEvent.payload.snapshot, snapshotId: fixtureId(222) },
+          source: { ...dearerEvent.payload.source, observedAt: at(2) },
+          listing: { ...dearerEvent.payload.listing, askingPriceMinorUnits: repriced },
+        },
+      }),
+      dearer.resolved,
+      [fixtureId(224), fixtureId(225), fixtureId(226)],
+    );
+    const cheaperHistory = new ListingChronology(cheaper, null, hash);
+    cheaperHistory.remove(at(3), fixtureId(230));
+    cheaperHistory.observe(
+      new CollectionSnapshotParsed({
+        ...initialEvent,
+        eventId: fixtureId(233),
+        aggregateId: fixtureId(232),
+        occurredAt: at(4),
+        payload: {
+          ...initialEvent.payload,
+          snapshot: { ...initialEvent.payload.snapshot, snapshotId: fixtureId(232) },
+          source: { ...initialEvent.payload.source, observedAt: at(4) },
+        },
+      }),
+      cheaper.resolved,
+      [fixtureId(234), fixtureId(235), fixtureId(236)],
+    );
+    const low = initialEvent.payload.listing.askingPriceMinorUnits;
+    let minimumRule = true;
+    let requested = cheaper;
+    const facade = new PersistedPropertiesFacade(
+      {
+        getProperty: async () => requested,
+        getListing: async () => requested,
+        getCurrentGroup: async () => ({
+          propertyId: cheaper.propertyId,
+          minimumRule,
+          members: [dearer, cheaper],
+          states: [
+            { listingId: dearer.listingId, state: dearerHistory.state },
+            { listingId: cheaper.listingId, state: cheaperHistory.state },
+          ],
+          comparisons: [],
+          configuration: INITIAL_RESOLUTION_CONFIGURATION,
+          // Minimum effects of the cheaper source leaving and returning: two sources' prices.
+          priceChanges: [
+            {
+              effectiveAt: at(3),
+              previousMinorUnits: low,
+              currentMinorUnits: repriced,
+              changePercent: ((repriced - low) / low) * 100,
+              provenance: dearer.provenance,
+            },
+            {
+              effectiveAt: at(4),
+              previousMinorUnits: repriced,
+              currentMinorUnits: low,
+              changePercent: ((low - repriced) / repriced) * 100,
+              provenance: cheaper.provenance,
+            },
+          ],
+        }),
+      },
+      {
+        getSourcePermissions: async (sourceId) => ({
+          sourceId,
+          collectionAllowed: true,
+          imageFetchingAllowed: false,
+          listingTextDisplayAllowed: true,
+        }),
+        getSnapshotMetadata: async (provenance) => ({
+          availability: 'unavailable',
+          collectedAt: provenance.observedAt,
+          expiresAt: null,
+        }),
+      },
+      new SyntheticPropertiesAdapter(),
+    );
+    const { property } = (await facade.getProperty(cheaper.propertyId))!;
+    expect(property.summary.askingPrice).toMatchObject({
+      minorUnits: low,
+      listingId: cheaper.listingId,
+    });
+    expect(property.priceChanges).toEqual([
+      {
+        effectiveAt: at(2),
+        previousMinorUnits: dearerEvent.payload.listing.askingPriceMinorUnits,
+        currentMinorUnits: repriced,
+        changePercent:
+          ((repriced - dearerEvent.payload.listing.askingPriceMinorUnits) /
+            dearerEvent.payload.listing.askingPriceMinorUnits) *
+          100,
+        provenance: expect.objectContaining({
+          sourceId: 'synthetic-portal-aurora',
+          sourceListingId: 'OWNED-DEARER',
+        }),
+      },
+    ]);
+    // Every entry belongs to exactly one member listing and matches that listing's own history.
+    expect(property.priceChanges).toEqual(
+      property.listings.flatMap((listing) =>
+        listing.history
+          .filter((entry) => entry.type === 'price-changed')
+          .map((entry) => expect.objectContaining({ provenance: entry.provenance })),
+      ),
+    );
+    // No listing lowered the price to `low`, yet the minimum dropped when the cheaper listing
+    // returned. The page figure is the row the reductions panel ranks from the same effects.
+    const panel = rankLargestReductions(
+      [
+        {
+          propertyId: cheaper.propertyId,
+          listingId: cheaper.listingId,
+          place: cheaper.resolved.place,
+          asOf: at(4),
+          priceChanges: [
+            [at(3), low, repriced, dearer.provenance] as const,
+            [at(4), repriced, low, cheaper.provenance] as const,
+          ].map(([effectiveAt, previousMinorUnits, currentMinorUnits, provenance]) => ({
+            type: 'price-changed' as const,
+            effectiveAt,
+            previousMinorUnits,
+            currentMinorUnits,
+            provenance,
+          })),
+        },
+      ],
+      at(4),
+    )[0]!;
+    expect(property.minimumReduction).toEqual({
+      effectiveAt: at(4),
+      previousMinorUnits: repriced,
+      currentMinorUnits: low,
+      reductionPercent: ((repriced - low) / repriced) * 100,
+    });
+    expect(property.minimumReduction).toEqual({
+      effectiveAt: panel.effectiveAt,
+      previousMinorUnits: panel.previousMinorUnits,
+      currentMinorUnits: panel.currentMinorUnits,
+      reductionPercent: panel.reductionPercent,
+    });
+    // Where the reductions read falls back to a listing's own history, so does the page.
+    minimumRule = false;
+    requested = dearer;
+    expect((await facade.getProperty(dearer.propertyId))!.property.minimumReduction).toEqual({
+      effectiveAt: at(2),
+      previousMinorUnits: dearerEvent.payload.listing.askingPriceMinorUnits,
+      currentMinorUnits: repriced,
+      reductionPercent:
+        ((dearerEvent.payload.listing.askingPriceMinorUnits - repriced) /
+          dearerEvent.payload.listing.askingPriceMinorUnits) *
+        100,
+    });
+    requested = cheaper;
+    expect((await facade.getProperty(cheaper.propertyId))!.property.minimumReduction).toBeNull();
+  });
   it('exposes no score for an actual singleton and preserves missing/prepared detail reads', async () => {
     const property = await initialProperty();
     const prepared = new SyntheticPropertiesAdapter();
@@ -178,6 +377,7 @@ describe('listing provenance and current text permissions', () => {
           states: [],
           comparisons: [],
           configuration: INITIAL_RESOLUTION_CONFIGURATION,
+          minimumRule: false,
           priceChanges: [],
         }),
       },
@@ -353,6 +553,10 @@ describe('listing provenance and current text permissions', () => {
     ).toBe('expired');
     expect((await facade.getListing(property.listingId))!.listing.snapshot.availability).toBe(
       'expired',
+    );
+    // A source without a registered name is still told apart by its identifier.
+    expect((await facade.getListing(property.listingId))!.listing.source.label).toBe(
+      property.provenance.sourceId,
     );
     expect(metadata).toHaveBeenCalledWith(property.provenance);
     metadata.mockRejectedValue(new Error('Metadata unavailable.'));

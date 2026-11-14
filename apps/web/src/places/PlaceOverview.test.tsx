@@ -305,16 +305,16 @@ describe('place tracer', () => {
     });
     expect(await screen.findByText('R$ 9.515')).toBeVisible();
   });
-  it('keeps long canonical names and reports untracked evidence', async () => {
+  it('keeps long names in the interface language and reports untracked evidence', async () => {
     const request = mockReads();
     const base = request.getMockImplementation()!;
-    const name = 'Bairro com nome muito longo que deve continuar completo';
+    const name = 'Neighbourhood with a very long name that must remain complete';
     request.mockImplementation(async (input: string) => {
       if (input === `/api/v1/places/${bela.id}`)
         return new Response(
           JSON.stringify({
             metadata,
-            place: { ...bela, name: { en: 'Wrong translation', ptBR: name } },
+            place: { ...bela, name: { en: name, ptBR: 'Tradução errada' } },
           }),
         );
       if (input.endsWith('/market')) {
@@ -340,6 +340,7 @@ describe('place tracer', () => {
     });
     mount(undefined, 'en');
     expect(await screen.findByRole('heading', { name })).toBeVisible();
+    expect(screen.queryByText('Tradução errada')).not.toBeInTheDocument();
     await screen.findByText('R$ 9,515');
     await userEvent.click(document.querySelector('.place-median summary')!);
     expect(

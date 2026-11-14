@@ -29,7 +29,7 @@ const scenarios = [
     'Public entry and history',
     'Every public screen with the shared selected locale',
     'Follow the visible privacy footer then navigate back and forward on phone and desktop',
-    'Landing, Places, Search, Property, Listing and Ask all reach the document and retain locale',
+    'Places, Search, Property, Listing and Ask all reach the document and retain locale; the root presentation is externally owned',
   ],
   [
     'PRIVACY-003',
@@ -269,9 +269,8 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
         'apps/web/src/config.ts',
         'apps/web/src/styles/privacy.css',
         'apps/web/src/shell/AppShell.tsx',
-        'apps/web/src/landing/LandingPage.tsx',
-        'apps/web/src/landing/copy.ts',
-        'apps/web/src/landing/landing.css',
+        'apps/web/src/landing/PresentationRedirect.tsx',
+        'apps/web/src/landing/presentation-url.ts',
         'apps/web/src/places/locale.ts',
         'apps/web/src/places/resources.ts',
         'apps/web/src/routes.tsx',
@@ -348,10 +347,25 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
       });
       page = await context.newPage();
       const view = page;
+      // The four repository-owned synthetic sources carry bundled Portuguese names; English shows
+      // the attribution published by the API.
+      const portugueseSourceNames: Readonly<Record<string, string>> = {
+        'synthetic-data': 'Amostra sintética identificada',
+        'synthetic-portal-aurora': 'Dados sintéticos — Aurora',
+        'synthetic-portal-brisa': 'Dados sintéticos — Brisa',
+        'synthetic-portal-cobalto': 'Dados sintéticos — Cobalto',
+      };
       const sourceVisible = () =>
         expect
-          .poll(() => view.locator('.privacy-source h3').allTextContents())
-          .toEqual(oracle.sources.map((s) => s.displayLabel));
+          .poll(async () => {
+            const english = (await view.locator('html').getAttribute('lang')) === 'en';
+            const shown = await view.locator('.privacy-source h3').allTextContents();
+            const expected = oracle.sources.map((s) =>
+              english ? s.displayLabel : (portugueseSourceNames[s.sourceId] ?? s.displayLabel),
+            );
+            return shown.join('\n') === expected.join('\n') ? 'attributed' : shown;
+          })
+          .toBe('attributed');
       await attempt('PRIVACY-001', async () => {
         for (const locale of ['pt-BR', 'en'] as const)
           for (const width of [390, 960, 1440]) {
@@ -431,7 +445,6 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
         for (const locale of ['pt-BR', 'en'] as const)
           for (const width of [390, 1440])
             for (const path of [
-              '/',
               '/places/sao-paulo-bela-vista',
               '/search/sao-paulo-bela-vista',
               `/properties/${preparedPropertyId(1)}`,
@@ -449,7 +462,7 @@ test('privacy notice is bilingual, reachable, bounded and read-only through owne
                 .click();
               const footer = view.locator('a[href="/privacy"]').filter({ visible: true }).first();
               await footer.scrollIntoViewIfNeeded();
-              const name = `privacy-entry-${path === '/' ? 'landing' : path.split('/')[1]}-${width}-${locale}`;
+              const name = `privacy-entry-${path.split('/')[1]}-${width}-${locale}`;
               await view.screenshot({ path: new URL(`evidence/${name}.png`, directory).pathname });
               manifest.push({
                 file: `${name}.png`,

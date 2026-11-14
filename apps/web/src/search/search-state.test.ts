@@ -45,6 +45,31 @@ describe('Search URL and draft boundary', () => {
   ])('rejects malformed URL %s', (search) => {
     expect(parseSearchState('sao-paulo', search).valid).toBe(false);
   });
+  it.each([
+    [
+      'minBedrooms=101&minArea=abc&unknown=1&sort=wrong',
+      ['minBedrooms', 'minArea', 'unknown', 'sort'],
+    ],
+    ['priceReduced=true&priceReduced=false', ['priceReduced']],
+    ['minArea=2&maxArea=1&minBedrooms=100', ['minArea', 'maxArea']],
+    ['view=map', ['view']],
+  ])('names the refused parameters of %s', (search, parameters) => {
+    expect(parseSearchState('sao-paulo', search)).toEqual({ valid: false, parameters });
+  });
+  it('accepts room minima through the documented bound of 100', () => {
+    expect(parseSearchState('sao-paulo', 'minBedrooms=99&minBathrooms=100').valid).toBe(true);
+  });
+  it('separates fields that are not numbers from a reversed range of sound numbers', () => {
+    const draft = toDraft({ placeId: 'sao-paulo' }, 'pt-BR');
+    expect(draftQuery({ ...draft, minAskingPrice: 'abc', maxArea: '0' }, 'pt-BR')).toEqual({
+      valid: false,
+      fields: ['minAskingPrice', 'maxArea'],
+    });
+    expect(draftQuery({ ...draft, minArea: '90', maxArea: '82' }, 'pt-BR')).toEqual({
+      valid: false,
+      fields: [],
+    });
+  });
   it.each(['pt-BR', 'en'] as const)(
     'converts %s amounts exactly and preserves area and false',
     (locale) => {

@@ -121,6 +121,7 @@ export function createHeadlessAskClient(baseUrl: string) {
       cursor: string | undefined,
       signal: AbortSignal,
       onFrame: (frame: AdmittedFrame<AskLiveEvent>) => void,
+      onHeartbeat?: () => void,
     ) {
       identifier(id);
       if (cursor !== undefined && !new RegExp(`^${id}:v1:[1-9][0-9]{0,5}$`).test(cursor))
@@ -132,12 +133,17 @@ export function createHeadlessAskClient(baseUrl: string) {
         signal,
         parseAskLiveEvent,
         onFrame,
+        onHeartbeat,
       );
     },
   };
 }
 
-/** A reconnect continues the same evidence; only an explicit terminal envelope completes. */
+/**
+ * A reconnect continues the same evidence; only an explicit terminal envelope completes. A
+ * connection that delivered new evidence or a heartbeat proved the run reachable, so its loss is
+ * a continuation. Only consecutive connections that show no sign of life exhaust the budget.
+ */
 export async function followLiveAsk(
   client: ReturnType<typeof createHeadlessAskClient>,
   session: LiveAskSession,
@@ -146,21 +152,30 @@ export async function followLiveAsk(
   onSnapshot: (run: NonNullable<LiveAskSession['run']>) => void,
 ): Promise<void> {
   if (session.terminal) return;
-  for (let attempt = 0; attempt <= askTransportPolicy.maxAutomaticReconnects; attempt++) {
+  for (let silent = 0; ; ) {
+    let alive = false;
     try {
-      await client.events(session.runId, capability, session.cursor, signal, (frame) => {
-        if (session.admit(frame)) onSnapshot(session.run!);
-      });
+      await client.events(
+        session.runId,
+        capability,
+        session.cursor,
+        signal,
+        (frame) => {
+          if (!session.admit(frame)) return;
+          alive = true;
+          onSnapshot(session.run!);
+        },
+        () => {
+          alive = true;
+        },
+      );
       if (session.terminal) return;
       throw new ApiReadError(0);
     } catch (error) {
       if (signal.aborted) throw signal.reason;
-      if (
-        !(error instanceof ApiReadError) ||
-        ![0, 408].includes(error.status) ||
-        attempt === askTransportPolicy.maxAutomaticReconnects
-      )
-        throw error;
+      if (!(error instanceof ApiReadError) || ![0, 408].includes(error.status)) throw error;
+      silent = alive ? 0 : silent + 1;
+      if (silent > askTransportPolicy.maxAutomaticReconnects) throw error;
     }
   }
 }

@@ -97,7 +97,8 @@ export async function accessibilityVersion(project: string, base: string) {
         'exec',
         id,
         'find',
-        service === 'api' ? '/app/dist' : '/usr/share/nginx/html',
+        // The prepared-search fixture runs the API image's build stage from /source.
+        service === 'api' ? '/source/apps/api/dist' : '/srv/rei',
         '-type',
         'f',
         '-exec',

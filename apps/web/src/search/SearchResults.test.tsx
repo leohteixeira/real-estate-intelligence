@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, configure, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { I18nextProvider } from 'react-i18next';
@@ -13,6 +13,10 @@ import { bela, metadata, placesFixture } from '../places/place-fixtures.test';
 import { propertyFixture } from '../places/overview-fixtures.test';
 import type { PlaceDetail, SearchResponse } from '@rei/contracts';
 
+// The filter editor waits 400 ms after the last edit before counting, so every count in these
+// tests takes that long by design; the defaults (1 s per query, 5 s per test) assume no delay.
+configure({ asyncUtilTimeout: 5_000 });
+vi.setConfig({ testTimeout: 30_000 });
 const caches: ReturnType<typeof createReadCache>[] = [];
 afterEach(async () => {
   cleanup();
@@ -113,6 +117,128 @@ describe('contract-backed Search surface', () => {
     );
   });
   it.each([
+    ['pt-BR', 'abc', 'Número inválido. Use o formato 600.000,50, dentro dos limites aceitos.'],
+    [
+      'pt-BR',
+      '600,000.50',
+      'Número inválido. Use o formato 600.000,50, dentro dos limites aceitos.',
+    ],
+    ['en', '600.000,50', 'Invalid number. Use the 600,000.50 format, within the accepted bounds.'],
+  ] as const)(
+    'reports a %s value %s that is not a number on its own field only',
+    async (locale, value, message) => {
+      reads();
+      mount(`/search/${bela.id}?view=filters`, locale);
+      await screen.findByRole('button', {
+        name: locale === 'en' ? 'Show 1 property' : 'Mostrar 1 imóvel',
+      });
+      await userEvent.type(document.getElementById('minAskingPrice')!, value);
+      const field = document.getElementById('minAskingPrice')!;
+      expect(field).toHaveAttribute('aria-invalid', 'true');
+      expect(field).toHaveAttribute('aria-describedby', 'minAskingPrice-error');
+      expect(document.getElementById('minAskingPrice-error')).toHaveTextContent(message);
+      expect(screen.getAllByRole('alert')).toHaveLength(1);
+      expect(document.getElementById('draft-error')).toBeNull();
+      const other = document.getElementById('maxAskingPrice')!;
+      expect(other).toHaveAttribute('aria-invalid', 'false');
+      expect(other).not.toHaveAttribute('aria-describedby');
+      expect(
+        screen.getByRole('button', { name: locale === 'en' ? 'Apply filters' : 'Aplicar filtros' }),
+      ).toBeDisabled();
+    },
+  );
+  it('names an out-of-bounds area on its field and keeps the range message for a reversed range', async () => {
+    reads();
+    mount(`/search/${bela.id}?view=filters`);
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    await userEvent.type(document.getElementById('minArea')!, '0');
+    expect(document.getElementById('minArea-error')).toHaveTextContent('Use o formato 82,5');
+    await userEvent.clear(document.getElementById('minArea')!);
+    await userEvent.type(document.getElementById('minArea')!, '90');
+    await userEvent.type(document.getElementById('maxArea')!, '82');
+    expect(document.getElementById('minArea-error')).toBeNull();
+    expect(document.getElementById('draft-error')).toHaveTextContent(
+      'Confira os limites: o mínimo deve ser menor ou igual ao máximo.',
+    );
+  });
+  it.each([
+    ['pt-BR', 'priceReduced=true', '1 filtro aplicado', '1 de 5 imóveis'],
+    ['pt-BR', 'priceReduced=true&minBedrooms=1', '2 filtros aplicados', '1 de 5 imóveis'],
+    ['pt-BR', '', '0 filtros aplicados', '1 de 1 imóvel'],
+    ['en', 'priceReduced=true', '1 filter applied', '1 of 5 properties'],
+    ['en', 'priceReduced=true&minBedrooms=1', '2 filters applied', '1 of 5 properties'],
+    ['en', '', '0 filters applied', '1 of 1 property'],
+  ] as const)(
+    'agrees %s applied filters and the counted noun with their numbers for "%s"',
+    async (locale, search, applied, count) => {
+      reads((query) => ({
+        ...searchFixture,
+        totalItems: query.has('priceReduced') ? 1 : search ? 5 : 1,
+      }));
+      mount(`/search/${bela.id}${search ? `?${search}` : ''}`, locale);
+      expect(await screen.findByText(count)).toBeVisible();
+      expect(screen.getByText(applied)).toBeVisible();
+    },
+  );
+  it.each([
+    ['pt-BR', 'O filtro Preço reduzido elimina o último imóvel.'],
+    ['en', 'The Price reduced filter excludes the last property.'],
+  ] as const)('uses the singular for one excluded property in %s', async (locale, message) => {
+    reads((query) => ({
+      ...searchFixture,
+      items: query.has('priceReduced') ? [] : [row],
+      totalItems: query.has('priceReduced') ? 0 : 1,
+    }));
+    mount(`/search/${bela.id}?priceReduced=true`, locale);
+    expect(await screen.findByText(message)).toBeVisible();
+  });
+  it('opens a property from a row inside the application and moves focus to the content', async () => {
+    reads();
+    mount();
+    await screen.findByText('R$ 9.512');
+    await userEvent.click(document.querySelector<HTMLElement>('.search-rows a.prow')!);
+    expect(screen.getByLabelText('URL')).toHaveTextContent(`/properties/${row.id}`);
+    await waitFor(() =>
+      expect(document.activeElement).toBe(document.getElementById('public-content')),
+    );
+  });
+  it('closes the editor with Escape like the close link, except from a select', async () => {
+    reads();
+    mount(`/search/${bela.id}?priceReduced=false`);
+    await userEvent.click(await screen.findByRole('link', { name: 'Filtros' }));
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    screen.getByLabelText('Preço reduzido').focus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByLabelText('URL')).toHaveTextContent('view=filters');
+    await userEvent.click(document.getElementById('minArea')!);
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByLabelText('URL')).toHaveTextContent(`/search/${bela.id}?priceReduced=false`);
+    expect(screen.getByLabelText('URL')).not.toHaveTextContent('view=filters');
+    await waitFor(() =>
+      expect(document.activeElement).toBe(document.getElementById('search-filters-link')),
+    );
+  });
+  it.each([
+    ['pt-BR', 'minBedrooms=101&unknown=1', 'Parâmetros recusados: minBedrooms, unknown.'],
+    ['pt-BR', 'minArea=abc', 'Parâmetro recusado: minArea.'],
+    ['en', 'minArea=2&maxArea=1', 'Refused parameters: minArea, maxArea.'],
+    ['en', 'sort=wrong', 'Refused parameter: sort.'],
+  ] as const)(
+    'names the refused %s parameters of "%s" under the place heading',
+    async (locale, search, message) => {
+      reads();
+      mount(`/search/${bela.id}?${search}`, locale);
+      expect(screen.getByRole('alert')).toHaveTextContent(message);
+      expect(await screen.findByRole('heading', { level: 1, name: 'Bela Vista' })).toBeVisible();
+      expect(
+        screen.getByRole('heading', {
+          level: 2,
+          name: locale === 'en' ? 'Invalid filters' : 'Filtros inválidos',
+        }),
+      ).toBeVisible();
+    },
+  );
+  it.each([
     ['pt-BR', 0, '0 de 0 imóveis'],
     ['pt-BR', 1, '1 de 1 imóvel'],
     ['pt-BR', 2, '2 de 2 imóveis'],
@@ -195,16 +321,14 @@ describe('contract-backed Search surface', () => {
       mount(`/search/${place.id}?minBedrooms=1`);
       await screen.findByText('R$ 9.512');
       if (kind === 'neighborhood' || kind === 'street-block') {
-        expect(
-          await screen.findByText('Mediana preparada do bairro Bela Vista: R$ 10.000'),
-        ).toBeVisible();
+        expect(await screen.findByText('Mediana do bairro Bela Vista: R$ 10.000')).toBeVisible();
         expect(
           request.mock.calls.some(
             ([url]) => new URL(url, 'http://localhost').searchParams.get('placeId') === bela.id,
           ),
         ).toBe(true);
       } else {
-        expect(screen.queryByText(/Mediana preparada do bairro/)).not.toBeInTheDocument();
+        expect(screen.queryByText(/Mediana do bairro/)).not.toBeInTheDocument();
         expect(
           request.mock.calls
             .filter(([url]) => url.includes('/properties'))
@@ -229,9 +353,7 @@ describe('contract-backed Search surface', () => {
     );
     mount(`/search/${place.id}`);
     await screen.findByText('R$ 9.512');
-    expect(
-      await screen.findByText('Não foi possível carregar a mediana preparada do bairro.'),
-    ).toBeVisible();
+    expect(await screen.findByText('Não foi possível carregar a mediana do bairro.')).toBeVisible();
     expect(document.querySelectorAll('.prow')).toHaveLength(1);
     const resultReads = request.mock.calls.filter(
       ([url]) => new URL(url, 'http://localhost').searchParams.get('placeId') === place.id,
@@ -240,13 +362,11 @@ describe('contract-backed Search surface', () => {
     await userEvent.click(
       within(
         screen
-          .getByText('Não foi possível carregar a mediana preparada do bairro.')
+          .getByText('Não foi possível carregar a mediana do bairro.')
           .closest('.system-state')!,
       ).getByRole('button', { name: 'Tentar de novo' }),
     );
-    expect(
-      await screen.findByText('Mediana preparada do bairro Bela Vista: R$ 10.000'),
-    ).toBeVisible();
+    expect(await screen.findByText('Mediana do bairro Bela Vista: R$ 10.000')).toBeVisible();
     expect(document.querySelectorAll('.prow')).toHaveLength(1);
     expect(
       request.mock.calls.filter(
@@ -265,9 +385,27 @@ describe('contract-backed Search surface', () => {
         screen.getByRole('list', { name: locale === 'en' ? 'Properties' : 'Imóveis' }),
       ).toHaveTextContent('Rua Bela');
       expect(document.querySelectorAll('.prow[href]')).toHaveLength(1);
+      // The rows are persisted synthetic data, as the place page says; never "prepared".
+      const band = document.querySelector<HTMLElement>('.search-median')!;
+      expect(
+        within(band).getByText(/^(?:Persisted synthetic data|Dados sintéticos persistidos)$/),
+      ).toHaveTextContent(
+        locale === 'en' ? 'Persisted synthetic data' : 'Dados sintéticos persistidos',
+      );
+      expect(band).toHaveTextContent(
+        locale === 'en'
+          ? 'Neighborhood median for Bela Vista: R$ 9,512'
+          : 'Mediana do bairro Bela Vista: R$ 9.512',
+      );
+      expect(document.getElementById('search-results')).not.toHaveTextContent(/prepared|preparad/i);
+      expect(
+        await screen.findByText(locale === 'en' ? '1 of 1 property' : '1 de 1 imóvel'),
+      ).toBeVisible();
+      // Results, place total and neighborhood comparison share the one unfiltered read.
+      expect(request.mock.calls.filter(([url]) => url.includes('/properties?'))).toHaveLength(1);
       await userEvent.click(
         screen.getByText(
-          locale === 'en' ? 'Prepared result evidence' : 'Evidências dos resultados preparados',
+          locale === 'en' ? 'Evidence for these results' : 'Evidências destes resultados',
         ),
       );
       expect(screen.getByText(/test-v1/)).toBeVisible();
@@ -374,11 +512,22 @@ describe('contract-backed Search surface', () => {
         name: 'Tentar de novo',
       }),
     );
-    expect(
-      await screen.findByText('Nenhum imóvel preparado neste lugar atende à busca.'),
-    ).toBeVisible();
+    expect(await screen.findByText('Nenhum imóvel neste lugar atende à busca.')).toBeVisible();
   });
-  it('ignores obsolete draft counts and disables Apply during pending/error previews', async () => {
+  it('counts a typed draft once after it rests instead of once per keystroke', async () => {
+    const request = reads();
+    mount(`/search/${bela.id}?view=filters`);
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    const counts = () =>
+      request.mock.calls.filter(([url]) => url.includes('minAskingPrice=')).map(([url]) => url);
+    await userEvent.type(screen.getByLabelText('Preço pedido (R$) — Mínimo'), '600000');
+    expect(screen.getByRole('button', { name: 'Contando imóveis…' })).toBeDisabled();
+    expect(counts()).toHaveLength(0);
+    await screen.findByRole('button', { name: 'Mostrar 1 imóvel' });
+    expect(counts()).toHaveLength(1);
+    expect(counts()[0]).toContain('minAskingPrice=60000000');
+  });
+  it('ignores obsolete draft counts, blocks Apply only while counting and applies after a failed count', async () => {
     let signal: AbortSignal | undefined;
     const request = reads(async (query, currentSignal) => {
       if (query.get('propertyType') === 'studio') {
@@ -396,10 +545,25 @@ describe('contract-backed Search surface', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Terreno' }));
     expect(signal?.aborted).toBe(true);
     expect(
-      await screen.findByText('Não foi possível contar os imóveis deste rascunho.'),
+      await screen.findByText(
+        'Não foi possível contar os imóveis deste rascunho. Os filtros ainda podem ser aplicados.',
+      ),
     ).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Aplicar filtros' })).toBeDisabled();
     expect(request.mock.calls.some(([url]) => url.includes('propertyType=studio'))).toBe(true);
+    // A failed count offers its own retry and never blocks applying the valid draft.
+    const landCounts = () =>
+      request.mock.calls.filter(([url]) => url.includes('propertyType=land')).length;
+    const failed = landCounts();
+    await userEvent.click(
+      within(document.querySelector<HTMLElement>('.search-filters')!).getByRole('button', {
+        name: 'Tentar de novo',
+      }),
+    );
+    await waitFor(() => expect(landCounts()).toBe(failed + 1));
+    const apply = await screen.findByRole('button', { name: 'Aplicar filtros' });
+    expect(apply).toBeEnabled();
+    await userEvent.click(apply);
+    expect(screen.getByLabelText('URL')).toHaveTextContent(`/search/${bela.id}?propertyType=land`);
   });
   it('appends actual pages, retries next-page errors without discarding rows, and resets on sorting', async () => {
     let failure = true;
