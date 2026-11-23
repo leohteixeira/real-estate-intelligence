@@ -48,16 +48,12 @@ services:
         condition: service_completed_successfully
     networks: [app, data, telemetry]
     healthcheck:
-      test:
-        [
-          CMD,
-          node,
-          '-e',
-          "fetch('http://127.0.0.1:8200/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 12
+      test: [CMD, wget, '-q', '-O', /dev/null, 'http://127.0.0.1:8200/ready']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
 
   worker:
     <<: *runtime
@@ -81,22 +77,21 @@ services:
       # Every cycle re-reads the whole catalogue even when idle. At the 250 ms development default
       # that is continuous PostgreSQL and CPU load competing with API reads on the shared host.
       LISTING_HISTORY_INTERVAL_MS: ${LISTING_HISTORY_INTERVAL_MS:-5000}
+      # The schedule poll only claims runs that are already due, so 15 s only bounds the extra start
+      # delay of a scheduled run while removing a once-per-second transaction from the idle worker.
+      COLLECTION_SCHEDULE_INTERVAL_MS: 15000
       OTEL_SERVICE_NAME: real-estate-intelligence-worker
     depends_on:
       migrations:
         condition: service_completed_successfully
     networks: [app, data, telemetry]
     healthcheck:
-      test:
-        [
-          CMD,
-          node,
-          '-e',
-          "require('node:fs').accessSync('/tmp/real-estate-intelligence-worker-ready')",
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 12
+      test: [CMD, test, '-f', /tmp/real-estate-intelligence-worker-ready]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
     stop_grace_period: 30s
 
   ai:
@@ -113,16 +108,12 @@ services:
       OTEL_SERVICE_NAME: real-estate-intelligence-ai
     networks: [app, telemetry]
     healthcheck:
-      test:
-        [
-          CMD,
-          node,
-          '-e',
-          "fetch('http://127.0.0.1:4111/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
-        ]
-      interval: 5s
-      timeout: 3s
-      retries: 12
+      test: [CMD, wget, '-q', '-O', /dev/null, 'http://127.0.0.1:4111/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
 
   web:
     <<: *runtime
@@ -145,9 +136,11 @@ services:
           /dev/null,
           'http://127.0.0.1:3200/real-estate-intelligence/index.html',
         ]
-      interval: 5s
-      timeout: 3s
-      retries: 12
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
 
 networks:
   app: {}
